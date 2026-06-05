@@ -1,0 +1,11 @@
+{
+  "app": {
+    "title": "Mail panel",
+    "description": "Administration panel for the Glyndor mail server."
+  },
+  "home": {
+    "heading": "Mail panel",
+    "tagline": "Manage domains, accounts and the outbound queue of your mail server.",
+    "status-pending": "Connect the panel to your mail server's management API to get started."
+  }
+}

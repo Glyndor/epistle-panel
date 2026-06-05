@@ -1,0 +1,11 @@
+{
+  "app": {
+    "title": "Panel de correo",
+    "description": "Panel de administración para el servidor de correo de Glyndor."
+  },
+  "home": {
+    "heading": "Panel de correo",
+    "tagline": "Gestiona los dominios, las cuentas y la cola de salida de tu servidor de correo.",
+    "status-pending": "Conecta el panel a la API de gestión de tu servidor de correo para empezar."
+  }
+}
