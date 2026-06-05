@@ -6,4 +6,4 @@ Web panel for the Glyndor mail server.
 
 ## License
 
-[AGPL-3.0](LICENSE)
+[Apache-2.0](LICENSE)
