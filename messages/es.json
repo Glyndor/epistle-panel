@@ -10,5 +10,22 @@
     "domains": "Dominios",
     "accounts": "Cuentas",
     "queue": "Cola"
+  },
+  "nav": {
+    "label": "Principal",
+    "skip": "Saltar al contenido",
+    "status": "Estado",
+    "domains": "Dominios",
+    "accounts": "Cuentas"
+  },
+  "domains": {
+    "heading": "Dominios",
+    "unreachable": "No se puede contactar con la API de gestión del servidor de correo. Comprueba que el servidor está en marcha y que el panel está configurado.",
+    "empty": "Aún no hay dominios configurados."
+  },
+  "accounts": {
+    "heading": "Cuentas",
+    "unreachable": "No se puede contactar con la API de gestión del servidor de correo. Comprueba que el servidor está en marcha y que el panel está configurado.",
+    "empty": "Aún no hay cuentas configuradas."
   }
 }
