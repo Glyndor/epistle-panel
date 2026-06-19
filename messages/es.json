@@ -16,7 +16,8 @@
     "skip": "Saltar al contenido",
     "status": "Estado",
     "domains": "Dominios",
-    "accounts": "Cuentas"
+    "accounts": "Cuentas",
+    "queue": "Cola"
   },
   "domains": {
     "heading": "Dominios",
@@ -27,5 +28,18 @@
     "heading": "Cuentas",
     "unreachable": "No se puede contactar con la API de gestión del servidor de correo. Comprueba que el servidor está en marcha y que el panel está configurado.",
     "empty": "Aún no hay cuentas configuradas."
+  },
+  "queue": {
+    "heading": "Cola de salida",
+    "unreachable": "No se puede contactar con la API de gestión del servidor de correo. Comprueba que el servidor está en marcha y que el panel está configurado.",
+    "empty": "La cola de salida está vacía.",
+    "from": "De",
+    "to": "Para",
+    "remove": "Eliminar",
+    "removing": "Eliminando…",
+    "removeLabel": "Eliminar de la cola el mensaje para {recipients}",
+    "removeError": "No se pudo eliminar el mensaje. Inténtalo de nuevo.",
+    "confirm": "¿Eliminar de la cola el mensaje para {recipients}? Esta acción no se puede deshacer.",
+    "next": "Página siguiente"
   }
 }

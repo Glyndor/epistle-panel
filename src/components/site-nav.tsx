@@ -12,6 +12,7 @@ export function SiteNav() {
 		{ href: "/", label: t("status") },
 		{ href: "/domains", label: t("domains") },
 		{ href: "/accounts", label: t("accounts") },
+		{ href: "/queue", label: t("queue") },
 	];
 	return (
 		<header className="border-zinc-200 border-b dark:border-zinc-800">
