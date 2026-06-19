@@ -3,9 +3,12 @@
     "title": "Mail panel",
     "description": "Administration panel for the Glyndor mail server."
   },
-  "home": {
-    "heading": "Mail panel",
-    "tagline": "Manage domains, accounts and the outbound queue of your mail server.",
-    "status-pending": "Connect the panel to your mail server's management API to get started."
+  "dashboard": {
+    "heading": "Status",
+    "unreachable": "The mail server's management API is unreachable. Check that the server is running and the panel is configured.",
+    "version": "Version",
+    "domains": "Domains",
+    "accounts": "Accounts",
+    "queue": "Queue"
   }
 }
