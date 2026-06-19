@@ -1,0 +1,4 @@
+[test]
+# Register a DOM into the global scope before any test runs, so React
+# component tests render against happy-dom under `bun test`.
+preload = ["./src/test-setup.ts"]
