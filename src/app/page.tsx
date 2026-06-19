@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 
+import { UnreachableNotice } from "@/components/unreachable-notice";
 import { getStatus } from "@/lib/api/client";
 import type { Status } from "@/lib/api/schemas";
 
@@ -36,15 +37,13 @@ export default async function HomePage() {
 	const status = await loadStatus();
 
 	return (
-		<main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col justify-center gap-6 p-8">
+		<main
+			id="main-content"
+			className="mx-auto flex min-h-screen w-full max-w-3xl flex-col justify-center gap-6 p-8"
+		>
 			<h1 className="font-semibold text-3xl">{t("heading")}</h1>
 			{status === null ? (
-				<p
-					role="alert"
-					className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200"
-				>
-					{t("unreachable")}
-				</p>
+				<UnreachableNotice message={t("unreachable")} />
 			) : (
 				<dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
 					<StatusCard label={t("version")} value={status.version} />
