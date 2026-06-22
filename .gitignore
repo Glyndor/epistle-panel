@@ -39,3 +39,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Agent / AI-tool artifacts — never commit (zero AI trace).
+.claude/
+.agents/
+.cursor/
+.aider*
+.continue/
+.playwright-mcp/
+**/*-mcp/
