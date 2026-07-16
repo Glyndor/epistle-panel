@@ -1,7 +1,7 @@
 {
   "app": {
-    "title": "Mail panel",
-    "description": "Administration panel for the Glyndor mail server."
+    "title": "Epistle",
+    "description": "Administration panel for the Epistle mail server."
   },
   "dashboard": {
     "heading": "Status",

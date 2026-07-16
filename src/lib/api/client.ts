@@ -16,33 +16,33 @@ import {
 	statusSchema,
 } from "./schemas";
 
-/** Raised for any non-2xx response from the mail management API. */
-export class MailApiError extends Error {
+/** Raised for any non-2xx response from the Epistle management API. */
+export class EpistleApiError extends Error {
 	readonly status: number;
 	readonly code: string;
 
 	constructor(status: number, code: string, message: string) {
 		super(message);
-		this.name = "MailApiError";
+		this.name = "EpistleApiError";
 		this.status = status;
 		this.code = code;
 	}
 }
 
 function baseUrl(): string {
-	return process.env.MAIL_API_URL ?? "http://127.0.0.1:8025";
+	return process.env.EPISTLE_API_URL ?? "http://127.0.0.1:8025";
 }
 
 function token(): string {
-	const value = process.env.MAIL_API_TOKEN;
+	const value = process.env.EPISTLE_API_TOKEN;
 	if (!value) {
-		throw new Error("MAIL_API_TOKEN is not configured");
+		throw new Error("EPISTLE_API_TOKEN is not configured");
 	}
 	return value;
 }
 
 /**
- * Call the mail management API and validate the response shape.
+ * Call the Epistle management API and validate the response shape.
  *
  * Runs on the server only: the bearer token never reaches the browser.
  */
@@ -65,13 +65,13 @@ async function request<T>(
 	if (!response.ok) {
 		const parsed = apiErrorSchema.safeParse(body);
 		if (parsed.success) {
-			throw new MailApiError(
+			throw new EpistleApiError(
 				response.status,
 				parsed.data.error.code,
 				parsed.data.error.message,
 			);
 		}
-		throw new MailApiError(
+		throw new EpistleApiError(
 			response.status,
 			"unknown",
 			"Unexpected error shape",

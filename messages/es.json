@@ -1,7 +1,7 @@
 {
   "app": {
-    "title": "Panel de correo",
-    "description": "Panel de administración para el servidor de correo de Glyndor."
+    "title": "Epistle",
+    "description": "Panel de administración para el servidor de correo Epistle."
   },
   "dashboard": {
     "heading": "Estado",
