@@ -13,5 +13,5 @@ mock.module("server-only", () => ({}));
 
 // The API client reads these at call time; tests stub `fetch`, so the values
 // only need to be present and well-formed.
-process.env.MAIL_API_URL ??= "http://127.0.0.1:8025";
-process.env.MAIL_API_TOKEN ??= "test-token";
+process.env.EPISTLE_API_URL ??= "http://127.0.0.1:8025";
+process.env.EPISTLE_API_TOKEN ??= "test-token";
