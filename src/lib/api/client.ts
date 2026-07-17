@@ -14,6 +14,8 @@ import {
 	removedSchema,
 	type Status,
 	statusSchema,
+	type VerifyResult,
+	verifyResultSchema,
 } from "./schemas";
 
 /** Raised for any non-2xx response from the Epistle management API. */
@@ -110,5 +112,21 @@ export function getQueue(params?: {
 export function removeQueueEntry(id: string): Promise<Removed> {
 	return request(`/api/v1/queue/${encodeURIComponent(id)}`, removedSchema, {
 		method: "DELETE",
+	});
+}
+
+/**
+ * Verify operator credentials against the mail server and report whether the
+ * account may administer the panel. Runs on the server only; the bearer token
+ * and the operator's password never reach the browser.
+ */
+export function verifyCredentials(
+	name: string,
+	password: string,
+): Promise<VerifyResult> {
+	return request("/api/v1/auth/verify", verifyResultSchema, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ name, password }),
 	});
 }

@@ -17,7 +17,8 @@
     "status": "Status",
     "domains": "Domains",
     "accounts": "Accounts",
-    "queue": "Queue"
+    "queue": "Queue",
+    "logout": "Sign out"
   },
   "domains": {
     "heading": "Domains",
@@ -41,5 +42,12 @@
     "removeError": "Could not remove the message. Please try again.",
     "confirm": "Remove the queued message to {recipients}? This cannot be undone.",
     "next": "Next page"
+  },
+  "auth": {
+    "heading": "Sign in",
+    "name": "Account",
+    "password": "Password",
+    "submit": "Sign in",
+    "error": "Incorrect credentials, or this account cannot administer the panel."
   }
 }

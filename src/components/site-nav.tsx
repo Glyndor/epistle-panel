@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 
+import { logout } from "@/lib/auth/actions";
+
 /** Primary navigation across the admin views, marking the active route. */
 export function SiteNav() {
 	const t = useTranslations("nav");
@@ -40,6 +42,14 @@ export function SiteNav() {
 						</Link>
 					);
 				})}
+				<form action={logout} className="ml-auto">
+					<button
+						type="submit"
+						className="rounded text-sm text-zinc-600 hover:text-zinc-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500 dark:text-zinc-400 dark:hover:text-zinc-100"
+					>
+						{t("logout")}
+					</button>
+				</form>
 			</nav>
 		</header>
 	);
