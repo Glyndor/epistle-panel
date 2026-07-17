@@ -25,7 +25,13 @@ Point the panel at a running Epistle server with:
 ```sh
 export EPISTLE_API_URL="http://127.0.0.1:8025"
 export EPISTLE_API_TOKEN="<token>"
+export EPISTLE_PANEL_SESSION_SECRET="<random 32+ byte secret>"
 ```
+
+Admins sign in with a mail account listed under `[api] admins` on the server;
+the panel verifies credentials against Epistle and signs the session cookie with
+`EPISTLE_PANEL_SESSION_SECRET`. Without that secret set, every route stays locked
+(fail-closed).
 
 Checks: `bun run lint` · `bun run typecheck` · `bun test` · `bun run build`
 

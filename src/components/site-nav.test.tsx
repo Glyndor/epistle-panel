@@ -3,6 +3,9 @@ import { render, screen } from "@testing-library/react";
 
 mock.module("next/navigation", () => ({
 	usePathname: () => "/domains",
+	redirect: () => {
+		throw new Error("NEXT_REDIRECT");
+	},
 }));
 mock.module("next-intl", () => ({
 	useTranslations: () => (key: string) => key,

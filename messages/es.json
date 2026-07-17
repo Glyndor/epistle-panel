@@ -17,7 +17,8 @@
     "status": "Estado",
     "domains": "Dominios",
     "accounts": "Cuentas",
-    "queue": "Cola"
+    "queue": "Cola",
+    "logout": "Cerrar sesión"
   },
   "domains": {
     "heading": "Dominios",
@@ -41,5 +42,12 @@
     "removeError": "No se pudo eliminar el mensaje. Inténtalo de nuevo.",
     "confirm": "¿Eliminar de la cola el mensaje para {recipients}? Esta acción no se puede deshacer.",
     "next": "Página siguiente"
+  },
+  "auth": {
+    "heading": "Iniciar sesión",
+    "name": "Cuenta",
+    "password": "Contraseña",
+    "submit": "Entrar",
+    "error": "Credenciales incorrectas, o esta cuenta no puede administrar el panel."
   }
 }

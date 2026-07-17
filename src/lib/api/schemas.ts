@@ -45,6 +45,13 @@ export const removedSchema = z.object({
 });
 export type Removed = z.infer<typeof removedSchema>;
 
+/** `POST /api/v1/auth/verify` */
+export const verifyResultSchema = z.object({
+	valid: z.boolean(),
+	admin: z.boolean(),
+});
+export type VerifyResult = z.infer<typeof verifyResultSchema>;
+
 /** Error shape shared by every endpoint. */
 export const apiErrorSchema = z.object({
 	error: z.object({
