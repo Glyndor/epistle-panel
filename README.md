@@ -31,4 +31,4 @@ Checks: `bun run lint` · `bun run typecheck` · `bun test` · `bun run build`
 
 ## License
 
-[Apache-2.0](LICENSE)
+[MIT](LICENSE)
