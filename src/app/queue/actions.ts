@@ -1,10 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 import { removeQueueEntry } from "@/lib/api/client";
 
 export type RemoveState = { ok: boolean } | null;
+
+const idSchema = z.uuid();
 
 /**
  * Server action: drop one entry from the outbound spool. Returns a status so
@@ -14,9 +17,12 @@ export async function removeEntry(
 	_previous: RemoveState,
 	formData: FormData,
 ): Promise<RemoveState> {
-	const id = String(formData.get("id"));
+	const id = idSchema.safeParse(formData.get("id"));
+	if (!id.success) {
+		return { ok: false };
+	}
 	try {
-		await removeQueueEntry(id);
+		await removeQueueEntry(id.data);
 	} catch (error) {
 		console.error("queue remove failed:", error);
 		return { ok: false };
