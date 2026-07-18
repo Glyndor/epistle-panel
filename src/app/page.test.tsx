@@ -6,6 +6,7 @@ import { stubFetchJson, stubFetchReject } from "@/lib/api/test-fetch";
 // Translations: echo the key so assertions stay locale-independent.
 mock.module("next-intl/server", () => ({
 	getTranslations: async () => (key: string) => key,
+	getFormatter: async () => ({ number: (value: number) => String(value) }),
 }));
 
 const { default: HomePage } = await import("./page");

@@ -1,4 +1,4 @@
-import { getTranslations } from "next-intl/server";
+import { getFormatter, getTranslations } from "next-intl/server";
 
 import { UnreachableNotice } from "@/components/unreachable-notice";
 import { getStatus } from "@/lib/api/client";
@@ -34,6 +34,7 @@ function StatusCard({
 
 export default async function HomePage() {
 	const t = await getTranslations("dashboard");
+	const format = await getFormatter();
 	const status = await loadStatus();
 
 	return (
@@ -47,9 +48,18 @@ export default async function HomePage() {
 			) : (
 				<dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
 					<StatusCard label={t("version")} value={status.version} />
-					<StatusCard label={t("domains")} value={status.domains} />
-					<StatusCard label={t("accounts")} value={status.accounts} />
-					<StatusCard label={t("queue")} value={status.queue_size} />
+					<StatusCard
+						label={t("domains")}
+						value={format.number(status.domains)}
+					/>
+					<StatusCard
+						label={t("accounts")}
+						value={format.number(status.accounts)}
+					/>
+					<StatusCard
+						label={t("queue")}
+						value={format.number(status.queue_size)}
+					/>
 				</dl>
 			)}
 		</main>
