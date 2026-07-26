@@ -1,0 +1,16 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+jobs:
+  bun:
+    uses: Glyndor/.github/.github/workflows/bun-ci.yml@505d78df893bfc2f73261ff285529e6afd46f5ac # v1.9.1
+    with:
+      coverage-threshold: 90

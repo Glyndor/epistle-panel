@@ -1,0 +1,53 @@
+{
+  "app": {
+    "title": "Epistle",
+    "description": "Panel de administración para el servidor de correo Epistle."
+  },
+  "dashboard": {
+    "heading": "Estado",
+    "unreachable": "No se puede contactar con la API de gestión del servidor de correo. Comprueba que el servidor está en marcha y que el panel está configurado.",
+    "version": "Versión",
+    "domains": "Dominios",
+    "accounts": "Cuentas",
+    "queue": "Cola"
+  },
+  "nav": {
+    "label": "Principal",
+    "skip": "Saltar al contenido",
+    "status": "Estado",
+    "domains": "Dominios",
+    "accounts": "Cuentas",
+    "queue": "Cola",
+    "logout": "Cerrar sesión"
+  },
+  "domains": {
+    "heading": "Dominios",
+    "unreachable": "No se puede contactar con la API de gestión del servidor de correo. Comprueba que el servidor está en marcha y que el panel está configurado.",
+    "empty": "Aún no hay dominios configurados."
+  },
+  "accounts": {
+    "heading": "Cuentas",
+    "unreachable": "No se puede contactar con la API de gestión del servidor de correo. Comprueba que el servidor está en marcha y que el panel está configurado.",
+    "empty": "Aún no hay cuentas configuradas."
+  },
+  "queue": {
+    "heading": "Cola de salida",
+    "unreachable": "No se puede contactar con la API de gestión del servidor de correo. Comprueba que el servidor está en marcha y que el panel está configurado.",
+    "empty": "La cola de salida está vacía.",
+    "from": "De",
+    "to": "Para",
+    "remove": "Eliminar",
+    "removing": "Eliminando…",
+    "removeLabel": "Eliminar de la cola el mensaje para {recipients}",
+    "removeError": "No se pudo eliminar el mensaje. Inténtalo de nuevo.",
+    "confirm": "¿Eliminar de la cola el mensaje para {recipients}? Esta acción no se puede deshacer.",
+    "next": "Página siguiente"
+  },
+  "auth": {
+    "heading": "Iniciar sesión",
+    "name": "Cuenta",
+    "password": "Contraseña",
+    "submit": "Entrar",
+    "error": "Credenciales incorrectas, o esta cuenta no puede administrar el panel."
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "app": {
+    "title": "Epistle",
+    "description": "Administration panel for the Epistle mail server."
+  },
+  "dashboard": {
+    "heading": "Status",
+    "unreachable": "The mail server's management API is unreachable. Check that the server is running and the panel is configured.",
+    "version": "Version",
+    "domains": "Domains",
+    "accounts": "Accounts",
+    "queue": "Queue"
+  },
+  "nav": {
+    "label": "Primary",
+    "skip": "Skip to content",
+    "status": "Status",
+    "domains": "Domains",
+    "accounts": "Accounts",
+    "queue": "Queue",
+    "logout": "Sign out"
+  },
+  "domains": {
+    "heading": "Domains",
+    "unreachable": "The mail server's management API is unreachable. Check that the server is running and the panel is configured.",
+    "empty": "No domains are configured yet."
+  },
+  "accounts": {
+    "heading": "Accounts",
+    "unreachable": "The mail server's management API is unreachable. Check that the server is running and the panel is configured.",
+    "empty": "No accounts are configured yet."
+  },
+  "queue": {
+    "heading": "Outbound queue",
+    "unreachable": "The mail server's management API is unreachable. Check that the server is running and the panel is configured.",
+    "empty": "The outbound queue is empty.",
+    "from": "From",
+    "to": "To",
+    "remove": "Remove",
+    "removing": "Removing…",
+    "removeLabel": "Remove the message to {recipients} from the queue",
+    "removeError": "Could not remove the message. Please try again.",
+    "confirm": "Remove the queued message to {recipients}? This cannot be undone.",
+    "next": "Next page"
+  },
+  "auth": {
+    "heading": "Sign in",
+    "name": "Account",
+    "password": "Password",
+    "submit": "Sign in",
+    "error": "Incorrect credentials, or this account cannot administer the panel."
+  }
+}
