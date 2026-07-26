@@ -5,6 +5,18 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
-    labels: ["dependencies", "type:ci"]
+    labels: ["type:deps", "type:ci"]
+    open-pull-requests-limit: 10
+    target-branch: "develop"
+
+  # The application itself lives on develop (package.json + bun.lock); main
+  # only carries the repository scaffolding. Without this entry the whole
+  # front-end dependency tree — Next.js, React, the auth surface — goes
+  # unwatched, which for a webmail panel is the half that faces the user.
+  - package-ecosystem: "bun"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    labels: ["type:deps"]
     open-pull-requests-limit: 10
     target-branch: "develop"
