@@ -11,6 +11,6 @@ permissions:
 
 jobs:
   bun:
-    uses: Glyndor/.github/.github/workflows/bun-ci.yml@505d78df893bfc2f73261ff285529e6afd46f5ac # v1.9.1
+    uses: Glyndor/.github/.github/workflows/bun-ci.yml@8517d94fde00466f59b95c5d1bd838e2ad24a8bf # v1.15.2
     with:
       coverage-threshold: 90
