@@ -6,4 +6,4 @@ Web panel for the Glyndor mail server.
 
 ## License
 
-[Apache-2.0](LICENSE)
+[MIT](LICENSE)
