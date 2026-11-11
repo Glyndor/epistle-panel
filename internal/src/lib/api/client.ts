@@ -2,6 +2,8 @@ import "server-only";
 
 import type { z } from "zod";
 
+import { readSecret } from "@/lib/config/secret";
+
 import {
 	type Accounts,
 	accountsSchema,
@@ -35,8 +37,8 @@ function baseUrl(): string {
 	return process.env.EPISTLE_API_URL ?? "http://127.0.0.1:8025";
 }
 
-function token(): string {
-	const value = process.env.EPISTLE_API_TOKEN;
+async function token(): Promise<string> {
+	const value = await readSecret("EPISTLE_API_TOKEN");
 	if (!value) {
 		throw new Error("EPISTLE_API_TOKEN is not configured");
 	}
@@ -57,7 +59,7 @@ async function request<T>(
 		...init,
 		headers: {
 			...init?.headers,
-			Authorization: `Bearer ${token()}`,
+			Authorization: `Bearer ${await token()}`,
 			Accept: "application/json",
 		},
 		cache: "no-store",

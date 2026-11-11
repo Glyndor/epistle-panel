@@ -4,10 +4,12 @@
  * A session is a compact `payload.signature` string carried in an httpOnly
  * cookie. The payload is HMAC-SHA256 signed with a server-side secret, so the
  * browser cannot forge or tamper with it, and it is verified with the Web
- * Crypto API — which works in both the Node (server action) and Edge
- * (middleware) runtimes, so this module must not use any Node-only or
- * `server-only` API.
+ * Crypto API. The signing secret comes from `readSecret`, which reads a file
+ * and so needs the Node.js runtime: the proxy defaults to it, so do not move
+ * the proxy or this module to the Edge runtime.
  */
+
+import { readSecret } from "@/lib/config/secret";
 
 /** Name of the httpOnly session cookie. */
 export const SESSION_COOKIE = "epistle_admin_session";
@@ -49,7 +51,7 @@ function utf8Bytes(value: string): Uint8Array<ArrayBuffer> {
 }
 
 async function hmacKey(): Promise<CryptoKey> {
-	const secret = process.env.EPISTLE_PANEL_SESSION_SECRET;
+	const secret = await readSecret("EPISTLE_PANEL_SESSION_SECRET");
 	if (!secret) {
 		throw new Error("EPISTLE_PANEL_SESSION_SECRET is not configured");
 	}
