@@ -1,0 +1,129 @@
+name: Container
+
+# Build the image and run the smoke checks: the version label matches
+# package.json, the server answers on its port, the login page is public, every
+# other route redirects to it without a session, and the runtime user is 65532.
+# A change that touches none of the listed inputs cannot break them, so it does
+# not pay to run. The list includes this workflow: one whose `paths:` does not
+# list itself never runs on the pull request that edits it.
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - ".github/workflows/container.yml"
+      - "Containerfile"
+      - ".containerignore"
+      - "internal/**"
+  pull_request:
+    paths:
+      - ".github/workflows/container.yml"
+      - "Containerfile"
+      - ".containerignore"
+      - "internal/**"
+
+# A newer push to a pull request supersedes the run in flight. Branch runs are
+# never cancelled: only a pull_request event is.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and smoke-test image
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Read the package version
+        id: version
+        run: |
+          set -euo pipefail
+          package_version=$(grep -m1 '"version":' internal/package.json | cut -d'"' -f4)
+          if [ -z "$package_version" ]; then
+            echo "::error::could not parse version from internal/package.json"
+            exit 1
+          fi
+          echo "package=${package_version}" >> "$GITHUB_OUTPUT"
+          echo "Package version: ${package_version}"
+
+      - name: Build the image
+        env:
+          PACKAGE_VERSION: ${{ steps.version.outputs.package }}
+        run: |
+          set -euo pipefail
+          # `podman` ships on the runner; no build action. The platform is
+          # explicit so the bases resolve the same index entry every run.
+          podman build \
+            --platform linux/amd64 \
+            --build-arg "VERSION=${PACKAGE_VERSION}" \
+            --build-arg "REVISION=${GITHUB_SHA}" \
+            -t epistle-panel:ci .
+
+      - name: Version label matches package.json
+        env:
+          PACKAGE_VERSION: ${{ steps.version.outputs.package }}
+        run: |
+          set -euo pipefail
+          label=$(podman image inspect \
+            --format '{{ index .Config.Labels "org.opencontainers.image.version" }}' \
+            localhost/epistle-panel:ci)
+          echo "Label: ${label}"
+          if [ "$label" != "$PACKAGE_VERSION" ]; then
+            echo "::error::image version label is '${label}', package.json says '${PACKAGE_VERSION}'"
+            exit 1
+          fi
+
+      - name: Runtime user is 65532
+        run: |
+          set -euo pipefail
+          # The image reference is qualified: the base declares
+          # `io.containers.autoupdate=registry`, which makes podman reject a
+          # bare short name.
+          user=$(podman image inspect \
+            --format '{{.Config.User}}' localhost/epistle-panel:ci)
+          echo "User: ${user}"
+          if [ "$user" != "65532:65532" ]; then
+            echo "::error::image User is '${user}', expected 65532:65532"
+            exit 1
+          fi
+
+      - name: The server answers and gates every route but the login page
+        run: |
+          set -euo pipefail
+          podman run -d --name panel \
+            -p 127.0.0.1:18480:8480 \
+            -e EPISTLE_API_URL=http://127.0.0.1:1 \
+            -e EPISTLE_API_TOKEN=ci-token \
+            -e EPISTLE_PANEL_SESSION_SECRET=ci-session-secret-at-least-32-bytes-long \
+            localhost/epistle-panel:ci
+          trap 'podman logs panel || true; podman rm -f panel >/dev/null' EXIT
+
+          for _ in $(seq 1 30); do
+            if curl -s -o /dev/null http://127.0.0.1:18480/login; then
+              break
+            fi
+            sleep 1
+          done
+
+          login=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18480/login)
+          if [ "$login" != "200" ]; then
+            echo "::error::/login answered ${login}, expected 200"
+            exit 1
+          fi
+
+          # Without a session every other route must send the browser to the
+          # login page; anything else means the gate is open.
+          for path in / /queue /domains /accounts; do
+            result=$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' "http://127.0.0.1:18480${path}")
+            if [ "$result" != "307 http://127.0.0.1:18480/login" ]; then
+              echo "::error::${path} answered '${result}', expected a 307 to /login"
+              exit 1
+            fi
+          done
