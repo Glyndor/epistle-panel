@@ -1,0 +1,572 @@
+name: Release
+
+# Tag push and manual dispatch only. This workflow answers "is this tag ready
+# to release?", which is a question about a specific tag, not branch state.
+# workflow_dispatch lets a maintainer re-run a release for an existing tag whose
+# previous attempt failed.
+#
+# The release is two things: the signed epistle-panel_<version>_all.deb that the
+# apt archive picks up, and the image ghcr.io/glyndor/epistle-panel. Nothing
+# else is built or published.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to (re-)release, e.g. v0.2.0
+        required: true
+        type: string
+      images-only:
+        description: Skip the .deb and the GitHub release (already published) and only build and publish the container image
+        required: false
+        type: boolean
+        default: false
+      dry-run:
+        description: Rehearsal. Build and sign everything with a throwaway key, build the image without pushing it, and stop before anything is published
+        required: false
+        type: boolean
+        default: false
+
+permissions: {}
+
+# One release of a tag at a time. A second run on the same tag would build and
+# push the same image and write the same release, so it waits for the first
+# instead of cancelling it half way.
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+# Every `timeout-minutes` below is an estimate: this workflow has not run yet.
+# Replace each with a bound taken from the first real run, as the CI standard
+# asks, and write the measurement beside it.
+jobs:
+  # Gate every release on promoted, version-matched, advisory-free code.
+  verify:
+    name: Verify tag
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    outputs:
+      # The one commit this release names. Every later job checks out this SHA
+      # rather than resolving the tag again, so nothing is built from a tree the
+      # gate did not look at.
+      commit: ${{ steps.resolve.outputs.commit }}
+    env:
+      TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+    steps:
+      - name: Reject a tag that is not a release name
+        # A dispatch carries the tag as free text and every later step reads it
+        # as a ref, so the shape is checked before it reaches git. Nothing here
+        # is interpolated into the shell: TAG arrives in the environment.
+        run: |
+          set -euo pipefail
+          case "$TAG" in
+            v[0-9]*.[0-9]*.[0-9]*) ;;
+            *) echo "::error::$TAG is not a release tag of the form vMAJOR.MINOR.PATCH"; exit 1 ;;
+          esac
+
+      - name: Resolve the commit this release names
+        id: resolve
+        run: |
+          set -euo pipefail
+          git check-ref-format "refs/tags/$TAG"
+          tag_repo="$(mktemp -d "$RUNNER_TEMP/release-tag.XXXXXX")"
+          trap 'rm -rf "$tag_repo"' EXIT
+          git -C "$tag_repo" init --quiet
+          git -C "$tag_repo" fetch --no-tags --depth=1 \
+            "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git" \
+            "refs/tags/$TAG:refs/tags/$TAG"
+          commit="$(git -C "$tag_repo" rev-parse --verify "refs/tags/${TAG}^{commit}")"
+          echo "Releasing ${TAG} at ${commit}"
+          echo "commit=${commit}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # A literal ref: nothing a dispatch supplies decides what the runner
+          # checks out before the gate has looked at it.
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Move to the release commit, only when it is promoted
+        env:
+          RELEASE_COMMIT: ${{ steps.resolve.outputs.commit }}
+        run: |
+          set -euo pipefail
+          # The tag must name a commit reachable from main, so the tree every
+          # later step runs is code that already went through promotion. The
+          # check runs before the switch and before any tool from the tree starts.
+          git fetch --no-tags origin "refs/tags/$TAG"
+          test "$(git rev-parse --verify 'FETCH_HEAD^{commit}')" = "$RELEASE_COMMIT"
+          if ! git merge-base --is-ancestor "$RELEASE_COMMIT" origin/main; then
+            echo "::error::$TAG is not reachable from origin/main; only promoted code is released"
+            exit 1
+          fi
+          git checkout --detach "$RELEASE_COMMIT"
+          test "$(git rev-parse HEAD)" = "$RELEASE_COMMIT"
+
+      - name: Tag, package.json and debian/changelog name one version
+        # dpkg-buildpackage takes the .deb version from debian/changelog and
+        # nowhere else, so a changelog left behind yields a package labelled
+        # with the version users already have, and apt reports nothing to
+        # upgrade. The tag and package.json can agree while the changelog lags,
+        # which is why all three are compared here and not only the first two.
+        run: python3 scripts/release/check_versions.py "$TAG"
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          # The version the Containerfile copies in and the lockfile was
+          # written with.
+          bun-version: 1.4.4
+
+      - name: Audit dependencies at release time
+        working-directory: internal
+        run: |
+          # Reads bun.lock and queries the advisory database; nothing is
+          # installed. It exits non-zero on any advisory, development
+          # dependencies included, and on a failed lookup, so a registry outage
+          # stops the release instead of passing it. An advisory that has been
+          # judged not to apply is passed as `--ignore=<GHSA id>` with the
+          # reason beside it, in a reviewed change, never by dropping this step.
+          bun audit
+
+      - name: Tag has no published release yet
+        # An images-only dispatch exists to finish the images of a release that
+        # is already published, so this gate is the full release path only. A
+        # rehearsal publishes nothing, so it may run on a tag that is already
+        # released: that is the safest tag to rehearse on.
+        if: ${{ !inputs.images-only && !inputs.dry-run }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # Releases are immutable: refuse to re-publish an existing one. The
+          # workflow_dispatch path may only re-run a tag whose release failed.
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::a release for $TAG already exists; releases are immutable, cut a new patch instead"
+            exit 1
+          fi
+
+      - name: The release images-only completes is published
+        if: ${{ inputs.images-only }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # The mirror of the gate above: an images-only dispatch must point at
+          # a published release for the tag this job just verified, or it would
+          # push images for a version no release carries.
+          published="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" \
+            --json tagName --jq '.tagName' 2>/dev/null || true)"
+          if [ "$published" != "$TAG" ]; then
+            echo "::error::no release is published for $TAG; images-only completes the images of a published release, it does not publish one"
+            exit 1
+          fi
+
+  # The package is Architecture: all, so one runner builds the only .deb. The
+  # job holds `id-token` for the provenance attestation, which has to be made in
+  # the job that produced the file, so it runs nothing but the package build.
+  build-deb:
+    name: Build Debian package
+    needs: verify
+    if: ${{ !inputs.images-only }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    env:
+      TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The commit `verify` resolved, so the package is built from the tree
+          # that was audited and version-checked.
+          ref: ${{ needs.verify.outputs.commit }}
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.4
+
+      - name: Install packaging tooling
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          # From the distribution's own archive, the same trust the runner image
+          # already rests on. Node, which `next build` runs under, is on the
+          # runner image.
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends dpkg-dev debhelper fakeroot
+
+      - name: Build the package
+        run: |
+          # -d skips the build-dependency check on purpose. Bun is not a Debian
+          # package, so a Build-Depends line could not name it, and it is
+          # provided by the setup step above.
+          dpkg-buildpackage -us -uc -b -d
+
+      - name: Stage the .deb and check what it declares
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          deb="../epistle-panel_${version}_all.deb"
+          if [ ! -f "$deb" ]; then
+            echo "::error::dpkg-buildpackage did not produce $(basename "$deb"); the files it did produce:"
+            ls -l .. >&2
+            exit 1
+          fi
+          # The apt archive refuses a package whose control fields disagree
+          # with its name, its release tag or its architecture. Refusing it
+          # here costs a failed job instead of an immutable release that the
+          # archive cannot take.
+          [ "$(dpkg-deb -f "$deb" Package)" = epistle-panel ] || { echo "::error::wrong Package field"; exit 1; }
+          [ "$(dpkg-deb -f "$deb" Version)" = "$version" ] || { echo "::error::Version field is not $version"; exit 1; }
+          [ "$(dpkg-deb -f "$deb" Architecture)" = all ] || { echo "::error::Architecture is not all"; exit 1; }
+          cp "$deb" .
+          echo "Staged $(basename "$deb")"
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: epistle-panel_*_all.deb
+
+      - name: Hand the package to the next jobs
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-deb
+          path: epistle-panel_*_all.deb
+          retention-days: 1
+          if-no-files-found: error
+
+  # The SBOM is made by a script of ours from bun.lock, so no package is
+  # installed and no third-party tool runs. It still has its own job, with
+  # `contents: read` and nothing else, so that it stays that way if the script
+  # ever starts to call one: a job that runs third-party code must not hold the
+  # signing key or the attestation token.
+  sbom:
+    name: Software bill of materials
+    needs: verify
+    if: ${{ !inputs.images-only }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    env:
+      TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.verify.outputs.commit }}
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.4
+
+      - name: Write the CycloneDX document
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          bun scripts/release/sbom.ts internal/bun.lock internal/package.json "dist/epistle-panel-${TAG}.cdx.json"
+
+      - name: Hand the SBOM to the next jobs
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-sbom
+          path: dist/*.cdx.json
+          retention-days: 1
+          if-no-files-found: error
+
+  # The release is made in jobs that split what runs code from what holds a
+  # secret, so nothing that runs a dependency ever sees the signing key:
+  #
+  #   build-deb, sbom   produce the files; no secret
+  #   sign              clean runner, downloads the files, checks them and
+  #                     signs them; the key is given to the signing step alone
+  #   publish           attaches the files to the release; `contents: write`,
+  #                     no secret
+  #
+  # A rehearsal (`dry-run`) goes through sign with a throwaway key and stops.
+  sign:
+    name: Sign
+    needs: [verify, build-deb, sbom]
+    if: ${{ !inputs.images-only }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The signing script and its requirements come from the verified
+          # commit, never from an artifact.
+          ref: ${{ needs.verify.outputs.commit }}
+          persist-credentials: false
+
+      - name: Receive the package
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-deb
+          path: dist
+
+      - name: Receive the SBOM
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-sbom
+          path: dist
+
+      - name: Check what arrived
+        # Only the two files the build jobs make, with the names they are given,
+        # as plain files. Anything else is refused before a key is near it.
+        run: bash scripts/release/check_files.sh dist "$TAG" built
+
+      # A rehearsal never touches the org key: it signs with a key made on the
+      # spot, so it exercises the same script and leaves nothing anyone could
+      # trust. Two steps with their own `if`, not one expression, because
+      # `a && '' || b` falls through to `b` when `a` is true.
+      - name: Make a throwaway key for the rehearsal
+        if: ${{ inputs.dry-run }}
+        run: |
+          key=$(python3 -c 'import base64, os; print(base64.b64encode(os.urandom(32)).decode())')
+          echo "::add-mask::$key"
+          echo "REHEARSAL_KEY=$key" >> "$GITHUB_ENV"
+
+      - name: Sign the files with the org Ed25519 key
+        if: ${{ !inputs.dry-run }}
+        env:
+          GLYNDOR_RELEASE_ED25519_KEY: ${{ secrets.GLYNDOR_RELEASE_ED25519_KEY }}
+        run: bash scripts/release/sign_release.sh dist "$TAG"
+
+      # A rehearsal may name a tag older than the signing script, so the script
+      # comes from the commit that launched the dispatch. Nothing signed here is
+      # published: the key is the throwaway one and the job after this is skipped.
+      - name: Take the signing script from the dispatch commit (rehearsal)
+        if: ${{ inputs.dry-run }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: rehearsal-tools
+          persist-credentials: false
+
+      - name: Sign the files with the throwaway key (rehearsal)
+        if: ${{ inputs.dry-run }}
+        env:
+          GLYNDOR_RELEASE_ED25519_KEY: ${{ env.REHEARSAL_KEY }}
+        run: bash rehearsal-tools/scripts/release/sign_release.sh dist "$TAG"
+
+      - name: Check what is going to be published
+        run: bash scripts/release/check_files.sh dist "$TAG" final
+
+      - name: Hand the checksums and signatures to the next job
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-signatures
+          path: |
+            dist/SHA256SUMS
+            dist/*.sig
+          retention-days: 1
+          if-no-files-found: error
+
+  publish:
+    name: Publish release
+    needs: [verify, sign]
+    # A rehearsal stops before this job.
+    if: ${{ !inputs.images-only && !inputs.dry-run }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Only for check_files.sh, taken from the verified commit.
+          ref: ${{ needs.verify.outputs.commit }}
+          persist-credentials: false
+
+      - name: Receive the package
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-deb
+          path: dist
+
+      - name: Receive the SBOM
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-sbom
+          path: dist
+
+      - name: Receive the checksums and signatures
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-signatures
+          path: dist
+
+      - name: Check what is going to be published
+        # The same allowlist the signing job applied, plus the signatures, and
+        # the hashes in SHA256SUMS must match the bytes received here.
+        run: bash scripts/release/check_files.sh dist "$TAG" final
+
+      - name: Create release
+        # `--verify-tag` refuses to create the tag if it is missing, so a
+        # dispatch cannot invent one.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --generate-notes \
+            --verify-tag \
+            dist/*
+
+  # The image is published after the release, so a failed release never leaves
+  # an image for a version that does not exist. A rehearsal builds it without
+  # pushing, which is the part of the Containerfile that only a release exercises
+  # with the real version and revision arguments.
+  image-build:
+    name: Build image (${{ matrix.arch }})
+    needs: [verify, publish]
+    # An images-only dispatch skips publish; the image still needs verify. A
+    # rehearsal skips publish too and builds without pushing.
+    if: ${{ always() && needs.verify.result == 'success' && (needs.publish.result == 'success' || inputs.images-only || inputs.dry-run) }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    env:
+      TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+      REGISTRY_IMAGE: ghcr.io/glyndor/epistle-panel
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The commit `verify` resolved, so the image carries the same tree the
+          # gate audited.
+          ref: ${{ needs.verify.outputs.commit }}
+          persist-credentials: false
+
+      - name: Build the image for ${{ matrix.arch }}
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          # REVISION is the commit the checkout above produced, not
+          # github.sha: on a dispatch, github.sha is the commit the workflow
+          # was launched from, not the one the tag names.
+          podman build \
+            --platform "linux/${ARCH}" \
+            --build-arg "VERSION=${version}" \
+            --build-arg "REVISION=$(git rev-parse HEAD)" \
+            -t "${REGISTRY_IMAGE}:${version}-${ARCH}" \
+            .
+
+      - name: The image carries the released version and the unprivileged user
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          ref="${REGISTRY_IMAGE}:${version}-${ARCH}"
+          label="$(podman image inspect --format '{{ index .Config.Labels "org.opencontainers.image.version" }}' "$ref")"
+          user="$(podman image inspect --format '{{ .Config.User }}' "$ref")"
+          if [ "$label" != "$version" ]; then
+            echo "::error::image version label is '${label}', the release is '${version}'"
+            exit 1
+          fi
+          if [ "$user" != "65532:65532" ]; then
+            echo "::error::image User is '${user}', expected 65532:65532"
+            exit 1
+          fi
+
+      - name: Log in to ghcr.io
+        if: ${{ !inputs.dry-run }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          set -euo pipefail
+          # `--password-stdin` keeps the token off the command line and out of
+          # the runner log.
+          echo "${GH_TOKEN}" | podman login ghcr.io -u "${ACTOR}" --password-stdin
+
+      - name: Push the ${{ matrix.arch }} image
+        if: ${{ !inputs.dry-run }}
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          podman push "${REGISTRY_IMAGE}:${TAG#v}-${ARCH}"
+
+  image-manifest:
+    name: Publish multi-arch image manifest
+    needs: [verify, image-build]
+    if: ${{ always() && !inputs.dry-run && needs.image-build.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+      # Provenance is signed with the GitHub OIDC token. `attestations: write`
+      # is what the workflow-run token needs to upload the signed envelope to
+      # the repository's attestations endpoint.
+      id-token: write
+      attestations: write
+    env:
+      TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+      REGISTRY_IMAGE: ghcr.io/glyndor/epistle-panel
+    steps:
+      - name: Log in to ghcr.io
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          set -euo pipefail
+          # `actions/attest-build-provenance` with `push-to-registry: true`
+          # reads `~/.docker/config.json`. podman keeps its credentials under
+          # `~/.config/containers/`, which that action cannot see, so the
+          # attestation would fail to push its envelope to the registry.
+          # `--compat-auth-file` also writes the docker-shaped file (podman
+          # 4.9 and later) so the signed envelope lands at the registry.
+          mkdir -p "$HOME/.docker"
+          echo "${GH_TOKEN}" | podman login ghcr.io \
+            -u "${ACTOR}" \
+            --password-stdin \
+            --compat-auth-file "$HOME/.docker/config.json"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The commit `verify` resolved. This job only reads the scripts from
+          # the tree, and it reads them from the released one.
+          ref: ${{ needs.verify.outputs.commit }}
+          persist-credentials: false
+
+      - name: Build and push the multi-arch manifest list
+        id: manifest
+        run: bash scripts/release/publish_manifest.sh "$REGISTRY_IMAGE" "$TAG"
+
+      - name: Attest the multi-arch image
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          # The same action the .deb is attested with. `subject-name` and
+          # `subject-digest` target an OCI image in the registry rather than a
+          # local file.
+          subject-name: ${{ env.REGISTRY_IMAGE }}
+          subject-digest: ${{ steps.manifest.outputs.digest }}
+          push-to-registry: true
