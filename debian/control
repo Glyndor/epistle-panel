@@ -1,0 +1,23 @@
+Source: epistle-panel
+Section: mail
+Priority: optional
+Maintainer: Glyndor <packages@glyndor.net>
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.7.0
+Homepage: https://github.com/Glyndor/epistle-panel
+Vcs-Git: https://github.com/Glyndor/epistle-panel.git
+Vcs-Browser: https://github.com/Glyndor/epistle-panel
+Rules-Requires-Root: no
+
+Package: epistle-panel
+Architecture: all
+Depends: ${misc:Depends}, epistle, podup, glyndor-archive-keyring, adduser
+Description: web panel for the epistle mail server, as a podup stack fragment
+ epistle-panel is the web interface for epistle: webmail and administration
+ on top of epistle's management API.
+ .
+ This package carries no application code and no Node runtime. The panel runs
+ only inside its container image, ghcr.io/glyndor/epistle-panel, and this
+ package installs the podup compose fragment that pins that image to the
+ package version, together with the system account and the directories the
+ fragment mounts. epistle adds the fragment to the stack it generates.

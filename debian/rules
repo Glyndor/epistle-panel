@@ -1,0 +1,23 @@
+#!/usr/bin/make -f
+
+# Nothing is compiled: the application lives in the container image. The only
+# build-time work is stamping the package version into the compose fragment, so
+# the image it names is the one this package was released with.
+VERSION := $(shell dpkg-parsechangelog -SVersion)
+SHARE = debian/epistle-panel/usr/share/glyndor/epistle-panel
+
+%:
+	dh $@
+
+override_dh_auto_build:
+
+override_dh_auto_test:
+	@if ! grep -q '@VERSION@' debian/compose.yaml.in; then \
+		echo "debian/compose.yaml.in has no @VERSION@ placeholder"; exit 1; fi
+
+override_dh_auto_install:
+	install -d -m 0755 $(SHARE)
+	sed 's/@VERSION@/$(VERSION)/g' debian/compose.yaml.in > $(SHARE)/compose.yaml
+	chmod 0644 $(SHARE)/compose.yaml
+	@if grep -q '@' $(SHARE)/compose.yaml; then \
+		echo "an unreplaced placeholder is left in compose.yaml"; exit 1; fi

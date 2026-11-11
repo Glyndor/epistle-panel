@@ -1,0 +1,46 @@
+epistle-panel for Debian
+========================
+
+This package installs a podup compose fragment, not the panel itself. The panel
+runs only inside the container image ghcr.io/glyndor/epistle-panel, and the
+fragment pins that image to the version of this package. `apt upgrade` is what
+moves the panel to a new release.
+
+What the package installs
+-------------------------
+
+  /usr/share/glyndor/epistle-panel/compose.yaml    the stack fragment (replaced on upgrade)
+  /etc/glyndor/epistle-panel/                      configuration, owned by glyndor-epistle-panel
+  /etc/glyndor/epistle-panel/secrets/              mode 0700, one file per secret, mode 0400
+  /var/lib/glyndor/epistle-panel/                  state directory (the panel keeps none today)
+
+The system account and group are glyndor-epistle-panel. Nothing is created
+outside those paths.
+
+Secrets
+-------
+
+The fragment mounts two files read-only as compose secrets under /run/secrets/.
+They never appear in the compose file or in the container's environment, only
+as file paths in EPISTLE_API_TOKEN_FILE and EPISTLE_PANEL_SESSION_SECRET_FILE.
+
+  epistle_panel_session_secret  generated on first install (48 random bytes,
+                                base64). An existing file is never overwritten,
+                                so sessions survive upgrades.
+  epistle_api_token             not generated. Put an epistle API token there,
+                                mode 0400. Without it the stack cannot start.
+
+Network
+-------
+
+The service publishes 127.0.0.1:7587 only. Put your own TLS proxy in front of it
+to expose the panel. It joins the default network of the stack it is added to
+and reaches the epistle API at http://mail:8025, a port that is not published.
+To use another address, set EPISTLE_API_URL in a compose.override.yaml; do not
+edit the installed fragment.
+
+Removal
+-------
+
+`apt remove` keeps the account, the secrets and the state. `apt purge` deletes
+/etc/glyndor/epistle-panel, /var/lib/glyndor/epistle-panel and the account.

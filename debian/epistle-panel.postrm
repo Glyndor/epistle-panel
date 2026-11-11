@@ -1,0 +1,38 @@
+#!/bin/sh
+set -eu
+
+# Removal leaves the account, the secrets and the state alone: the operator may
+# reinstall. Only purge deletes them, and only the paths this package created.
+
+ACCOUNT=glyndor-epistle-panel
+
+case "$1" in
+purge)
+	for path in /etc/glyndor/epistle-panel /var/lib/glyndor/epistle-panel; do
+		if [ -L "$path" ]; then
+			echo "epistle-panel: $path is a symlink and was left in place" >&2
+		else
+			rm -rf --one-file-system -- "$path"
+		fi
+	done
+	# Shared parents are removed only when nothing else uses them.
+	rmdir --ignore-fail-on-non-empty /etc/glyndor /var/lib/glyndor 2>/dev/null || true
+	if getent passwd "$ACCOUNT" >/dev/null 2>&1; then
+		if ! deluser --system --quiet "$ACCOUNT"; then
+			echo "epistle-panel: could not remove the $ACCOUNT account; remove it with deluser once nothing uses it" >&2
+		fi
+	fi
+	if getent group "$ACCOUNT" >/dev/null 2>&1; then
+		delgroup --system --quiet "$ACCOUNT" 2>/dev/null || true
+	fi
+	;;
+remove | upgrade | failed-upgrade | abort-install | abort-upgrade | disappear) ;;
+*)
+	echo "postrm called with unknown argument '$1'" >&2
+	exit 1
+	;;
+esac
+
+#DEBHELPER#
+
+exit 0
