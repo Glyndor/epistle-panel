@@ -1,10 +1,16 @@
 import { expect, mock } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
-import * as matchers from "@testing-library/jest-dom/matchers";
 
 // Provide `document`/`window` for component tests, then extend `expect` with
-// the jest-dom matchers (toBeInTheDocument, toHaveTextContent, …).
+// the jest-dom matchers (toBeInTheDocument, toHaveTextContent, …). The matchers
+// are imported after the registration on purpose: jest-dom 7 loads
+// @testing-library/dom on import, which binds `screen` to the `document` that
+// exists at that moment.
 GlobalRegistrator.register();
+// The namespace also carries a `default` export that is not a matcher.
+const { default: _default, ...matchers } = await import(
+	"@testing-library/jest-dom/matchers"
+);
 expect.extend(matchers);
 
 // `server-only` throws when imported outside a React Server Component; under
