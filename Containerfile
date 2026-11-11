@@ -47,12 +47,12 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # The panel's own port: never 80 or 443, so the service is identifiable. TLS is
 # the operator's proxy, not the panel's.
 ENV HOSTNAME=0.0.0.0
-ENV PORT=8480
+ENV PORT=7587
 
 COPY --from=builder --chown=65532:65532 /build/.next/standalone ./
 COPY --from=builder --chown=65532:65532 /build/.next/static ./.next/static
 
 USER 65532:65532
-EXPOSE 8480
+EXPOSE 7587
 # The distroless Node image's entrypoint is `node`; the command is the script.
 CMD ["server.js"]

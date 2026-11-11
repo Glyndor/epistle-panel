@@ -98,7 +98,7 @@ jobs:
         run: |
           set -euo pipefail
           podman run -d --name panel \
-            -p 127.0.0.1:18480:8480 \
+            -p 127.0.0.1:17587:7587 \
             -e EPISTLE_API_URL=http://127.0.0.1:1 \
             -e EPISTLE_API_TOKEN=ci-token \
             -e EPISTLE_PANEL_SESSION_SECRET=ci-session-secret-at-least-32-bytes-long \
@@ -106,13 +106,13 @@ jobs:
           trap 'podman logs panel || true; podman rm -f panel >/dev/null' EXIT
 
           for _ in $(seq 1 30); do
-            if curl -s -o /dev/null http://127.0.0.1:18480/login; then
+            if curl -s -o /dev/null http://127.0.0.1:17587/login; then
               break
             fi
             sleep 1
           done
 
-          login=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18480/login)
+          login=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:17587/login)
           if [ "$login" != "200" ]; then
             echo "::error::/login answered ${login}, expected 200"
             exit 1
@@ -121,8 +121,8 @@ jobs:
           # Without a session every other route must send the browser to the
           # login page; anything else means the gate is open.
           for path in / /queue /domains /accounts; do
-            result=$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' "http://127.0.0.1:18480${path}")
-            if [ "$result" != "307 http://127.0.0.1:18480/login" ]; then
+            result=$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' "http://127.0.0.1:17587${path}")
+            if [ "$result" != "307 http://127.0.0.1:17587/login" ]; then
               echo "::error::${path} answered '${result}', expected a 307 to /login"
               exit 1
             fi
