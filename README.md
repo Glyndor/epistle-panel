@@ -16,6 +16,7 @@ Admin panel for the [Epistle mail server](https://github.com/Glyndor/epistle) 鈥
 ## 馃殌 Development
 
 ```sh
+cd internal
 bun install
 bun run dev
 ```
@@ -33,7 +34,7 @@ the panel verifies credentials against Epistle and signs the session cookie with
 `EPISTLE_PANEL_SESSION_SECRET`. Without that secret set, every route stays locked
 (fail-closed).
 
-Checks: `bun run lint` 路 `bun run typecheck` 路 `bun test` 路 `bun run build`
+Checks, from `internal/`: `bun run lint` 路 `bun run typecheck` 路 `bun test` 路 `bun run build`
 
 ## License
 
