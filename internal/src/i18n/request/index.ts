@@ -1,16 +1,12 @@
 import { cookies } from "next/headers";
 import { getRequestConfig } from "next-intl/server";
 
+import {
+	DEFAULT_LOCALE,
+	isSupportedLocale,
+	LOCALE_COOKIE,
+} from "@/i18n/locales";
 import { loadMessages } from "@/i18n/messages";
-
-export const SUPPORTED_LOCALES = ["en", "es"] as const;
-export type Locale = (typeof SUPPORTED_LOCALES)[number];
-
-const DEFAULT_LOCALE: Locale = "en";
-
-function isSupported(value: string | undefined): value is Locale {
-	return SUPPORTED_LOCALES.includes(value as Locale);
-}
 
 /** Resolve a dot-namespaced key against the English source messages. */
 function englishMessage(catalog: unknown, key: string): string | undefined {
@@ -25,8 +21,10 @@ function englishMessage(catalog: unknown, key: string): string | undefined {
 }
 
 export default getRequestConfig(async () => {
-	const cookieLocale = (await cookies()).get("locale")?.value;
-	const locale = isSupported(cookieLocale) ? cookieLocale : DEFAULT_LOCALE;
+	const cookieLocale = (await cookies()).get(LOCALE_COOKIE)?.value;
+	const locale = isSupportedLocale(cookieLocale)
+		? cookieLocale
+		: DEFAULT_LOCALE;
 	const english = await loadMessages(DEFAULT_LOCALE);
 
 	return {

@@ -8,10 +8,9 @@ import {
 } from "@testing-library/react";
 
 import { stubFetchReject } from "@/lib/api/test-support/fetch";
+import { intlClientMock } from "@/test/intl-client";
 
-mock.module("next-intl", () => ({
-	useTranslations: () => (key: string) => key,
-}));
+mock.module("next-intl", () => intlClientMock);
 mock.module("next/cache", () => ({ revalidatePath: () => {} }));
 
 const { RemoveButton } = await import(".");
@@ -29,14 +28,14 @@ describe("RemoveButton", () => {
 		expect(button).toHaveTextContent("remove");
 	});
 
-	it("keeps a 44px touch target", () => {
+	it("keeps a 44px touch target on a coarse pointer", () => {
 		// No layout under happy-dom: the class is the contract, the rendered
 		// size is measured in a browser.
 		render(<RemoveButton id={ID} recipients="a@b.example" />);
 
 		expect(screen.getByRole("button", { name: "removeLabel" })).toHaveClass(
-			"min-h-11",
-			"min-w-11",
+			"pointer-coarse:min-h-11",
+			"pointer-coarse:min-w-11",
 		);
 	});
 

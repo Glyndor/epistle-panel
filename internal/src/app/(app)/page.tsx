@@ -40,11 +40,8 @@ export default async function HomePage() {
 	const status = await loadStatus();
 
 	return (
-		<main
-			id="main-content"
-			className="mx-auto flex min-h-screen w-full max-w-3xl flex-col justify-center gap-6 p-8"
-		>
-			<h1 className="font-semibold text-3xl">{t("heading")}</h1>
+		<>
+			<h1 className="font-semibold text-lg">{t("heading")}</h1>
 			{status === null ? (
 				<Alert variant="warning">
 					<AlertDescription>{t("unreachable")}</AlertDescription>
@@ -66,6 +63,6 @@ export default async function HomePage() {
 					/>
 				</dl>
 			)}
-		</main>
+		</>
 	);
 }

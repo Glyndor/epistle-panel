@@ -37,11 +37,8 @@ export default async function QueuePage({
 	const page = await loadQueue(parseCursor(cursor));
 
 	return (
-		<main
-			id="main-content"
-			className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-8"
-		>
-			<h1 className="font-semibold text-3xl">{t("heading")}</h1>
+		<>
+			<h1 className="font-semibold text-lg">{t("heading")}</h1>
 			{page === null ? (
 				<Alert variant="warning">
 					<AlertDescription>{t("unreachable")}</AlertDescription>
@@ -94,6 +91,6 @@ export default async function QueuePage({
 					)}
 				</>
 			)}
-		</main>
+		</>
 	);
 }

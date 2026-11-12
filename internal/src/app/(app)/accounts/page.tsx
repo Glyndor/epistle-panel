@@ -29,11 +29,8 @@ export default async function AccountsPage() {
 	const accounts = await loadAccounts();
 
 	return (
-		<main
-			id="main-content"
-			className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-8"
-		>
-			<h1 className="font-semibold text-3xl">{t("heading")}</h1>
+		<>
+			<h1 className="font-semibold text-lg">{t("heading")}</h1>
 			{accounts === null ? (
 				<Alert variant="warning">
 					<AlertDescription>{t("unreachable")}</AlertDescription>
@@ -62,6 +59,6 @@ export default async function AccountsPage() {
 					</TableBody>
 				</Table>
 			)}
-		</main>
+		</>
 	);
 }
