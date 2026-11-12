@@ -219,11 +219,17 @@ image they use, `docker.io/library/debian:trixie` by default.
 runs it, and `scripts/headers/verify.sh`, on pull requests that touch the code it
 exercises.
 
-Other workflows run only when their answer can change: `Container` (the image
-inputs), `Debian package` (the package inputs), `Dependency audit` (lockfile or
+The fifteen workflows split by when they run. `CI` (lint, typecheck, build, the
+unit tests with the coverage threshold, and the dependabot freshness check) runs
+on every push to `main` or `develop` and on every pull request into `develop`.
+Others run only when their answer can change: `Container` (the image inputs),
+`Debian package` (the package inputs), `Dependency audit` (lockfile or
 manifest, plus weekly), `actionlint` (workflow files), `Bun version` (one Bun
 release across the workflows and the Containerfile), `Pin policy` (workflow
-files, plus weekly) and `Dependabot security watch`. All of these, and `Line
+files, plus weekly), `Randomized tests` (the unit suite in random order with a
+fixed seed, when `internal/` sources or its test config change), `Release
+scripts` (the tag check, image tags, signing and publishing scripts under
+`scripts/release`) and `Dependabot security watch`. All of these, and `Line
 limit` (when a source file changes), run on pull requests into `develop` only:
 the promotion pull request into `main` carries a tree they already checked.
 `DCO` runs on every pull request into `main` or `develop`, and `guard` on every
