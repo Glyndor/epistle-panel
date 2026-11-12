@@ -28,6 +28,20 @@ on it. Its `timeout-minutes: 15` is an estimate: it had not run on a runner when
 it was written. A red run means a real server behaved differently from the unit
 tests, so read its log before merging anyway.
 
+`run.sh` is a thin runner: argument parsing, the stand-in and panel start and
+stop, and the dispatch. The rest is sourced from two folders, so no file nears
+the line limit:
+
+| Path | Holds |
+|---|---|
+| `scripts/e2e/lib/reporting.sh` | the pass and fail counters and the `assert_*` helpers |
+| `scripts/e2e/lib/processes.sh` | secrets, start and restart of the stand-in and the panel, its control calls |
+| `scripts/e2e/lib/http.sh` | `fetch`, `login`, the form-field readers, memory and CPU counters |
+| `scripts/e2e/scenarios/<name>.sh` | one scenario each: `headers`, `logout`, `limiter`, `limiter-global`, `noauth`, `degraded`, `rotation`, `idle` |
+
+A new scenario is a new file in `scenarios/`, a `source` line and a `case` entry
+in `run.sh`, and a row in the table below.
+
 Two small files are sourced by both scripts: `session-cookie.sh` holds the
 session cookie name, and a test fails when it differs from `SESSION_COOKIE` in
 `internal/src/lib/auth/session/index.ts`; `html-checks.sh` holds the check that
