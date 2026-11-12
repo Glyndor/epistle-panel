@@ -34,6 +34,13 @@ describe("sniffImage", () => {
 		).toBe("image/webp");
 	});
 
+	it("rejects an unterminated-comment prefix quickly", () => {
+		const hostile = new TextEncoder().encode("<!--".repeat(50_000));
+		const started = performance.now();
+		expect(sniffImage(hostile)).toBeUndefined();
+		expect(performance.now() - started).toBeLessThan(500);
+	});
+
 	it("accepts a plain SVG, with or without an XML prolog and comments", () => {
 		for (const svg of [
 			'<svg xmlns="http://www.w3.org/2000/svg"></svg>',
