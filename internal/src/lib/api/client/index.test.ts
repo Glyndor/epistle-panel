@@ -100,7 +100,7 @@ describe("client token file", () => {
 	function bearer(): string | undefined {
 		const [, init] = (globalThis.fetch as unknown as Mock<typeof fetch>)
 			.mock.calls[0] as [unknown, RequestInit];
-		return (init.headers as Record<string, string>).Authorization;
+		return new Headers(init.headers).get("Authorization") ?? undefined;
 	}
 
 	function tokenFile(content: string): { path: string; cleanup: () => void } {
