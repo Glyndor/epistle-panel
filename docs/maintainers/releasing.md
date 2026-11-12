@@ -41,6 +41,8 @@ Releases are immutable. A mistake is fixed with a new patch version, never by mo
 - `images-only` rebuilds and pushes only the image, for a tag whose release is already published.
 - `dry-run` builds and signs everything with a throwaway key, builds the image without pushing it, and stops before anything is published.
 
+Start a manual run from the tag itself (Use workflow from: the tag, not a branch). Every job builds the commit the run is on, and `verify` refuses a run whose commit is not the one the tag names.
+
 ## Scripts
 
 The workflow calls these, each with an explicit interpreter, and they can be run by hand from the repository root:
