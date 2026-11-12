@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
-
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar/trigger";
+import { getBrand } from "@/features/branding/queries/brand";
 
 /**
  * The bar above the page content: the sidebar toggle and, where the sidebar is
@@ -15,7 +15,7 @@ export async function SiteHeader() {
 			<SidebarTrigger label={t("toggle")} />
 			<Separator orientation="vertical" className="h-4" />
 			<span className="font-semibold text-sm md:sr-only">
-				{t("brand")}
+				{getBrand().name}
 			</span>
 		</header>
 	);

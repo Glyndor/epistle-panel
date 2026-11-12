@@ -1,10 +1,9 @@
 import "server-only";
 
-import { constants } from "node:fs";
-import { open } from "node:fs/promises";
 import { isAbsolute } from "node:path";
 
 import { ConfigError } from "../config-error";
+import { FileTooLargeError, readRegularFile } from "../read-file";
 
 /** Largest secret file accepted, in bytes. Real secrets are a few dozen. */
 export const MAX_SECRET_BYTES = 64 * 1024;
@@ -47,51 +46,6 @@ export function clearSecretCache(): void {
 	cache().clear();
 }
 
-/** Raised internally when a secret file exceeds `MAX_SECRET_BYTES`. */
-class SecretTooLargeError extends Error {}
-
-/**
- * Open flags for a secret file. `O_NOFOLLOW` makes the open fail when the last
- * path component is a symlink, and `O_NONBLOCK` keeps a FIFO from blocking the
- * open before the file type can be checked. Both are undefined on Windows, which
- * this panel never runs on (it ships as a Linux container), so they fall back
- * to 0 there. `O_NOFOLLOW` does not cover symlinks in the parent directories:
- * the directory holding the secrets is trusted to be root-owned.
- */
-const OPEN_FLAGS =
-	constants.O_RDONLY |
-	(constants.O_NOFOLLOW ?? 0) |
-	(constants.O_NONBLOCK ?? 0);
-
-/**
- * Read a secret file through one open file descriptor.
- *
- * The type check and the read use the same descriptor, so the file cannot be
- * swapped between them. Refuses anything that is not a regular file (symlink,
- * device, FIFO, directory) and anything over `MAX_SECRET_BYTES`, without ever
- * buffering more than the cap plus one byte.
- */
-async function readSecretFile(path: string): Promise<string> {
-	const handle = await open(path, OPEN_FLAGS);
-	try {
-		const info = await handle.stat();
-		if (!info.isFile()) {
-			throw new Error("not a regular file");
-		}
-		if (info.size > MAX_SECRET_BYTES) {
-			throw new SecretTooLargeError();
-		}
-		const buffer = Buffer.alloc(MAX_SECRET_BYTES + 1);
-		const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0);
-		if (bytesRead > MAX_SECRET_BYTES) {
-			throw new SecretTooLargeError();
-		}
-		return buffer.toString("utf8", 0, bytesRead);
-	} finally {
-		await handle.close();
-	}
-}
-
 /**
  * Resolve a secret from the environment.
  *
@@ -129,9 +83,11 @@ export async function readSecret(name: string): Promise<string | undefined> {
 
 	let content: string;
 	try {
-		content = await readSecretFile(path);
+		content = (await readRegularFile(path, MAX_SECRET_BYTES)).toString(
+			"utf8",
+		);
 	} catch (error) {
-		if (error instanceof SecretTooLargeError) {
+		if (error instanceof FileTooLargeError) {
 			throw new ConfigError(
 				`${fileVar} is set but the file is too large`,
 			);

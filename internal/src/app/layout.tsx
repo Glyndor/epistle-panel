@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
-import { getLocale, getMessages, getTranslations } from "next-intl/server";
+import { getLocale, getMessages } from "next-intl/server";
+
+import { getBrand } from "@/features/branding/queries/brand";
+import { isThemeConfigured } from "@/features/theme/queries/theme-css";
 
 import { pickClientMessages } from "@/i18n/messages";
 
@@ -13,9 +16,12 @@ import "./globals.css";
  * description, canonical link, Open Graph or Twitter metadata.
  */
 export async function generateMetadata(): Promise<Metadata> {
-	const t = await getTranslations("app");
+	const brand = getBrand();
 	return {
-		title: t("title"),
+		title: brand.name,
+		// The operator's favicon, when set; otherwise the file Next serves for
+		// `favicon.ico` in this folder.
+		...(brand.hasFavicon && { icons: { icon: "/brand/favicon" } }),
 		robots: {
 			index: false,
 			follow: false,
@@ -34,6 +40,17 @@ export default async function RootLayout({
 	const messages = await getMessages();
 	return (
 		<html lang={locale} className="h-full antialiased">
+			{isThemeConfigured() && (
+				<head>
+					{/* The operator's override, after the panel's own stylesheet.
+					    Same origin, so `style-src 'self'` allows it. */}
+					<link
+						rel="stylesheet"
+						href="/theme.css"
+						precedence="theme"
+					/>
+				</head>
+			)}
 			<body className="min-h-full text-sm">
 				<NextIntlClientProvider messages={pickClientMessages(messages)}>
 					{children}

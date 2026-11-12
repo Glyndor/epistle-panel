@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { EpistleMark } from "@/components/icons/epistle-mark";
 import { NavMain } from "@/components/layout/nav-main";
 import { NavUser } from "@/components/layout/nav-user";
 import {
@@ -15,6 +14,9 @@ import {
 	SidebarSeparator,
 } from "@/components/ui/sidebar/regions";
 import { Sidebar } from "@/components/ui/sidebar/sidebar";
+import { BrandMark } from "@/features/branding/components/brand-mark";
+import { CopyrightNotice } from "@/features/branding/components/copyright-notice";
+import { getBrand } from "@/features/branding/queries/brand";
 import type { NavGroup } from "@/features/navigation/schemas/nav-item";
 
 /**
@@ -30,6 +32,7 @@ export async function AppSidebar({
 	groups: readonly NavGroup[];
 }) {
 	const t = await getTranslations("nav");
+	const brand = getBrand();
 
 	return (
 		<Sidebar
@@ -42,14 +45,14 @@ export async function AppSidebar({
 					<SidebarMenuItem>
 						<SidebarMenuButton
 							asChild
-							tooltip={t("brand")}
+							tooltip={brand.name}
 							className="min-h-10"
 						>
 							<Link href="/">
-								<EpistleMark />
+								<BrandMark hasLogo={brand.hasLogo} />
 								<span className="grid flex-1 text-left leading-tight">
 									<span className="truncate font-semibold">
-										{t("brand")}
+										{brand.name}
 									</span>
 									<span className="truncate text-muted-foreground text-xs">
 										{t("brandSubtitle")}
@@ -66,6 +69,7 @@ export async function AppSidebar({
 			<SidebarSeparator />
 			<SidebarFooter>
 				<NavUser name={name} />
+				<CopyrightNotice className="px-2 text-muted-foreground text-xs group-data-[collapsible=icon]:sr-only" />
 			</SidebarFooter>
 		</Sidebar>
 	);

@@ -98,7 +98,7 @@ export function Sheet({
 				}
 			}}
 			className={cn(
-				"fixed inset-y-0 m-0 h-svh max-h-none w-3/4 max-w-sm bg-background p-0 text-foreground shadow-lg backdrop:bg-black/50",
+				"fixed inset-y-0 m-0 h-svh max-h-none w-3/4 max-w-sm bg-background p-0 text-foreground shadow-lg backdrop:bg-overlay",
 				side === "left"
 					? "left-0 border-r"
 					: "right-0 left-auto border-l",

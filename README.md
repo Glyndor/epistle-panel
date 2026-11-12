@@ -114,6 +114,23 @@ another host use `https`, or list the host in `EPISTLE_API_ALLOW_HTTP_HOSTS`
 (comma separated) when the link is already private, for example over WireGuard.
 An invalid value makes every API call fail without sending a request.
 
+### Branding and theme
+
+The image is immutable, so the look is set from the environment and from files
+mounted into the container. See [docs/maintainers/customising.md](docs/maintainers/customising.md)
+for what each one can change and what needs a rebuild.
+
+| Variable | Effect |
+|---|---|
+| `EPISTLE_PANEL_THEME_CSS_FILE` | Absolute path of a stylesheet served at `/theme.css` and linked after the panel's own. Redefine the CSS variables of `theme.css` in it. At most 128 KiB, a regular file, no symlink. Read on every request. |
+| `EPISTLE_PANEL_BRAND_NAME` | Product name in the sidebar, the sign-in page and the tab title. 1 to 40 characters; an invalid value falls back to `Epistle`. |
+| `EPISTLE_PANEL_BRAND_LOGO_FILE` | Absolute path of a PNG, JPEG, WebP, ICO or SVG (at most 256 KiB) served at `/brand/logo`. An SVG with script is refused. |
+| `EPISTLE_PANEL_BRAND_FAVICON_FILE` | The same, served at `/brand/favicon` and used as the tab icon. |
+
+The original copyright notice stays in the interface whatever is set. A file
+that cannot be used is answered with a 404 and one log line that names the
+variable, never the path.
+
 ### Sessions and sign-in limits
 
 - The session cookie is named `__Host-epistle_admin_session` and is always
