@@ -1,6 +1,6 @@
 # epistle-panel
 
-Admin panel for the [Epistle mail server](https://github.com/Glyndor/epistle) — domains, accounts, email security and queues on top of its management API.
+Admin panel for the [Epistle mail server](https://github.com/Glyndor/epistle): domains, accounts, email security and queues on top of its management API.
 
 [![CI](https://github.com/Glyndor/epistle-panel/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/Glyndor/epistle-panel/actions/workflows/ci.yml)
 
@@ -9,7 +9,7 @@ Admin panel for the [Epistle mail server](https://github.com/Glyndor/epistle) �
 ## 🧱 Stack
 
 - [Next.js](https://nextjs.org) (App Router, TypeScript) + Tailwind CSS
-- [next-intl](https://next-intl.dev) — English and Spanish ship together
+- [next-intl](https://next-intl.dev): English and Spanish ship together
 - Typed [Epistle API](https://github.com/Glyndor/epistle) client with [zod](https://zod.dev)-validated responses; the bearer token stays server-side
 - Biome (lint + format), `bun test`
 
@@ -17,7 +17,8 @@ Admin panel for the [Epistle mail server](https://github.com/Glyndor/epistle) �
 
 The panel runs only as a service of the stack that [epistle](https://github.com/Glyndor/epistle)
 generates. There is no standalone compose file. It ships in two forms, neither
-published yet: both are built in CI and the release pipeline is still to come.
+published yet: `.github/workflows/release.yml` builds both when a `v*` tag is
+pushed, and no release exists so far. See [docs/maintainers/releasing.md](docs/maintainers/releasing.md).
 
 - **Container image.** `ghcr.io/glyndor/epistle-panel`, built from the `Containerfile`
   at the repository root. It runs as uid 65532 and listens on port 7587. The
@@ -39,7 +40,8 @@ bun install
 bun run dev
 ```
 
-Point the panel at a running Epistle server with:
+The dev server listens on `http://localhost:3000`. Point the panel at a running
+Epistle server with (`EPISTLE_API_URL` defaults to `http://127.0.0.1:8025`):
 
 ```sh
 export EPISTLE_API_URL="http://127.0.0.1:8025"
@@ -47,9 +49,9 @@ export EPISTLE_API_TOKEN="<token>"
 export EPISTLE_PANEL_SESSION_SECRET="<random 32+ byte secret>"
 ```
 
-Admins sign in with a mail account listed under `[api] admins` on the server;
-the panel verifies credentials against Epistle and signs the session cookie with
-`EPISTLE_PANEL_SESSION_SECRET`. Without that secret set, every route stays locked
+Admins sign in with a mail account that the Epistle server reports as an admin.
+The panel verifies the credentials against Epistle and signs the session cookie
+with `EPISTLE_PANEL_SESSION_SECRET`. Without that secret set, every route stays locked
 (fail-closed).
 
 ### Secrets from files
@@ -71,7 +73,23 @@ export EPISTLE_PANEL_SESSION_SECRET_FILE="/run/secrets/epistle_panel_session_sec
   fails every API call.
 - Error messages name the variable, never the path or the content.
 
-Checks, from `internal/`: `bun run lint` · `bun run typecheck` · `bun test` · `bun run build`
+## Contributing
+
+Branch from `develop` and open the pull request against `develop`. The
+Next.js project lives in `internal/`, so every command runs from there:
+
+```sh
+cd internal
+bun run lint
+bun run typecheck
+bun test
+bun run build
+```
+
+The Debian package has its own checks, run by the `Debian package` workflow:
+`scripts/debian/build.sh <output-dir>` builds and lints the `.deb` in a Debian
+container, and `scripts/debian/smoke.sh <path-to-.deb>` installs it there.
+Both need podman or docker.
 
 ## License
 
