@@ -2,7 +2,12 @@ import { afterEach, describe, expect, it, type Mock } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { stubFetchJson, stubFetchReject } from "../test-support/fetch";
+import { REQUEST_TIMEOUT_MS } from "../request";
+import {
+	stubFetchHang,
+	stubFetchJson,
+	stubFetchReject,
+} from "../test-support/fetch";
 import {
 	EpistleApiError,
 	getAccounts,
@@ -10,11 +15,14 @@ import {
 	getQueue,
 	getStatus,
 	removeQueueEntry,
+	VERIFY_TIMEOUT_MS,
+	verifyCredentials,
 } from ".";
 
 const ID = "01890a5d-ac96-774b-b9aa-9be4c3bd6b0e";
 
 afterEach(() => {
+	process.env.EPISTLE_API_URL = "http://127.0.0.1:8025";
 	delete process.env.EPISTLE_API_TOKEN_FILE;
 	delete process.env.EPISTLE_API_TOKEN;
 	process.env.EPISTLE_API_TOKEN = "test-token";
@@ -118,6 +126,74 @@ describe("client token file", () => {
 		const error = await getStatus().catch((e) => e);
 		file.cleanup();
 		expect(error.message).toContain("EPISTLE_API_TOKEN_FILE");
+		expect(globalThis.fetch).not.toHaveBeenCalled();
+	});
+});
+
+describe("client time budgets", () => {
+	async function budgetOf(call: () => Promise<unknown>): Promise<number> {
+		stubFetchJson({ ok: true });
+		const timeout = AbortSignal.timeout;
+		const seen: number[] = [];
+		AbortSignal.timeout = (ms: number) => {
+			seen.push(ms);
+			return timeout.call(AbortSignal, ms);
+		};
+		try {
+			await call().catch(() => undefined);
+		} finally {
+			AbortSignal.timeout = timeout;
+		}
+		return seen[0] ?? Number.NaN;
+	}
+
+	it("gives every read and the queue removal the ordinary budget", async () => {
+		for (const call of [
+			getStatus,
+			getDomains,
+			getAccounts,
+			() => getQueue(),
+			() => removeQueueEntry(ID),
+		]) {
+			expect(await budgetOf(call)).toBe(REQUEST_TIMEOUT_MS);
+		}
+	});
+
+	it("gives credential verification a longer budget", async () => {
+		expect(await budgetOf(() => verifyCredentials("ops", "pw"))).toBe(
+			VERIFY_TIMEOUT_MS,
+		);
+		expect(VERIFY_TIMEOUT_MS).toBeGreaterThan(REQUEST_TIMEOUT_MS);
+	});
+
+	it("rejects a call that never gets an answer", async () => {
+		stubFetchHang();
+		const timeout = AbortSignal.timeout;
+		AbortSignal.timeout = () => timeout.call(AbortSignal, 20);
+		try {
+			const error = await getStatus().catch((e) => e);
+			expect(error.name).toBe("EpistleApiTimeoutError");
+		} finally {
+			AbortSignal.timeout = timeout;
+		}
+	});
+});
+
+describe("client base URL", () => {
+	it("makes no request to a metadata address", async () => {
+		process.env.EPISTLE_API_URL = "http://169.254.169.254/latest/meta-data";
+		stubFetchJson({ version: "1", domains: 0, accounts: 0, queue_size: 0 });
+		const error = await getStatus().catch((e) => e);
+		expect(error.message).toContain("EPISTLE_API_URL");
+		expect(globalThis.fetch).not.toHaveBeenCalled();
+	});
+
+	it("makes no request to a remote host over plain http", async () => {
+		process.env.EPISTLE_API_URL = "http://api.remoto:8025";
+		stubFetchJson({});
+		const error = await verifyCredentials("ops", "pw").catch((e) => e);
+		expect(error.message).toContain("EPISTLE_API_URL");
+		expect(error.message).not.toContain("pw");
 		expect(globalThis.fetch).not.toHaveBeenCalled();
 	});
 });
