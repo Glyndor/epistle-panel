@@ -69,3 +69,12 @@ the maintainer docs ([shadcn.md](shadcn.md), [layouts.md](layouts.md),
 [icons.md](icons.md)) describe the rules a change keeps. Runtime theming is the
 supported way to restyle; a fork that edits components carries the cost of
 rebuilding and merging.
+
+## Adding a configuration variable
+
+A new `EPISTLE_PANEL_` variable goes in `PANEL_VARIABLES` in
+`internal/src/lib/config/panel-variables/index.ts` (and in
+`PANEL_SECRET_VARIABLES` when it is read through `readSecret`). The server logs a
+warning at start for any `EPISTLE_PANEL_` name that is not listed, so a
+misspelling is not silent; a test fails when the source mentions a name that is
+missing from the list.

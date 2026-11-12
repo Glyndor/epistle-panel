@@ -14,7 +14,7 @@
 # exercises.
 #
 # Usage: scripts/e2e/run.sh [scenario...]
-#   scenarios: headers logout limiter limiter-global noauth degraded rotation idle theme body-limit captcha
+#   scenarios: headers logout limiter limiter-global noauth degraded rotation idle theme body-limit captcha unknown-variable
 # With no argument every scenario runs. Exit status is non-zero when any check
 # fails. Override the ports with PANEL_PORT and STAND_IN_PORT.
 set -euo pipefail
@@ -114,10 +114,12 @@ cp -R "$internal/.next/static" "$standalone/.next/static"
 . "$root/scripts/e2e/scenarios/theme.sh"
 # shellcheck source=scripts/e2e/scenarios/body-limit.sh
 . "$root/scripts/e2e/scenarios/body-limit.sh"
+# shellcheck source=scripts/e2e/scenarios/unknown-variable.sh
+. "$root/scripts/e2e/scenarios/unknown-variable.sh"
 
 # ---------------------------------------------------------------- main
 
-all=(headers logout limiter limiter-global noauth degraded rotation idle theme body-limit captcha)
+all=(headers logout limiter limiter-global noauth degraded rotation idle theme body-limit captcha unknown-variable)
 selected=("$@")
 ((${#selected[@]})) || selected=("${all[@]}")
 
@@ -134,6 +136,7 @@ for name in "${selected[@]}"; do
 	theme) scenario_theme ;;
 	body-limit) scenario_body_limit ;;
 	captcha) scenario_captcha ;;
+	unknown-variable) scenario_unknown_variable ;;
 	*)
 		echo "error: unknown scenario '$name'" >&2
 		exit 2
