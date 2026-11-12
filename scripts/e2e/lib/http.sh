@@ -79,12 +79,14 @@ action_id() {
 # post_action FILE ARGS_JSON [COOKIE]: post the Server Action defined in the
 # source file that ends with FILE, with ARGS_JSON as its arguments, the way the
 # browser's client does. Body to $work/b, headers to $work/h, status printed.
+# Extra request headers ("Name: value") go in the array action_headers.
 post_action() {
 	local cookie=()
 	[[ -n "${3:-}" ]] && cookie=(-b "$3")
 	curl -s -o "$work/b" -D "$work/h" -w '%{http_code}' -X POST \
 		-H "Next-Action: $(action_id "$1")" \
 		-H 'Content-Type: text/plain;charset=UTF-8' \
+		${action_headers[@]+"${action_headers[@]/#/-H}"} \
 		"${cookie[@]}" -d "$2" "$panel/queue"
 }
 

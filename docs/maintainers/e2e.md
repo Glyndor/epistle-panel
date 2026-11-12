@@ -40,7 +40,7 @@ the line limit:
 | `scripts/e2e/lib/reporting.sh` | the pass and fail counters and the `assert_*` helpers |
 | `scripts/e2e/lib/processes.sh` | secrets, start and restart of the stand-in and the panel, its control calls |
 | `scripts/e2e/lib/http.sh` | `fetch`, `login`, the form-field readers, memory and CPU counters |
-| `scripts/e2e/scenarios/<name>.sh` | one scenario each: `headers`, `logout`, `limiter`, `limiter-global`, `noauth`, `degraded`, `rotation`, `idle`, `theme`, `body-limit`, `captcha`, `unknown-variable` |
+| `scripts/e2e/scenarios/<name>.sh` | one scenario each: `headers`, `logout`, `limiter`, `limiter-global`, `noauth`, `degraded`, `rotation`, `idle`, `theme`, `body-limit`, `captcha`, `csrf`, `set-locale`, `unknown-variable` |
 
 A new scenario is a new file in `scenarios/`, a `source` line and a `case` entry
 in `run.sh`, and a row in the table below.
@@ -73,8 +73,58 @@ secret, and switches the data endpoints to `hang` or `huge` through
 | `idle` | idle CPU, and a memory ceiling after 400 requests |
 | `body-limit` | a Server Action body over the 16 KB `experimental.serverActions.bodySizeLimit` in `next.config.ts` is refused before the action runs (the API sees no call), while the widest sign-in the form can send (about 4.1 KB, also with a 4 KB CAPTCHA-sized token) and a normal action are accepted |
 | `captcha` | with the stand-in CAPTCHA provider on (the `custom` provider): off by default; the page carries the widget box and the public site key, never the secret or the verification URL; the sign-in page's CSP gains exactly the provider's origin in `script-src`, `frame-src` and `connect-src` and nothing else, no other response does; no token and an unsolved token are refused and the API is never asked, a solved one signs in; the provider is asked before the API; a missing site key, an unreadable secret file or an unknown provider refuse every sign-in, name the variable in the log and widen nothing; no log holds a token or a secret |
+| `csrf` | a Server Action post with a valid session and a foreign `Origin` (or `Origin: null`) is refused by Next and the API sees no `DELETE`; the panel's own `Origin` is accepted. It also pins a measured dependency: a foreign `Origin` together with the same foreign `X-Forwarded-Host` passes Next's check and the action runs (see below) |
+| `set-locale` | the `set-locale` action with an unknown or path-like language answers `false` and writes no `locale` cookie; a supported language writes it; without a session the proxy redirects and nothing is written |
 | `unknown-variable` | a misspelt `EPISTLE_PANEL_` name is warned about in the startup log by name, the value is never printed, a name the panel reads (and the `_FILE` form of a secret) is not warned about, and the panel still serves |
 | `theme` | `/theme.css`, `/brand/logo` and `/brand/favicon` answer without a session when configured and 404 when not; the sign-in page links the stylesheet and shows the name, the logo and the original copyright notice; the CSP is the same with and without a theme; look-alike paths stay behind the gate; a symlink, an oversized or a missing file is a 404 and a log line with no path, and a symlink or a FIFO as the logo is refused the same way; an SVG with script is refused, also when `javascript:` is written with numeric character references |
+
+## Origin check of Server Actions, measured
+
+Measured on 2026-11-12 against the built server (Next 16.4.6), posting
+`remove-entry` with a valid session:
+
+| Request headers | Result | `DELETE` at the API |
+|---|---|---|
+| no `Origin` | 200, runs (not a browser: a browser always sends `Origin` on a cross-site POST) | 1 |
+| `Origin: https://evil.test` | 500, `Invalid Server Actions request` | 0 |
+| `Origin: null` | 500, same | 0 |
+| `Origin` = the panel's own | 200, runs | 1 |
+| `Origin: https://evil.test` and `X-Forwarded-Host: evil.test` | 200, runs | 1 |
+| `Origin: null` and `X-Forwarded-Host: null` | 200, runs | 1 |
+
+Next reads the host to compare with from `X-Forwarded-Host` when the request
+carries one. The panel adds no check of its own (`run-action` only looks at the
+session cookie, and `allowedOrigins` is not set), so the only thing between a
+cross-site post and the action is that the proxy overwrites
+`X-Forwarded-Host`, which the README asks of the operator. The session cookie
+is `SameSite=Lax`: a different site does not send it on a POST, but a sibling
+subdomain is the same site and does. That is the case this dependency decides.
+The `csrf` scenario pins the foreign `Origin`, `Origin: null`, own `Origin` and
+foreign `Origin` with `X-Forwarded-Host` rows, so a change in Next or in the
+panel shows up as a failing check rather than as a surprise. The other two
+rows were only measured.
+
+## What it does not cover
+
+- **A real browser.** Everything above is `curl` against the standalone
+  server. Hydration, the console, CSP violations reported by the browser,
+  tooltips, focus and the sheet's behaviour are the manual list below. The
+  unit test `src/test/overlays-inject-no-style` only checks that opening the
+  language menu, the sheet and the remove confirmation adds no `<style>` to
+  `document.head` in the test DOM; it does not see an inline `style`
+  attribute, and Select and Popover are not measured in any browser yet.
+- **The proxy.** Whether the operator's proxy overwrites `X-Forwarded-Host`
+  and `X-Forwarded-Proto` is not tested here, only what the panel does when it
+  does not (`scripts/headers/verify.sh` covers the redirect, `csrf` the
+  Server Action). TLS, HSTS and the container image are outside it.
+- **The real API.** The stand-in answers what the panel's schemas accept; a
+  change on the epistle side that the stand-in does not mirror passes here.
+  The wiring through pasta is not exercised either.
+- **More than one process.** The sign-in limiter lives in the memory of one
+  process, so the scenarios cannot say anything about several replicas.
+- **A real CAPTCHA provider, Firefox and Safari, load beyond the idle and
+  burst checks, and accessibility.** The `custom` stand-in provider stands for
+  the first; the rest has no automated check in this script.
 
 ## Browser checks (manual)
 
