@@ -6,8 +6,8 @@ import { SESSION_COOKIE } from "@/lib/auth/session";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
 import { installNextIntlMocks, intl, resetIntl } from "@/test/next-intl";
 
-// A client-component test elsewhere may have mocked next-intl with fewer
-// exports; put the full stand-in back before the layout is first imported.
+// Put the plain stand-ins back in case another file overrode one of them
+// before the layout is first imported.
 installNextIntlMocks();
 const cookies = mockRequestCookies();
 

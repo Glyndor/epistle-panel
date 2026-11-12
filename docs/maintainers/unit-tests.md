@@ -18,10 +18,12 @@ and the login form had none when this was written.
 exists when it is first imported. Two files that mock `next-intl/server` with
 different exports pass in one order and fail in another. So:
 
-- `src/test/next-intl/` holds the only stand-ins for `next-intl` and
-  `next-intl/server`; the preload installs them. A test does not call
-  `mock.module("next-intl/server", ...)`. A test in that folder fails when a file
-  does, or when the stand-in lacks a name the panel imports.
+- `src/test/next-intl/` holds the stand-ins for `next-intl` and
+  `next-intl/server`, with every export the panel imports, and the preload
+  installs them. It also wraps `mock.module`, so a test that still mocks one of
+  those two modules keeps its own exports and loses none of the others. Prefer
+  the stand-ins: a test in that folder fails when one lacks a name the panel
+  imports.
 - Stores kept on `globalThis` (revocations, the login limiter) are emptied
   before each case that counts their entries.
 

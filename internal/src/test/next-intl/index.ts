@@ -28,20 +28,52 @@ function ProviderStandIn(props: {
 	return createElement(Fragment, null, props.children);
 }
 
+/** Factories of the stand-ins, by module specifier. */
+const STAND_INS: Record<string, () => object> = {
+	"next-intl/server": () => serverStandIn(),
+	"next-intl": () => clientStandIn(),
+};
+
+/**
+ * Wrap a per-file mock factory so what it leaves out comes from the shared
+ * stand-in. The file's own exports win; nothing is ever removed.
+ */
+export function withStandInExports(
+	specifier: string,
+	factory: () => object,
+): () => object {
+	const standIn = STAND_INS[specifier];
+	return standIn ? () => ({ ...standIn(), ...factory() }) : factory;
+}
+
+const WRAPPED = Symbol.for("epistle-panel.next-intl-mock-merge");
+
+type MockRegistry = {
+	module: (specifier: string, factory: () => object) => void;
+	[WRAPPED]?: boolean;
+};
+
 /**
  * Replace `next-intl` and `next-intl/server` with stand-ins that echo every
  * translation key, so assertions do not depend on a locale.
  *
- * `mock.module` is process-global and Bun links a module against whichever
- * mock exists when it is first imported. Two files that mock the same module
- * with different export sets therefore pass in one order and fail in another
- * (`Export named 'getFormatter' not found`, seen under `bun test --randomize`).
- * Every stand-in carries every export the panel imports, and the preload calls
- * this once, so no test file needs its own `mock.module("next-intl...")`. A
- * test that must re-establish the shapes right before an import may call it
- * again: the call is idempotent.
+ * `mock.module` is process-global and Bun links a module against the exports
+ * of whichever mock exists when it is first imported. Two files that mock the
+ * same module with different export sets therefore pass in one order and fail
+ * in another (`Export named 'getFormatter' not found`, seen under
+ * `bun test --randomize`). The preload calls this once. It installs a stand-in
+ * with every export the panel imports and wraps `mock.module` so that a file
+ * which still mocks one of these two modules keeps its own exports and loses
+ * none of the others. Calling it again puts the plain stand-ins back.
  */
 export function installNextIntlMocks(): void {
+	const registry = mock as unknown as MockRegistry;
+	if (!registry[WRAPPED]) {
+		const original = registry.module.bind(mock);
+		registry.module = (specifier, factory) =>
+			original(specifier, withStandInExports(specifier, factory));
+		registry[WRAPPED] = true;
+	}
 	mock.module("next-intl/server", serverStandIn);
 	mock.module("next-intl", clientStandIn);
 }

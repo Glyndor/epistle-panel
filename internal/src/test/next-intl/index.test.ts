@@ -1,8 +1,14 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, mock } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { clientStandIn, intl, resetIntl, serverStandIn } from ".";
+import {
+	clientStandIn,
+	intl,
+	resetIntl,
+	serverStandIn,
+	withStandInExports,
+} from ".";
 
 const SRC = join(import.meta.dir, "..", "..");
 
@@ -56,18 +62,30 @@ describe("next-intl stand-ins", () => {
 		}
 	});
 
-	it("are the only mock of next-intl/server in the suite", () => {
-		// A second mock with another export set makes the suite pass or fail
-		// with the file order (`bun test --randomize`).
-		const offenders = sourceFiles(/\.test\.tsx?$/).filter(
-			(file) =>
-				file !== "test/next-intl/index.test.ts" &&
-				/mock\.module\(\s*"next-intl\/server"/.test(
-					readFileSync(join(SRC, file), "utf8"),
-				),
-		);
+	it("keep an export a file's own mock leaves out", () => {
+		const own = () => "mine";
+		const merged = withStandInExports("next-intl", () => ({
+			useTranslations: own,
+		}))() as Record<string, unknown>;
 
-		expect(offenders).toEqual([]);
+		expect(merged.NextIntlClientProvider).toBe(
+			clientStandIn().NextIntlClientProvider,
+		);
+		expect(merged.useTranslations).toBe(own);
+	});
+
+	it("leave the mock of any other module alone", () => {
+		const own = { revalidatePath: () => {} };
+
+		expect(withStandInExports("next/cache", () => own)()).toBe(own);
+	});
+
+	it("wrap mock.module for the whole run once installed", () => {
+		const registry = mock as unknown as Record<symbol, boolean>;
+
+		expect(registry[Symbol.for("epistle-panel.next-intl-mock-merge")]).toBe(
+			true,
+		);
 	});
 
 	it("serve the locale and catalog a test sets and reset them", async () => {
