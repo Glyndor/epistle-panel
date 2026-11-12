@@ -1,11 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
-import {
-	cleanup,
-	fireEvent,
-	render,
-	screen,
-	waitFor,
-} from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { cleanup, render, screen } from "@testing-library/react";
 
 import { SidebarProvider } from "@/components/ui/sidebar/provider";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";

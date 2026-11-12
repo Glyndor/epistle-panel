@@ -39,7 +39,7 @@ async function signJson(json: string): Promise<string> {
 	const key = await crypto.subtle.importKey(
 		"raw",
 		new TextEncoder().encode(
-			process.env.EPISTLE_PANEL_SESSION_SECRET as string,
+			process.env["EPISTLE_PANEL_SESSION_SECRET"] as string,
 		),
 		{ name: "HMAC", hash: "SHA-256" },
 		false,

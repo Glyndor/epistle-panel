@@ -22,9 +22,12 @@ describe("response payload support", () => {
 		const rng = createRng(6);
 		let refused = 0;
 		for (let i = 0; i < 200; i++) {
-			const value = mutatePayload(responseGenerators.domains?.(rng), rng);
+			const value = mutatePayload(
+				responseGenerators["domains"]?.(rng),
+				rng,
+			);
 			if (
-				responseModels.domains?.(
+				responseModels["domains"]?.(
 					JSON.parse(JSON.stringify(value) ?? "null"),
 				) === undefined
 			) {

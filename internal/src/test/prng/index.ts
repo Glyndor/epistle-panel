@@ -87,7 +87,7 @@ export function createRng(seed: number): Rng {
  * a mistyped seed cannot make a run look explored when it replayed the default.
  */
 export function activeSeed(): number {
-	const fromEnv = process.env.GENERATED_SEED?.trim();
+	const fromEnv = process.env["GENERATED_SEED"]?.trim();
 	if (fromEnv === undefined || fromEnv === "") {
 		return DEFAULT_SEED;
 	}

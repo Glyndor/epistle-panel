@@ -38,11 +38,11 @@ describe("generateMetadata", () => {
 		expect((await generateMetadata()).title).toBe("Epistle");
 		expect(await generateMetadata()).not.toHaveProperty("icons");
 
-		process.env.EPISTLE_PANEL_BRAND_NAME = "Acme Mail";
-		process.env.EPISTLE_PANEL_BRAND_FAVICON_FILE = "/run/favicon.ico";
+		process.env["EPISTLE_PANEL_BRAND_NAME"] = "Acme Mail";
+		process.env["EPISTLE_PANEL_BRAND_FAVICON_FILE"] = "/run/favicon.ico";
 		const metadata = await generateMetadata();
-		delete process.env.EPISTLE_PANEL_BRAND_NAME;
-		delete process.env.EPISTLE_PANEL_BRAND_FAVICON_FILE;
+		delete process.env["EPISTLE_PANEL_BRAND_NAME"];
+		delete process.env["EPISTLE_PANEL_BRAND_FAVICON_FILE"];
 
 		expect(metadata.title).toBe("Acme Mail");
 		expect(metadata.icons).toEqual({ icon: "/brand/favicon" });
@@ -77,9 +77,9 @@ describe("RootLayout", () => {
 	it("links the operator's stylesheet only when one is configured", async () => {
 		expect(await renderLayout()).not.toContain("/theme.css");
 
-		process.env.EPISTLE_PANEL_THEME_CSS_FILE = "/run/theme.css";
+		process.env["EPISTLE_PANEL_THEME_CSS_FILE"] = "/run/theme.css";
 		const html = await renderLayout();
-		delete process.env.EPISTLE_PANEL_THEME_CSS_FILE;
+		delete process.env["EPISTLE_PANEL_THEME_CSS_FILE"];
 
 		expect(html).toContain('href="/theme.css"');
 		expect(html).toContain('rel="stylesheet"');

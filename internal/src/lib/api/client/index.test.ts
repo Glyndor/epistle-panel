@@ -23,10 +23,10 @@ import {
 const ID = "01890a5d-ac96-774b-b9aa-9be4c3bd6b0e";
 
 afterEach(() => {
-	process.env.EPISTLE_API_URL = "http://127.0.0.1:8025";
-	delete process.env.EPISTLE_API_TOKEN_FILE;
-	delete process.env.EPISTLE_API_TOKEN;
-	process.env.EPISTLE_API_TOKEN = "test-token";
+	process.env["EPISTLE_API_URL"] = "http://127.0.0.1:8025";
+	delete process.env["EPISTLE_API_TOKEN_FILE"];
+	delete process.env["EPISTLE_API_TOKEN"];
+	process.env["EPISTLE_API_TOKEN"] = "test-token";
 });
 
 describe("client getters", () => {
@@ -202,7 +202,7 @@ describe("client errors", () => {
 	});
 
 	it("throws when the API token is not configured", async () => {
-		delete process.env.EPISTLE_API_TOKEN;
+		delete process.env["EPISTLE_API_TOKEN"];
 		stubFetchJson({
 			version: "1.0.0",
 			domains: 0,
@@ -231,7 +231,7 @@ describe("client token file", () => {
 
 	it("sends the token read from EPISTLE_API_TOKEN_FILE over the plain one", async () => {
 		const file = tokenFile("file-token\n");
-		process.env.EPISTLE_API_TOKEN_FILE = file.path;
+		process.env["EPISTLE_API_TOKEN_FILE"] = file.path;
 		stubFetchJson(status);
 		await getStatus();
 		file.cleanup();
@@ -240,7 +240,7 @@ describe("client token file", () => {
 
 	it("makes no request when the token file is unusable", async () => {
 		const file = tokenFile("");
-		process.env.EPISTLE_API_TOKEN_FILE = file.path;
+		process.env["EPISTLE_API_TOKEN_FILE"] = file.path;
 		stubFetchJson(status);
 		const error = await getStatus().catch((e) => e);
 		file.cleanup();
@@ -300,7 +300,8 @@ describe("client time budgets", () => {
 
 describe("client base URL", () => {
 	it("makes no request to a metadata address", async () => {
-		process.env.EPISTLE_API_URL = "http://169.254.169.254/latest/meta-data";
+		process.env["EPISTLE_API_URL"] =
+			"http://169.254.169.254/latest/meta-data";
 		stubFetchJson({ version: "1", domains: 0, accounts: 0, queue_size: 0 });
 		const error = await getStatus().catch((e) => e);
 		expect(error.message).toContain("EPISTLE_API_URL");
@@ -308,7 +309,7 @@ describe("client base URL", () => {
 	});
 
 	it("makes no request to a remote host over plain http", async () => {
-		process.env.EPISTLE_API_URL = "http://api.remoto:8025";
+		process.env["EPISTLE_API_URL"] = "http://api.remoto:8025";
 		stubFetchJson({});
 		const error = await verifyCredentials("ops", "pw").catch((e) => e);
 		expect(error.message).toContain("EPISTLE_API_URL");

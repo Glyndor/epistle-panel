@@ -56,7 +56,15 @@ The CLI writes a flat `src/components/ui/<name>.tsx`. Then:
    every size 32 px on a fine pointer and at least 44 px on a coarse one.
 5. `bun add` turns the exact pins of `next`, `react` and `react-dom` into carets:
    restore them in `package.json`.
-6. Run `bun run lint`, `bun run typecheck`, `bun test --coverage`, `bun run build`,
+6. Check it against the strict compiler flags in `internal/tsconfig.json`
+   (`exactOptionalPropertyTypes`, `noUnusedParameters`, `noUnusedLocals`,
+   `noImplicitReturns`, `noPropertyAccessFromIndexSignature`,
+   `verbatimModuleSyntax`, `erasableSyntaxOnly`). Every component in the tree
+   passes them without edits beyond the ones in steps 1 to 4; if a freshly
+   generated file does not (an unused parameter or an optional prop passed
+   `undefined`), fix the file, not the flag. The CLI could not be run offline
+   when the flags went in, so this is checked against the existing files only.
+7. Run `bun run lint`, `bun run typecheck`, `bun test --coverage`, `bun run build`,
    then the end-to-end run and read the console for CSP violations on a page that
    renders the component.
 

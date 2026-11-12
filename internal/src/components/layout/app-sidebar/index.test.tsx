@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, mock } from "bun:test";
+import { afterEach, describe, expect, it } from "bun:test";
 import { cleanup, render, screen } from "@testing-library/react";
 import { SidebarProvider } from "@/components/ui/sidebar/provider";
 import { COPYRIGHT_NOTICE } from "@/features/branding/copyright";

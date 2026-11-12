@@ -24,14 +24,14 @@ mockRequestCookies();
 const { LoginForm } = await import(".");
 
 beforeEach(() => {
-	process.env.EPISTLE_PANEL_LOGIN_MIN_MS = "0";
+	process.env["EPISTLE_PANEL_LOGIN_MIN_MS"] = "0";
 	resetLoginLimiter();
 	stubFetchJson({ valid: false, admin: false });
 });
 afterEach(() => {
 	cleanup();
 	globalThis.fetch = originalFetch;
-	delete process.env.EPISTLE_PANEL_LOGIN_MIN_MS;
+	delete process.env["EPISTLE_PANEL_LOGIN_MIN_MS"];
 });
 
 const name = () => screen.getByLabelText("name") as HTMLInputElement;
