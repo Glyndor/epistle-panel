@@ -65,7 +65,9 @@ describe("locale resolution", () => {
 describe("missing messages", () => {
 	it("answers a key missing from the active locale with its English string", async () => {
 		const config = await resolve("es");
-		const english = (await loadMessages("en")).notFound.heading as string;
+		const english = (await loadMessages("en")).notFound[
+			"heading"
+		] as string;
 
 		expect(config.getMessageFallback({ key: "notFound.heading" })).toBe(
 			english,

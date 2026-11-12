@@ -20,7 +20,7 @@ export const MAX_LOGIN_RESPONSE_FLOOR_MS = 30_000;
  * floor.
  */
 export function loginResponseFloorMs(): number {
-	const raw = process.env.EPISTLE_PANEL_LOGIN_MIN_MS?.trim();
+	const raw = process.env["EPISTLE_PANEL_LOGIN_MIN_MS"]?.trim();
 	if (raw === undefined || !/^\d{1,5}$/.test(raw)) {
 		return LOGIN_RESPONSE_FLOOR_MS;
 	}

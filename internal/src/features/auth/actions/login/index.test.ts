@@ -68,11 +68,11 @@ beforeEach(() => {
 	cookies.reset();
 	resetLoginLimiter();
 	// Tests that are not about timing do not wait for the minimum response time.
-	process.env.EPISTLE_PANEL_LOGIN_MIN_MS = "0";
+	process.env["EPISTLE_PANEL_LOGIN_MIN_MS"] = "0";
 });
 afterEach(() => {
 	globalThis.fetch = originalFetch;
-	delete process.env.EPISTLE_PANEL_LOGIN_MIN_MS;
+	delete process.env["EPISTLE_PANEL_LOGIN_MIN_MS"];
 });
 
 describe("login success", () => {
@@ -99,11 +99,12 @@ describe("login success", () => {
 	it("sets Secure whatever NODE_ENV says", async () => {
 		stubVerify(() => ({ valid: true, admin: true }));
 		const saved = process.env.NODE_ENV;
-		(process.env as Record<string, string>).NODE_ENV = "development";
+		(process.env as Record<string, string>)["NODE_ENV"] = "development";
 		try {
 			await followRedirect(login(INITIAL, form("ops", "pw")));
 		} finally {
-			(process.env as Record<string, string>).NODE_ENV = saved as string;
+			(process.env as Record<string, string>)["NODE_ENV"] =
+				saved as string;
 		}
 
 		expect(cookies.writes[0]?.options).toMatchObject({ secure: true });
@@ -212,7 +213,7 @@ describe("login timing", () => {
 
 	beforeEach(() => {
 		useFakeClock();
-		process.env.EPISTLE_PANEL_LOGIN_MIN_MS = String(FLOOR_MS);
+		process.env["EPISTLE_PANEL_LOGIN_MIN_MS"] = String(FLOOR_MS);
 	});
 	afterEach(useRealClock);
 

@@ -89,21 +89,21 @@ describe("runCases", () => {
 
 describe("activeSeed", () => {
 	it("uses the fixed default when GENERATED_SEED is unset or blank, and the integer when it is set", () => {
-		const saved = process.env.GENERATED_SEED;
+		const saved = process.env["GENERATED_SEED"];
 		try {
-			delete process.env.GENERATED_SEED;
+			delete process.env["GENERATED_SEED"];
 			expect(activeSeed()).toBe(DEFAULT_SEED);
-			process.env.GENERATED_SEED = "42";
+			process.env["GENERATED_SEED"] = "42";
 			expect(activeSeed()).toBe(42);
-			process.env.GENERATED_SEED = " 7 ";
+			process.env["GENERATED_SEED"] = " 7 ";
 			expect(activeSeed()).toBe(7);
-			process.env.GENERATED_SEED = "";
+			process.env["GENERATED_SEED"] = "";
 			expect(activeSeed()).toBe(DEFAULT_SEED);
 		} finally {
 			if (saved === undefined) {
-				delete process.env.GENERATED_SEED;
+				delete process.env["GENERATED_SEED"];
 			} else {
-				process.env.GENERATED_SEED = saved;
+				process.env["GENERATED_SEED"] = saved;
 			}
 		}
 	});
@@ -111,15 +111,15 @@ describe("activeSeed", () => {
 
 describe("a seed from the environment", () => {
 	const withSeed = (value: string, body: () => void) => {
-		const saved = process.env.GENERATED_SEED;
-		process.env.GENERATED_SEED = value;
+		const saved = process.env["GENERATED_SEED"];
+		process.env["GENERATED_SEED"] = value;
 		try {
 			body();
 		} finally {
 			if (saved === undefined) {
-				delete process.env.GENERATED_SEED;
+				delete process.env["GENERATED_SEED"];
 			} else {
-				process.env.GENERATED_SEED = saved;
+				process.env["GENERATED_SEED"] = saved;
 			}
 		}
 	};
@@ -141,16 +141,16 @@ describe("a seed from the environment", () => {
 					throw new Error("nope");
 				}
 			}).catch((error: Error) => error as Error);
-		const saved = process.env.GENERATED_SEED;
-		process.env.GENERATED_SEED = "123";
+		const saved = process.env["GENERATED_SEED"];
+		process.env["GENERATED_SEED"] = "123";
 		let failure: unknown;
 		try {
 			failure = await run();
 		} finally {
 			if (saved === undefined) {
-				delete process.env.GENERATED_SEED;
+				delete process.env["GENERATED_SEED"];
 			} else {
-				process.env.GENERATED_SEED = saved;
+				process.env["GENERATED_SEED"] = saved;
 			}
 		}
 

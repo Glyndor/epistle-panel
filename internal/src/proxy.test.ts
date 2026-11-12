@@ -214,12 +214,12 @@ describe("proxy script policy per environment", () => {
 		body: () => Promise<void>,
 	): Promise<void> {
 		const env = process.env as Record<string, string | undefined>;
-		const saved = env.NODE_ENV;
-		env.NODE_ENV = value;
+		const saved = env["NODE_ENV"];
+		env["NODE_ENV"] = value;
 		try {
 			await body();
 		} finally {
-			env.NODE_ENV = saved;
+			env["NODE_ENV"] = saved;
 		}
 	}
 

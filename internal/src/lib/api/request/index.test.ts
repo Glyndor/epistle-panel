@@ -30,15 +30,15 @@ function fetchMock(): Mock<typeof fetch> {
 }
 
 beforeEach(() => {
-	process.env.EPISTLE_API_TOKEN = "test-token";
-	process.env.EPISTLE_API_URL = "http://127.0.0.1:8025";
+	process.env["EPISTLE_API_TOKEN"] = "test-token";
+	process.env["EPISTLE_API_URL"] = "http://127.0.0.1:8025";
 });
 
 afterEach(() => {
-	delete process.env.EPISTLE_API_TOKEN_FILE;
-	delete process.env.EPISTLE_API_ALLOW_HTTP_HOSTS;
-	process.env.EPISTLE_API_URL = "http://127.0.0.1:8025";
-	process.env.EPISTLE_API_TOKEN = "test-token";
+	delete process.env["EPISTLE_API_TOKEN_FILE"];
+	delete process.env["EPISTLE_API_ALLOW_HTTP_HOSTS"];
+	process.env["EPISTLE_API_URL"] = "http://127.0.0.1:8025";
+	process.env["EPISTLE_API_TOKEN"] = "test-token";
 });
 
 describe("request headers", () => {
@@ -204,7 +204,7 @@ describe("request base URL", () => {
 	];
 	for (const url of refused) {
 		it(`sends nothing when EPISTLE_API_URL is ${url}`, async () => {
-			process.env.EPISTLE_API_URL = url;
+			process.env["EPISTLE_API_URL"] = url;
 			stubFetchJson({ ok: true });
 			const error = await request("/x", schema).catch((e) => e);
 			expect(error.message).toContain("EPISTLE_API_URL");
@@ -215,8 +215,8 @@ describe("request base URL", () => {
 	}
 
 	it("does not read the token for a refused URL", async () => {
-		process.env.EPISTLE_API_URL = "http://169.254.169.254";
-		process.env.EPISTLE_API_TOKEN_FILE = "/nonexistent/token";
+		process.env["EPISTLE_API_URL"] = "http://169.254.169.254";
+		process.env["EPISTLE_API_TOKEN_FILE"] = "/nonexistent/token";
 		stubFetchJson({ ok: true });
 		const error = await request("/x", schema).catch((e) => e);
 		expect(error.message).toContain("EPISTLE_API_URL");
@@ -224,7 +224,7 @@ describe("request base URL", () => {
 	});
 
 	it("keeps working against the default loopback URL", async () => {
-		delete process.env.EPISTLE_API_URL;
+		delete process.env["EPISTLE_API_URL"];
 		stubFetchJson({ ok: true });
 		await request("/api/v1/status", schema);
 		expect(fetchMock().mock.calls[0]?.[0]).toBe(
@@ -233,15 +233,15 @@ describe("request base URL", () => {
 	});
 
 	it("sends to an https URL and to an allowed private http host", async () => {
-		process.env.EPISTLE_API_URL = "https://api.example.org:8443";
+		process.env["EPISTLE_API_URL"] = "https://api.example.org:8443";
 		stubFetchJson({ ok: true });
 		await request("/x", schema);
 		expect(fetchMock().mock.calls[0]?.[0]).toBe(
 			"https://api.example.org:8443/x",
 		);
 
-		process.env.EPISTLE_API_URL = "http://node2.wg:8025";
-		process.env.EPISTLE_API_ALLOW_HTTP_HOSTS = "node2.wg";
+		process.env["EPISTLE_API_URL"] = "http://node2.wg:8025";
+		process.env["EPISTLE_API_ALLOW_HTTP_HOSTS"] = "node2.wg";
 		stubFetchJson({ ok: true });
 		await request("/x", schema);
 		expect(fetchMock().mock.calls[0]?.[0]).toBe("http://node2.wg:8025/x");

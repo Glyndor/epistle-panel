@@ -22,7 +22,7 @@ import {
 } from ".";
 
 afterEach(() => {
-	delete process.env.EPISTLE_PANEL_SESSION_SECRET_FILE;
+	delete process.env["EPISTLE_PANEL_SESSION_SECRET_FILE"];
 	setSystemTime();
 	clearRevocations();
 });
@@ -39,7 +39,7 @@ async function signRaw(payload: unknown): Promise<string> {
 	const key = await crypto.subtle.importKey(
 		"raw",
 		new TextEncoder().encode(
-			process.env.EPISTLE_PANEL_SESSION_SECRET as string,
+			process.env["EPISTLE_PANEL_SESSION_SECRET"] as string,
 		),
 		{ name: "HMAC", hash: "SHA-256" },
 		false,
@@ -124,7 +124,7 @@ describe("token lifetime", () => {
 		const key = await crypto.subtle.importKey(
 			"raw",
 			new TextEncoder().encode(
-				process.env.EPISTLE_PANEL_SESSION_SECRET as string,
+				process.env["EPISTLE_PANEL_SESSION_SECRET"] as string,
 			),
 			{ name: "HMAC", hash: "SHA-256" },
 			false,
@@ -287,7 +287,7 @@ describe("session secret file", () => {
 		dir = mkdtempSync(join(tmpdir(), "epistle-session-"));
 		const path = join(dir, "secret");
 		writeFileSync(path, content);
-		process.env.EPISTLE_PANEL_SESSION_SECRET_FILE = path;
+		process.env["EPISTLE_PANEL_SESSION_SECRET_FILE"] = path;
 	}
 
 	it("signs with the file secret instead of the plain one", async () => {
@@ -308,15 +308,15 @@ describe("session secret file", () => {
 	});
 
 	it("locks every session when no secret is configured", async () => {
-		const saved = process.env.EPISTLE_PANEL_SESSION_SECRET;
-		delete process.env.EPISTLE_PANEL_SESSION_SECRET;
+		const saved = process.env["EPISTLE_PANEL_SESSION_SECRET"];
+		delete process.env["EPISTLE_PANEL_SESSION_SECRET"];
 		try {
 			expect(await verifySession("a.b")).toBeNull();
 			expect(createSession("ops")).rejects.toThrow(
 				"EPISTLE_PANEL_SESSION_SECRET is not configured",
 			);
 		} finally {
-			process.env.EPISTLE_PANEL_SESSION_SECRET = saved;
+			process.env["EPISTLE_PANEL_SESSION_SECRET"] = saved;
 		}
 	});
 });

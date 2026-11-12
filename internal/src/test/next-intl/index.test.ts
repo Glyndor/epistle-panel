@@ -68,10 +68,10 @@ describe("next-intl stand-ins", () => {
 			useTranslations: own,
 		}))() as Record<string, unknown>;
 
-		expect(merged.NextIntlClientProvider).toBe(
+		expect(merged["NextIntlClientProvider"]).toBe(
 			clientStandIn().NextIntlClientProvider,
 		);
-		expect(merged.useTranslations).toBe(own);
+		expect(merged["useTranslations"]).toBe(own);
 	});
 
 	it("leave the mock of any other module alone", () => {

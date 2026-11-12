@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { cleanup, render, screen } from "@testing-library/react";
 import { AppShell } from "@/components/layout/app-shell";
 import { navForRole } from "@/features/navigation/queries/nav-for-role";

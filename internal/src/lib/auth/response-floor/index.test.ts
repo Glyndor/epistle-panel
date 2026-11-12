@@ -10,7 +10,7 @@ import {
 } from ".";
 
 afterEach(() => {
-	delete process.env.EPISTLE_PANEL_LOGIN_MIN_MS;
+	delete process.env["EPISTLE_PANEL_LOGIN_MIN_MS"];
 });
 
 describe("holdUntilFloor", () => {
@@ -43,7 +43,7 @@ describe("holdUntilFloor", () => {
 	});
 
 	it("reads the floor from the environment when none is passed", async () => {
-		process.env.EPISTLE_PANEL_LOGIN_MIN_MS = "150";
+		process.env["EPISTLE_PANEL_LOGIN_MIN_MS"] = "150";
 
 		const run = await timeIt(() => holdUntilFloor(Date.now()));
 
@@ -64,10 +64,10 @@ describe("loginResponseFloorMs", () => {
 	});
 
 	it("takes a whole number of milliseconds from the environment", () => {
-		process.env.EPISTLE_PANEL_LOGIN_MIN_MS = " 2500 ";
+		process.env["EPISTLE_PANEL_LOGIN_MIN_MS"] = " 2500 ";
 		expect(loginResponseFloorMs()).toBe(2500);
 
-		process.env.EPISTLE_PANEL_LOGIN_MIN_MS = "0";
+		process.env["EPISTLE_PANEL_LOGIN_MIN_MS"] = "0";
 		expect(loginResponseFloorMs()).toBe(0);
 	});
 
@@ -82,13 +82,13 @@ describe("loginResponseFloorMs", () => {
 			String(MAX_LOGIN_RESPONSE_FLOOR_MS + 1),
 			"999999",
 		]) {
-			process.env.EPISTLE_PANEL_LOGIN_MIN_MS = bad;
+			process.env["EPISTLE_PANEL_LOGIN_MIN_MS"] = bad;
 			expect(loginResponseFloorMs()).toBe(LOGIN_RESPONSE_FLOOR_MS);
 		}
 	});
 
 	it("accepts the largest allowed value", () => {
-		process.env.EPISTLE_PANEL_LOGIN_MIN_MS = String(
+		process.env["EPISTLE_PANEL_LOGIN_MIN_MS"] = String(
 			MAX_LOGIN_RESPONSE_FLOOR_MS,
 		);
 

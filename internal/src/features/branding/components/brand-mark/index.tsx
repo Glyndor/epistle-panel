@@ -8,8 +8,8 @@ import { EpistleMark } from "@/components/icons/epistle-mark";
  */
 export function BrandMark({ hasLogo }: { hasLogo: boolean }) {
 	if (hasLogo) {
-		// biome-ignore lint/performance/noImgElement: a same-origin operator image of unknown size, not a Next-optimised asset
 		return (
+			// biome-ignore lint/performance/noImgElement: a same-origin operator image of unknown size, not a Next-optimised asset
 			<img
 				src="/brand/logo"
 				alt=""
