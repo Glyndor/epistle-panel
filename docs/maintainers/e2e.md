@@ -53,7 +53,7 @@ secret, and switches the data endpoints to `hang` or `huge` through
 | `noauth` | every route and Server Action is redirected without a session, with a garbage or altered cookie, and the stand-in sees nothing |
 | `degraded` | a hanging API degrades the page within the 10 s budget and the server keeps answering; a body over the cap degrades quickly with bounded memory |
 | `rotation` | replacing a `_FILE` secret does not change a running process, in any bundle; a restart picks it up |
-| `idle` | idle CPU and memory after 200 requests |
+| `idle` | idle CPU, and a memory ceiling after 400 requests |
 
 ## Browser checks (manual)
 
