@@ -3,7 +3,8 @@ name: Release
 # Tag push and manual dispatch only. This workflow answers "is this tag ready
 # to release?", which is a question about a specific tag, not branch state.
 # workflow_dispatch lets a maintainer re-run a release for an existing tag whose
-# previous attempt failed.
+# previous attempt failed; it has to be started from that tag (Use workflow
+# from: the tag), so every job builds the commit the tag names.
 #
 # The release is two things: the signed epistle-panel_<version>_all.deb that the
 # apt archive picks up, and the image ghcr.io/glyndor/epistle-panel. Nothing
@@ -80,6 +81,14 @@ jobs:
             "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git" \
             "refs/tags/$TAG:refs/tags/$TAG"
           commit="$(git -C "$tag_repo" rev-parse --verify "refs/tags/${TAG}^{commit}")"
+          # Every later job checks out the default ref, the commit this run is
+          # on. It has to be the tag's commit, so a manual run is started from
+          # the tag itself: a run on a branch would build that branch under the
+          # tag's name.
+          if [ "$GITHUB_SHA" != "$commit" ]; then
+            echo "::error::this run is on ${GITHUB_SHA} but ${TAG} names ${commit}; start the run from the tag, not from a branch"
+            exit 1
+          fi
           echo "Releasing ${TAG} at ${commit}"
           echo "commit=${commit}" >> "$GITHUB_OUTPUT"
 
@@ -187,9 +196,6 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # The commit `verify` resolved, so the package is built from the tree
-          # that was audited and version-checked.
-          ref: ${{ needs.verify.outputs.commit }}
           persist-credentials: false
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
@@ -267,7 +273,6 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.verify.outputs.commit }}
           persist-credentials: false
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
@@ -314,9 +319,6 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # The signing script and its requirements come from the verified
-          # commit, never from an artifact.
-          ref: ${{ needs.verify.outputs.commit }}
           persist-credentials: false
 
       - name: Receive the package
@@ -397,8 +399,6 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # Only for check-files.sh, taken from the verified commit.
-          ref: ${{ needs.verify.outputs.commit }}
           persist-credentials: false
 
       - name: Receive the package
@@ -465,9 +465,6 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # The commit `verify` resolved, so the image carries the same tree the
-          # gate audited.
-          ref: ${{ needs.verify.outputs.commit }}
           persist-credentials: false
 
       - name: Build the image for ${{ matrix.arch }}
@@ -561,9 +558,6 @@ jobs:
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # The commit `verify` resolved. This job only reads the scripts from
-          # the tree, and it reads them from the released one.
-          ref: ${{ needs.verify.outputs.commit }}
           persist-credentials: false
 
       - name: Build and push the multi-arch manifest list
