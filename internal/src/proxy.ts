@@ -54,6 +54,8 @@ export async function proxy(request: NextRequest) {
 export const config = {
 	// Everything except Next internals and static assets. The login route
 	// stays inside the matcher so it receives the nonce-bearing CSP; the proxy
-	// itself lets it through without a session.
-	matcher: ["/((?!_next/static/|_next/image|favicon.ico$).*)"],
+	// itself lets it through without a session. The skipped names are anchored:
+	// an unanchored `_next/image` or an unescaped dot in `favicon.ico` would
+	// also skip `/_next/imagex` and `/faviconxico`, which belong behind the gate.
+	matcher: ["/((?!_next/static/|_next/image$|favicon\\.ico$).*)"],
 };
