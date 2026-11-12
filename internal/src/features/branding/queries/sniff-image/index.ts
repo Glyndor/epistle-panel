@@ -10,6 +10,41 @@ const startsWith = (bytes: Uint8Array, magic: readonly number[]) =>
 	magic.every((byte, index) => bytes[index] === byte);
 
 /**
+ * True when the text, after optional whitespace, an XML prolog and comments,
+ * opens an `<svg` element. A linear scan: a single regular expression for this
+ * backtracks exponentially on input such as many `<!--` with no `-->`.
+ */
+function opensSvgElement(text: string): boolean {
+	let at = 0;
+	const skipSpace = () => {
+		while (at < text.length && /\s/.test(text.charAt(at))) {
+			at += 1;
+		}
+	};
+	skipSpace();
+	if (text.startsWith("<?xml", at)) {
+		const end = text.indexOf("?>", at);
+		if (end === -1) {
+			return false;
+		}
+		at = end + 2;
+		skipSpace();
+	}
+	while (text.startsWith("<!--", at)) {
+		const end = text.indexOf("-->", at + 4);
+		if (end === -1) {
+			return false;
+		}
+		at = end + 3;
+		skipSpace();
+	}
+	return (
+		text.slice(at, at + 4).toLowerCase() === "<svg" &&
+		/[\s>]/.test(text.charAt(at + 4))
+	);
+}
+
+/**
  * Recognise an image from its first bytes. An SVG is accepted only when it is
  * text that opens an `<svg` element and holds no `<script`, `javascript:` or
  * event-handler attribute; the route also serves it under a sandboxing CSP, so
@@ -40,7 +75,7 @@ export function sniffImage(bytes: Uint8Array): ImageType | undefined {
 	} catch {
 		return undefined;
 	}
-	if (!/^\s*(<\?xml[^>]*\?>\s*)?(<!--[\s\S]*?-->\s*)*<svg[\s>]/i.test(text)) {
+	if (!opensSvgElement(text)) {
 		return undefined;
 	}
 	if (/<script|javascript:|\son[a-z]+\s*=|<foreignObject/i.test(text)) {
