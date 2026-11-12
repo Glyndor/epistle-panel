@@ -1,4 +1,11 @@
-import { afterEach, describe, expect, it, setSystemTime } from "bun:test";
+import {
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	it,
+	setSystemTime,
+} from "bun:test";
 
 import {
 	clearRevocations,
@@ -8,6 +15,10 @@ import {
 	revokeToken,
 } from ".";
 
+// The store is process-global, so a sign-out test in another file leaves its
+// revocation behind. Start every case from an empty set: the bound and the
+// count assertions below are exact.
+beforeEach(clearRevocations);
 afterEach(() => {
 	clearRevocations();
 	setSystemTime();

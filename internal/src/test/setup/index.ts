@@ -1,6 +1,8 @@
 import { expect, mock } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
 
+import { installNextIntlMocks } from "../next-intl";
+
 // Provide `document`/`window` for component tests, then extend `expect` with
 // the jest-dom matchers (toBeInTheDocument, toHaveTextContent, …). The matchers
 // are imported after the registration on purpose: jest-dom 7 loads
@@ -33,6 +35,10 @@ mock.module("next/headers", () => ({
 		delete: () => {},
 	}),
 }));
+
+// One shared stand-in for next-intl, with every export the panel imports:
+// differing per-file mocks of it made the suite depend on file order.
+installNextIntlMocks();
 
 // The API client reads these at call time; tests stub `fetch`, so the values
 // only need to be present and well-formed.

@@ -7,13 +7,6 @@ import {
 	RedirectSignal,
 } from "@/lib/auth/test-support/cookies";
 
-mock.module("next-intl/server", () => ({
-	getTranslations: async () => (key: string) => key,
-}));
-// RemoveButton (a client component) is rendered in the list.
-mock.module("next-intl", () => ({
-	useTranslations: () => (key: string) => key,
-}));
 mock.module("next/cache", () => ({ revalidatePath: () => {} }));
 
 const cookies = mockRequestCookies();
