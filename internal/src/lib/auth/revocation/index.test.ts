@@ -38,13 +38,26 @@ describe("revocation set", () => {
 		expect(revokedCount()).toBe(1);
 	});
 
-	it("stays bounded by evicting the oldest entry", async () => {
+	it("stays bounded by evicting the entry that expires first", async () => {
 		for (let i = 0; i < MAX_REVOKED_TOKENS + 5; i++) {
-			await revokeToken(`token-${i}`, inSeconds(3600));
+			await revokeToken(`token-${i}`, inSeconds(3600 + i));
 		}
 
 		expect(revokedCount()).toBe(MAX_REVOKED_TOKENS);
 		expect(await isRevoked("token-0")).toBe(false);
+		expect(await isRevoked("token-4")).toBe(false);
+		expect(await isRevoked("token-5")).toBe(true);
 		expect(await isRevoked(`token-${MAX_REVOKED_TOKENS + 4}`)).toBe(true);
+	});
+
+	it("keeps the revocation with the furthest expiry when earlier ones fill the cap", async () => {
+		// Inserted first and expiring last: insertion-order eviction would drop it.
+		await revokeToken("long-lived", inSeconds(8 * 3600));
+		for (let i = 0; i < MAX_REVOKED_TOKENS + 5; i++) {
+			await revokeToken(`short-${i}`, inSeconds(60 + i));
+		}
+
+		expect(revokedCount()).toBe(MAX_REVOKED_TOKENS);
+		expect(await isRevoked("long-lived")).toBe(true);
 	});
 });
