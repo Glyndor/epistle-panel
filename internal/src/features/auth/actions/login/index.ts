@@ -3,6 +3,8 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { loginSchema } from "@/features/auth/schemas/login";
+import type { LoginState } from "@/features/auth/schemas/login-state";
 import { verifyCredentials } from "@/lib/api/client";
 import { admitAttempt } from "@/lib/auth/login-limiter";
 import { holdUntilFloor } from "@/lib/auth/response-floor";
@@ -12,21 +14,13 @@ import {
 	SESSION_COOKIE_OPTIONS,
 } from "@/lib/auth/session";
 
-/** State returned by the {@link login} action to its form. */
-export interface LoginState {
-	/** Whether the last attempt failed (bad credentials or not an admin). */
-	error: boolean;
-	/** Whether the attempt was refused by the limiter before reaching the API. */
-	throttled?: boolean;
-}
-
 /**
  * Verify submitted credentials against the mail server and, if they belong to
  * a panel admin, establish the session cookie and redirect into the panel.
  * Every outcome, success included, takes the same minimum time (see
- * `response-floor`), and a failure returns the same error whatever its cause,
+ * `response-floor`), and a failure returns the same outcome whatever its cause,
  * so the response does not reveal which accounts exist. The limiter runs first:
- * a refused attempt never reaches the API. Only `throttled` tells a refusal
+ * a refused attempt never reaches the API. Only the `throttled` outcome tells a refusal
  * apart, and it applies to any name, existing or not.
  */
 export async function login(
@@ -34,19 +28,27 @@ export async function login(
 	formData: FormData,
 ): Promise<LoginState> {
 	const startedAt = Date.now();
-	const fail = async (throttled = false): Promise<LoginState> => {
+	const fail = async (
+		outcome: "failed" | "throttled" = "failed",
+	): Promise<LoginState> => {
 		await holdUntilFloor(startedAt);
-		return throttled ? { error: true, throttled } : { error: true };
+		return { outcome };
 	};
 
-	const name = String(formData.get("name") ?? "").trim();
-	const password = String(formData.get("password") ?? "");
-	if (!name || !password) {
+	// The schema the form validates with is the real gate here. Whatever it
+	// refuses (empty, over the length caps, not a string) is the generic failure,
+	// after the same minimum time, and never reaches the limiter or the API.
+	const parsed = loginSchema.safeParse({
+		name: formData.get("name"),
+		password: formData.get("password"),
+	});
+	if (!parsed.success) {
 		return fail();
 	}
+	const { name, password } = parsed.data;
 	const admission = admitAttempt(name);
 	if (!admission.allowed) {
-		return fail(true);
+		return fail("throttled");
 	}
 
 	let result: { valid: boolean; admin: boolean };

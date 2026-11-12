@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
-
+import {
+	LOGIN_NAME_MAX,
+	LOGIN_PASSWORD_MAX,
+} from "@/features/auth/schemas/login";
+import type { LoginState } from "@/features/auth/schemas/login-state";
 import {
 	FREE_ATTEMPTS,
 	GLOBAL_MAX_FAILURES,
@@ -58,7 +62,7 @@ function form(name: string, password: string): FormData {
 	return data;
 }
 
-const INITIAL = { error: false };
+const INITIAL: LoginState = { outcome: "idle" };
 
 beforeEach(() => {
 	cookies.reset();
@@ -117,10 +121,46 @@ describe("login failure", () => {
 			stubVerify(() => answer);
 
 			expect(await login(INITIAL, form("ops", "pw"))).toEqual({
-				error: true,
+				outcome: "failed",
 			});
 		}
 		expect(cookies.writes).toHaveLength(0);
+	});
+
+	it("refuses a name or password over the length caps with the generic failure, before the limiter and the API", async () => {
+		stubVerify(() => ({ valid: true, admin: true }));
+
+		for (const [name, password] of [
+			["n".repeat(LOGIN_NAME_MAX + 1), "pw"],
+			["ops", "p".repeat(LOGIN_PASSWORD_MAX + 1)],
+		] as const) {
+			expect(await login(INITIAL, form(name, password))).toEqual({
+				outcome: "failed",
+			});
+		}
+		expect(verify).not.toHaveBeenCalled();
+		expect(cookies.writes).toHaveLength(0);
+	});
+
+	it("refuses a field that is not text, such as an uploaded file, the same way", async () => {
+		stubVerify(() => ({ valid: true, admin: true }));
+		const data = new FormData();
+		data.set("name", new File(["x"], "name.txt"));
+		data.set("password", "pw");
+
+		expect(await login(INITIAL, data)).toEqual({ outcome: "failed" });
+		expect(verify).not.toHaveBeenCalled();
+	});
+
+	it("accepts a name and a password of exactly the caps", async () => {
+		stubVerify(() => ({ valid: false, admin: false }));
+
+		await login(
+			INITIAL,
+			form("n".repeat(LOGIN_NAME_MAX), "p".repeat(LOGIN_PASSWORD_MAX)),
+		);
+
+		expect(verify).toHaveBeenCalledTimes(1);
 	});
 
 	it("sends the API the name without the padding around it", async () => {
@@ -135,8 +175,12 @@ describe("login failure", () => {
 	it("rejects empty fields without calling the API", async () => {
 		stubVerify(() => ({ valid: true, admin: true }));
 
-		expect(await login(INITIAL, form("", "pw"))).toEqual({ error: true });
-		expect(await login(INITIAL, form("ops", ""))).toEqual({ error: true });
+		expect(await login(INITIAL, form("", "pw"))).toEqual({
+			outcome: "failed",
+		});
+		expect(await login(INITIAL, form("ops", ""))).toEqual({
+			outcome: "failed",
+		});
 		expect(verify).not.toHaveBeenCalled();
 	});
 });
@@ -239,7 +283,7 @@ describe("login timing", () => {
 			login(INITIAL, form("locked", "pw")),
 		);
 
-		expect(refused.value).toEqual({ error: true, throttled: true });
+		expect(refused.value).toEqual({ outcome: "throttled" });
 		expect(refused.elapsedMs).toBe(FLOOR_MS);
 	});
 });
@@ -257,7 +301,7 @@ describe("login limiter", () => {
 
 		const refused = await login(INITIAL, form("ops", "right-password"));
 
-		expect(refused).toEqual({ error: true, throttled: true });
+		expect(refused).toEqual({ outcome: "throttled" });
 		expect(verify).toHaveBeenCalledTimes(FREE_ATTEMPTS + 1);
 	}, 20_000);
 
@@ -269,7 +313,7 @@ describe("login limiter", () => {
 		);
 
 		expect(verify).toHaveBeenCalledTimes(FREE_ATTEMPTS + 1);
-		expect(results.filter((r) => r.throttled)).toHaveLength(
+		expect(results.filter((r) => r.outcome === "throttled")).toHaveLength(
 			20 - (FREE_ATTEMPTS + 1),
 		);
 	}, 15_000);
@@ -283,7 +327,9 @@ describe("login limiter", () => {
 		}
 
 		expect(verify).toHaveBeenCalledTimes(GLOBAL_MAX_FAILURES);
-		expect(results.filter((r) => r.throttled)).toHaveLength(10);
+		expect(results.filter((r) => r.outcome === "throttled")).toHaveLength(
+			10,
+		);
 	}, 15_000);
 
 	it("does not let a flood of failing names keep out an admin who signed in before", async () => {
@@ -296,8 +342,7 @@ describe("login limiter", () => {
 			await login(INITIAL, form(`burn-${i}`, "pw"));
 		}
 		expect(await login(INITIAL, form("burn-extra", "pw"))).toEqual({
-			error: true,
-			throttled: true,
+			outcome: "throttled",
 		});
 
 		const outcome = await login(INITIAL, form("admin", "right")).catch(
@@ -328,11 +373,13 @@ describe("login limiter", () => {
 
 		expect(peak).toBe(MAX_IN_FLIGHT);
 		expect(verify).toHaveBeenCalledTimes(MAX_IN_FLIGHT);
-		expect(results.filter((r) => r.throttled)).toHaveLength(12);
+		expect(results.filter((r) => r.outcome === "throttled")).toHaveLength(
+			12,
+		);
 
 		// The slots are free again once the answers are in.
 		expect(await login(INITIAL, form("after", "pw"))).toEqual({
-			error: true,
+			outcome: "failed",
 		});
 	}, 15_000);
 
@@ -340,7 +387,7 @@ describe("login limiter", () => {
 		stubVerify(() => new Error("down"));
 		for (let i = 0; i < MAX_IN_FLIGHT * 2; i++) {
 			expect(await login(INITIAL, form(`name-${i}`, "pw"))).toEqual({
-				error: true,
+				outcome: "failed",
 			});
 		}
 	}, 15_000);
@@ -368,7 +415,9 @@ describe("login limiter", () => {
 			),
 		);
 		expect(after).toEqual(
-			Array.from({ length: FREE_ATTEMPTS }, () => ({ error: true })),
+			Array.from({ length: FREE_ATTEMPTS }, () => ({
+				outcome: "failed",
+			})),
 		);
 	}, 15_000);
 });
