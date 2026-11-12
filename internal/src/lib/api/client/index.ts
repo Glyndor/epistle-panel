@@ -18,7 +18,7 @@ import {
 	statusSchema,
 	type VerifyResult,
 	verifyResultSchema,
-} from "./schemas";
+} from "../schemas";
 
 /** Raised for any non-2xx response from the Epistle management API. */
 export class EpistleApiError extends Error {

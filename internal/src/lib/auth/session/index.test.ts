@@ -3,11 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import {
-	createSession,
-	SESSION_MAX_AGE_SECONDS,
-	verifySession,
-} from "./session";
+import { createSession, SESSION_MAX_AGE_SECONDS, verifySession } from ".";
 
 afterEach(() => {
 	delete process.env.EPISTLE_PANEL_SESSION_SECRET_FILE;

@@ -3,7 +3,7 @@ import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { readSecret } from "./secret";
+import { readSecret } from ".";
 
 const NAME = "EPISTLE_TEST_SECRET";
 const FILE_VAR = `${NAME}_FILE`;

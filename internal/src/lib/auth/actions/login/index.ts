@@ -52,10 +52,3 @@ export async function login(
 	});
 	redirect("/");
 }
-
-/** Clear the session cookie and return to the login page. */
-export async function logout(): Promise<void> {
-	const store = await cookies();
-	store.delete(SESSION_COOKIE);
-	redirect("/login");
-}

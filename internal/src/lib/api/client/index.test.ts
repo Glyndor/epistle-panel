@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, type Mock } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-
+import { stubFetchJson, stubFetchReject } from "../test-support/fetch";
 import {
 	EpistleApiError,
 	getAccounts,
@@ -10,8 +10,7 @@ import {
 	getQueue,
 	getStatus,
 	removeQueueEntry,
-} from "./client";
-import { stubFetchJson, stubFetchReject } from "./test-fetch";
+} from ".";
 
 const ID = "01890a5d-ac96-774b-b9aa-9be4c3bd6b0e";
 
