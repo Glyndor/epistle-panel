@@ -15,5 +15,7 @@
 	"signedInAs": "Sesión iniciada como {name}",
 	"language": "Idioma",
 	"languageEn": "English",
-	"languageEs": "Español"
+	"languageEs": "Español",
+	"notifications": "Notificaciones",
+	"dismiss": "Cerrar aviso"
 }

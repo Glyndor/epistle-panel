@@ -1,12 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { cleanup, render, screen } from "@testing-library/react";
 
-import { stubFetchJson, stubFetchReject } from "@/lib/api/test-support/fetch";
+import {
+	sentRequests,
+	stubFetchJson,
+	stubFetchReject,
+} from "@/lib/api/test-support/fetch";
 import {
 	mockRequestCookies,
 	RedirectSignal,
 } from "@/lib/auth/test-support/cookies";
 
+import { withQuery } from "@/test/query-wrapper";
+
+const originalFetch = globalThis.fetch;
 const cookies = mockRequestCookies();
 
 const { default: DomainsPage } = await import("./page");
@@ -15,13 +22,16 @@ beforeEach(async () => {
 	cookies.reset();
 	await cookies.signIn();
 });
-afterEach(cleanup);
+afterEach(() => {
+	cleanup();
+	globalThis.fetch = originalFetch;
+});
 
 describe("DomainsPage", () => {
 	it("lists each configured domain", async () => {
 		stubFetchJson({ domains: ["example.org", "example.net"] });
 
-		render(await DomainsPage());
+		render(withQuery(await DomainsPage()));
 
 		expect(screen.getByText("example.org")).toBeInTheDocument();
 		expect(screen.getByText("example.net")).toBeInTheDocument();
@@ -30,19 +40,19 @@ describe("DomainsPage", () => {
 	it("puts domains in a table with a labelled column", async () => {
 		stubFetchJson({ domains: ["example.org", "example.net"] });
 
-		render(await DomainsPage());
+		render(withQuery(await DomainsPage()));
 
 		expect(screen.getByRole("table")).toBeInTheDocument();
-		expect(
-			screen.getAllByRole("columnheader").map((cell) => cell.textContent),
-		).toEqual(["name"]);
+		const headers = screen.getAllByRole("columnheader");
+		expect(headers).toHaveLength(1);
+		expect(headers[0]).toHaveTextContent("name");
 		expect(screen.getAllByRole("row")).toHaveLength(3);
 	});
 
 	it("shows the empty state when there are no domains", async () => {
 		stubFetchJson({ domains: [] });
 
-		render(await DomainsPage());
+		render(withQuery(await DomainsPage()));
 
 		expect(screen.getByText("empty")).toBeInTheDocument();
 	});
@@ -50,17 +60,17 @@ describe("DomainsPage", () => {
 	it("shows the unreachable notice when the API errors", async () => {
 		stubFetchReject();
 
-		render(await DomainsPage());
+		render(withQuery(await DomainsPage()));
 
-		expect(screen.getByRole("alert")).toHaveTextContent("unreachable");
+		const alert = await screen.findByRole("alert");
+		expect(alert).toHaveTextContent("unreachable");
 		// An unreachable API is a warning, not a destructive state.
-		expect(screen.getByRole("alert")).toHaveClass("bg-warning");
+		expect(alert).toHaveClass("bg-warning");
 	});
 
 	it("redirects to the login page without a session and never calls the API", async () => {
 		cookies.reset();
 		stubFetchJson({});
-		const before = globalThis.fetch;
 
 		const outcome = await (async () => await DomainsPage())().catch(
 			(error) => error,
@@ -68,8 +78,6 @@ describe("DomainsPage", () => {
 
 		expect(outcome).toBeInstanceOf(RedirectSignal);
 		expect(outcome.target).toBe("/login");
-		expect(
-			(before as unknown as { mock: { calls: unknown[] } }).mock.calls,
-		).toHaveLength(0);
+		expect(sentRequests()).toHaveLength(0);
 	});
 });

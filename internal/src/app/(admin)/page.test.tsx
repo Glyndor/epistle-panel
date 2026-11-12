@@ -1,12 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { cleanup, render, screen } from "@testing-library/react";
 
-import { stubFetchJson, stubFetchReject } from "@/lib/api/test-support/fetch";
+import {
+	sentRequests,
+	stubFetchJson,
+	stubFetchReject,
+} from "@/lib/api/test-support/fetch";
 import {
 	mockRequestCookies,
 	RedirectSignal,
 } from "@/lib/auth/test-support/cookies";
+import { withQuery } from "@/test/query-wrapper";
 
+const originalFetch = globalThis.fetch;
 const cookies = mockRequestCookies();
 
 const { default: HomePage } = await import("./page");
@@ -15,10 +21,13 @@ beforeEach(async () => {
 	cookies.reset();
 	await cookies.signIn();
 });
-afterEach(cleanup);
+afterEach(() => {
+	cleanup();
+	globalThis.fetch = originalFetch;
+});
 
 describe("HomePage", () => {
-	it("renders a card per counter when the API responds", async () => {
+	it("renders a card per counter at once from the server prefetch", async () => {
 		stubFetchJson({
 			version: "0.1.0",
 			domains: 2,
@@ -26,28 +35,29 @@ describe("HomePage", () => {
 			queue_size: 3,
 		});
 
-		render(await HomePage());
+		render(withQuery(await HomePage()));
 
+		// No wait: the data was dehydrated into the page, so the first render has it.
 		expect(screen.getByText("0.1.0")).toBeInTheDocument();
 		expect(screen.getByText("2")).toBeInTheDocument();
 		expect(screen.getByText("5")).toBeInTheDocument();
 		expect(screen.getByText("3")).toBeInTheDocument();
+		expect(sentRequests()).toHaveLength(1);
 	});
 
-	it("renders the unreachable notice when the API errors", async () => {
+	it("renders the unreachable notice, as a warning, when the API errors", async () => {
 		stubFetchReject();
 
-		render(await HomePage());
+		render(withQuery(await HomePage()));
 
-		expect(screen.getByRole("alert")).toHaveTextContent("unreachable");
-		// An unreachable API is a warning, not a destructive state.
-		expect(screen.getByRole("alert")).toHaveClass("bg-warning");
+		const alert = await screen.findByRole("alert");
+		expect(alert).toHaveTextContent("unreachable");
+		expect(alert).toHaveClass("bg-warning");
 	});
 
 	it("redirects to the login page without a session and never calls the API", async () => {
 		cookies.reset();
 		stubFetchJson({});
-		const before = globalThis.fetch;
 
 		const outcome = await (async () => await HomePage())().catch(
 			(error) => error,
@@ -55,8 +65,6 @@ describe("HomePage", () => {
 
 		expect(outcome).toBeInstanceOf(RedirectSignal);
 		expect(outcome.target).toBe("/login");
-		expect(
-			(before as unknown as { mock: { calls: unknown[] } }).mock.calls,
-		).toHaveLength(0);
+		expect(sentRequests()).toHaveLength(0);
 	});
 });

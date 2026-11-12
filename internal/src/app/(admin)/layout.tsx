@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 
 import { AppShell } from "@/components/layout/app-shell";
+import { QueryProvider } from "@/components/layout/query-provider";
 import { SIDEBAR_COOKIE } from "@/components/ui/sidebar/provider";
 import { navForRole } from "@/features/navigation/queries/nav-for-role";
 import { requireSession } from "@/lib/auth/require-session";
@@ -17,12 +18,14 @@ export default async function AdminLayout({
 	const open = (await cookies()).get(SIDEBAR_COOKIE)?.value !== "false";
 
 	return (
-		<AppShell
-			groups={navForRole("admin")}
-			userName={session.sub}
-			defaultOpen={open}
-		>
-			{children}
-		</AppShell>
+		<QueryProvider>
+			<AppShell
+				groups={navForRole("admin")}
+				userName={session.sub}
+				defaultOpen={open}
+			>
+				{children}
+			</AppShell>
+		</QueryProvider>
 	);
 }

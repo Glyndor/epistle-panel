@@ -1,4 +1,5 @@
 import { AppSidebar } from "@/components/layout/app-sidebar";
+import { AppToaster } from "@/components/layout/app-toaster";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SkipLink } from "@/components/layout/skip-link";
 import { SidebarProvider } from "@/components/ui/sidebar/provider";
@@ -40,6 +41,7 @@ export function AppShell({
 					{children}
 				</main>
 			</SidebarInset>
+			<AppToaster />
 		</SidebarProvider>
 	);
 }

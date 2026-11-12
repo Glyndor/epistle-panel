@@ -15,5 +15,7 @@
 	"signedInAs": "Signed in as {name}",
 	"language": "Language",
 	"languageEn": "English",
-	"languageEs": "Español"
+	"languageEs": "Español",
+	"notifications": "Notifications",
+	"dismiss": "Dismiss"
 }
