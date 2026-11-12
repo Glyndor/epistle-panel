@@ -25,7 +25,7 @@ on:
         type: boolean
         default: false
       dry-run:
-        description: Rehearsal. Build and sign everything with a throwaway key, build the image without pushing it, and stop before anything is published
+        description: Rehearsal. Build and sign everything with a throwaway key, build the image without pushing it, publish the manifest list to a throwaway local registry, and stop before anything real is published
         required: false
         type: boolean
         default: false
@@ -64,10 +64,12 @@ jobs:
         # is interpolated into the shell: TAG arrives in the environment.
         run: |
           set -euo pipefail
-          case "$TAG" in
-            v[0-9]*.[0-9]*.[0-9]*) ;;
-            *) echo "::error::$TAG is not a release tag of the form vMAJOR.MINOR.PATCH"; exit 1 ;;
-          esac
+          # The same shape check_release_tag.py applies, so a malformed tag is
+          # refused here, before it is used as a ref, with the same message.
+          if ! [[ "$TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error::$TAG is not a release tag of the form vMAJOR.MINOR.PATCH; pre-release tags are not supported"
+            exit 1
+          fi
 
       - name: Resolve the commit this release names
         id: resolve
@@ -181,6 +183,8 @@ jobs:
   # The package is Architecture: all, so one runner builds the only .deb. The
   # job holds `id-token` for the provenance attestation, which has to be made in
   # the job that produced the file, so it runs nothing but the package build.
+  # The build itself runs in a container (scripts/debian/build.sh), the same one
+  # the Debian package workflow tests.
   build-deb:
     name: Build Debian package
     needs: verify
@@ -198,38 +202,28 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          # The release workflow holds the signing path, so nothing it runs may
-          # restore a cache another run could have written.
-          no-cache: true
-          bun-version: 1.4.4
-
-      - name: Install packaging tooling
+      - name: Build the package and lint it, as the Debian package workflow does
         env:
-          DEBIAN_FRONTEND: noninteractive
+          # debian:trixie, the digest .github/workflows/debian.yml pins. Move
+          # the two together.
+          BUILD_IMAGE: docker.io/library/debian:trixie@sha256:fac46bff2e02f51425b6e33b0e1169f55dfb053d83511ca28aa50c09fd5ed7a4
         run: |
-          # From the distribution's own archive, the same trust the runner image
-          # already rests on. Node, which `next build` runs under, is on the
-          # runner image.
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends dpkg-dev debhelper fakeroot
-
-      - name: Build the package
-        run: |
-          # -d skips the build-dependency check on purpose. Bun is not a Debian
-          # package, so a Build-Depends line could not name it, and it is
-          # provided by the setup step above.
-          dpkg-buildpackage -us -uc -b -d
+          # The same script debian.yml runs on every change to the packaging:
+          # a clean, digest-pinned Debian container, dpkg-buildpackage, and
+          # `lintian --fail-on error,warning` on the .deb it produced. The file
+          # published below is that file, so what the repository tests is what
+          # the archive receives. Nothing here needs Bun: the package carries
+          # no application code.
+          sh scripts/debian/build.sh "$RUNNER_TEMP/deb"
 
       - name: Stage the .deb and check what it declares
         run: |
           set -euo pipefail
           version="${TAG#v}"
-          deb="../epistle-panel_${version}_all.deb"
+          deb="$RUNNER_TEMP/deb/epistle-panel_${version}_all.deb"
           if [ ! -f "$deb" ]; then
-            echo "::error::dpkg-buildpackage did not produce $(basename "$deb"); the files it did produce:"
-            ls -l .. >&2
+            echo "::error::the build did not produce $(basename "$deb"); the files it did produce:"
+            ls -l "$RUNNER_TEMP/deb" >&2
             exit 1
           fi
           # The apt archive refuses a package whose control fields disagree
@@ -243,6 +237,9 @@ jobs:
           echo "Staged $(basename "$deb")"
 
       - name: Attest build provenance
+        # An attestation goes to the public transparency log and cannot be
+        # withdrawn, so a rehearsal, whose package is never released, makes none.
+        if: ${{ !inputs.dry-run }}
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: epistle-panel_*_all.deb
@@ -355,22 +352,14 @@ jobs:
           GLYNDOR_RELEASE_ED25519_KEY: ${{ secrets.GLYNDOR_RELEASE_ED25519_KEY }}
         run: bash scripts/release/sign/sign-release.sh dist "$TAG"
 
-      # A rehearsal may name a tag older than the signing script, so the script
-      # comes from the commit that launched the dispatch. Nothing signed here is
-      # published: the key is the throwaway one and the job after this is skipped.
-      - name: Take the signing script from the dispatch commit (rehearsal)
-        if: ${{ inputs.dry-run }}
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.sha }}
-          path: rehearsal-tools
-          persist-credentials: false
-
+      # Nothing signed here is published: the key is the throwaway one and the
+      # job after this is skipped. The script is the one in the tree this job
+      # checked out, which `verify` required to be the tag's commit.
       - name: Sign the files with the throwaway key (rehearsal)
         if: ${{ inputs.dry-run }}
         env:
           GLYNDOR_RELEASE_ED25519_KEY: ${{ env.REHEARSAL_KEY }}
-        run: bash rehearsal-tools/scripts/release/sign/sign-release.sh dist "$TAG"
+        run: bash scripts/release/sign/sign-release.sh dist "$TAG"
 
       - name: Check what is going to be published
         run: bash scripts/release/verify/check-files.sh dist "$TAG" final
@@ -519,6 +508,32 @@ jobs:
         run: |
           set -euo pipefail
           podman push "${REGISTRY_IMAGE}:${TAG#v}-${ARCH}"
+
+  # A rehearsal skips `publish` and `image-manifest`, the two places the first
+  # real release would otherwise meet `podman manifest` for the first time, with
+  # the release already public. This job runs the real publication script
+  # against a throwaway registry on the runner. The release itself
+  # (`gh release create`) cannot be rehearsed: it would create a real object,
+  # so it is the one step a rehearsal does not cover.
+  rehearse-manifest:
+    name: Rehearse the manifest publication
+    needs: verify
+    if: ${{ inputs.dry-run }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Publish a manifest list to a local registry
+        env:
+          TAG: ${{ inputs.tag }}
+          # registry:3, a multi-architecture index, by digest.
+          REGISTRY: docker.io/library/registry@sha256:52b489ad8e6f40d1a676702e3ce398ec796ce38f08fbb786e1f324baa12d84b8
+        run: bash scripts/release/publish/rehearse-manifest.sh "$REGISTRY" "$TAG"
 
   image-manifest:
     name: Publish multi-arch image manifest

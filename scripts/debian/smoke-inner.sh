@@ -29,7 +29,10 @@ image=/usr/share/glyndor/epistle-panel/image
 [ -f "$image" ] || fail "$image is missing"
 [ "$(stat -c '%U:%G %a' "$image")" = "root:root 644" ] || fail "$image has the wrong owner or mode"
 [ "$(wc -l <"$image")" = 1 ] || fail "$image is not one line"
-[ "$(cat "$image")" = "ghcr.io/glyndor/epistle-panel:0.1.0" ] || fail "$image is '$(cat "$image")'"
+# The tag it names is the package's own version, not a literal: a literal fails
+# on the first release after 0.1.0.
+version=$(dpkg-deb -f /pkg/epistle-panel.deb Version)
+[ "$(cat "$image")" = "ghcr.io/glyndor/epistle-panel:${version}" ] || fail "$image is '$(cat "$image")', expected tag ${version}"
 echo "ok   $image: $(cat "$image")"
 [ -f /usr/share/glyndor/epistle-panel/README ] || fail "the README of the pin file is missing"
 echo "ok   README present"
