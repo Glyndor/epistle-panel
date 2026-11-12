@@ -3,6 +3,7 @@ import type app from "@/i18n/messages/en/app.json";
 import type auth from "@/i18n/messages/en/auth.json";
 import type dashboard from "@/i18n/messages/en/dashboard.json";
 import type domains from "@/i18n/messages/en/domains.json";
+import type error from "@/i18n/messages/en/error.json";
 import type nav from "@/i18n/messages/en/nav.json";
 import type notFound from "@/i18n/messages/en/notFound.json";
 import type queue from "@/i18n/messages/en/queue.json";
@@ -21,6 +22,7 @@ declare module "next-intl" {
 			queue: typeof queue;
 			notFound: typeof notFound;
 			auth: typeof auth;
+			error: typeof error;
 		};
 	}
 }
