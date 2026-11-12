@@ -36,8 +36,7 @@ The release audit fails on any advisory in `bun.lock`, development dependencies 
 
 Releases are immutable. A mistake is fixed with a new patch version, never by moving the tag or replacing assets.
 
-`workflow_dispatch` takes the tag and two options. Start it from the tag itself (Use workflow from: the tag, not a branch): every job builds the commit the run is on, and `verify` refuses a run whose commit is not the one the tag names.
-
+`workflow_dispatch` takes the tag and two options. Start it from the tag itself (Use workflow from: the tag, not a branch): every job builds the commit the run is on, and `verify` refuses a run whose commit is not the one the tag names:
 
 - `images-only` rebuilds and pushes only the image, for a tag whose release is already published.
 - `dry-run` builds and signs everything with a throwaway key, builds the image without pushing it, and stops before anything is published.
