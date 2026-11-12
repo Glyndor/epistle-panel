@@ -3,6 +3,7 @@
 import {
 	BanIcon,
 	GlobeIcon,
+	HistoryIcon,
 	InboxIcon,
 	LayoutDashboardIcon,
 	type LucideIcon,
@@ -34,6 +35,7 @@ const ICONS: Record<NavIconName, LucideIcon> = {
 	users: UsersIcon,
 	inbox: InboxIcon,
 	ban: BanIcon,
+	history: HistoryIcon,
 };
 
 /** Whether `pathname` is the page of `href` or one below it. */

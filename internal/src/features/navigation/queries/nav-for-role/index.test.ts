@@ -23,7 +23,8 @@ describe("navForRole", () => {
 			"/domains",
 			"/accounts",
 			"/queue",
-			"/suppression",
+			"/app/deliveries",
+			"/app/suppression",
 		]);
 	});
 

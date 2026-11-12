@@ -14,6 +14,7 @@ import {
 import {
 	accountsSchema,
 	apiErrorSchema,
+	deliveriesSchema,
 	domainsSchema,
 	queuePageSchema,
 	removedAddressSchema,
@@ -32,6 +33,7 @@ const schemas: Record<string, z.ZodType> = {
 	domains: domainsSchema,
 	queue: queuePageSchema,
 	suppression: suppressionPageSchema,
+	deliveries: deliveriesSchema,
 	removedAddress: removedAddressSchema,
 	removed: removedSchema,
 	status: statusSchema,

@@ -17,6 +17,7 @@ export const NAV_ICON_NAMES = [
 	"users",
 	"inbox",
 	"ban",
+	"history",
 ] as const;
 export const navIconSchema = z.enum(NAV_ICON_NAMES);
 export type NavIconName = z.infer<typeof navIconSchema>;
@@ -28,6 +29,7 @@ export const navLabelKeySchema = z.enum([
 	"accounts",
 	"queue",
 	"suppression",
+	"deliveries",
 ]);
 export type NavLabelKey = z.infer<typeof navLabelKeySchema>;
 

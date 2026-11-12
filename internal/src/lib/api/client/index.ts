@@ -5,7 +5,9 @@ import { request } from "../request";
 import {
 	type Accounts,
 	accountsSchema,
+	type Deliveries,
 	type Domains,
+	deliveriesSchema,
 	domainsSchema,
 	type QueuePage,
 	queuePageSchema,
@@ -93,6 +95,26 @@ export function removeSuppression(address: string): Promise<RemovedAddress> {
 		removedAddressSchema,
 		{ method: "DELETE" },
 	);
+}
+
+/** What `GET /api/v1/deliveries` can be narrowed by. The API has no cursor. */
+export interface DeliveryQuery {
+	outcome?: string | undefined;
+	since?: string | undefined;
+	recipient?: string | undefined;
+	limit?: number | undefined;
+}
+
+/** Fetch the newest delivery records that match `params`. */
+export function getDeliveries(params: DeliveryQuery = {}): Promise<Deliveries> {
+	const query = new URLSearchParams();
+	for (const [name, value] of Object.entries(params)) {
+		if (value !== undefined) {
+			query.set(name, String(value));
+		}
+	}
+	const suffix = query.size > 0 ? `?${query}` : "";
+	return request(`/api/v1/deliveries${suffix}`, deliveriesSchema);
 }
 
 /**

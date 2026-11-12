@@ -1,10 +1,10 @@
 # epistle-panel
 
-Admin panel for the [Epistle mail server](https://github.com/Glyndor/epistle): server status, domains, accounts, queues and the suppression list on top of its management API.
+Admin panel for the [Epistle mail server](https://github.com/Glyndor/epistle): server status, domains, accounts, queues, deliveries and the suppression list on top of its management API.
 
 [![CI](https://github.com/Glyndor/epistle-panel/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/Glyndor/epistle-panel/actions/workflows/ci.yml)
 
-> 🚧 Early development. The status, accounts, domains, queue and suppression views work; the rest of the management API is not covered yet.
+> 🚧 Early development. The status, accounts, domains, queue, deliveries and suppression views work; the rest of the management API is not covered yet.
 
 ## 🧱 Stack
 

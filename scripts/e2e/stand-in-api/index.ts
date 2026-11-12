@@ -14,6 +14,7 @@
  */
 
 import { apiError, json } from "./responses";
+import { createDeliveriesStore } from "./deliveries";
 import { createSuppressionStore } from "./suppression";
 
 /** Behaviour of the data endpoints, switched at run time through the control path. */
@@ -122,6 +123,7 @@ export function createStandIn(options: StandInOptions) {
 	let mode: Mode = "ok";
 	let queue = [...SEED_IDS];
 	const suppression = createSuppressionStore();
+	const deliveries = createDeliveriesStore();
 
 	const bearerOf = (request: Request): LoggedRequest["bearer"] => {
 		const header = request.headers.get("authorization");
@@ -278,7 +280,8 @@ export function createStandIn(options: StandInOptions) {
 			queue = queue.filter((other) => other !== id);
 			return json({ removed: id });
 		}
-		const answered = suppression.handle(request, url);
+		const answered =
+			suppression.handle(request, url) ?? deliveries.handle(request, url);
 		if (answered) {
 			return answered;
 		}

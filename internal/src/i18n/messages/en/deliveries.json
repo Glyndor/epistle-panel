@@ -1,0 +1,37 @@
+{
+	"heading": "Deliveries",
+	"description": "What happened to each message for each recipient, newest first. Times are UTC.",
+	"unreachable": "The mail server's management API is unreachable. Check that the server is running and the panel is configured.",
+	"disabled": "The delivery log is turned off on the server. Set a retention above 0 days for it in the server's storage settings to record deliveries.",
+	"empty": "No delivery matches.",
+	"full": "The API returns at most 100 records and has no next page. Narrow the list with the filters to see others.",
+	"filter": "Filter these records",
+	"time": "Time (UTC)",
+	"outcome": "Outcome",
+	"recipient": "Recipient",
+	"from": "From",
+	"account": "Account",
+	"remote": "Remote server",
+	"reply": "Reply",
+	"attempt": "Attempt",
+	"none": "-",
+	"any": "Any outcome",
+	"anyTime": "Any time",
+	"since": "Since",
+	"apply": "Apply",
+	"clear": "Clear",
+	"outcomes": {
+		"delivered": "Delivered",
+		"deferred": "Deferred",
+		"failed": "Failed",
+		"suppressed": "Suppressed",
+		"canceled": "Canceled"
+	},
+	"windows": {
+		"15m": "Last 15 minutes",
+		"1h": "Last hour",
+		"24h": "Last 24 hours",
+		"7d": "Last 7 days",
+		"30d": "Last 30 days"
+	}
+}

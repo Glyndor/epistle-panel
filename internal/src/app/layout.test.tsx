@@ -99,6 +99,7 @@ describe("RootLayout", () => {
 			"accounts",
 			"auth",
 			"dashboard",
+			"deliveries",
 			"domains",
 			"error",
 			"nav",
