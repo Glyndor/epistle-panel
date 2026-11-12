@@ -46,4 +46,15 @@ describe("Input", () => {
 
 		expect(screen.getByLabelText("Name")).not.toHaveAttribute("style");
 	});
+
+	it("shows the invalid state with the destructive border and still reacts to hover", () => {
+		// Hover on an invalid field must not look like its rest state.
+		render(<Input aria-label="Name" aria-invalid="true" />);
+
+		const input = screen.getByLabelText("Name");
+		expect(input).toHaveClass(
+			"aria-invalid:border-destructive",
+			"aria-invalid:hover:border-destructive/70",
+		);
+	});
 });
