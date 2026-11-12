@@ -11,6 +11,10 @@ const nextConfig: NextConfig = {
 	// install, so the standalone output is required, not optional.
 	output: "standalone",
 	reactCompiler: true,
+	typedRoutes: true,
+	experimental: {
+		serverActions: { bodySizeLimit: "16kb" },
+	},
 	// Do not announce the framework on every response.
 	poweredByHeader: false,
 	// The proxy stamps every header on the routes it covers; this covers the

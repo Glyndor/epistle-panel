@@ -4,7 +4,7 @@ import type { NavItem } from "@/features/navigation/schemas/nav-item";
 
 import { navForRole } from ".";
 
-const item = (href: string, roles: NavItem["roles"]): NavItem => ({
+const item = (href: NavItem["href"], roles: NavItem["roles"]): NavItem => ({
 	href,
 	label: "status",
 	icon: "dashboard",
@@ -32,17 +32,17 @@ describe("navForRole", () => {
 
 	it("keeps an entry for a role only when that role is listed on it", () => {
 		const items = [
-			item("/a", ["admin"]),
-			item("/b", ["user"]),
-			item("/c", ["admin", "user"]),
+			item("/accounts", ["admin"]),
+			item("/domains", ["user"]),
+			item("/queue", ["admin", "user"]),
 		];
 
 		expect(navForRole("user", items)[0]?.items.map((e) => e.href)).toEqual([
-			"/b",
-			"/c",
+			"/domains",
+			"/queue",
 		]);
 		expect(navForRole("admin", items)[0]?.items.map((e) => e.href)).toEqual(
-			["/a", "/c"],
+			["/accounts", "/queue"],
 		);
 	});
 

@@ -26,7 +26,10 @@ and drops every entry whose roles do not include it. The sidebar knows no
 route: `AppShell` and `AppSidebar` take the groups as props. To add a page,
 add an entry (and its icon name and label keys to the schema and the `nav`
 messages) and the route; the shell needs no change. An entry's href must be an
-absolute in-app path, which `schemas/nav-item` enforces.
+absolute in-app path, which `schemas/nav-item` enforces, and a route that exists
+in the app tree: `typedRoutes` types it as `Route`, so an entry added before its
+page fails `bun run typecheck` and `bun run build` (`typecheck` runs
+`next typegen` first, which writes the route types in `.next/types`).
 
 ## The shell and its contract
 

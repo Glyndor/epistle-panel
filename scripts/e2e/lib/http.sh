@@ -27,24 +27,26 @@ html_field() {
 		head -1 | sed 's/^[^=]*="[^"]*" value="//; s/"$//; s/&quot;/"/g; s/&amp;/\&/g'
 }
 
-# post_login NAME PASSWORD HEADER_FILE BODY_FILE: posts the login form without
-# JavaScript and prints the status and the total time.
+# post_login NAME PASSWORD HEADER_FILE BODY_FILE [FIELD]: posts the login form
+# without JavaScript, with one more form field (name=value) when FIELD is given,
+# and prints the status and the total time.
 post_login() {
-	local html a0 a1 key
+	local html a0 a1 key extra=()
+	[[ -n "${5:-}" ]] && extra=(-F "$5")
 	html=$(curl -s "$panel/login")
 	a0=$(html_field "$html" '$ACTION_1:0')
 	a1=$(html_field "$html" '$ACTION_1:1')
 	key=$(html_field "$html" '$ACTION_KEY')
 	curl -s -D "$3" -o "$4" -w '%{http_code} %{time_total}' "$panel/login" \
 		-F '$ACTION_REF_1=' -F "\$ACTION_1:0=$a0" -F "\$ACTION_1:1=$a1" \
-		-F "\$ACTION_KEY=$key" -F "name=$1" -F "password=$2"
+		-F "\$ACTION_KEY=$key" -F "name=$1" -F "password=$2" "${extra[@]}"
 }
 
-# login NAME PASSWORD: sets $status, $elapsed and $cookie (name=value, empty
+# login NAME PASSWORD [FIELD]: sets $status, $elapsed and $cookie (name=value, empty
 # when the server set none).
 login() {
 	local out
-	out=$(post_login "$1" "$2" "$work/h" "$work/b")
+	out=$(post_login "$1" "$2" "$work/h" "$work/b" "${3:-}")
 	status=${out% *}
 	elapsed=${out#* }
 	cookie=$({ grep -i "^set-cookie: $SESSION_COOKIE_NAME=" "$work/h" || true; } |
