@@ -41,13 +41,17 @@ Releases are immutable. A mistake is fixed with a new patch version, never by mo
 - `images-only` rebuilds and pushes only the image, for a tag whose release is already published.
 - `dry-run` builds and signs everything with a throwaway key, builds the image without pushing it, and stops before anything is published.
 
-## Verifying a release
+## Scripts
 
-The package and the image carry build provenance attestations:
+The workflow calls these, each with an explicit interpreter, and they can be run by hand from the repository root:
 
-```sh
-gh attestation verify epistle-panel_0.2.0_all.deb --repo Glyndor/epistle-panel
-gh attestation verify oci://ghcr.io/glyndor/epistle-panel:0.2.0 --repo Glyndor/epistle-panel
-```
+| Folder | What it holds |
+| --- | --- |
+| `scripts/version/` | `check_release_tag.py` (tag, `package.json` and `debian/changelog` agree) and `check-changelog.sh` (the same without a tag, run by the Debian package workflow) |
+| `scripts/release/verify/` | `check-files.sh`, the allowlist of files a release directory may hold at each stage |
+| `scripts/release/sbom/` | `cyclonedx.ts`, the SBOM writer |
+| `scripts/release/sign/` | `sign-release.sh`, `sign_file.py` and the hash-pinned `sign-requirements.txt` |
+| `scripts/release/publish/` | `publish-manifest.sh` and `image_tags.py`, which decides the image tags |
+| `scripts/debian/` | `build.sh` and `smoke.sh` (with `smoke-inner.sh`), which build, lint and smoke-test the package in a clean Debian container |
 
-Each file also has a detached Ed25519 signature over its bytes, made with the org release key. `SHA256SUMS` lists the package and the SBOM, so `sha256sum --check SHA256SUMS` confirms the downloaded files match it.
+A consumer checks a published release as described in [Verifying a release](../operators/verifying-a-release.md).

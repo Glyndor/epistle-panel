@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Refuse a release directory that holds anything but the expected files.
 #
-# Usage: check_files.sh <dist-dir> <tag> <stage>
+# Usage: check-files.sh <dist-dir> <tag> <stage>
 #
 # Stages, each a superset of the one before:
 #   built    the .deb and the SBOM, as the build jobs left them
@@ -13,9 +13,9 @@
 # on this list is refused before a key is near it or a release is made.
 set -euo pipefail
 
-dist=${1:?usage: check_files.sh <dist-dir> <tag> <stage>}
-tag=${2:?usage: check_files.sh <dist-dir> <tag> <stage>}
-stage=${3:?usage: check_files.sh <dist-dir> <tag> <stage>}
+dist=${1:?usage: check-files.sh <dist-dir> <tag> <stage>}
+tag=${2:?usage: check-files.sh <dist-dir> <tag> <stage>}
+stage=${3:?usage: check-files.sh <dist-dir> <tag> <stage>}
 version=${tag#v}
 
 cd "$dist"

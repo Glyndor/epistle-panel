@@ -2,7 +2,7 @@
 """Sign a file with an Ed25519 private key (raw 32-byte seed, base64-encoded).
 
 Usage:
-  sign.py <input-file> [<output-sig-file>]
+  sign_file.py <input-file> [<output-sig-file>]
 
 The private key is read from the GLYNDOR_RELEASE_ED25519_KEY environment variable (raw
 32-byte Ed25519 seed in standard base64), never from the command line, so the

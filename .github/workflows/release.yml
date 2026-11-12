@@ -114,7 +114,7 @@ jobs:
         # with the version users already have, and apt reports nothing to
         # upgrade. The tag and package.json can agree while the changelog lags,
         # which is why all three are compared here and not only the first two.
-        run: python3 scripts/release/check_versions.py "$TAG"
+        run: python3 scripts/version/check_release_tag.py "$TAG"
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
@@ -272,7 +272,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist
-          bun scripts/release/sbom.ts internal/bun.lock internal/package.json "dist/epistle-panel-${TAG}.cdx.json"
+          bun scripts/release/sbom/cyclonedx.ts internal/bun.lock internal/package.json "dist/epistle-panel-${TAG}.cdx.json"
 
       - name: Hand the SBOM to the next jobs
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -325,7 +325,7 @@ jobs:
       - name: Check what arrived
         # Only the two files the build jobs make, with the names they are given,
         # as plain files. Anything else is refused before a key is near it.
-        run: bash scripts/release/check_files.sh dist "$TAG" built
+        run: bash scripts/release/verify/check-files.sh dist "$TAG" built
 
       # A rehearsal never touches the org key: it signs with a key made on the
       # spot, so it exercises the same script and leaves nothing anyone could
@@ -342,7 +342,7 @@ jobs:
         if: ${{ !inputs.dry-run }}
         env:
           GLYNDOR_RELEASE_ED25519_KEY: ${{ secrets.GLYNDOR_RELEASE_ED25519_KEY }}
-        run: bash scripts/release/sign_release.sh dist "$TAG"
+        run: bash scripts/release/sign/sign-release.sh dist "$TAG"
 
       # A rehearsal may name a tag older than the signing script, so the script
       # comes from the commit that launched the dispatch. Nothing signed here is
@@ -359,10 +359,10 @@ jobs:
         if: ${{ inputs.dry-run }}
         env:
           GLYNDOR_RELEASE_ED25519_KEY: ${{ env.REHEARSAL_KEY }}
-        run: bash rehearsal-tools/scripts/release/sign_release.sh dist "$TAG"
+        run: bash rehearsal-tools/scripts/release/sign/sign-release.sh dist "$TAG"
 
       - name: Check what is going to be published
-        run: bash scripts/release/check_files.sh dist "$TAG" final
+        run: bash scripts/release/verify/check-files.sh dist "$TAG" final
 
       - name: Hand the checksums and signatures to the next job
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -388,7 +388,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # Only for check_files.sh, taken from the verified commit.
+          # Only for check-files.sh, taken from the verified commit.
           ref: ${{ needs.verify.outputs.commit }}
           persist-credentials: false
 
@@ -413,7 +413,7 @@ jobs:
       - name: Check what is going to be published
         # The same allowlist the signing job applied, plus the signatures, and
         # the hashes in SHA256SUMS must match the bytes received here.
-        run: bash scripts/release/check_files.sh dist "$TAG" final
+        run: bash scripts/release/verify/check-files.sh dist "$TAG" final
 
       - name: Create release
         # `--verify-tag` refuses to create the tag if it is missing, so a
@@ -559,7 +559,7 @@ jobs:
 
       - name: Build and push the multi-arch manifest list
         id: manifest
-        run: bash scripts/release/publish_manifest.sh "$REGISTRY_IMAGE" "$TAG"
+        run: bash scripts/release/publish/publish-manifest.sh "$REGISTRY_IMAGE" "$TAG"
 
       - name: Attest the multi-arch image
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2

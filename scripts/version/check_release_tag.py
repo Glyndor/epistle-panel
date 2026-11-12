@@ -2,7 +2,7 @@
 """Refuse a release whose version stamps disagree.
 
 Usage:
-	check_versions.py <tag>
+	check_release_tag.py <tag>
 
 The tag (`vMAJOR.MINOR.PATCH`), `version` in internal/package.json and the top
 entry of debian/changelog must all name the same version. dpkg-buildpackage
@@ -33,7 +33,7 @@ def die(message: str) -> None:
 
 def main(argv: list[str]) -> None:
 	if len(argv) != 1:
-		die("check_versions.py takes one argument, the tag")
+		die("check_release_tag.py takes one argument, the tag")
 	match = TAG_RE.match(argv[0])
 	if not match:
 		die(f"{argv[0]} is not a release tag of the form vMAJOR.MINOR.PATCH")

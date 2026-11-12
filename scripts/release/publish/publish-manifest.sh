@@ -2,7 +2,7 @@
 # Join the two per-architecture images into one manifest list and push it
 # under every tag the version publishes.
 #
-# Usage: publish_manifest.sh <registry-image> <version>
+# Usage: publish-manifest.sh <registry-image> <version>
 #
 # Needs the <version>-amd64 and <version>-arm64 images already pushed. Writes
 # `tags` and `digest` to $GITHUB_OUTPUT. All tags point at the same list, and
@@ -10,8 +10,8 @@
 # provenance attestation is made against that one digest.
 set -euo pipefail
 
-image=${1:?usage: publish_manifest.sh <registry-image> <version>}
-version=${2:?usage: publish_manifest.sh <registry-image> <version>}
+image=${1:?usage: publish-manifest.sh <registry-image> <version>}
+version=${2:?usage: publish-manifest.sh <registry-image> <version>}
 version=${version#v}
 here=$(cd "$(dirname "$0")" && pwd)
 
