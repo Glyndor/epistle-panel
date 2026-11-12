@@ -1,13 +1,10 @@
 epistle-panel (0.1.0) unstable; urgency=medium
 
-  * First packaged release. The package is a podup stack fragment: it installs
-    compose.yaml under /usr/share/glyndor/epistle-panel/ with the container
-    image pinned to the package version, and carries no Node runtime or
-    application code.
-  * Creates the glyndor-epistle-panel account, /etc/glyndor/epistle-panel/
-    (with a secrets/ directory, mode 0700) and /var/lib/glyndor/epistle-panel/.
-  * Generates the session secret on first install and never overwrites it. The
-    epistle API token is not generated: it goes in secrets/epistle_api_token.
-  * The panel listens on 127.0.0.1:7587 only.
+  * First packaged release. The package is thin: it installs
+    /usr/share/glyndor/epistle-panel/image, one line naming the container image
+    tag that matches the package version, and a README for that file. epistle
+    reads it to add the panel to the stack it generates.
+  * Carries no Node runtime and no application code, and creates no account,
+    no directory and no secret.
 
  -- Glyndor <packages@glyndor.net>  Wed, 11 Nov 2026 12:00:00 +0000

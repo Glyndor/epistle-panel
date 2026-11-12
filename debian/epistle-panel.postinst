@@ -1,63 +1,18 @@
 #!/bin/sh
 set -eu
 
-# Idempotent: every step checks before it changes anything, so a reinstall or an
-# upgrade leaves an existing account, directories and secrets as they are.
-
-ACCOUNT=glyndor-epistle-panel
-CONFIG_DIR=/etc/glyndor/epistle-panel
-SECRETS_DIR=$CONFIG_DIR/secrets
-STATE_DIR=/var/lib/glyndor/epistle-panel
-SESSION_SECRET=$SECRETS_DIR/epistle_panel_session_secret
-
-make_dir() {
-	# $1 mode, $2 path. Created only when absent, so a mode the operator
-	# tightened or loosened on purpose is not reset by an upgrade.
-	if [ -L "$2" ]; then
-		echo "epistle-panel: $2 is a symlink; refusing to use it" >&2
-		exit 1
-	fi
-	if [ ! -d "$2" ]; then
-		install -d -m "$1" -o "$ACCOUNT" -g "$ACCOUNT" "$2"
-	fi
-}
-
-generate_session_secret() {
-	# 48 random bytes, base64: 64 characters, 384 bits.
-	if [ -e "$SESSION_SECRET" ] || [ -L "$SESSION_SECRET" ]; then
-		return 0
-	fi
-	tmp=$(umask 077 && mktemp "$SECRETS_DIR/.session-secret.XXXXXX")
-	head -c 48 /dev/urandom | base64 -w0 >"$tmp"
-	if [ "$(wc -c <"$tmp")" -lt 64 ]; then
-		rm -f -- "$tmp"
-		echo "epistle-panel: could not generate the session secret" >&2
-		exit 1
-	fi
-	chown "$ACCOUNT:$ACCOUNT" "$tmp"
-	chmod 0400 "$tmp"
-	# A hard link fails if the target exists, so a concurrent writer is never
-	# overwritten; the temporary name is dropped either way.
-	ln -- "$tmp" "$SESSION_SECRET" 2>/dev/null || true
-	rm -f -- "$tmp"
-}
-
+# This package owns no state: no account, no directory, no secret. The panel
+# service is rendered by epistle into the stack it generates, from the image
+# reference in /usr/share/glyndor/epistle-panel/image.
+#
+# Hook, deliberately empty. Once epistle's `stack update` reads that file and
+# adds the panel to the stack, this is where it is asked to do so, with the same
+# guards epistle's own postinst uses (as the account that owns the stack, only
+# when the stack is enabled, never failing the installation). The released
+# epistle does not read the file yet, so there is nothing safe to call today.
+# Until then: sudo epistle stack update, after epistle supports the panel.
 case "$1" in
-configure)
-	if ! getent passwd "$ACCOUNT" >/dev/null 2>&1; then
-		adduser --system --group --quiet \
-			--home "$STATE_DIR" --no-create-home \
-			--shell /usr/sbin/nologin --disabled-password "$ACCOUNT"
-	fi
-	mkdir -p /etc/glyndor /var/lib/glyndor
-	make_dir 0750 "$CONFIG_DIR"
-	make_dir 0700 "$SECRETS_DIR"
-	make_dir 0750 "$STATE_DIR"
-	generate_session_secret
-	if [ ! -e "$SECRETS_DIR/epistle_api_token" ]; then
-		echo "epistle-panel: put the epistle API token in $SECRETS_DIR/epistle_api_token (mode 0400) before starting the panel" >&2
-	fi
-	;;
+configure) ;;
 abort-upgrade | abort-remove | abort-deconfigure) ;;
 *)
 	echo "postinst called with unknown argument '$1'" >&2

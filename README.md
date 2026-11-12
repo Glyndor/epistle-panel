@@ -15,22 +15,21 @@ Admin panel for the [Epistle mail server](https://github.com/Glyndor/epistle) �
 
 ## 📦 Install
 
-The panel ships in two forms. Neither is published yet: both are built in CI and
-the release pipeline that publishes them is still to come.
+The panel runs only as a service of the stack that [epistle](https://github.com/Glyndor/epistle)
+generates. There is no standalone compose file. It ships in two forms, neither
+published yet: both are built in CI and the release pipeline is still to come.
 
-- **apt package.** `epistle-panel` is a podup stack fragment, not the application.
-  It depends on `epistle` and `podup`, and installs a `compose.yaml` under
-  `/usr/share/glyndor/epistle-panel/` that pins the container image to the package
-  version, plus the `glyndor-epistle-panel` account and the directories under
-  `/etc/glyndor/epistle-panel/` and `/var/lib/glyndor/epistle-panel/`. It generates
-  the session secret on first install. The epistle API token is not generated: put
-  it in `/etc/glyndor/epistle-panel/secrets/epistle_api_token`. The panel listens on
-  `127.0.0.1:7587` only. See `debian/README.Debian` for the details.
 - **Container image.** `ghcr.io/glyndor/epistle-panel`, built from the `Containerfile`
-  at the repository root. It runs as uid 65532 and listens on port 7587. It is the
-  only place the application runs; the apt package contains no Node runtime.
+  at the repository root. It runs as uid 65532 and listens on port 7587. The
+  application runs here and nowhere else.
+- **apt package.** `epistle-panel` is a thin package with no Node runtime and no
+  application code. It depends on `epistle` and `podup` and installs one file,
+  `/usr/share/glyndor/epistle-panel/image`, naming the image tag that matches the
+  package version. epistle reads it to add the panel to its stack. The package
+  creates no account, directory or secret. Adding the service to a running stack
+  needs an epistle release that reads that file; see `debian/README.Debian`.
 
-TLS is not the panel's job: put your own proxy in front of port 7587.
+TLS is not the panel's job: put your own proxy in front of it.
 
 ## 🚀 Development
 

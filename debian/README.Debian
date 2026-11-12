@@ -1,46 +1,34 @@
 epistle-panel for Debian
 ========================
 
-This package installs a podup compose fragment, not the panel itself. The panel
-runs only inside the container image ghcr.io/glyndor/epistle-panel, and the
-fragment pins that image to the version of this package. `apt upgrade` is what
-moves the panel to a new release.
+This package does not install the panel. The panel runs only inside the
+container image ghcr.io/glyndor/epistle-panel, as one service of the stack that
+epistle generates. There is no standalone compose file.
 
 What the package installs
 -------------------------
 
-  /usr/share/glyndor/epistle-panel/compose.yaml    the stack fragment (replaced on upgrade)
-  /etc/glyndor/epistle-panel/                      configuration, owned by glyndor-epistle-panel
-  /etc/glyndor/epistle-panel/secrets/              mode 0700, one file per secret, mode 0400
-  /var/lib/glyndor/epistle-panel/                  state directory (the panel keeps none today)
+  /usr/share/glyndor/epistle-panel/image    one line: ghcr.io/glyndor/epistle-panel:<version>
+  /usr/share/glyndor/epistle-panel/README   what that file is for
 
-The system account and group are glyndor-epistle-panel. Nothing is created
-outside those paths.
+The tag equals the package version, so `apt upgrade` is what moves the panel to
+a new release. The reference has no digest because the digest is not known when
+the package is built.
 
-Secrets
--------
+The package creates no account, no directory outside /usr/share and no secret.
+epistle creates the panel's secrets and its API key next to its own data, and
+the stack runs as epistle's account. `apt remove` and `apt purge` delete the two
+files above and leave nothing behind.
 
-The fragment mounts two files read-only as compose secrets under /run/secrets/.
-They never appear in the compose file or in the container's environment, only
-as file paths in EPISTLE_API_TOKEN_FILE and EPISTLE_PANEL_SESSION_SECRET_FILE.
+Picking the panel up
+--------------------
 
-  epistle_panel_session_secret  generated on first install (48 random bytes,
-                                base64). An existing file is never overwritten,
-                                so sessions survive upgrades.
-  epistle_api_token             not generated. Put an epistle API token there,
-                                mode 0400. Without it the stack cannot start.
+epistle reads the image file when it renders the stack. The postinst of this
+package has a hook for asking epistle to do that after an install or upgrade,
+but it is empty: the epistle release that reads the file does not exist yet, and
+the package does not guess at a command. Once epistle supports the panel, run
 
-Network
--------
+  sudo epistle stack update
 
-The service publishes 127.0.0.1:7587 only. Put your own TLS proxy in front of it
-to expose the panel. It joins the default network of the stack it is added to
-and reaches the epistle API at http://mail:8025, a port that is not published.
-To use another address, set EPISTLE_API_URL in a compose.override.yaml; do not
-edit the installed fragment.
-
-Removal
--------
-
-`apt remove` keeps the account, the secrets and the state. `apt purge` deletes
-/etc/glyndor/epistle-panel, /var/lib/glyndor/epistle-panel and the account.
+to add or update the service. Until then installing this package changes
+nothing in a running stack.
