@@ -32,7 +32,7 @@ that the CSP refuses.
 
 ## The suppression list
 
-`/suppression` reads `GET /api/v1/suppression` and removes with
+`/app/suppression` reads `GET /api/v1/suppression` and removes with
 `DELETE /api/v1/suppression/{address}` (scopes `read` and `write`; the panel's
 token is unconfined, which the global list requires). Measured against the API's
 handler and its OpenAPI file:
@@ -55,7 +55,7 @@ handler and its OpenAPI file:
 
 ## The delivery log
 
-`/deliveries` reads `GET /api/v1/deliveries` (scope `read`), read only. Measured
+`/app/deliveries` reads `GET /api/v1/deliveries` (scope `read`), read only. Measured
 against the handler and the OpenAPI file:
 
 - **It does not page.** There is no cursor: the answer is at most `limit` records

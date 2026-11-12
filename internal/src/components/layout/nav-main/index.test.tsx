@@ -48,8 +48,8 @@ describe("NavMain", () => {
 			"/domains",
 			"/accounts",
 			"/queue",
-			"/deliveries",
-			"/suppression",
+			"/app/deliveries",
+			"/app/suppression",
 		]);
 		expect(
 			container.querySelectorAll("a > svg[aria-hidden='true']"),

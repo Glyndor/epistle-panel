@@ -63,10 +63,10 @@ describe("SuppressionTable", () => {
 
 		expect(
 			await screen.findByRole("link", { name: "next" }),
-		).toHaveAttribute("href", "/suppression?after=a%2Bb%40x.org");
+		).toHaveAttribute("href", "/app/suppression?after=a%2Bb%40x.org");
 		expect(screen.getByRole("link", { name: "first" })).toHaveAttribute(
 			"href",
-			"/suppression",
+			"/app/suppression",
 		);
 	});
 

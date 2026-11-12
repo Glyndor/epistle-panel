@@ -60,7 +60,7 @@ describe("SuppressionPage", () => {
 
 		expect(screen.getByRole("link", { name: "next" })).toHaveAttribute(
 			"href",
-			"/suppression?after=a%40b.org",
+			"/app/suppression?after=a%40b.org",
 		);
 	});
 

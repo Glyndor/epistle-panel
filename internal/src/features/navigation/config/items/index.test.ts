@@ -17,8 +17,8 @@ describe("NAV_ITEMS", () => {
 			"/domains",
 			"/accounts",
 			"/queue",
-			"/deliveries",
-			"/suppression",
+			"/app/deliveries",
+			"/app/suppression",
 		]);
 	});
 

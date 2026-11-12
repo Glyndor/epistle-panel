@@ -3,7 +3,6 @@
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-
 import { columnHelper, DataTable } from "@/components/data-table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -13,6 +12,7 @@ import { RemoveAddressButton } from "@/features/suppression/components/remove-ad
 import { suppressionQueryOptions } from "@/features/suppression/queries/suppression-query";
 import type { SuppressionRow } from "@/features/suppression/schemas/suppression-view";
 import { unwrap } from "@/lib/query/action-result";
+import { ROUTES } from "@/lib/routes";
 
 const fetchPage = async (after: string | undefined) =>
 	unwrap(
@@ -74,13 +74,13 @@ export function SuppressionTable({ after }: { after: string | undefined }) {
 				<>
 					{after !== undefined ? (
 						<Button asChild variant="link">
-							<Link href="/suppression">{t("first")}</Link>
+							<Link href={ROUTES.suppression}>{t("first")}</Link>
 						</Button>
 					) : null}
 					{data.nextCursor !== null ? (
 						<Button asChild variant="link">
 							<Link
-								href={`/suppression?after=${encodeURIComponent(data.nextCursor)}`}
+								href={`${ROUTES.suppression}?after=${encodeURIComponent(data.nextCursor)}`}
 							>
 								{t("next")}
 							</Link>

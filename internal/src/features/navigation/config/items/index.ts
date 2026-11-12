@@ -1,4 +1,5 @@
 import type { NavItem } from "@/features/navigation/schemas/nav-item";
+import { ROUTES } from "@/lib/routes";
 
 /**
  * Every entry of the panel's navigation, in display order. The sidebar draws
@@ -36,14 +37,14 @@ export const NAV_ITEMS: readonly NavItem[] = [
 		roles: ["admin"],
 	},
 	{
-		href: "/deliveries",
+		href: ROUTES.deliveries,
 		label: "deliveries",
 		icon: "history",
 		group: "manage",
 		roles: ["admin"],
 	},
 	{
-		href: "/suppression",
+		href: ROUTES.suppression,
 		label: "suppression",
 		icon: "ban",
 		group: "manage",

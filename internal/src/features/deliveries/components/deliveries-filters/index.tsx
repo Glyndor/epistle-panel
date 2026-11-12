@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +9,7 @@ import {
 } from "@/features/deliveries/schemas/deliveries-input";
 import { DELIVERY_OUTCOMES } from "@/lib/api/schemas";
 import { MAX_ADDRESS_LENGTH } from "@/lib/mail-address";
+import { ROUTES } from "@/lib/routes";
 
 const selectClass =
 	"min-h-8 w-full pointer-coarse:min-h-11 rounded-md border border-input bg-background px-3 py-1 text-sm hover:border-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
@@ -27,7 +27,7 @@ export function DeliveriesFilters({ filters }: { filters: DeliveryFilters }) {
 	return (
 		<form
 			method="get"
-			action="/deliveries"
+			action={ROUTES.deliveries}
 			className="flex flex-wrap items-end gap-4"
 		>
 			<div className="flex flex-col gap-2">
@@ -77,7 +77,7 @@ export function DeliveriesFilters({ filters }: { filters: DeliveryFilters }) {
 			<div className="flex items-center gap-2">
 				<Button type="submit">{t("apply")}</Button>
 				<Button asChild variant="link">
-					<Link href="/deliveries">{t("clear")}</Link>
+					<Link href={ROUTES.deliveries}>{t("clear")}</Link>
 				</Button>
 			</div>
 		</form>

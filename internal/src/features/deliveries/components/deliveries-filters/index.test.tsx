@@ -11,12 +11,12 @@ const open = (filters: DeliveryFilters = {}) =>
 	render(<DeliveriesFilters filters={filters} />);
 
 describe("DeliveriesFilters", () => {
-	it("is a GET form to /deliveries with a labelled control per filter", () => {
+	it("is a GET form to /app/deliveries with a labelled control per filter", () => {
 		const { container } = open();
 
 		const form = container.querySelector("form");
 		expect(form?.getAttribute("method")).toBe("get");
-		expect(form?.getAttribute("action")).toBe("/deliveries");
+		expect(form?.getAttribute("action")).toBe("/app/deliveries");
 		expect(screen.getByLabelText("outcome")).toHaveAttribute(
 			"name",
 			"outcome",
@@ -31,7 +31,7 @@ describe("DeliveriesFilters", () => {
 		).toBeInTheDocument();
 		expect(screen.getByRole("link", { name: "clear" })).toHaveAttribute(
 			"href",
-			"/deliveries",
+			"/app/deliveries",
 		);
 	});
 
