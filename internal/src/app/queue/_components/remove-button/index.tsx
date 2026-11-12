@@ -56,7 +56,7 @@ export function RemoveButton({
 					event.preventDefault();
 				}
 			}}
-			className="flex shrink-0 flex-col items-end gap-1"
+			className="flex min-w-0 flex-col items-end gap-1"
 		>
 			<input type="hidden" name="id" value={id} />
 			<Submit
@@ -67,7 +67,7 @@ export function RemoveButton({
 			{state?.ok === false && (
 				<span
 					role="alert"
-					className="text-red-700 text-xs dark:text-red-300"
+					className="text-right text-red-700 text-xs dark:text-red-300"
 				>
 					{t("removeError")}
 				</span>
