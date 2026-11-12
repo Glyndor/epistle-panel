@@ -32,6 +32,32 @@ pushed, and no release exists so far. See [docs/maintainers/releasing.md](docs/m
 
 TLS is not the panel's job: put your own proxy in front of it.
 
+### Reverse proxy requirements
+
+The panel sets its own security headers (a Content-Security-Policy with a
+per-request nonce and `frame-ancestors 'none'`, `X-Frame-Options`,
+`X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`), so the
+proxy in front of it has nothing to add and should not strip them. It does not
+set `Strict-Transport-Security`: that header belongs to the proxy that
+terminates TLS.
+
+Your proxy must **overwrite** `X-Forwarded-Host` and `X-Forwarded-Proto` with
+the values it saw, never pass through what the client sent. Next derives the
+request's origin from them, and its Server Action origin check compares the
+`Origin` header against that same host. Set `Host` to the public name too, and
+send both headers on every request, for example in nginx:
+
+```nginx
+proxy_set_header Host              $host;
+proxy_set_header X-Forwarded-Host  $host;
+proxy_set_header X-Forwarded-Proto $scheme;
+```
+
+`scripts/headers/verify.sh` starts the built standalone server and asserts the
+headers, and that a hostile `Host` or `X-Forwarded-Host` never reaches the
+redirect's `Location`, against real HTTP. Run it after `bun run build` in
+`internal/`.
+
 ## 🚀 Development
 
 ```sh

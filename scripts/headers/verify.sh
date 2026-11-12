@@ -51,7 +51,7 @@ until curl -fs -o /dev/null "$base/login"; do
 	sleep 0.2
 done
 
-cookie=$(cd "$internal" && EPISTLE_PANEL_SESSION_SECRET="$secret" bun -e \
+cookie=$(cd "$internal" && EPISTLE_PANEL_SESSION_SECRET="$secret" bun --conditions react-server -e \
 	'import { createSession } from "./src/lib/auth/session"; console.log(await createSession("admin"))')
 
 fail() {
