@@ -22,7 +22,8 @@ The `End-to-end` workflow (`.github/workflows/e2e.yml`) builds the panel and run
 pull requests and on pushes to `develop` that touch `internal/src/lib/auth/**`,
 `internal/src/lib/security-headers/**`, `internal/src/lib/api/**`,
 `internal/src/lib/config/**`, `internal/src/proxy.ts`, `internal/next.config.ts`,
-`internal/src/app/**`, `internal/package.json`, `internal/bun.lock`,
+`internal/src/app/**`, `internal/src/components/**`, `internal/src/features/**`,
+`internal/src/i18n/**`, `internal/package.json`, `internal/bun.lock`,
 `scripts/e2e/**`, `scripts/headers/**` or the workflow itself, except for
 changes that touch only `internal/**/*.test.ts` or `*.test.tsx` files. Pull
 requests are built only when they target `develop`. It is not a required check, so a docs-only change neither runs nor waits
@@ -62,11 +63,11 @@ secret, and switches the data endpoints to `hang` or `huge` through
 
 | Scenario | Proves |
 |---|---|
-| `headers` | CSP with a fresh nonce per request, no `unsafe-inline`, the nonce on every script tag (with or without attributes), the other headers, the cookie flags, no inline style on every page and on the 404 page |
+| `headers` | CSP with a fresh nonce per request, no `unsafe-inline`, the nonce on every script tag (with or without attributes), the other headers, the cookie flags, no inline style on every page and on the 404 page, `X-Robots-Tag` on the login page, the pages and a static asset, the robots meta tag and no canonical, Open Graph or Twitter tag |
 | `logout` | a replayed cookie is refused by the proxy and by an action after logout, and reaches no API endpoint; another session survives |
 | `limiter` | three free tries, then the lock; locked attempts never reach the API; another name signs in; the lock ends; a failure and a success each take at least 1 s |
 | `limiter-global` | 60 failing names fill the global window and the 61st unknown name is refused; the admin, who signed in before, is still admitted. The cap of 8 concurrent API calls is covered by the unit tests, since parallel curl processes cannot make the count deterministic |
-| `noauth` | every route and Server Action is redirected without a session, with a garbage or altered cookie, and the stand-in sees nothing |
+| `noauth` | every route and Server Action is redirected without a session, with a garbage or altered cookie, and the stand-in sees nothing; `/robots.txt` answers `Disallow: /` without a session and its look-alikes (`/robots.txtx`, `/robots.txt/queue`, `/x/robots.txt`, `/ROBOTS.TXT`) and `/sitemap.xml` stay behind the gate |
 | `degraded` | a hanging API degrades the page within the 10 s budget and the server keeps answering; a body over the cap degrades quickly with bounded memory |
 | `rotation` | replacing a `_FILE` secret does not change a running process, in any bundle; a restart picks it up |
 | `idle` | idle CPU, and a memory ceiling after 400 requests |
@@ -94,6 +95,13 @@ the console open.
 5. Visit an unknown path while signed in: the panel's own 404 page, with no
    inline-style violation.
 6. Press Sign out: the page goes to `/login` and the session cookie is gone.
+7. Sidebar: collapse it with the toggle or Ctrl+B and hover an icon (a tooltip
+   names it); open the Language menu and pick Español (the page re-renders in
+   Spanish); narrow the window below 768 px, open the sheet with the toggle,
+   press Escape (focus returns to the toggle) and follow a link (the sheet
+   closes). In every step the console must show no CSP violation. A violation
+   listener (`document.addEventListener("securitypolicyviolation", ...)`
+   installed before the page loads) catches the ones the console shows late.
 
 ## Measured on 2026-11-12 (Node 24, Next 16.4.6)
 

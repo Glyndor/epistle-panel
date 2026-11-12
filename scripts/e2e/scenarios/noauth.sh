@@ -20,6 +20,15 @@ scenario_noauth() {
 		assert_eq "no cookie: GET $path" "$status" 307
 		assert_contains "no cookie: $path goes to /login" "$(header location)" "/login"
 	done
+	fetch /robots.txt
+	assert_eq "no cookie: GET /robots.txt" "$status" 200
+	assert_contains "robots.txt refuses everything" "$(cat "$work/b")" "Disallow: /"
+	assert_absent "robots.txt allows nothing" "$(cat "$work/b")" "Allow:"
+	assert_eq "robots.txt carries x-robots-tag" "$(header x-robots-tag)" "noindex, nofollow, noarchive, nosnippet, noimageindex"
+	for path in /robots.txtx /robots.txt/queue /x/robots.txt /ROBOTS.TXT /sitemap.xml; do
+		fetch "$path"
+		assert_eq "no cookie: GET $path stays behind the gate" "$status" 307
+	done
 	fetch /queue "$SESSION_COOKIE_NAME=garbage"
 	assert_eq "garbage cookie" "$status" 307
 	fetch /queue "$tampered"

@@ -28,6 +28,16 @@
 	--input: oklch(0.552 0.016 285.938);
 	--ring: oklch(0.552 0.016 285.938);
 	--radius: 0.5rem;
+	--popover: #ffffff;
+	--popover-foreground: #171717;
+	/* The rail is one step off the page so it reads as its own surface; its
+	   text, hover fill, border and focus ring are measured on that surface. */
+	--sidebar: oklch(0.985 0 0);
+	--sidebar-foreground: oklch(0.21 0.006 285.885);
+	--sidebar-accent: oklch(0.94 0.002 286.32);
+	--sidebar-accent-foreground: oklch(0.21 0.006 285.885);
+	--sidebar-border: oklch(0.92 0.004 286.32);
+	--sidebar-ring: oklch(0.552 0.016 285.938);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -51,6 +61,14 @@
 		--border: oklch(0.274 0.006 286.033);
 		--input: oklch(0.552 0.016 285.938);
 		--ring: oklch(0.705 0.015 286.067);
+		--popover: #171717;
+		--popover-foreground: #ededed;
+		--sidebar: oklch(0.17 0.004 286);
+		--sidebar-foreground: oklch(0.967 0.001 286.375);
+		--sidebar-accent: oklch(0.274 0.006 286.033);
+		--sidebar-accent-foreground: oklch(0.967 0.001 286.375);
+		--sidebar-border: oklch(0.274 0.006 286.033);
+		--sidebar-ring: oklch(0.705 0.015 286.067);
 	}
 }
 
@@ -73,6 +91,14 @@
 	--color-destructive-foreground: var(--destructive-foreground);
 	--color-warning: var(--warning);
 	--color-warning-foreground: var(--warning-foreground);
+	--color-popover: var(--popover);
+	--color-popover-foreground: var(--popover-foreground);
+	--color-sidebar: var(--sidebar);
+	--color-sidebar-foreground: var(--sidebar-foreground);
+	--color-sidebar-accent: var(--sidebar-accent);
+	--color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+	--color-sidebar-border: var(--sidebar-border);
+	--color-sidebar-ring: var(--sidebar-ring);
 	--color-border: var(--border);
 	--color-input: var(--input);
 	--color-ring: var(--ring);
@@ -90,4 +116,10 @@
 body {
 	background: var(--background);
 	color: var(--foreground);
+}
+
+/* A modal sheet (a native dialog) locks the page behind it. Native CSS, so no
+   script has to inject a style element, which the CSP would refuse. */
+body:has(dialog[open]) {
+	overflow: hidden;
 }

@@ -1,4 +1,4 @@
-import type { Locale } from "@/i18n/request";
+import type { Locale } from "@/i18n/locales";
 
 /**
  * Namespaces of the message catalog. Each one is a JSON file per locale at

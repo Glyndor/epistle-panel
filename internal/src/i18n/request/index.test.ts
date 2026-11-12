@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 
+import { SUPPORTED_LOCALES } from "@/i18n/locales";
 import { loadMessages } from "@/i18n/messages";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
 import { installNextIntlMocks } from "@/test/next-intl";
@@ -7,7 +8,7 @@ import { installNextIntlMocks } from "@/test/next-intl";
 installNextIntlMocks();
 const cookies = mockRequestCookies();
 
-const { default: requestConfig, SUPPORTED_LOCALES } = await import(".");
+const { default: requestConfig } = await import(".");
 
 type Config = {
 	locale: string;

@@ -76,10 +76,12 @@ updates:
         patterns: ["@types/*", "typescript"]
         update-types: ["minor", "patch"]
       # The generated shadcn/ui components run on these. Radix primitives are
-      # added one package per component, hence the pattern.
+      # added one package per component, hence the pattern. lucide-react is the
+      # icon set the components and the navigation draw from.
       ui:
         patterns:
           - "@radix-ui/*"
+          - "lucide-react"
           - "class-variance-authority"
           - "clsx"
           - "tailwind-merge"
