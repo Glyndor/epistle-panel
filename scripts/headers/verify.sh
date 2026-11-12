@@ -12,6 +12,11 @@ port="${PORT:-7598}"
 base="http://127.0.0.1:$port"
 secret="verify-headers-secret-verify-headers-secret"
 
+# shellcheck source=scripts/e2e/session-cookie.sh
+. "$root/scripts/e2e/session-cookie.sh"
+# shellcheck source=scripts/e2e/html-checks.sh
+. "$root/scripts/e2e/html-checks.sh"
+
 if [ ! -f "$standalone/server.js" ]; then
 	echo "error: $standalone/server.js is missing, run 'bun run build' in internal/ first" >&2
 	exit 1
@@ -93,13 +98,19 @@ expect_secure_headers() {
 	done
 }
 
-# The page the session reaches, with a nonce on every inline script and none
-# of the inline styles the CSP would block.
-fetch -H "Cookie: epistle_admin_session=$cookie" "$base/queue"
+# The page the session reaches, with a nonce on every script and none of the
+# inline styles the CSP would block. It must be the page itself: a request the
+# proxy redirects carries the same headers and an empty body, and would pass
+# every check below without rendering anything.
+fetch -H "Cookie: $SESSION_COOKIE_NAME=$cookie" "$base/queue"
+status=$(sed -n '1s/^[^ ]* \([0-9]*\).*/\1/p' "$work/h")
+[ "$status" = 200 ] || fail "authenticated page: status $status, want 200 (is the session cookie name right?)"
+grep -q '<html' "$work/b" || fail "authenticated page: the body is not an HTML document"
+grep -q '</html>' "$work/b" || fail "authenticated page: the HTML document is cut short"
 expect_secure_headers "authenticated page"
 nonce=$(header content-security-policy | sed -n "s/.*'nonce-\([^']*\)'.*/\1/p")
 [ -n "$nonce" ] || fail "authenticated page: no nonce in the CSP"
-bare=$(grep -o '<script[^>]*>' "$work/b" | grep -vc "nonce=\"$nonce\"" || true)
+bare=$(unnonced_scripts "$work/b" "$nonce")
 [ "$bare" = 0 ] || fail "authenticated page: $bare script tags lack the nonce"
 grep -q ' style="\|<style' "$work/b" && fail "authenticated page: inline style, blocked by style-src"
 
