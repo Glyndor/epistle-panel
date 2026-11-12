@@ -4,7 +4,7 @@ import { UnreachableNotice } from "@/components/unreachable-notice";
 import { getQueue } from "@/lib/api/client";
 import type { QueuePage as QueuePageData } from "@/lib/api/schemas";
 
-import { RemoveButton } from "./remove-button";
+import { RemoveButton } from "./_components/remove-button";
 
 async function loadQueue(cursor?: string): Promise<QueuePageData | null> {
 	try {

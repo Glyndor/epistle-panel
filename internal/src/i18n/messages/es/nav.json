@@ -1,0 +1,9 @@
+{
+	"label": "Principal",
+	"skip": "Saltar al contenido",
+	"status": "Estado",
+	"domains": "Dominios",
+	"accounts": "Cuentas",
+	"queue": "Cola",
+	"logout": "Cerrar sesión"
+}

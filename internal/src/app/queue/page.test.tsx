@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
 import { cleanup, render, screen } from "@testing-library/react";
 
-import { stubFetchJson, stubFetchReject } from "@/lib/api/test-fetch";
+import { stubFetchJson, stubFetchReject } from "@/lib/api/test-support/fetch";
 
 mock.module("next-intl/server", () => ({
 	getTranslations: async () => (key: string) => key,
