@@ -21,7 +21,14 @@ if [ "${#refs[@]}" -eq 0 ]; then
 fi
 
 for ref in "${refs[@]}"; do
-	if ! manifest=$(podman manifest inspect "$ref" 2>&1); then
+	# Older podman releases reject `name:tag@sha256:...`; the digest alone names
+	# the manifest, so drop the tag before asking the registry.
+	repo=${ref%@*}
+	digest=${ref##*@}
+	if [[ "${repo##*/}" == *:* ]]; then
+		repo=${repo%:*}
+	fi
+	if ! manifest=$(podman manifest inspect "$repo@$digest" 2>&1); then
 		echo "::error::podman manifest inspect $ref failed: $manifest" >&2
 		exit 1
 	fi
