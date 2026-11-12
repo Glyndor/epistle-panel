@@ -25,12 +25,14 @@ describe("Input", () => {
 		expect(input).toHaveValue("admin");
 	});
 
-	it("keeps a 44px minimum height", () => {
+	it("is 32px on a fine pointer and keeps a 44px minimum on a coarse one", () => {
 		// happy-dom computes no layout, so the class is the contract; the
 		// rendered size is measured in a real browser.
 		render(<Input aria-label="Name" />);
 
-		expect(screen.getByLabelText("Name")).toHaveClass("min-h-11");
+		const input = screen.getByLabelText("Name");
+		expect(input).toHaveClass("min-h-8");
+		expect(input).toHaveClass("pointer-coarse:min-h-11");
 	});
 
 	it("lets a caller class override the minimum height", () => {
@@ -38,7 +40,7 @@ describe("Input", () => {
 
 		const input = screen.getByLabelText("Name");
 		expect(input).toHaveClass("min-h-12");
-		expect(input).not.toHaveClass("min-h-11");
+		expect(input).not.toHaveClass("min-h-8");
 	});
 
 	it("styles itself with classes only, never an inline style", () => {

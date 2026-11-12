@@ -41,14 +41,14 @@ describe("Button", () => {
 		expect(link).toHaveAttribute("data-variant", "link");
 	});
 
-	it("keeps a 44px touch target in every size", () => {
+	it("is compact on a fine pointer and keeps a 44px target on a coarse one", () => {
 		// happy-dom computes no layout, so the contract is the utility class:
-		// `min-h-11` is 2.75rem, 44px at the default root size, and `size-11`
-		// sets both sides. The rendered size is measured in a real browser.
+		// `pointer-coarse:min-h-11` is 2.75rem, 44px at the default root size.
+		// The rendered size is measured in a real browser with touch emulation.
 		const minimums = {
-			default: "min-h-11",
-			lg: "min-h-12",
-			icon: "size-11",
+			default: "pointer-coarse:min-h-11",
+			lg: "pointer-coarse:min-h-12",
+			icon: "pointer-coarse:size-11",
 		} as const;
 		for (const [size, minimum] of Object.entries(minimums)) {
 			expect(

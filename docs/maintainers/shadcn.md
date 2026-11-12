@@ -13,10 +13,20 @@ helpers (`class-variance-authority`, `clsx`, `tailwind-merge`).
   attribute and would be blocked. Before a component is used, run it in the built
   standalone server (see `e2e.md`) and read the browser console: a CSP violation
   means the component is not used until it can run without a `style` attribute.
-  Static components (Button, Input, Label, Table, Card, Alert, Badge, Separator,
-  Skeleton) set none.
-- **44 px touch targets.** shadcn's `h-9` is too small. Every size variant of an
-  interactive component sets `min-h-11` or more, and the tests assert it.
+  Static components (Button, Input, Label, Table, Card, Alert, Separator) set
+  none.
+- **Radix overlays that lock page scroll are out.** A modal Radix Dialog or
+  DropdownMenu injects a `<style>` element (react-remove-scroll), a
+  `style-src-elem` violation. The dropdown is non-modal (`modal={false}`) and the
+  Sheet is a native `<dialog>`; see the table below.
+- **Compact on a fine pointer, 44 px on a coarse one.** The panel is an
+  administration surface, so controls are 32 px (`min-h-8`) and menu rows 32 px.
+  Every interactive component adds `pointer-coarse:min-h-11` (or `size-11`), and
+  the tests assert the class; the rendered size is measured in a browser with
+  touch emulation.
+- **Width variables are classes.** The shadcn `SidebarProvider` writes
+  `--sidebar-width` in a `style` attribute, which `style-src 'self'` blocks, so
+  ours sets `[--sidebar-width:14rem]` as a class.
 - **Theme tokens, no `dark:`.** Components read `bg-primary`, `text-muted-foreground`
   and the other roles. The values flip with `prefers-color-scheme` in
   `internal/src/app/globals.css`, so a component needs no `dark:` utility.
@@ -43,14 +53,21 @@ The CLI writes a flat `src/components/ui/<name>.tsx`. Then:
    `radix-ui` umbrella, which installs every primitive. Delete any `cn` package
    the CLI adds to `package.json`: it is not the helper.
 4. Drop `dark:` utilities, replace the focus ring with the outline above, and make
-   every size at least 44 px.
+   every size 32 px on a fine pointer and at least 44 px on a coarse one.
 5. `bun add` turns the exact pins of `next`, `react` and `react-dom` into carets:
    restore them in `package.json`.
 6. Run `bun run lint`, `bun run typecheck`, `bun test --coverage`, `bun run build`,
    then the end-to-end run and read the console for CSP violations on a page that
    renders the component.
 
-New runtime packages join the `ui` group of `.github/dependabot.yml`.
+New runtime packages join the `ui` group of `.github/dependabot.yml`. Icons
+follow `icons.md`.
+
+The generated Sidebar exceeded 300 code lines, so it lives in leaf folders under
+`components/ui/sidebar/` (`context`, `provider`, `sidebar`, `trigger`,
+`regions`, `group`, `menu`, `use-is-mobile`), imported by path, with no barrel.
+Parts the panel does not use (rail, input, skeleton, sub-menus, badges) were not
+kept.
 
 ## In use
 
@@ -61,10 +78,15 @@ New runtime packages join the `ui` group of `.github/dependabot.yml`.
 | Alert | `warning` for the unreachable notice on four pages, `destructive` for the sign-in error | no violation |
 | Card | status counters | no violation |
 | Table | queue, domains, accounts | no violation |
+| Sidebar (provider, rail, menu, trigger) | every signed-in page | none at first paint, after hydration, collapsed or expanded; width variables are classes |
+| Tooltip | collapsed sidebar icons | none after opening (positioned through the CSSOM) |
+| DropdownMenu, non-modal | language menu | none after opening; the modal default injects a style element and was replaced |
+| Sheet, native `<dialog>` | sidebar below 768 px | none after opening; Radix Dialog violated and was replaced |
+| Separator | header, sidebar | no violation |
 
-Not used on purpose: Dialog, AlertDialog, Select, Popover, Tooltip and DropdownMenu,
-which position with inline styles. The Remove confirmation stays the native
-`confirm` until the owner decides how to allow a modal under this policy.
+Not used on purpose: Radix Dialog and AlertDialog (modal, so they inject the
+scroll-lock style), Select and Popover (not measured yet). The Remove
+confirmation stays the native `confirm`.
 
 ## Semantic roles of the Alert
 
