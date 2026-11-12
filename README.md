@@ -190,10 +190,12 @@ exercises.
 Other workflows run only when their answer can change: `Container` (the image
 inputs), `Debian package` (the package inputs), `Dependency audit` (lockfile or
 manifest, plus weekly), `actionlint` (workflow files), `Bun version` (one Bun
-release across the workflows and the Containerfile) and `Dependabot security
-watch`. `Line limit` runs when a `.ts` or `.tsx` file changes. `DCO` runs on
-every pull request into `main` or `develop`, and `guard` on every pull request
-into `main`. `Release` runs on a `v*` tag.
+release across the workflows and the Containerfile), `Pin policy` (workflow
+files, plus weekly) and `Dependabot security watch`. All of these, and `Line
+limit` (when a source file changes), run on pull requests into `develop` only:
+the promotion pull request into `main` carries a tree they already checked.
+`DCO` runs on every pull request into `main` or `develop`, and `guard` on every
+pull request into `main`. `Release` runs on a `v*` tag.
 
 ## License
 

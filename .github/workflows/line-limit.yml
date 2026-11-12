@@ -6,7 +6,10 @@ name: Line limit
 
 on:
   pull_request:
-    branches: [main, develop]
+    # The check reads the tree, and the promotion pull request to main carries a
+    # tree it already read on develop. Content that reaches main by any other
+    # route is out of this trigger's reach: main takes only develop (main-guard).
+    branches: [develop]
     paths:
       - "**.ts"
       - "**.tsx"
@@ -18,6 +21,13 @@ on:
 
 permissions:
   contents: read
+
+# A newer push to a pull request supersedes the run in flight. A push to a
+# branch is never cancelled, so every merge keeps its own result. The reusable
+# below has its own group; this one is the caller's.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   line-limit:

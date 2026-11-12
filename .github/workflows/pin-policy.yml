@@ -1,0 +1,36 @@
+name: Pin policy
+
+# The reusable pins in this repository are compared with the latest released
+# tag of the shared workflows. The answer changes in two ways only: when a
+# workflow file changes, and when a new tag is released upstream. So it runs on
+# a pull request that touches `.github/` and once a week, not on every change.
+# The check keeps its context, `pin-policy / pin policy`, because the job id
+# below is the one `ci.yml` used. Not a required check, so a path filter cannot
+# leave one pending.
+#
+# `dependabot-freshness` stays in `ci.yml`: the organisation standard
+# (ci/scheduled/freshness) puts it on the normal CI path, and it costs seconds.
+# GitHub reads `schedule:` from the default branch only, so the cron starts once
+# this reaches `main`; `workflow_dispatch` covers the gap.
+
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - ".github/**"
+  schedule:
+    - cron: "41 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A newer push to a pull request supersedes the run in flight. A scheduled or
+# manual run is never cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  pin-policy:
+    uses: Glyndor/.github/.github/workflows/pin-policy-reusable.yml@d5041b038b7d4935e75400dff612962e6fa14893 # v1.21.0

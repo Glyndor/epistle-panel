@@ -29,6 +29,9 @@ on:
   push:
     branches: [develop]
   pull_request:
+    # Into develop only: the promotion pull request to main carries a tree this
+    # check already answered for on develop, and it is not required on main.
+    branches: [develop]
     paths:
       - ".github/workflows/dependabot-security-watch.yml"
       - "scripts/ci/**"
@@ -39,7 +42,7 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   dependabot-security-watch:

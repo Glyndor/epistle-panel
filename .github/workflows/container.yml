@@ -5,7 +5,11 @@ name: Container
 # other route redirects to it without a session, and the runtime user is 65532.
 # A change that touches none of the listed inputs cannot break them, so it does
 # not pay to run. The list includes this workflow: one whose `paths:` does not
-# list itself never runs on the pull request that edits it.
+# list itself never runs on the pull request that edits it. The negated
+# patterns skip a change that only touches an `internal/` test file: the image
+# does not run the tests, and the required `bun` check lints, builds (which
+# type-checks them) and runs them. A path list with a negated pattern needs a
+# positive one before it.
 
 on:
   push:
@@ -15,12 +19,19 @@ on:
       - "Containerfile"
       - ".containerignore"
       - "internal/**"
+      - "!internal/**/*.test.ts"
+      - "!internal/**/*.test.tsx"
   pull_request:
+    # Into develop only: the promotion pull request to main carries a tree this
+    # check already answered for on develop, and it is not required on main.
+    branches: [develop]
     paths:
       - ".github/workflows/container.yml"
       - "Containerfile"
       - ".containerignore"
       - "internal/**"
+      - "!internal/**/*.test.ts"
+      - "!internal/**/*.test.tsx"
 
 # A newer push to a pull request supersedes the run in flight. Branch runs are
 # never cancelled: only a pull_request event is.
