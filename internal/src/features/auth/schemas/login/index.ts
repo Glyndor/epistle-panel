@@ -1,5 +1,7 @@
 import * as z from "zod/mini";
 
+import { CAPTCHA_TOKEN_MAX } from "@/features/auth/captcha/providers";
+
 /** Longest account name accepted, in characters: an email address is at most 254. */
 export const LOGIN_NAME_MAX = 254;
 
@@ -33,10 +35,30 @@ export const loginSchema = z.object({
 			z.minLength(1, "passwordRequired"),
 			z.maxLength(LOGIN_PASSWORD_MAX, "passwordTooLong"),
 		),
+	/** The CAPTCHA token, when the panel has one on; bounded like everything else. */
+	captcha: z.optional(
+		z.string().check(z.maxLength(CAPTCHA_TOKEN_MAX, "captchaRequired")),
+	),
+});
+
+/**
+ * The same schema for a panel whose CAPTCHA is on: the token is then required.
+ * The form uses it to ask for the challenge before any request, and the Server
+ * Action uses it before it spends a call on the provider.
+ */
+export const captchaLoginSchema = z.extend(loginSchema, {
+	captcha: z
+		.string()
+		.check(
+			z.minLength(1, "captchaRequired"),
+			z.maxLength(CAPTCHA_TOKEN_MAX, "captchaRequired"),
+		),
 });
 
 /** The message keys the schema can fail with, all in the `auth` namespace. */
 export const LOGIN_ERROR_KEYS = [
+	"captchaLoadFailed",
+	"captchaRequired",
 	"nameRequired",
 	"nameTooLong",
 	"passwordRequired",

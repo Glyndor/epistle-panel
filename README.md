@@ -131,6 +131,21 @@ The original copyright notice stays in the interface whatever is set. A file
 that cannot be used is answered with a 404 and one log line that names the
 variable, never the path.
 
+### Sign-in CAPTCHA (optional, off by default)
+
+| Variable | Effect |
+|---|---|
+| `EPISTLE_PANEL_CAPTCHA_PROVIDER` | `turnstile`, `recaptcha`, `hcaptcha` or `custom`. Unset or `off` loads nothing from another host. |
+| `EPISTLE_PANEL_CAPTCHA_SITE_KEY` | The public site key. |
+| `EPISTLE_PANEL_CAPTCHA_SECRET_KEY_FILE` | Absolute path of the secret key (or `EPISTLE_PANEL_CAPTCHA_SECRET_KEY`), read like the other secrets. |
+| `EPISTLE_PANEL_CAPTCHA_HOSTNAME` | Optional host name the provider must report. |
+| `EPISTLE_PANEL_CAPTCHA_SCRIPT_URL`, `EPISTLE_PANEL_CAPTCHA_VERIFY_URL`, `EPISTLE_PANEL_CAPTCHA_RESPONSE_FIELD` | For `custom` only. |
+
+When it is on, the sign-in page's Content-Security-Policy gains the provider's
+hosts and no other page does. A provider named without a complete setup refuses
+every sign-in, with a log line that names the variable. See
+[docs/maintainers/forms.md](docs/maintainers/forms.md).
+
 ### Sessions and sign-in limits
 
 - The session cookie is named `__Host-epistle_admin_session` and is always

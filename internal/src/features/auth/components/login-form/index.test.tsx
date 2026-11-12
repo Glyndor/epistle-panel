@@ -49,7 +49,7 @@ const verifyCalls = () =>
 
 describe("LoginForm", () => {
 	it("labels both fields, marks them required and bounded, with the right autocomplete", () => {
-		render(<LoginForm />);
+		render(<LoginForm captcha={null} />);
 
 		expect(name()).toHaveAttribute("autocomplete", "username");
 		expect(name()).toBeRequired();
@@ -64,7 +64,7 @@ describe("LoginForm", () => {
 	});
 
 	it("shows no error before the first attempt and switches off the browser's own bubbles once hydrated", async () => {
-		const { container } = render(<LoginForm />);
+		const { container } = render(<LoginForm captcha={null} />);
 
 		expect(screen.queryByRole("alert")).toBeNull();
 		await waitFor(() =>
@@ -75,7 +75,7 @@ describe("LoginForm", () => {
 	});
 
 	it("names the empty fields, sends nothing, and focuses the first one", async () => {
-		render(<LoginForm />);
+		render(<LoginForm captcha={null} />);
 
 		await submit();
 
@@ -88,7 +88,7 @@ describe("LoginForm", () => {
 	});
 
 	it("clears a field's message as soon as it is corrected", async () => {
-		render(<LoginForm />);
+		render(<LoginForm captcha={null} />);
 		await submit();
 		await screen.findByText("nameRequired");
 
@@ -102,7 +102,7 @@ describe("LoginForm", () => {
 	});
 
 	it("refuses a password over the cap on the client too, and sends nothing", async () => {
-		render(<LoginForm />);
+		render(<LoginForm captcha={null} />);
 		await type(name(), "ops");
 		await type(password(), "p".repeat(LOGIN_PASSWORD_MAX + 1));
 
@@ -113,7 +113,7 @@ describe("LoginForm", () => {
 	});
 
 	it("submits valid credentials through the action and announces a refusal with the one generic message", async () => {
-		render(<LoginForm />);
+		render(<LoginForm captcha={null} />);
 		await type(name(), "  admin ");
 		await type(password(), "secret");
 
@@ -132,7 +132,7 @@ describe("LoginForm", () => {
 	});
 
 	it("after a refusal keeps the name, clears the password, focuses it, and ties both fields to the error", async () => {
-		render(<LoginForm />);
+		render(<LoginForm captcha={null} />);
 		await type(name(), "admin");
 		await type(password(), "secret");
 
@@ -168,7 +168,7 @@ describe("LoginForm", () => {
 						);
 				}),
 		) as unknown as typeof fetch;
-		render(<LoginForm />);
+		render(<LoginForm captcha={null} />);
 		await type(name(), "a");
 		await type(password(), "b");
 

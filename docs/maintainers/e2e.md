@@ -40,7 +40,7 @@ the line limit:
 | `scripts/e2e/lib/reporting.sh` | the pass and fail counters and the `assert_*` helpers |
 | `scripts/e2e/lib/processes.sh` | secrets, start and restart of the stand-in and the panel, its control calls |
 | `scripts/e2e/lib/http.sh` | `fetch`, `login`, the form-field readers, memory and CPU counters |
-| `scripts/e2e/scenarios/<name>.sh` | one scenario each: `headers`, `logout`, `limiter`, `limiter-global`, `noauth`, `degraded`, `rotation`, `idle`, `theme`, `body-limit` |
+| `scripts/e2e/scenarios/<name>.sh` | one scenario each: `headers`, `logout`, `limiter`, `limiter-global`, `noauth`, `degraded`, `rotation`, `idle`, `theme`, `body-limit`, `captcha` |
 
 A new scenario is a new file in `scenarios/`, a `source` line and a `case` entry
 in `run.sh`, and a row in the table below.
@@ -72,6 +72,7 @@ secret, and switches the data endpoints to `hang` or `huge` through
 | `rotation` | replacing a `_FILE` secret does not change a running process, in any bundle; a restart picks it up |
 | `idle` | idle CPU, and a memory ceiling after 400 requests |
 | `body-limit` | a Server Action body over the 16 KB `experimental.serverActions.bodySizeLimit` in `next.config.ts` is refused before the action runs (the API sees no call), while the widest sign-in the form can send (about 4.1 KB, also with a 4 KB CAPTCHA-sized token) and a normal action are accepted |
+| `captcha` | with the stand-in CAPTCHA provider on (the `custom` provider): off by default; the page carries the widget box and the public site key, never the secret or the verification URL; the sign-in page's CSP gains exactly the provider's origin in `script-src`, `frame-src` and `connect-src` and nothing else, no other response does; no token and an unsolved token are refused and the API is never asked, a solved one signs in; the provider is asked before the API; a missing site key, an unreadable secret file or an unknown provider refuse every sign-in, name the variable in the log and widen nothing; no log holds a token or a secret |
 | `theme` | `/theme.css`, `/brand/logo` and `/brand/favicon` answer without a session when configured and 404 when not; the sign-in page links the stylesheet and shows the name, the logo and the original copyright notice; the CSP is the same with and without a theme; look-alike paths stay behind the gate; a symlink, an oversized or a missing file is a 404 and a log line with no path; an SVG with script is refused |
 
 ## Browser checks (manual)

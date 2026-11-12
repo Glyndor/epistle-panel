@@ -14,7 +14,7 @@
 # exercises.
 #
 # Usage: scripts/e2e/run.sh [scenario...]
-#   scenarios: headers logout limiter limiter-global noauth degraded rotation idle theme body-limit
+#   scenarios: headers logout limiter limiter-global noauth degraded rotation idle theme body-limit captcha
 # With no argument every scenario runs. Exit status is non-zero when any check
 # fails. Override the ports with PANEL_PORT and STAND_IN_PORT.
 set -euo pipefail
@@ -62,6 +62,7 @@ session_secret_file="$work/secrets/session-secret"
 panel_pid=""
 stand_in_pid=""
 panel_env=()
+login_extra=()
 passed=0
 failed=0
 
@@ -107,6 +108,8 @@ cp -R "$internal/.next/static" "$standalone/.next/static"
 . "$root/scripts/e2e/scenarios/rotation.sh"
 # shellcheck source=scripts/e2e/scenarios/idle.sh
 . "$root/scripts/e2e/scenarios/idle.sh"
+# shellcheck source=scripts/e2e/scenarios/captcha.sh
+. "$root/scripts/e2e/scenarios/captcha.sh"
 # shellcheck source=scripts/e2e/scenarios/theme.sh
 . "$root/scripts/e2e/scenarios/theme.sh"
 # shellcheck source=scripts/e2e/scenarios/body-limit.sh
@@ -114,7 +117,7 @@ cp -R "$internal/.next/static" "$standalone/.next/static"
 
 # ---------------------------------------------------------------- main
 
-all=(headers logout limiter limiter-global noauth degraded rotation idle theme body-limit)
+all=(headers logout limiter limiter-global noauth degraded rotation idle theme body-limit captcha)
 selected=("$@")
 ((${#selected[@]})) || selected=("${all[@]}")
 
@@ -130,6 +133,7 @@ for name in "${selected[@]}"; do
 	idle) scenario_idle ;;
 	theme) scenario_theme ;;
 	body-limit) scenario_body_limit ;;
+	captcha) scenario_captcha ;;
 	*)
 		echo "error: unknown scenario '$name'" >&2
 		exit 2

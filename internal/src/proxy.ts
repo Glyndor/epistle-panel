@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import { captchaWideningFromEnv } from "./features/auth/captcha/config";
 import { SESSION_COOKIE, verifySession } from "./lib/auth/session";
 import {
 	applySecurityHeaders,
@@ -27,10 +28,17 @@ function isLoginPath(pathname: string): boolean {
  */
 export async function proxy(request: NextRequest) {
 	const nonce = generateNonce();
-	const csp = buildCsp(nonce, process.env.NODE_ENV === "development");
+	const onLoginPage = isLoginPath(request.nextUrl.pathname);
+	// The CAPTCHA provider's hosts are added to the sign-in page's policy and to
+	// no other response: its widget loads there only.
+	const csp = buildCsp(
+		nonce,
+		process.env.NODE_ENV === "development",
+		onLoginPage ? captchaWideningFromEnv() : undefined,
+	);
 
 	const allowed =
-		isLoginPath(request.nextUrl.pathname) ||
+		onLoginPage ||
 		(await verifySession(request.cookies.get(SESSION_COOKIE)?.value)) !==
 			null;
 
