@@ -10,6 +10,16 @@ import { ConfigError } from "../config-error";
 export const MAX_SECRET_BYTES = 64 * 1024;
 
 /**
+ * Key of the process-wide cache on `globalThis`. The proxy, the pages and the
+ * server actions are bundled separately, so a module-level `Map` would give
+ * each bundle its own copy: after a rotation without a restart the proxy could
+ * read the new session secret while the sign-in action kept signing with the
+ * old one, and no session would verify. The shared registry makes "read once
+ * per process" true for every bundle, like the revocation set and the limiter.
+ */
+const CACHE = Symbol.for("epistle-panel.secret-cache");
+
+/**
  * File secrets read by this process, keyed by variable name and path.
  *
  * Reading once per process closes the window in which someone able to write
@@ -18,7 +28,14 @@ export const MAX_SECRET_BYTES = 64 * 1024;
  * and restarts the service, so the new process reads the new value. Failures
  * are never cached, so a file that was not ready at first use is read again.
  */
-const cache = new Map<string, string>();
+function cache(): Map<string, string> {
+	const holder = globalThis as unknown as Record<
+		symbol,
+		Map<string, string> | undefined
+	>;
+	holder[CACHE] ??= new Map();
+	return holder[CACHE];
+}
 
 /**
  * Forget every cached file secret.
@@ -27,7 +44,7 @@ const cache = new Map<string, string>();
  * restarts the process; tests call it to read a file they rewrote.
  */
 export function clearSecretCache(): void {
-	cache.clear();
+	cache().clear();
 }
 
 /** Raised internally when a secret file exceeds `MAX_SECRET_BYTES`. */
@@ -105,7 +122,7 @@ export async function readSecret(name: string): Promise<string | undefined> {
 	}
 
 	const key = `${name}\0${path}`;
-	const cached = cache.get(key);
+	const cached = cache().get(key);
 	if (cached !== undefined) {
 		return cached;
 	}
@@ -125,6 +142,6 @@ export async function readSecret(name: string): Promise<string | undefined> {
 	if (secret === "") {
 		throw new ConfigError(`${fileVar} is set but the file is empty`);
 	}
-	cache.set(key, secret);
+	cache().set(key, secret);
 	return secret;
 }
