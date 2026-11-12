@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
 
-import { LoginForm } from "./login-form";
+import { LoginForm } from "./_components/login-form";
 
 /** The admin login page — the only route reachable without a session. */
 export default async function LoginPage() {

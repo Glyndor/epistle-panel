@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 
-import { type LoginState, login } from "@/lib/auth/actions";
+import { type LoginState, login } from "@/lib/auth/actions/login";
 
 const INITIAL: LoginState = { error: false };
 

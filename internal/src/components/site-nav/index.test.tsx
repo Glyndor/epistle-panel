@@ -11,7 +11,7 @@ mock.module("next-intl", () => ({
 	useTranslations: () => (key: string) => key,
 }));
 
-const { SiteNav } = await import("./site-nav");
+const { SiteNav } = await import(".");
 
 describe("SiteNav", () => {
 	it("renders the primary links and marks the active route", () => {

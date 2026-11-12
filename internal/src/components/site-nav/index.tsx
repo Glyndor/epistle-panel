@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 
-import { logout } from "@/lib/auth/actions";
+import { logout } from "@/lib/auth/actions/logout";
 
 /** Primary navigation across the admin views, marking the active route. */
 export function SiteNav() {

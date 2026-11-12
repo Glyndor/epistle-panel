@@ -7,14 +7,14 @@ import {
 	waitFor,
 } from "@testing-library/react";
 
-import { stubFetchReject } from "@/lib/api/test-fetch";
+import { stubFetchReject } from "@/lib/api/test-support/fetch";
 
 mock.module("next-intl", () => ({
 	useTranslations: () => (key: string) => key,
 }));
 mock.module("next/cache", () => ({ revalidatePath: () => {} }));
 
-const { RemoveButton } = await import("./remove-button");
+const { RemoveButton } = await import(".");
 
 const ID = "01890a5d-ac96-774b-b9aa-9be4c3bd6b0e";
 

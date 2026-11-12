@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 
-import { stubFetchJson, stubFetchReject } from "@/lib/api/test-fetch";
+import { stubFetchJson, stubFetchReject } from "@/lib/api/test-support/fetch";
 import { createSession } from "@/lib/auth/session";
 
 const revalidatePath = mock(() => {});
@@ -13,7 +13,7 @@ mock.module("next/headers", () => ({
 	}),
 }));
 
-const { removeEntry } = await import("./actions");
+const { removeEntry } = await import(".");
 
 const ID = "01890a5d-ac96-774b-b9aa-9be4c3bd6b0e";
 

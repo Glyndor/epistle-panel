@@ -4,7 +4,10 @@ import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
-import { type RemoveState, removeEntry } from "./actions";
+import {
+	type RemoveState,
+	removeEntry,
+} from "@/app/queue/_actions/remove-entry";
 
 function Submit({
 	label,
