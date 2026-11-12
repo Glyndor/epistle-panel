@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from "bun:test";
 import { clearRevocations } from "@/lib/auth/revocation";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth/session";
 import {
+	followRedirect,
 	mockRequestCookies,
 	RedirectSignal,
 } from "@/lib/auth/test-support/cookies";
@@ -30,7 +31,7 @@ describe("logout", () => {
 	it("expires the cookie with the attributes the __Host- prefix needs", async () => {
 		await cookies.signIn("ops");
 
-		await logout().catch(() => {});
+		await followRedirect(logout());
 
 		expect(cookies.writes).toHaveLength(1);
 		const [write] = cookies.writes;
