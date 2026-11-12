@@ -29,6 +29,17 @@ describe("RemoveButton", () => {
 		expect(button).toHaveTextContent("remove");
 	});
 
+	it("keeps a 44px touch target", () => {
+		// No layout under happy-dom: the class is the contract, the rendered
+		// size is measured in a browser.
+		render(<RemoveButton id={ID} recipients="a@b.example" />);
+
+		expect(screen.getByRole("button", { name: "removeLabel" })).toHaveClass(
+			"min-h-11",
+			"min-w-11",
+		);
+	});
+
 	it("does not submit when the confirmation is declined", () => {
 		window.confirm = () => false;
 		render(<RemoveButton id={ID} recipients="a@b.example" />);

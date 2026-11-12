@@ -24,7 +24,7 @@ function Submit({
 			type="submit"
 			disabled={pending}
 			aria-label={ariaLabel}
-			className="shrink-0 rounded-md border border-red-300 px-3 py-1 text-red-700 text-sm hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 disabled:opacity-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950"
+			className="min-h-11 min-w-11 shrink-0 rounded-md border border-red-700 px-3 text-red-700 text-sm hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 disabled:opacity-50 dark:border-red-300 dark:text-red-300 dark:hover:bg-red-950"
 		>
 			{pending ? pendingLabel : label}
 		</button>

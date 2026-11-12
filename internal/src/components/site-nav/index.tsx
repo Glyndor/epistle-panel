@@ -20,7 +20,7 @@ export function SiteNav() {
 		<header className="border-zinc-200 border-b dark:border-zinc-800">
 			<nav
 				aria-label={t("label")}
-				className="mx-auto flex w-full max-w-3xl gap-4 p-4"
+				className="mx-auto flex w-full max-w-3xl flex-wrap items-center px-2 py-1.5"
 			>
 				{links.map((link) => {
 					const active =
@@ -32,7 +32,7 @@ export function SiteNav() {
 							key={link.href}
 							href={link.href}
 							aria-current={active ? "page" : undefined}
-							className={`rounded text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500 ${
+							className={`inline-flex min-h-11 min-w-11 items-center justify-center whitespace-nowrap rounded px-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500 ${
 								active
 									? "font-semibold text-zinc-900 dark:text-zinc-100"
 									: "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
@@ -45,7 +45,7 @@ export function SiteNav() {
 				<form action={logout} className="ml-auto">
 					<button
 						type="submit"
-						className="rounded text-sm text-zinc-600 hover:text-zinc-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500 dark:text-zinc-400 dark:hover:text-zinc-100"
+						className="inline-flex min-h-11 min-w-11 items-center justify-center whitespace-nowrap rounded px-2 text-sm text-zinc-600 hover:text-zinc-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500 dark:text-zinc-400 dark:hover:text-zinc-100"
 					>
 						{t("logout")}
 					</button>
