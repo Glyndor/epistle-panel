@@ -1,0 +1,7 @@
+{
+	"rows": "{total, plural, =0 {No rows} one {# row} other {{shown} of # rows}}",
+	"noMatches": "No row matches the filter.",
+	"sortable": "sortable",
+	"sortedAscending": "sorted ascending",
+	"sortedDescending": "sorted descending"
+}

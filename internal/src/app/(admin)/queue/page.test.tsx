@@ -1,14 +1,19 @@
-import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { cleanup, render, screen } from "@testing-library/react";
 
-import { stubFetchJson, stubFetchReject } from "@/lib/api/test-support/fetch";
+import {
+	sentRequests,
+	stubFetchJson,
+	stubFetchReject,
+} from "@/lib/api/test-support/fetch";
 import {
 	mockRequestCookies,
 	RedirectSignal,
 } from "@/lib/auth/test-support/cookies";
 
-mock.module("next/cache", () => ({ revalidatePath: () => {} }));
+import { withQuery } from "@/test/query-wrapper";
 
+const originalFetch = globalThis.fetch;
 const cookies = mockRequestCookies();
 
 const { default: QueuePage } = await import("./page");
@@ -20,7 +25,10 @@ beforeEach(async () => {
 	cookies.reset();
 	await cookies.signIn();
 });
-afterEach(cleanup);
+afterEach(() => {
+	cleanup();
+	globalThis.fetch = originalFetch;
+});
 
 describe("QueuePage", () => {
 	it("lists each queued message with a remove control", async () => {
@@ -34,7 +42,9 @@ describe("QueuePage", () => {
 			],
 		});
 
-		render(await QueuePage({ searchParams: Promise.resolve({}) }));
+		render(
+			withQuery(await QueuePage({ searchParams: Promise.resolve({}) })),
+		);
 
 		expect(screen.getByText(/sender@example.org/)).toBeInTheDocument();
 		expect(screen.getByText(/rcpt@elsewhere.example/)).toBeInTheDocument();
@@ -54,11 +64,15 @@ describe("QueuePage", () => {
 			],
 		});
 
-		render(await QueuePage({ searchParams: Promise.resolve({}) }));
+		render(
+			withQuery(await QueuePage({ searchParams: Promise.resolve({}) })),
+		);
 
-		expect(
-			screen.getAllByRole("columnheader").map((cell) => cell.textContent),
-		).toEqual(["from", "to", "actions"]);
+		const headers = screen.getAllByRole("columnheader");
+		expect(headers).toHaveLength(3);
+		expect(headers[0]).toHaveTextContent("from");
+		expect(headers[1]).toHaveTextContent("to");
+		expect(headers[2]).toHaveTextContent("actions");
 		expect(screen.getAllByRole("row")).toHaveLength(2);
 	});
 
@@ -70,7 +84,9 @@ describe("QueuePage", () => {
 			next_cursor: NEXT,
 		});
 
-		render(await QueuePage({ searchParams: Promise.resolve({}) }));
+		render(
+			withQuery(await QueuePage({ searchParams: Promise.resolve({}) })),
+		);
 
 		// A null reverse_path renders as the placeholder envelope sender.
 		expect(screen.getByText(/<>/)).toBeInTheDocument();
@@ -83,7 +99,9 @@ describe("QueuePage", () => {
 	it("shows the empty state for an empty queue", async () => {
 		stubFetchJson({ entries: [] });
 
-		render(await QueuePage({ searchParams: Promise.resolve({}) }));
+		render(
+			withQuery(await QueuePage({ searchParams: Promise.resolve({}) })),
+		);
 
 		expect(screen.getByText("empty")).toBeInTheDocument();
 	});
@@ -92,18 +110,22 @@ describe("QueuePage", () => {
 		stubFetchReject();
 
 		render(
-			await QueuePage({ searchParams: Promise.resolve({ cursor: ID }) }),
+			withQuery(
+				await QueuePage({
+					searchParams: Promise.resolve({ cursor: ID }),
+				}),
+			),
 		);
 
-		expect(screen.getByRole("alert")).toHaveTextContent("unreachable");
+		const alert = await screen.findByRole("alert");
+		expect(alert).toHaveTextContent("unreachable");
 		// An unreachable API is a warning, not a destructive state.
-		expect(screen.getByRole("alert")).toHaveClass("bg-warning");
+		expect(alert).toHaveClass("bg-warning");
 	});
 
 	it("redirects to the login page without a session and never calls the API", async () => {
 		cookies.reset();
 		stubFetchJson({});
-		const before = globalThis.fetch;
 
 		const outcome = await (async () =>
 			await QueuePage({ searchParams: Promise.resolve({}) }))().catch(
@@ -112,39 +134,36 @@ describe("QueuePage", () => {
 
 		expect(outcome).toBeInstanceOf(RedirectSignal);
 		expect(outcome.target).toBe("/login");
-		expect(
-			(before as unknown as { mock: { calls: unknown[] } }).mock.calls,
-		).toHaveLength(0);
+		expect(sentRequests()).toHaveLength(0);
 	});
 
 	it("forwards only the first value of a repeated cursor parameter", async () => {
 		stubFetchJson({ entries: [] });
 
 		render(
-			await QueuePage({
-				searchParams: Promise.resolve({ cursor: [ID, NEXT] }),
-			}),
+			withQuery(
+				await QueuePage({
+					searchParams: Promise.resolve({ cursor: [ID, NEXT] }),
+				}),
+			),
 		);
 
-		const calls = (
-			globalThis.fetch as unknown as { mock: { calls: string[][] } }
-		).mock.calls;
+		const calls = sentRequests();
 		expect(calls).toHaveLength(1);
-		expect(String(calls[0]?.[0])).toEndWith(`/api/v1/queue?cursor=${ID}`);
+		expect(calls[0]?.url).toEndWith(`/api/v1/queue?cursor=${ID}`);
 	});
 
 	it("drops a cursor that is not a UUID instead of forwarding it", async () => {
 		stubFetchJson({ entries: [] });
 
 		render(
-			await QueuePage({
-				searchParams: Promise.resolve({ cursor: ["a", "b"] }),
-			}),
+			withQuery(
+				await QueuePage({
+					searchParams: Promise.resolve({ cursor: ["a", "b"] }),
+				}),
+			),
 		);
 
-		const calls = (
-			globalThis.fetch as unknown as { mock: { calls: string[][] } }
-		).mock.calls;
-		expect(String(calls[0]?.[0])).toEndWith("/api/v1/queue");
+		expect(sentRequests()[0]?.url).toEndWith("/api/v1/queue");
 	});
 });

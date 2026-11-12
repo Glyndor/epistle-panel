@@ -96,10 +96,14 @@ describe("RootLayout", () => {
 		await renderLayout();
 
 		expect(Object.keys(intl.providerMessages ?? {}).sort()).toEqual([
+			"accounts",
 			"auth",
+			"dashboard",
+			"domains",
 			"error",
 			"nav",
 			"queue",
+			"table",
 		]);
 	});
 });

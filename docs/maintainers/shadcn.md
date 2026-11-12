@@ -83,8 +83,10 @@ kept.
 | DropdownMenu, non-modal, loaded on demand | language menu | none after opening; the modal default injects a style element and was replaced. Its code loads on hover, focus or press of a placeholder button |
 | Sheet, native `<dialog>` | sidebar below 768 px | none after opening; Radix Dialog violated and was replaced |
 | Separator | header, sidebar | no violation |
+| Toaster (own) | mutation outcomes, one region in the shell | none; classes only |
+| Skeleton | loading states | no violation; static, never pulses |
 
-Not used on purpose: Radix Dialog and AlertDialog (modal, so they inject the
+Not used on purpose: Sonner (measured: it injects a `<style>` element when it loads, a `style-src-elem` violation 16 times in one page view with version 2.0.8, and offers no switch to stop it; the panel's own `components/ui/toaster` replaces it), Radix Dialog and AlertDialog (modal, so they inject the
 scroll-lock style), Select and Popover (not measured yet). The Remove
 confirmation stays the native `confirm`.
 

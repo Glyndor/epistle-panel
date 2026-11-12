@@ -2,5 +2,6 @@
 	"heading": "Domains",
 	"unreachable": "The mail server's management API is unreachable. Check that the server is running and the panel is configured.",
 	"empty": "No domains are configured yet.",
-	"name": "Domain"
+	"name": "Domain",
+	"filter": "Filter domains"
 }

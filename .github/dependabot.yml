@@ -86,6 +86,10 @@ updates:
           - "clsx"
           - "tailwind-merge"
         update-types: ["minor", "patch"]
+      # Query and Table are versioned apart but used together by every data page.
+      tanstack:
+        patterns: ["@tanstack/*"]
+        update-types: ["minor", "patch"]
       # Biome replaces ESLint here, and Tailwind ships as two packages.
       build-tooling:
         patterns:

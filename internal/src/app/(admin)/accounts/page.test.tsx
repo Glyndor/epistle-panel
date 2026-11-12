@@ -1,12 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { cleanup, render, screen } from "@testing-library/react";
 
-import { stubFetchJson, stubFetchReject } from "@/lib/api/test-support/fetch";
+import {
+	sentRequests,
+	stubFetchJson,
+	stubFetchReject,
+} from "@/lib/api/test-support/fetch";
 import {
 	mockRequestCookies,
 	RedirectSignal,
 } from "@/lib/auth/test-support/cookies";
 
+import { withQuery } from "@/test/query-wrapper";
+
+const originalFetch = globalThis.fetch;
 const cookies = mockRequestCookies();
 
 const { default: AccountsPage } = await import("./page");
@@ -15,7 +22,10 @@ beforeEach(async () => {
 	cookies.reset();
 	await cookies.signIn();
 });
-afterEach(cleanup);
+afterEach(() => {
+	cleanup();
+	globalThis.fetch = originalFetch;
+});
 
 describe("AccountsPage", () => {
 	it("lists each account with its addresses", async () => {
@@ -28,7 +38,7 @@ describe("AccountsPage", () => {
 			],
 		});
 
-		render(await AccountsPage());
+		render(withQuery(await AccountsPage()));
 
 		expect(screen.getByText("alice")).toBeInTheDocument();
 		expect(
@@ -44,12 +54,13 @@ describe("AccountsPage", () => {
 			],
 		});
 
-		render(await AccountsPage());
+		render(withQuery(await AccountsPage()));
 
 		expect(screen.getByRole("table")).toBeInTheDocument();
-		expect(
-			screen.getAllByRole("columnheader").map((cell) => cell.textContent),
-		).toEqual(["name", "addresses"]);
+		const headers = screen.getAllByRole("columnheader");
+		expect(headers).toHaveLength(2);
+		expect(headers[0]).toHaveTextContent("name");
+		expect(headers[1]).toHaveTextContent("addresses");
 		// One header row and one row per account.
 		expect(screen.getAllByRole("row")).toHaveLength(3);
 	});
@@ -57,7 +68,7 @@ describe("AccountsPage", () => {
 	it("shows the empty state when there are no accounts", async () => {
 		stubFetchJson({ accounts: [] });
 
-		render(await AccountsPage());
+		render(withQuery(await AccountsPage()));
 
 		expect(screen.getByText("empty")).toBeInTheDocument();
 	});
@@ -65,17 +76,17 @@ describe("AccountsPage", () => {
 	it("shows the unreachable notice when the API errors", async () => {
 		stubFetchReject();
 
-		render(await AccountsPage());
+		render(withQuery(await AccountsPage()));
 
-		expect(screen.getByRole("alert")).toHaveTextContent("unreachable");
+		const alert = await screen.findByRole("alert");
+		expect(alert).toHaveTextContent("unreachable");
 		// An unreachable API is a warning, not a destructive state.
-		expect(screen.getByRole("alert")).toHaveClass("bg-warning");
+		expect(alert).toHaveClass("bg-warning");
 	});
 
 	it("redirects to the login page without a session and never calls the API", async () => {
 		cookies.reset();
 		stubFetchJson({});
-		const before = globalThis.fetch;
 
 		const outcome = await (async () => await AccountsPage())().catch(
 			(error) => error,
@@ -83,8 +94,6 @@ describe("AccountsPage", () => {
 
 		expect(outcome).toBeInstanceOf(RedirectSignal);
 		expect(outcome.target).toBe("/login");
-		expect(
-			(before as unknown as { mock: { calls: unknown[] } }).mock.calls,
-		).toHaveLength(0);
+		expect(sentRequests()).toHaveLength(0);
 	});
 });

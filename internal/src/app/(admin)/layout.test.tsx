@@ -6,6 +6,7 @@ import {
 	mockRequestCookies,
 	RedirectSignal,
 } from "@/lib/auth/test-support/cookies";
+import { withQuery } from "@/test/query-wrapper";
 import { resolveServerTree } from "@/test/server-tree";
 
 const cookies = mockRequestCookies();
@@ -19,14 +20,18 @@ afterEach(cleanup);
 
 /** The layout's element is an AppShell; run it too so its server parts render. */
 async function layoutElement() {
-	return (await AdminLayout({ children: <p>page</p> })) as React.ReactElement<
-		React.ComponentProps<typeof AppShell>
-	>;
+	const provider = (await AdminLayout({
+		children: <p>page</p>,
+	})) as React.ReactElement<{
+		children: React.ReactElement<React.ComponentProps<typeof AppShell>>;
+	}>;
+	// The layout wraps the shell in the query provider; the shell is its child.
+	return provider.props.children;
 }
 
 async function renderLayout() {
 	const element = await layoutElement();
-	return render(await resolveServerTree(AppShell(element.props)));
+	return render(withQuery(await resolveServerTree(AppShell(element.props))));
 }
 
 describe("AdminLayout", () => {

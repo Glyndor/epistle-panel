@@ -68,7 +68,10 @@ scenario_headers() {
 		assert_absent "$path: no Open Graph or Twitter tags" "$(cat "$work/b")" 'property="og:'
 		assert_absent "$path: no Twitter card" "$(cat "$work/b")" 'name="twitter:'
 		assert_absent "$path: not the unreachable alert" "$(cat "$work/b")" 'role="alert"'
-		assert_absent "$path: no server-only message in the client payload" "$(cat "$work/b")" "No accounts are configured yet."
+		# The 404 page's own text is in every page's route payload, so look for the
+		# catalog of its namespace, which only reaches the browser if it is a client one.
+		assert_absent "$path: no server-only catalog in the client payload" "$(cat "$work/b")" 'notFound\":{'
+		assert_contains "$path: a client catalog is in the payload" "$(cat "$work/b")" 'table\":{'
 		assert_contains "$path: the client strings are in the payload" "$(cat "$work/b")" "Could not remove the message"
 	done
 

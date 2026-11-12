@@ -1,59 +1,26 @@
+import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { getTranslations } from "next-intl/server";
 
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
-import { getDomains } from "@/lib/api/client";
-import { logApiFailure } from "@/lib/api/log-failure";
+import { DomainsTable } from "@/features/domains/components/domains-table";
+import { domainsQueryOptions } from "@/features/domains/queries/domains-query";
+import { loadDomains } from "@/features/domains/queries/load-domains";
 import { requireSession } from "@/lib/auth/require-session";
+import { prefetch } from "@/lib/query/prefetch";
+import { getServerQueryClient } from "@/lib/query/server-query-client";
 
-async function loadDomains(): Promise<string[] | null> {
-	try {
-		return (await getDomains()).domains;
-	} catch (error) {
-		logApiFailure("domains fetch", error);
-		return null;
-	}
-}
-
+/** The domains page: the list prefetched on the server, then owned by Query. */
 export default async function DomainsPage() {
 	await requireSession();
 	const t = await getTranslations("domains");
-	const domains = await loadDomains();
+	const client = getServerQueryClient();
+	await prefetch(client, domainsQueryOptions(loadDomains), "domains fetch");
 
 	return (
 		<>
 			<h1 className="font-semibold text-lg">{t("heading")}</h1>
-			{domains === null ? (
-				<Alert variant="warning">
-					<AlertDescription>{t("unreachable")}</AlertDescription>
-				</Alert>
-			) : domains.length === 0 ? (
-				<p className="text-muted-foreground">{t("empty")}</p>
-			) : (
-				<Table>
-					<TableHeader>
-						<TableRow>
-							<TableHead scope="col">{t("name")}</TableHead>
-						</TableRow>
-					</TableHeader>
-					<TableBody>
-						{domains.map((domain) => (
-							<TableRow key={domain}>
-								<TableCell className="break-all font-mono">
-									{domain}
-								</TableCell>
-							</TableRow>
-						))}
-					</TableBody>
-				</Table>
-			)}
+			<HydrationBoundary state={dehydrate(client)}>
+				<DomainsTable />
+			</HydrationBoundary>
 		</>
 	);
 }

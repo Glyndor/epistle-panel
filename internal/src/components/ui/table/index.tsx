@@ -55,7 +55,10 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
 	return (
 		<th
 			data-slot="table-head"
-			className={cn("px-4 py-3 align-middle font-medium", className)}
+			className={cn(
+				"px-3 py-1.5 align-middle font-medium pointer-coarse:py-3",
+				className,
+			)}
 			{...props}
 		/>
 	);
@@ -65,7 +68,10 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
 	return (
 		<td
 			data-slot="table-cell"
-			className={cn("px-4 py-3 align-middle", className)}
+			className={cn(
+				"px-3 py-1.5 align-middle pointer-coarse:py-3",
+				className,
+			)}
 			{...props}
 		/>
 	);

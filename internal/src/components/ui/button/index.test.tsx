@@ -47,6 +47,7 @@ describe("Button", () => {
 		// The rendered size is measured in a real browser with touch emulation.
 		const minimums = {
 			default: "pointer-coarse:min-h-11",
+			sm: "pointer-coarse:min-h-11",
 			lg: "pointer-coarse:min-h-12",
 			icon: "pointer-coarse:size-11",
 		} as const;
