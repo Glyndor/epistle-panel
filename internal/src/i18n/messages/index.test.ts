@@ -28,9 +28,13 @@ function leaves(catalog: unknown, prefix = ""): Map<string, string> {
 	return out;
 }
 
-/** The sorted, de-duplicated `{placeholder}` names a message interpolates. */
+/**
+ * The sorted, de-duplicated `{placeholder}` names a message interpolates. A name
+ * is followed by `}` or by `,` (an ICU argument); the words inside a plural or
+ * select arm (`{No rows}`) are text, not placeholders.
+ */
 function placeholders(message: string): string[] {
-	const names = [...message.matchAll(/\{\s*([A-Za-z_]\w*)/g)].map(
+	const names = [...message.matchAll(/\{\s*([A-Za-z_]\w*)\s*[,}]/g)].map(
 		(match) => match[1] as string,
 	);
 	return [...new Set(names)].sort();

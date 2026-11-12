@@ -85,3 +85,21 @@ describe("unnonced_scripts", () => {
 		expect(unnonced("<html><body><p>hello</p></body></html>")).toBe("0");
 	});
 });
+
+describe("CAPTCHA scenario constants", () => {
+	test("the scenario's token and secret are the stand-in provider's", async () => {
+		const shell = readFileSync(join(scripts, "scenarios", "captcha.sh"), "utf8");
+		const standIn = await import("../stand-in-api");
+		const token = /^CAPTCHA_SOLVED_TOKEN="([^"]+)"$/m.exec(shell)?.[1];
+		const secret = /^CAPTCHA_SECRET="([^"]+)"$/m.exec(shell)?.[1];
+
+		expect(token).toBe(standIn.CAPTCHA_SOLVED_TOKEN);
+		expect(secret).toBe(standIn.CAPTCHA_SECRET);
+	});
+
+	test("the scenario names the input the stand-in widget writes", () => {
+		const shell = readFileSync(join(scripts, "scenarios", "captcha.sh"), "utf8");
+
+		expect(shell).toContain("EPISTLE_PANEL_CAPTCHA_RESPONSE_FIELD=stand-in-captcha-response");
+	});
+});

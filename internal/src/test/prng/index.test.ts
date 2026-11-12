@@ -88,21 +88,82 @@ describe("runCases", () => {
 });
 
 describe("activeSeed", () => {
-	it("uses the fixed default unless GENERATED_SEED is an integer", () => {
-		const saved = process.env.GENERATED_SEED;
+	it("uses the fixed default when GENERATED_SEED is unset or blank, and the integer when it is set", () => {
+		const saved = process.env["GENERATED_SEED"];
 		try {
-			delete process.env.GENERATED_SEED;
+			delete process.env["GENERATED_SEED"];
 			expect(activeSeed()).toBe(DEFAULT_SEED);
-			process.env.GENERATED_SEED = "42";
+			process.env["GENERATED_SEED"] = "42";
 			expect(activeSeed()).toBe(42);
-			process.env.GENERATED_SEED = "not-a-number";
+			process.env["GENERATED_SEED"] = " 7 ";
+			expect(activeSeed()).toBe(7);
+			process.env["GENERATED_SEED"] = "";
 			expect(activeSeed()).toBe(DEFAULT_SEED);
 		} finally {
 			if (saved === undefined) {
-				delete process.env.GENERATED_SEED;
+				delete process.env["GENERATED_SEED"];
 			} else {
-				process.env.GENERATED_SEED = saved;
+				process.env["GENERATED_SEED"] = saved;
 			}
 		}
+	});
+});
+
+describe("a seed from the environment", () => {
+	const withSeed = (value: string, body: () => void) => {
+		const saved = process.env["GENERATED_SEED"];
+		process.env["GENERATED_SEED"] = value;
+		try {
+			body();
+		} finally {
+			if (saved === undefined) {
+				delete process.env["GENERATED_SEED"];
+			} else {
+				process.env["GENERATED_SEED"] = saved;
+			}
+		}
+	};
+
+	it("is refused when it is not a non-negative integer", () => {
+		for (const bad of ["not-a-number", "-5", "1.5", "1e3", "0x10"]) {
+			withSeed(bad, () => {
+				expect(() => activeSeed()).toThrow("GENERATED_SEED must be");
+			});
+		}
+	});
+
+	it("drives runCases and is printed by the failure", async () => {
+		const seen: number[] = [];
+		const run = (): Promise<unknown> =>
+			runCases("env", 3, (rng, index) => {
+				seen.push(rng.int(0, 1_000_000));
+				if (index === 1) {
+					throw new Error("nope");
+				}
+			}).catch((error: Error) => error as Error);
+		const saved = process.env["GENERATED_SEED"];
+		process.env["GENERATED_SEED"] = "123";
+		let failure: unknown;
+		try {
+			failure = await run();
+		} finally {
+			if (saved === undefined) {
+				delete process.env["GENERATED_SEED"];
+			} else {
+				process.env["GENERATED_SEED"] = saved;
+			}
+		}
+
+		const message = (failure as Error).message;
+		expect(message).toContain("env: seed=123 case=1");
+		expect(message).toContain("GENERATED_SEED=123");
+		const replay: number[] = [];
+		await runCases(
+			"env",
+			2,
+			(rng) => void replay.push(rng.int(0, 1_000_000)),
+			123,
+		);
+		expect(seen).toEqual(replay);
 	});
 });

@@ -1,19 +1,34 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
 import { NextIntlClientProvider } from "next-intl";
-import { getLocale, getMessages, getTranslations } from "next-intl/server";
+import { getLocale, getMessages } from "next-intl/server";
 
-import { SiteNav } from "@/components/site-nav";
+import { getBrand } from "@/features/branding/queries/brand";
+import { isThemeConfigured } from "@/features/theme/queries/theme-css";
+
 import { pickClientMessages } from "@/i18n/messages";
-import { SESSION_COOKIE, verifySession } from "@/lib/auth/session";
 
 import "./globals.css";
 
+/**
+ * The panel is never indexed. Next renders these as a `robots` meta tag; the
+ * `X-Robots-Tag` header (see `lib/security-headers`) says the same on every
+ * response, including the ones that carry no HTML. There is deliberately no
+ * description, canonical link, Open Graph or Twitter metadata.
+ */
 export async function generateMetadata(): Promise<Metadata> {
-	const t = await getTranslations("app");
+	const brand = getBrand();
 	return {
-		title: t("title"),
-		description: t("description"),
+		title: brand.name,
+		// The operator's favicon, when set; otherwise the file Next serves for
+		// `favicon.ico` in this folder.
+		...(brand.hasFavicon && { icons: { icon: "/brand/favicon" } }),
+		robots: {
+			index: false,
+			follow: false,
+			noarchive: true,
+			nosnippet: true,
+			noimageindex: true,
+		},
 	};
 }
 
@@ -21,27 +36,23 @@ export default async function RootLayout({
 	children,
 }: Readonly<{ children: React.ReactNode }>) {
 	const locale = await getLocale();
-	const t = await getTranslations("nav");
 	// Client components get only their namespaces; the server pages read the rest.
 	const messages = await getMessages();
-	const session = await verifySession(
-		(await cookies()).get(SESSION_COOKIE)?.value,
-	);
 	return (
 		<html lang={locale} className="h-full antialiased">
-			<body className="flex min-h-full flex-col">
+			{isThemeConfigured() && (
+				<head>
+					{/* The operator's override, after the panel's own stylesheet.
+					    Same origin, so `style-src 'self'` allows it. */}
+					<link
+						rel="stylesheet"
+						href="/theme.css"
+						precedence="theme"
+					/>
+				</head>
+			)}
+			<body className="min-h-full text-sm">
 				<NextIntlClientProvider messages={pickClientMessages(messages)}>
-					{session ? (
-						<>
-							<a
-								href="#main-content"
-								className="sr-only rounded bg-zinc-900 px-4 py-2 text-white focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-10"
-							>
-								{t("skip")}
-							</a>
-							<SiteNav />
-						</>
-					) : null}
 					{children}
 				</NextIntlClientProvider>
 			</body>

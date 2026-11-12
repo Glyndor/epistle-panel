@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 
 import { NextRequest } from "next/server";
 
@@ -18,6 +18,42 @@ describe("proxy matcher", () => {
 			"/favicon.ico",
 		]) {
 			expect(covered.test(path)).toBe(false);
+		}
+	});
+
+	it("skips the operator's theme and brand assets as those exact paths, and nothing around them", () => {
+		for (const path of ["/theme.css", "/brand/logo", "/brand/favicon"]) {
+			expect(covered.test(path)).toBe(false);
+		}
+		for (const path of [
+			"/theme.cssx",
+			"/theme.css/queue",
+			"/x/theme.css",
+			"/THEME.CSS",
+			"/theme%2ecss",
+			"/brand/logox",
+			"/brand/logo/x",
+			"/brand",
+			"/brand/",
+			"/brand/favicon.ico",
+			"/x/brand/logo",
+		]) {
+			expect(covered.test(path)).toBe(true);
+		}
+	});
+
+	it("skips /robots.txt as that exact path, and nothing around it", () => {
+		expect(covered.test("/robots.txt")).toBe(false);
+		for (const path of [
+			"/robots.txtx",
+			"/robots.txt/",
+			"/robots.txt/queue",
+			"/x/robots.txt",
+			"/ROBOTS.TXT",
+			"/robotsxtxt",
+			"/queue/robots.txt",
+		]) {
+			expect(covered.test(path)).toBe(true);
 		}
 	});
 
@@ -65,6 +101,9 @@ describe("proxy", () => {
 		expect(response.headers.get("referrer-policy")).toBe("no-referrer");
 		expect(response.headers.get("permissions-policy")).toContain(
 			"camera=()",
+		);
+		expect(response.headers.get("x-robots-tag")).toBe(
+			"noindex, nofollow, noarchive, nosnippet, noimageindex",
 		);
 	};
 
@@ -163,5 +202,150 @@ describe("proxy", () => {
 		expect(new URL(response.headers.get("location") ?? "").origin).toBe(
 			req.nextUrl.origin,
 		);
+	});
+});
+
+describe("proxy script policy per environment", () => {
+	const cookie = () => createSession("admin");
+
+	/** Run `body` with `NODE_ENV` set to `value`, then put the old value back. */
+	async function underNodeEnv(
+		value: string,
+		body: () => Promise<void>,
+	): Promise<void> {
+		const env = process.env as Record<string, string | undefined>;
+		const saved = env["NODE_ENV"];
+		env["NODE_ENV"] = value;
+		try {
+			await body();
+		} finally {
+			env["NODE_ENV"] = saved;
+		}
+	}
+
+	const scriptSrc = (response: Response): string =>
+		(response.headers.get("content-security-policy") ?? "")
+			.split("; ")
+			.find((part) => part.startsWith("script-src ")) ?? "";
+
+	const signedIn = async () => {
+		const req = new NextRequest("http://panel.test/queue");
+		req.cookies.set(SESSION_COOKIE, await cookie());
+		return req;
+	};
+
+	for (const value of ["production", "test"]) {
+		it(`never allows eval when NODE_ENV is ${value}`, async () => {
+			await underNodeEnv(value, async () => {
+				const allowed = await proxy(await signedIn());
+				const redirected = await proxy(
+					new NextRequest("http://panel.test/queue"),
+				);
+
+				for (const response of [allowed, redirected]) {
+					expect(scriptSrc(response)).toMatch(
+						/^script-src 'self' 'nonce-[^']+' 'strict-dynamic'$/,
+					);
+				}
+				expect(
+					allowed.headers.get(
+						"x-middleware-request-content-security-policy",
+					),
+				).not.toContain("unsafe-eval");
+			});
+		});
+	}
+
+	it("allows eval in development only, on every response and on the forwarded header", async () => {
+		await underNodeEnv("development", async () => {
+			const allowed = await proxy(await signedIn());
+			const redirected = await proxy(
+				new NextRequest("http://panel.test/queue"),
+			);
+
+			expect(scriptSrc(allowed)).toEndWith(
+				"'strict-dynamic' 'unsafe-eval'",
+			);
+			expect(scriptSrc(redirected)).toEndWith(
+				"'strict-dynamic' 'unsafe-eval'",
+			);
+			expect(
+				allowed.headers.get(
+					"x-middleware-request-content-security-policy",
+				),
+			).toContain("'unsafe-eval'");
+		});
+	});
+});
+
+describe("proxy with a CAPTCHA provider enabled", () => {
+	const names = [
+		"EPISTLE_PANEL_CAPTCHA_PROVIDER",
+		"EPISTLE_PANEL_CAPTCHA_SITE_KEY",
+		"EPISTLE_PANEL_CAPTCHA_SECRET_KEY",
+	];
+	const csp = (response: Response) =>
+		response.headers.get("content-security-policy") ?? "";
+	const get = (path: string, cookie?: string) => {
+		const req = new NextRequest(`http://panel.test${path}`);
+		if (cookie) {
+			req.cookies.set(SESSION_COOKIE, cookie);
+		}
+		return proxy(req);
+	};
+
+	beforeEach(() => {
+		process.env["EPISTLE_PANEL_CAPTCHA_PROVIDER"] = "turnstile";
+		process.env["EPISTLE_PANEL_CAPTCHA_SITE_KEY"] = "site";
+		process.env["EPISTLE_PANEL_CAPTCHA_SECRET_KEY"] = "secret";
+	});
+	afterEach(() => {
+		for (const name of names) {
+			delete process.env[name];
+		}
+	});
+
+	it("widens the sign-in page's policy with that provider's hosts, and keeps it free of inline styles", async () => {
+		for (const path of ["/login", "/login/"]) {
+			const policy = csp(await get(path));
+
+			expect(policy).toContain("script-src 'self'");
+			expect(policy).toContain("https://challenges.cloudflare.com");
+			expect(policy).toContain(
+				"frame-src 'self' https://challenges.cloudflare.com",
+			);
+			expect(policy).toContain("style-src 'self';");
+			expect(policy).not.toContain("unsafe-inline");
+		}
+	});
+
+	it("widens no other response: a page, a redirect, and look-alikes of the login path", async () => {
+		const session = await createSession("admin");
+		for (const response of [
+			await get("/queue", session),
+			await get("/queue"),
+			await get("/loginx"),
+			await get("/x/login"),
+		]) {
+			expect(csp(response)).not.toContain("challenges.cloudflare.com");
+			expect(csp(response)).not.toContain("frame-src");
+		}
+	});
+
+	it("leaves the sign-in page's policy alone when the CAPTCHA is off or misconfigured", async () => {
+		delete process.env["EPISTLE_PANEL_CAPTCHA_PROVIDER"];
+		expect(csp(await get("/login"))).not.toContain(
+			"challenges.cloudflare.com",
+		);
+
+		process.env["EPISTLE_PANEL_CAPTCHA_PROVIDER"] = "turnstile";
+		delete process.env["EPISTLE_PANEL_CAPTCHA_SITE_KEY"];
+		expect(csp(await get("/login"))).not.toContain(
+			"challenges.cloudflare.com",
+		);
+	});
+
+	it("still serves the sign-in page without a session", async () => {
+		expect((await get("/login")).status).toBe(200);
 	});
 });

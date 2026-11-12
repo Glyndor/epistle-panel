@@ -39,17 +39,61 @@ describe("describeFailure", () => {
 		expect(line).not.toContain("127.0.0.1");
 	});
 
-	it("logs only the class of a schema error", () => {
+	it("logs the class of a schema error and the path of the field it refused, never its value", () => {
 		const error = new ZodError([
 			{
 				code: "custom",
-				path: ["to"],
+				path: ["entries", 0, "recipients"],
 				message: "bob@example.org",
-				input: "x",
+				input: "bob@example.org",
 			},
 		]);
-		expect(describeFailure("queue fetch", error)).toBe(
-			"queue fetch failed: error=ZodError",
+
+		const line = describeFailure("queue fetch", error);
+
+		expect(line).toBe(
+			"queue fetch failed: error=ZodError at=entries.0.recipients",
+		);
+		expect(line).not.toContain("bob@example.org");
+	});
+
+	it("names each failing path once, at most five, and hides a segment that is not a plain key", () => {
+		const issue = (path: PropertyKey[]) => ({
+			code: "custom" as const,
+			path,
+			message: "m",
+			input: "x",
+		});
+		const error = new ZodError([
+			issue(["a"]),
+			issue(["a"]),
+			issue(["b"]),
+			issue(["map", "bob@example.org"]),
+			issue(["c"]),
+			issue(["d"]),
+			issue(["e"]),
+			issue(["f"]),
+		]);
+
+		expect(describeFailure("op", error)).toBe(
+			"op failed: error=ZodError at=a,b,map.*,c,d",
+		);
+	});
+
+	it("adds nothing for an error with no issues or an empty path", () => {
+		expect(describeFailure("op", new ZodError([]))).toBe(
+			"op failed: error=ZodError",
+		);
+		expect(
+			describeFailure(
+				"op",
+				new ZodError([
+					{ code: "custom", path: [], message: "m", input: 1 },
+				]),
+			),
+		).toBe("op failed: error=ZodError");
+		expect(describeFailure("op", { name: "X", issues: "nope" })).toBe(
+			"op failed: error=X",
 		);
 	});
 

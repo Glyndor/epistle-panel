@@ -1,0 +1,87 @@
+name: Release scripts
+
+# Tests and lints the scripts the release workflow runs, which nothing else
+# exercises before a real release does: the tag check, the image tags, the
+# manifest publication, the file allowlist, the SBOM writer and the signing
+# scripts. A release is immutable, so a fault in one of them found on the first
+# run stays. The list includes this workflow: one whose `paths:` does not list
+# itself never runs on the pull request that edits it. Not a required check, so
+# a path filter cannot leave one pending.
+
+on:
+  pull_request:
+    # Into develop only: the promotion pull request to main carries a tree this
+    # check already answered for on develop.
+    branches: [develop]
+    paths:
+      - ".github/workflows/release-scripts.yml"
+      - "scripts/release/**"
+      - "scripts/version/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  release-scripts:
+    name: Test and lint the release scripts
+    runs-on: ubuntu-latest
+    # An estimate: the signing tests build the virtualenv twice from the
+    # package index. Replace it with a bound taken from the first runs.
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          # Same Bun as ci.yml, release.yml and the Containerfile;
+          # scripts/version/check-bun-version.sh keeps them equal. The SBOM
+          # writer is the one script here that runs under it.
+          bun-version: 1.4.4
+
+      - name: Lint the shell scripts
+        run: |
+          set -euo pipefail
+          shellcheck -x --source-path=SCRIPTDIR \
+            scripts/release/*/*.sh scripts/version/*.sh
+
+      - name: Compile the Python scripts
+        env:
+          # The bytecode goes outside the checkout.
+          PYTHONPYCACHEPREFIX: ${{ runner.temp }}/pycache
+        run: |
+          set -euo pipefail
+          find scripts/release scripts/version -name '*.py' -print0 \
+            | xargs -0 python3 -I -m py_compile
+
+      - name: Make the signing environment
+        run: |
+          set -euo pipefail
+          # What sign-release.sh builds, from the same hash-pinned file: the
+          # signing tests need `cryptography` to check the signatures.
+          python3 -m venv "$RUNNER_TEMP/sign-venv"
+          "$RUNNER_TEMP/sign-venv/bin/pip" install --quiet --require-hashes \
+            -r scripts/release/sign/sign-requirements.txt
+
+      - name: Python tests
+        run: |
+          set -euo pipefail
+          for dir in scripts/release/publish scripts/release/sign scripts/version; do
+            "$RUNNER_TEMP/sign-venv/bin/python" -I -m unittest discover -s "$dir" -p 'test_*.py' -v
+          done
+
+      - name: Shell tests
+        run: |
+          set -euo pipefail
+          for test in scripts/release/*/test-*.sh scripts/version/test-*.sh; do
+            echo "== $test"
+            bash "$test"
+          done
+
+      - name: TypeScript tests
+        run: bun test scripts/release

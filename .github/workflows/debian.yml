@@ -16,6 +16,9 @@ on:
       - "scripts/debian/**"
       - "internal/package.json"
   pull_request:
+    # Into develop only: the promotion pull request to main carries a tree this
+    # check already answered for on develop, and it is not required on main.
+    branches: [develop]
     paths:
       - ".github/workflows/debian.yml"
       - "debian/**"

@@ -19,7 +19,11 @@ import re
 import sys
 
 PACKAGE = "epistle-panel"
-TAG_RE = re.compile(r"^v([0-9]+\.[0-9]+\.[0-9]+)$")
+# Each component is `0` or a number without a leading zero, the shape
+# scripts/release/publish/image_tags.py accepts: a tag it would refuse must not
+# get past this check and fail after the release is published. Pre-release tags
+# are not supported.
+TAG_RE = re.compile(r"^v((?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*))$")
 # `epistle-panel (0.1.0) unstable; urgency=medium`. The whole text between the
 # parentheses is the version, revision included: the release binds the package
 # to the tag by equality, so a `-1` revision would not match and is refused.

@@ -8,9 +8,21 @@ name: End-to-end
 # workflow runs only for those paths and lists itself, so an edit to it runs on
 # its own pull request. Not a required check: a skipped workflow would leave a
 # required one pending. It uses no secrets.
+#
+# `internal/package.json` and `internal/bun.lock` are listed because a bump of
+# Next, React or the bundler changes the standalone server and the headers
+# these scripts read, which no unit test sees. The price is one run, about five
+# minutes, on every dependency bump. The negated patterns keep a change that
+# only touches an `internal/` test file from paying it; they are scoped to
+# `internal/` because `scripts/e2e` has tests of its own that this job runs. A
+# path list with a negated pattern needs a positive one before it, and the
+# patterns are read in order.
 
 on:
   pull_request:
+    # Into develop only: the promotion pull request to main carries a tree this
+    # check already answered for on develop, and it is not required on main.
+    branches: [develop]
     paths:
       - "internal/src/lib/auth/**"
       - "internal/src/lib/security-headers/**"
@@ -18,10 +30,17 @@ on:
       - "internal/src/lib/config/**"
       - "internal/src/proxy.ts"
       - "internal/next.config.ts"
+      - "internal/package.json"
+      - "internal/bun.lock"
       - "internal/src/app/**"
+      - "internal/src/components/**"
+      - "internal/src/features/**"
+      - "internal/src/i18n/**"
       - "scripts/e2e/**"
       - "scripts/headers/**"
       - ".github/workflows/e2e.yml"
+      - "!internal/**/*.test.ts"
+      - "!internal/**/*.test.tsx"
   push:
     branches: [develop]
     paths:
@@ -31,10 +50,17 @@ on:
       - "internal/src/lib/config/**"
       - "internal/src/proxy.ts"
       - "internal/next.config.ts"
+      - "internal/package.json"
+      - "internal/bun.lock"
       - "internal/src/app/**"
+      - "internal/src/components/**"
+      - "internal/src/features/**"
+      - "internal/src/i18n/**"
       - "scripts/e2e/**"
       - "scripts/headers/**"
       - ".github/workflows/e2e.yml"
+      - "!internal/**/*.test.ts"
+      - "!internal/**/*.test.tsx"
 
 permissions:
   contents: read

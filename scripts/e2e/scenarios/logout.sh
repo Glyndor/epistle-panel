@@ -11,7 +11,6 @@ scenario_logout() {
 	local other=$cookie
 	fetch /queue "$old"
 	assert_eq "GET /queue before logout" "$status" 200
-	remove_args "$old"
 	local field
 	field=$(logout_field "$old")
 	[[ -n "$field" ]] || not_ok "found the logout form field"
@@ -25,8 +24,7 @@ scenario_logout() {
 	fetch /queue "$old"
 	assert_eq "replayed cookie on /queue" "$status" 307
 	assert_contains "replayed cookie goes to /login" "$(header location)" "/login"
-	curl -s -o /dev/null -D "$work/h" -b "$old" "$panel/queue" "${REMOVE_ARGS[@]}"
-	assert_eq "replayed cookie on a Server Action" "$(head -1 "$work/h" | cut -d' ' -f2)" 307
+	assert_eq "replayed cookie on a Server Action" "$(post_remove "$old")" 307
 	after=$(api_count '"path":"/api/v1/queue')
 	assert_eq "the revoked token reached no queue endpoint" "$after" "$before"
 

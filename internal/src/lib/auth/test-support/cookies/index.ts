@@ -20,6 +20,26 @@ export class RedirectSignal extends Error {
 }
 
 /**
+ * Await an action that ends in `redirect()` and return the signal it threw.
+ * Any other rejection (a TypeError from the action, say) is rethrown, and an
+ * action that returns instead of redirecting fails, so a test that only wants
+ * the side effects of a redirecting action cannot swallow a real error.
+ */
+export async function followRedirect(
+	action: Promise<unknown>,
+): Promise<RedirectSignal> {
+	try {
+		await action;
+	} catch (error) {
+		if (error instanceof RedirectSignal) {
+			return error;
+		}
+		throw error;
+	}
+	throw new Error("expected the action to redirect, but it returned");
+}
+
+/**
  * Replace `next/headers` and `next/navigation` with an in-memory cookie jar and
  * a `redirect` that throws {@link RedirectSignal}, as the real one throws to
  * stop the render. Returns handles to sign a session in or out and to read what

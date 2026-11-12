@@ -1,15 +1,18 @@
 name: Bun version
 
 # One Bun release must be named by ci.yml, audit.yml, e2e.yml, release.yml and
-# the Containerfile. Dependabot moves the digest of the `COPY --from` that carries
-# Bun in the image only through the docker ecosystem's `FROM` handling, so the
-# release is recorded as text and compared here. The answer changes only when
+# the Containerfile. Dependabot moves the tag and digest of the Containerfile's
+# `FROM docker.io/oven/bun:<version>-debian@sha256:... AS bun` stage but not
+# the `bun-version:` lines, so the releases are read as text and compared here. The answer changes only when
 # one of those files does, so the workflow runs only for them; it lists itself
 # and its script so an edit to either runs on its own pull request. Not a
 # required check: a skipped workflow would leave a required one pending.
 
 on:
   pull_request:
+    # Into develop only: the promotion pull request to main carries a tree this
+    # check already answered for on develop, and it is not required on main.
+    branches: [develop]
     paths:
       - ".github/workflows/**"
       - "Containerfile"
@@ -21,7 +24,7 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   bun-version:

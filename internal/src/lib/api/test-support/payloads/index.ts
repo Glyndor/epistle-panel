@@ -53,32 +53,34 @@ export type ResponseModel = (value: unknown) => unknown | undefined;
 export const responseModels: Record<string, ResponseModel> = {
 	accounts: (v) => {
 		const accounts = isObj(v)
-			? listOf(v.accounts, (a) => {
+			? listOf(v["accounts"], (a) => {
 					const addresses = isObj(a)
-						? listOf(a.addresses, (s) =>
+						? listOf(a["addresses"], (s) =>
 								isString(s) ? s : undefined,
 							)
 						: undefined;
-					return isObj(a) && isString(a.name) && addresses
-						? { name: a.name, addresses }
+					return isObj(a) && isString(a["name"]) && addresses
+						? { name: a["name"], addresses }
 						: undefined;
 				})
 			: undefined;
 		return accounts && { accounts };
 	},
 	apiError: (v) => {
-		const e = isObj(v) ? v.error : undefined;
-		return isObj(e) && isString(e.code) && isString(e.message)
-			? { error: { code: e.code, message: e.message } }
+		const e = isObj(v) ? v["error"] : undefined;
+		return isObj(e) && isString(e["code"]) && isString(e["message"])
+			? { error: { code: e["code"], message: e["message"] } }
 			: undefined;
 	},
 	verify: (v) =>
-		isObj(v) && typeof v.valid === "boolean" && typeof v.admin === "boolean"
-			? { valid: v.valid, admin: v.admin }
+		isObj(v) &&
+		typeof v["valid"] === "boolean" &&
+		typeof v["admin"] === "boolean"
+			? { valid: v["valid"], admin: v["admin"] }
 			: undefined,
 	domains: (v) => {
 		const domains = isObj(v)
-			? listOf(v.domains, (s) => (isString(s) ? s : undefined))
+			? listOf(v["domains"], (s) => (isString(s) ? s : undefined))
 			: undefined;
 		return domains && { domains };
 	},
@@ -86,19 +88,19 @@ export const responseModels: Record<string, ResponseModel> = {
 		if (!isObj(v)) {
 			return undefined;
 		}
-		const entries = listOf(v.entries, (e) => {
+		const entries = listOf(v["entries"], (e) => {
 			const recipients = isObj(e)
-				? listOf(e.recipients, (s) => (isString(s) ? s : undefined))
+				? listOf(e["recipients"], (s) => (isString(s) ? s : undefined))
 				: undefined;
 			return isObj(e) &&
-				isString(e.id) &&
-				UUID_RE.test(e.id) &&
-				isString(e.reverse_path) &&
+				isString(e["id"]) &&
+				UUID_RE.test(e["id"]) &&
+				isString(e["reverse_path"]) &&
 				recipients
-				? { id: e.id, reverse_path: e.reverse_path, recipients }
+				? { id: e["id"], reverse_path: e["reverse_path"], recipients }
 				: undefined;
 		});
-		const cursor = v.next_cursor;
+		const cursor = v["next_cursor"];
 		if (
 			!entries ||
 			(cursor !== undefined &&
@@ -111,20 +113,20 @@ export const responseModels: Record<string, ResponseModel> = {
 			: { entries, next_cursor: cursor };
 	},
 	removed: (v) =>
-		isObj(v) && isString(v.removed) && UUID_RE.test(v.removed)
-			? { removed: v.removed }
+		isObj(v) && isString(v["removed"]) && UUID_RE.test(v["removed"])
+			? { removed: v["removed"] }
 			: undefined,
 	status: (v) =>
 		isObj(v) &&
-		isString(v.version) &&
-		isCount(v.domains) &&
-		isCount(v.accounts) &&
-		isCount(v.queue_size)
+		isString(v["version"]) &&
+		isCount(v["domains"]) &&
+		isCount(v["accounts"]) &&
+		isCount(v["queue_size"])
 			? {
-					version: v.version,
-					domains: v.domains,
-					accounts: v.accounts,
-					queue_size: v.queue_size,
+					version: v["version"],
+					domains: v["domains"],
+					accounts: v["accounts"],
+					queue_size: v["queue_size"],
 				}
 			: undefined,
 };
@@ -161,7 +163,7 @@ export const responseGenerators: Record<string, (rng: Rng) => Json> = {
 			})),
 		};
 		if (rng.chance()) {
-			page.next_cursor = uuid(rng);
+			page["next_cursor"] = uuid(rng);
 		}
 		return page;
 	},
@@ -322,6 +324,6 @@ export function expectPrototypesClean(): void {
 			baseline[i as number] as string,
 		);
 	});
-	expect(({} as Obj).polluted).toBeUndefined();
-	expect(([] as unknown as Obj).polluted).toBeUndefined();
+	expect(({} as Obj)["polluted"]).toBeUndefined();
+	expect(([] as unknown as Obj)["polluted"]).toBeUndefined();
 }

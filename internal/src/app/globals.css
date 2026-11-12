@@ -1,25 +1,19 @@
 @import "tailwindcss";
+@import "../styles/theme.css";
 
-:root {
-	--background: #ffffff;
-	--foreground: #171717;
-}
-
-/* No --font-sans/--font-mono here: Tailwind's own system stacks apply, since the
-   CSP is default-src 'self' and the container cannot download a font. */
-@theme inline {
-	--color-background: var(--background);
-	--color-foreground: var(--foreground);
-}
-
-@media (prefers-color-scheme: dark) {
-	:root {
-		--background: #0a0a0a;
-		--foreground: #ededed;
+@layer base {
+	* {
+		border-color: var(--border);
 	}
 }
 
 body {
 	background: var(--background);
 	color: var(--foreground);
+}
+
+/* A modal sheet (a native dialog) locks the page behind it. Native CSS, so no
+   script has to inject a style element, which the CSP would refuse. */
+body:has(dialog[open]) {
+	overflow: hidden;
 }

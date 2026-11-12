@@ -14,7 +14,7 @@
 # exercises.
 #
 # Usage: scripts/e2e/run.sh [scenario...]
-#   scenarios: headers logout limiter limiter-global noauth degraded rotation idle
+#   scenarios: headers logout limiter limiter-global noauth degraded rotation idle theme body-limit captcha unknown-variable
 # With no argument every scenario runs. Exit status is non-zero when any check
 # fails. Override the ports with PANEL_PORT and STAND_IN_PORT.
 set -euo pipefail
@@ -61,6 +61,8 @@ api_token_file="$work/secrets/api-token"
 session_secret_file="$work/secrets/session-secret"
 panel_pid=""
 stand_in_pid=""
+panel_env=()
+login_extra=()
 passed=0
 failed=0
 
@@ -106,10 +108,18 @@ cp -R "$internal/.next/static" "$standalone/.next/static"
 . "$root/scripts/e2e/scenarios/rotation.sh"
 # shellcheck source=scripts/e2e/scenarios/idle.sh
 . "$root/scripts/e2e/scenarios/idle.sh"
+# shellcheck source=scripts/e2e/scenarios/captcha.sh
+. "$root/scripts/e2e/scenarios/captcha.sh"
+# shellcheck source=scripts/e2e/scenarios/theme.sh
+. "$root/scripts/e2e/scenarios/theme.sh"
+# shellcheck source=scripts/e2e/scenarios/body-limit.sh
+. "$root/scripts/e2e/scenarios/body-limit.sh"
+# shellcheck source=scripts/e2e/scenarios/unknown-variable.sh
+. "$root/scripts/e2e/scenarios/unknown-variable.sh"
 
 # ---------------------------------------------------------------- main
 
-all=(headers logout limiter limiter-global noauth degraded rotation idle)
+all=(headers logout limiter limiter-global noauth degraded rotation idle theme body-limit captcha unknown-variable)
 selected=("$@")
 ((${#selected[@]})) || selected=("${all[@]}")
 
@@ -123,6 +133,10 @@ for name in "${selected[@]}"; do
 	degraded) scenario_degraded ;;
 	rotation) scenario_rotation ;;
 	idle) scenario_idle ;;
+	theme) scenario_theme ;;
+	body-limit) scenario_body_limit ;;
+	captcha) scenario_captcha ;;
+	unknown-variable) scenario_unknown_variable ;;
 	*)
 		echo "error: unknown scenario '$name'" >&2
 		exit 2

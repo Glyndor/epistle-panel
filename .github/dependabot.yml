@@ -75,6 +75,21 @@ updates:
       types:
         patterns: ["@types/*", "typescript"]
         update-types: ["minor", "patch"]
+      # The generated shadcn/ui components run on these. Radix primitives are
+      # added one package per component, hence the pattern. lucide-react is the
+      # icon set the components and the navigation draw from.
+      ui:
+        patterns:
+          - "@radix-ui/*"
+          - "lucide-react"
+          - "class-variance-authority"
+          - "clsx"
+          - "tailwind-merge"
+        update-types: ["minor", "patch"]
+      # Query and Table are versioned apart but used together by every data page.
+      tanstack:
+        patterns: ["@tanstack/*"]
+        update-types: ["minor", "patch"]
       # Biome replaces ESLint here, and Tailwind ships as two packages.
       build-tooling:
         patterns:
@@ -90,10 +105,11 @@ updates:
         update-types: ["minor", "patch"]
 
   # The Containerfile pins every base by digest, so a moved tag never changes
-  # the image silently; this is what moves the digests on purpose. The Bun release
-  # in the image is also recorded in the `# <version>-debian` comment above its
-  # `COPY --from`, and scripts/version/check-bun-version.sh compares that with
-  # the workflows, so a digest that moves without the others is caught.
+  # the image silently; this is what moves the digests on purpose. The Bun
+  # release is the tag of the `FROM docker.io/oven/bun:<version>-debian@sha256:`
+  # stage, which this reads and moves; scripts/version/check-bun-version.sh
+  # compares that tag with the workflows' `bun-version:`, so a Bun that moves
+  # without them is caught.
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
@@ -106,3 +122,24 @@ updates:
     target-branch: "develop"
     commit-message:
       prefix: "chore(deps)"
+
+  # The signing script's dependencies are hash-pinned in
+  # scripts/release/sign/sign-requirements.txt, which nothing else updates. Both
+  # packages are one set: the hashes of cryptography and cffi move together, so
+  # they arrive in one pull request. A bump that the signing tests (the
+  # `Release scripts` workflow) reject is not merged.
+  - package-ecosystem: "pip"
+    directory: "/scripts/release/sign"
+    schedule:
+      interval: "weekly"
+      day: "thursday"
+    cooldown:
+      default-days: 3
+    labels: ["type:deps", "area:meta"]
+    open-pull-requests-limit: 5
+    target-branch: "develop"
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      signing:
+        patterns: ["*"]

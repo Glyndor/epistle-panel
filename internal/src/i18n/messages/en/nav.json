@@ -5,5 +5,17 @@
 	"domains": "Domains",
 	"accounts": "Accounts",
 	"queue": "Queue",
-	"logout": "Sign out"
+	"logout": "Sign out",
+	"brandSubtitle": "Admin panel",
+	"manage": "Manage",
+	"toggle": "Toggle sidebar",
+	"sheetTitle": "Navigation",
+	"sheetDescription": "Pages of the admin panel.",
+	"close": "Close",
+	"signedInAs": "Signed in as {name}",
+	"language": "Language",
+	"languageEn": "English",
+	"languageEs": "Español",
+	"notifications": "Notifications",
+	"dismiss": "Dismiss"
 }

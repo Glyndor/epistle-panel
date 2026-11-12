@@ -2,10 +2,18 @@ name: Container
 
 # Build the image and run the smoke checks: the version label matches
 # package.json, the server answers on its port, the login page is public, every
-# other route redirects to it without a session, and the runtime user is 65532.
+# other route redirects to it without a session, the runtime user is 65532, the
+# server runs with a read-only root and no capability, and every base the
+# Containerfile pins is a multi-architecture index (the release builds arm64,
+# which no run here does, so a digest that names one architecture would only
+# fail after the release is published).
 # A change that touches none of the listed inputs cannot break them, so it does
 # not pay to run. The list includes this workflow: one whose `paths:` does not
-# list itself never runs on the pull request that edits it.
+# list itself never runs on the pull request that edits it. The negated
+# patterns skip a change that only touches an `internal/` test file: the image
+# does not run the tests, and the required `bun` check lints, builds (which
+# type-checks them) and runs them. A path list with a negated pattern needs a
+# positive one before it.
 
 on:
   push:
@@ -14,13 +22,22 @@ on:
       - ".github/workflows/container.yml"
       - "Containerfile"
       - ".containerignore"
+      - "scripts/version/check-base-indexes.sh"
       - "internal/**"
+      - "!internal/**/*.test.ts"
+      - "!internal/**/*.test.tsx"
   pull_request:
+    # Into develop only: the promotion pull request to main carries a tree this
+    # check already answered for on develop, and it is not required on main.
+    branches: [develop]
     paths:
       - ".github/workflows/container.yml"
       - "Containerfile"
       - ".containerignore"
+      - "scripts/version/check-base-indexes.sh"
       - "internal/**"
+      - "!internal/**/*.test.ts"
+      - "!internal/**/*.test.tsx"
 
 # A newer push to a pull request supersedes the run in flight. Branch runs are
 # never cancelled: only a pull_request event is.
@@ -40,6 +57,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      - name: Every pinned base is an amd64 and arm64 index
+        run: bash scripts/version/check-base-indexes.sh
 
       - name: Read the package version
         id: version
@@ -97,7 +117,12 @@ jobs:
       - name: The server answers and gates every route but the login page
         run: |
           set -euo pipefail
+          # Run the way an operator can: root file system read-only with a
+          # writable /tmp, no capability, no privilege gain. The server has to
+          # answer without writing anywhere else in the image.
           podman run -d --name panel \
+            --read-only --tmpfs /tmp \
+            --cap-drop=ALL --security-opt no-new-privileges \
             -p 127.0.0.1:17587:7587 \
             -e EPISTLE_API_URL=http://127.0.0.1:1 \
             -e EPISTLE_API_TOKEN=ci-token \

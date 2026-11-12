@@ -6,11 +6,16 @@
 # `podman build --platform=linux/amd64` and `--platform=linux/arm64` cross-build
 # the same file; the bases are multi-architecture indexes.
 
-# 24-trixie-slim. The project builds with Bun but `next build` runs under Node,
-# so the builder carries both: Node from this image, Bun copied from the next one.
+# Bun is its own stage, so that the pin is a `FROM <image>:<tag>@sha256:...` line:
+# that is the form Dependabot's docker ecosystem reads and moves. The tag names
+# the Bun release; scripts/version/check-bun-version.sh compares it with the
+# workflows, so a tag that moves without them is caught. The project builds
+# with Bun but `next build` runs under Node, so the builder carries both.
+FROM docker.io/oven/bun:1.4.4-debian@sha256:93d5032fe06d163427822dc1598f420363759bb18155c9cc90eb1be05a64a19e AS bun
+
+# 24-trixie-slim. Node comes from this image, Bun is copied in from the stage above.
 FROM docker.io/library/node@sha256:6418e1ff99a5db6608cd55a020036dde6b7d18df9a0b7e44209b4ef5891766fb AS builder
-# 1.4.4-debian. Same Bun release as the lockfile was written with.
-COPY --from=docker.io/oven/bun@sha256:93d5032fe06d163427822dc1598f420363759bb18155c9cc90eb1be05a64a19e /usr/local/bin/bun /usr/local/bin/bun
+COPY --from=bun /usr/local/bin/bun /usr/local/bin/bun
 
 WORKDIR /build
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -54,5 +59,9 @@ COPY --from=builder --chown=65532:65532 /build/.next/static ./.next/static
 
 USER 65532:65532
 EXPOSE 7587
+# No HEALTHCHECK on purpose: the distroless runtime has no shell, curl or wget,
+# and a check would need a second binary in the image. The orchestrator probes
+# the port instead (a TCP connect to 7587, or an HTTP GET of /login, which is
+# public and answers 200 without a session).
 # The distroless Node image's entrypoint is `node`; the command is the script.
 CMD ["server.js"]

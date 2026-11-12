@@ -48,6 +48,32 @@ describe("buildCsp", () => {
 		);
 	});
 
+	it("is exactly this policy in production, so no source is widened unnoticed", () => {
+		expect(buildCsp("abc")).toBe(
+			[
+				"default-src 'self'",
+				"script-src 'self' 'nonce-abc' 'strict-dynamic'",
+				"style-src 'self'",
+				"img-src 'self' data:",
+				"font-src 'self'",
+				"connect-src 'self'",
+				"object-src 'none'",
+				"base-uri 'none'",
+				"form-action 'self'",
+				"frame-ancestors 'none'",
+			].join("; "),
+		);
+	});
+
+	it("differs in development by 'unsafe-eval' in script-src and nothing else", () => {
+		expect(buildCsp("abc", true)).toBe(
+			buildCsp("abc").replace(
+				"'strict-dynamic'",
+				"'strict-dynamic' 'unsafe-eval'",
+			),
+		);
+	});
+
 	it("does not allow inline styles", () => {
 		expect(directive(buildCsp("abc"), "style-src")).toBe(
 			"style-src 'self'",
@@ -68,7 +94,38 @@ describe("applySecurityHeaders", () => {
 		expect(headers.get("x-frame-options")).toBe("DENY");
 		expect(headers.get("x-content-type-options")).toBe("nosniff");
 		expect(headers.get("referrer-policy")).toBe("no-referrer");
-		expect(headers.get("permissions-policy")).toContain("camera=()");
+	});
+
+	it("denies every browser feature the panel does not use", () => {
+		const headers = new Headers();
+
+		applySecurityHeaders(headers, "default-src 'self'");
+
+		expect(headers.get("permissions-policy")).toBe(
+			[
+				"accelerometer=()",
+				"autoplay=()",
+				"camera=()",
+				"display-capture=()",
+				"geolocation=()",
+				"gyroscope=()",
+				"magnetometer=()",
+				"microphone=()",
+				"midi=()",
+				"payment=()",
+				"usb=()",
+			].join(", "),
+		);
+	});
+
+	it("marks the response as not to be indexed", () => {
+		const headers = new Headers();
+
+		applySecurityHeaders(headers, "default-src 'self'");
+
+		expect(headers.get("x-robots-tag")).toBe(
+			"noindex, nofollow, noarchive, nosnippet, noimageindex",
+		);
 	});
 
 	it("lists the headers the static config shares with the proxy", () => {
@@ -76,6 +133,7 @@ describe("applySecurityHeaders", () => {
 			"X-Frame-Options",
 			"X-Content-Type-Options",
 			"Referrer-Policy",
+			"X-Robots-Tag",
 			"Permissions-Policy",
 		]);
 	});

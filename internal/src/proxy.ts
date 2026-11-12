@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import { captchaWideningFromEnv } from "./features/auth/captcha/config";
 import { SESSION_COOKIE, verifySession } from "./lib/auth/session";
 import {
 	applySecurityHeaders,
@@ -27,10 +28,17 @@ function isLoginPath(pathname: string): boolean {
  */
 export async function proxy(request: NextRequest) {
 	const nonce = generateNonce();
-	const csp = buildCsp(nonce, process.env.NODE_ENV === "development");
+	const onLoginPage = isLoginPath(request.nextUrl.pathname);
+	// The CAPTCHA provider's hosts are added to the sign-in page's policy and to
+	// no other response: its widget loads there only.
+	const csp = buildCsp(
+		nonce,
+		process.env.NODE_ENV === "development",
+		onLoginPage ? captchaWideningFromEnv() : undefined,
+	);
 
 	const allowed =
-		isLoginPath(request.nextUrl.pathname) ||
+		onLoginPage ||
 		(await verifySession(request.cookies.get(SESSION_COOKIE)?.value)) !==
 			null;
 
@@ -52,10 +60,18 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-	// Everything except Next internals and static assets. The login route
-	// stays inside the matcher so it receives the nonce-bearing CSP; the proxy
-	// itself lets it through without a session. The skipped names are anchored:
-	// an unanchored `_next/image` or an unescaped dot in `favicon.ico` would
-	// also skip `/_next/imagex` and `/faviconxico`, which belong behind the gate.
-	matcher: ["/((?!_next/static/|_next/image$|favicon\\.ico$).*)"],
+	// Everything except Next internals, static assets, `/robots.txt` and the
+	// operator's public assets (`/theme.css`, `/brand/logo`, `/brand/favicon`). The
+	// login route stays inside the matcher so it receives the nonce-bearing CSP;
+	// the proxy itself lets it through without a session. The skipped names are
+	// anchored: an unanchored `_next/image` or an unescaped dot in `favicon.ico`
+	// would also skip `/_next/imagex` and `/faviconxico`, which belong behind
+	// the gate. `robots.txt` is skipped as that exact path only, so a crawler
+	// reads `Disallow: /` without a session; `next.config.ts` still stamps its
+	// headers, `X-Robots-Tag` included. The theme and brand assets are skipped as
+	// those exact paths for the same reason: the sign-in page needs them before
+	// any session, and they open nothing else.
+	matcher: [
+		"/((?!_next/static/|_next/image$|favicon\\.ico$|robots\\.txt$|theme\\.css$|brand/logo$|brand/favicon$).*)",
+	],
 };

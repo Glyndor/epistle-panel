@@ -1,9 +1,5 @@
-import { afterEach, describe, expect, it, mock } from "bun:test";
+import { afterEach, describe, expect, it } from "bun:test";
 import { cleanup, render, screen } from "@testing-library/react";
-
-mock.module("next-intl/server", () => ({
-	getTranslations: async () => (key: string) => key,
-}));
 
 const { default: NotFound } = await import("./not-found");
 

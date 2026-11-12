@@ -114,6 +114,38 @@ another host use `https`, or list the host in `EPISTLE_API_ALLOW_HTTP_HOSTS`
 (comma separated) when the link is already private, for example over WireGuard.
 An invalid value makes every API call fail without sending a request.
 
+### Branding and theme
+
+The image is immutable, so the look is set from the environment and from files
+mounted into the container. See [docs/maintainers/customising.md](docs/maintainers/customising.md)
+for what each one can change and what needs a rebuild.
+
+| Variable | Effect |
+|---|---|
+| `EPISTLE_PANEL_THEME_CSS_FILE` | Absolute path of a stylesheet served at `/theme.css` and linked after the panel's own. Redefine the CSS variables of `theme.css` in it. At most 128 KiB, a regular file, no symlink. Read on every request. |
+| `EPISTLE_PANEL_BRAND_NAME` | Product name in the sidebar, the sign-in page and the tab title. 1 to 40 characters; an invalid value falls back to `Epistle`. |
+| `EPISTLE_PANEL_BRAND_LOGO_FILE` | Absolute path of a PNG, JPEG, WebP, ICO or SVG (at most 256 KiB) served at `/brand/logo`. An SVG with script is refused. |
+| `EPISTLE_PANEL_BRAND_FAVICON_FILE` | The same, served at `/brand/favicon` and used as the tab icon. |
+
+The original copyright notice stays in the interface whatever is set. A file
+that cannot be used is answered with a 404 and one log line that names the
+variable, never the path.
+
+### Sign-in CAPTCHA (optional, off by default)
+
+| Variable | Effect |
+|---|---|
+| `EPISTLE_PANEL_CAPTCHA_PROVIDER` | `turnstile`, `recaptcha`, `hcaptcha` or `custom`. Unset or `off` loads nothing from another host. |
+| `EPISTLE_PANEL_CAPTCHA_SITE_KEY` | The public site key. |
+| `EPISTLE_PANEL_CAPTCHA_SECRET_KEY_FILE` | Absolute path of the secret key (or `EPISTLE_PANEL_CAPTCHA_SECRET_KEY`), read like the other secrets. |
+| `EPISTLE_PANEL_CAPTCHA_HOSTNAME` | Optional host name the provider must report. |
+| `EPISTLE_PANEL_CAPTCHA_SCRIPT_URL`, `EPISTLE_PANEL_CAPTCHA_VERIFY_URL`, `EPISTLE_PANEL_CAPTCHA_RESPONSE_FIELD` | For `custom` only. |
+
+When it is on, the sign-in page's Content-Security-Policy gains the provider's
+hosts and no other page does. A provider named without a complete setup refuses
+every sign-in, with a log line that names the variable. The provider calls are capped (16 at once, a short bounded line behind them); sustained load above that cap refuses sign-ins, the same trade-off as the API-call cap. See
+[docs/maintainers/forms.md](docs/maintainers/forms.md).
+
 ### Sessions and sign-in limits
 
 - The session cookie is named `__Host-epistle_admin_session` and is always
@@ -190,10 +222,12 @@ exercises.
 Other workflows run only when their answer can change: `Container` (the image
 inputs), `Debian package` (the package inputs), `Dependency audit` (lockfile or
 manifest, plus weekly), `actionlint` (workflow files), `Bun version` (one Bun
-release across the workflows and the Containerfile) and `Dependabot security
-watch`. `Line limit` runs when a `.ts` or `.tsx` file changes. `DCO` runs on
-every pull request into `main` or `develop`, and `guard` on every pull request
-into `main`. `Release` runs on a `v*` tag.
+release across the workflows and the Containerfile), `Pin policy` (workflow
+files, plus weekly) and `Dependabot security watch`. All of these, and `Line
+limit` (when a source file changes), run on pull requests into `develop` only:
+the promotion pull request into `main` carries a tree they already checked.
+`DCO` runs on every pull request into `main` or `develop`, and `guard` on every
+pull request into `main`. `Release` runs on a `v*` tag.
 
 ## License
 

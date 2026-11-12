@@ -4,19 +4,17 @@
 Usage:
   image_tags.py <version>
 
-Plain versions like `v0.9.0` (or `0.9.0` without the leading `v`) publish
-three tags: the exact `<major>.<minor>.<patch>`, the floating
-`<major>.<minor>`, and the rolling `<major>`. The exact tag points at the
-build; the other two point at the same manifest list, so a consumer
-pinning `0.9` keeps getting patches and a consumer pinning `0` keeps
-getting minors.
+Versions like `v0.9.0` (or `0.9.0` without the leading `v`) publish three
+tags: the exact `<major>.<minor>.<patch>`, the floating `<major>.<minor>`,
+and the rolling `<major>`. The exact tag points at the build; the other two
+point at the same manifest list, so a consumer pinning `0.9` keeps getting
+patches and a consumer pinning `0` keeps getting minors.
 
-Prerelease versions like `v1.0.0-rc.1` publish the exact tag only.
-Floating tags are suppressed: `0.10.0-rc` would move `:0` onto a release
-candidate and `:0.10` onto a candidate for the next patch, and a consumer
-pinning `0` would pull the candidate as if it were the next stable
-release. The exact tag is enough for an rc, and the floating tags wait
-for the stable cut.
+Pre-release versions like `v1.0.0-rc.1` are not supported and fail. The
+release workflow refuses such a tag before anything is built
+(scripts/version/check_release_tag.py), so a pre-release never reaches this
+script, and publishing one here would move `:0` onto a candidate. Supporting
+them means changing both scripts together.
 
 Anything else fails. The release job must not publish at all on a tag
 the script cannot classify, because what `podman manifest create` and
@@ -31,22 +29,13 @@ classifier would be complexity with nothing to pay for it.
 import re
 import sys
 
-# Anchored regex. `MAJOR.MINOR.PATCH` exactly, with an optional
-# `-<prerelease>` captured for the branching below. The prerelease
-# follows the same shape as semver: one or more dot-separated
-# identifiers, each alphanumerics and dashes. `0.9.0-stuff-yes` does
-# not match because the second identifier starts with a dash; that
-# is exactly the rejection the trailing-junk test expects. Each
-# numeric component is `[0-9]+` with a leading-zero check applied
-# afterwards, because the regex engine does not let us say `[0-9]+`
-# and `not 0...` in one pattern. Leading zeros on the minor or patch
-# are rejected: semver forbids them, and a release script
-# that re-validates the same input the build did is the right place
-# to refuse them.
+# Anchored regex: `MAJOR.MINOR.PATCH` exactly, each component `0` or a number
+# without a leading zero (semver forbids them). scripts/version/
+# check_release_tag.py accepts the same shape, so a tag that passes it is never
+# refused here, after the release is published.
 VERSION_RE = re.compile(
 	r"^v?"
-	r"(?P<major>[0-9]+)\.(?P<minor>[0-9]+)\.(?P<patch>[0-9]+)"
-	r"(?:-(?P<prerelease>[0-9A-Za-z][0-9A-Za-z-]*(?:\.[0-9A-Za-z][0-9A-Za-z-]*)*))?"
+	r"(?P<major>0|[1-9][0-9]*)\.(?P<minor>0|[1-9][0-9]*)\.(?P<patch>0|[1-9][0-9]*)"
 	r"$"
 )
 
@@ -68,37 +57,19 @@ def _die(message: str) -> None:
 def tags_for(raw: str) -> list[str]:
 	"""Classify `raw` and return the tags it should publish, in order.
 
-	Raises `ValueError` on any input that is not `MAJOR.MINOR.PATCH` with
-	an optional `-prerelease` and optional leading `v`, or on a numeric
-	component with a leading zero (apart from a literal `0` for the
-	major). The caller turns the `ValueError` into a `::error::` line
-	and a non-zero exit.
+	Raises `ValueError` on any input that is not `MAJOR.MINOR.PATCH` with an
+	optional leading `v` and no leading zeros. The caller turns the
+	`ValueError` into a `::error::` line and a non-zero exit.
 	"""
 	match = VERSION_RE.match(raw)
 	if not match:
 		raise ValueError(
-			f"'{raw}' is not MAJOR.MINOR.PATCH[-prerelease]; refusing to publish"
+			f"'{raw}' is not MAJOR.MINOR.PATCH (pre-release versions are not supported); "
+			"refusing to publish"
 		)
-
 	major = match.group("major")
 	minor = match.group("minor")
 	patch = match.group("patch")
-	prerelease = match.group("prerelease")
-
-	# Leading-zero guard. `0` is the only valid single-digit number, and
-	# only for the major. A minor of `00` or a patch of `09` are not
-	# version strings; a prerelease suffix like `-0` is fine because the
-	# regex requires at least one extra character after the dash.
-	for name, value in (("major", major), ("minor", minor), ("patch", patch)):
-		if len(value) > 1 and value[0] == "0":
-			raise ValueError(
-				f"'{raw}' has a leading zero in {name}={value}; refusing to publish"
-			)
-
-	if prerelease:
-		# Prerelease: exact tag only. The minor and major tags are
-		# withheld so a `:0` consumer does not leap onto a candidate.
-		return [f"{major}.{minor}.{patch}-{prerelease}"]
 	return [f"{major}.{minor}.{patch}", f"{major}.{minor}", major]
 
 

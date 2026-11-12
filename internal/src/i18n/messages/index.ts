@@ -1,11 +1,10 @@
-import type { Locale } from "@/i18n/request";
+import type { Locale } from "@/i18n/locales";
 
 /**
  * Namespaces of the message catalog. Each one is a JSON file per locale at
  * `./<locale>/<namespace>.json`; the file holds the keys under that namespace.
  */
 export const NAMESPACES = [
-	"app",
 	"dashboard",
 	"nav",
 	"domains",
@@ -14,6 +13,7 @@ export const NAMESPACES = [
 	"auth",
 	"notFound",
 	"error",
+	"table",
 ] as const;
 export type Namespace = (typeof NAMESPACES)[number];
 
@@ -25,10 +25,14 @@ export type Namespace = (typeof NAMESPACES)[number];
  * fallback or the raw key, which `index.test.ts` catches by scanning the source.
  */
 export const CLIENT_NAMESPACES = [
+	"dashboard",
 	"nav",
+	"domains",
+	"accounts",
 	"queue",
 	"auth",
 	"error",
+	"table",
 ] as const satisfies readonly Namespace[];
 export type ClientNamespace = (typeof CLIENT_NAMESPACES)[number];
 

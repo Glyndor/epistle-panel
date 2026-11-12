@@ -7,7 +7,6 @@ scenario_noauth() {
 	fresh
 	login admin correct-horse
 	local good=$cookie
-	remove_args "$good"
 	local logout_field_name
 	logout_field_name=$(logout_field "$good")
 	local tampered="${good%?}"
@@ -20,6 +19,15 @@ scenario_noauth() {
 		assert_eq "no cookie: GET $path" "$status" 307
 		assert_contains "no cookie: $path goes to /login" "$(header location)" "/login"
 	done
+	fetch /robots.txt
+	assert_eq "no cookie: GET /robots.txt" "$status" 200
+	assert_contains "robots.txt refuses everything" "$(cat "$work/b")" "Disallow: /"
+	assert_absent "robots.txt allows nothing" "$(cat "$work/b")" "Allow:"
+	assert_eq "robots.txt carries x-robots-tag" "$(header x-robots-tag)" "noindex, nofollow, noarchive, nosnippet, noimageindex"
+	for path in /robots.txtx /robots.txt/queue /x/robots.txt /ROBOTS.TXT /sitemap.xml; do
+		fetch "$path"
+		assert_eq "no cookie: GET $path stays behind the gate" "$status" 307
+	done
 	fetch /queue "$SESSION_COOKIE_NAME=garbage"
 	assert_eq "garbage cookie" "$status" 307
 	fetch /queue "$tampered"
@@ -27,19 +35,15 @@ scenario_noauth() {
 	fetch /queue "$SESSION_COOKIE_NAME="
 	assert_eq "empty cookie" "$status" 307
 
-	curl -s -o /dev/null -D "$work/h" "$panel/queue" "${REMOVE_ARGS[@]}"
-	assert_eq "no cookie: remove-entry form post" "$(head -1 "$work/h" | cut -d' ' -f2)" 307
-	curl -s -o /dev/null -D "$work/h" -X POST -H "Next-Action: $REMOVE_ACTION_ID" \
-		-H 'Content-Type: text/plain;charset=UTF-8' -d "[null,\"$REMOVE_ID\"]" "$panel/queue"
-	assert_eq "no cookie: remove-entry fetch with Next-Action" "$(head -1 "$work/h" | cut -d' ' -f2)" 307
-	curl -s -o /dev/null -D "$work/h" -b "$tampered" "$panel/queue" "${REMOVE_ARGS[@]}"
-	assert_eq "tampered cookie: remove-entry form post" "$(head -1 "$work/h" | cut -d' ' -f2)" 307
+	assert_eq "no cookie: remove-entry action" "$(post_remove)" 307
+	assert_eq "tampered cookie: remove-entry action" "$(post_remove "$tampered")" 307
+	assert_eq "garbage cookie: remove-entry action" "$(post_remove "$SESSION_COOKIE_NAME=garbage")" 307
 	curl -s -o /dev/null -D "$work/h" "$panel/" -F "$logout_field_name="
 	assert_eq "no cookie: logout action" "$(head -1 "$work/h" | cut -d' ' -f2)" 307
 	assert_eq "none of it reached the stand-in" "$(api_count '"method"')" 0
 
-	curl -s -o /dev/null -D "$work/h" -b "$good" "$panel/queue" "${REMOVE_ARGS[@]}"
-	assert_eq "with the session the same post is accepted" "$(api_count '"method":"DELETE"')" 1
+	assert_eq "with the session the same action is accepted" "$(post_remove "$good")" 200
+	assert_eq "with the session the same post reaches the API once" "$(api_count '"method":"DELETE"')" 1
 	fetch /queue "$good"
 	assert_absent "the removed entry is gone from the page" "$(cat "$work/b")" "$REMOVE_ID"
 	assert_eq "every call carried the valid bearer" "$(api_count '"bearer":"valid"')" "$(api_count '"method"')"

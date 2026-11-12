@@ -102,6 +102,7 @@ describe("parseApiUrl refused", () => {
 				} catch (e) {
 					return e as Error;
 				}
+				return undefined;
 			})();
 			expect(error).toBeDefined();
 			expect(error?.message).not.toContain("hunter2");
@@ -111,41 +112,41 @@ describe("parseApiUrl refused", () => {
 
 describe("apiBaseUrl", () => {
 	afterEach(() => {
-		delete process.env.EPISTLE_API_URL;
-		delete process.env.EPISTLE_API_ALLOW_HTTP_HOSTS;
-		process.env.EPISTLE_API_URL = DEFAULT_API_URL;
+		delete process.env["EPISTLE_API_URL"];
+		delete process.env["EPISTLE_API_ALLOW_HTTP_HOSTS"];
+		process.env["EPISTLE_API_URL"] = DEFAULT_API_URL;
 	});
 
 	it("defaults to the loopback API", () => {
-		delete process.env.EPISTLE_API_URL;
+		delete process.env["EPISTLE_API_URL"];
 		expect(apiBaseUrl()).toBe("http://127.0.0.1:8025");
 	});
 
 	it("fails closed on an empty variable", () => {
-		process.env.EPISTLE_API_URL = "";
+		process.env["EPISTLE_API_URL"] = "";
 		expect(() => apiBaseUrl()).toThrow(
 			"EPISTLE_API_URL is not a valid URL",
 		);
 	});
 
 	it("rejects a refused value and recovers when it is fixed", () => {
-		process.env.EPISTLE_API_URL = "http://169.254.169.254";
+		process.env["EPISTLE_API_URL"] = "http://169.254.169.254";
 		expect(() => apiBaseUrl()).toThrow("link-local");
-		process.env.EPISTLE_API_URL = "https://api.example.org";
+		process.env["EPISTLE_API_URL"] = "https://api.example.org";
 		expect(apiBaseUrl()).toBe("https://api.example.org");
 	});
 
 	it("reads the allow list, trimmed and case-insensitive", () => {
-		process.env.EPISTLE_API_URL = "http://Node2.WG:8025";
-		process.env.EPISTLE_API_ALLOW_HTTP_HOSTS = " other.wg , NODE2.wg ,,";
+		process.env["EPISTLE_API_URL"] = "http://Node2.WG:8025";
+		process.env["EPISTLE_API_ALLOW_HTTP_HOSTS"] = " other.wg , NODE2.wg ,,";
 		expect(apiBaseUrl()).toBe("http://node2.wg:8025");
 	});
 
 	it("stops accepting plain http when the allow list is removed", () => {
-		process.env.EPISTLE_API_URL = "http://node2.wg:8025";
-		process.env.EPISTLE_API_ALLOW_HTTP_HOSTS = "node2.wg";
+		process.env["EPISTLE_API_URL"] = "http://node2.wg:8025";
+		process.env["EPISTLE_API_ALLOW_HTTP_HOSTS"] = "node2.wg";
 		expect(apiBaseUrl()).toBe("http://node2.wg:8025");
-		delete process.env.EPISTLE_API_ALLOW_HTTP_HOSTS;
+		delete process.env["EPISTLE_API_ALLOW_HTTP_HOSTS"];
 		expect(() => apiBaseUrl()).toThrow("must use https");
 	});
 });

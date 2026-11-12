@@ -27,24 +27,28 @@ html_field() {
 		head -1 | sed 's/^[^=]*="[^"]*" value="//; s/"$//; s/&quot;/"/g; s/&amp;/\&/g'
 }
 
-# post_login NAME PASSWORD HEADER_FILE BODY_FILE: posts the login form without
-# JavaScript and prints the status and the total time.
+# post_login NAME PASSWORD HEADER_FILE BODY_FILE [FIELD]: posts the login form
+# without JavaScript, with one more form field (name=value) when FIELD is given,
+# and prints the status and the total time. Extra curl arguments in the array
+# login_extra, such as -F captcha=TOKEN, are sent with it.
 post_login() {
-	local html a0 a1 key
+	local html a0 a1 key extra=()
+	[[ -n "${5:-}" ]] && extra=(-F "$5")
 	html=$(curl -s "$panel/login")
 	a0=$(html_field "$html" '$ACTION_1:0')
 	a1=$(html_field "$html" '$ACTION_1:1')
 	key=$(html_field "$html" '$ACTION_KEY')
 	curl -s -D "$3" -o "$4" -w '%{http_code} %{time_total}' "$panel/login" \
 		-F '$ACTION_REF_1=' -F "\$ACTION_1:0=$a0" -F "\$ACTION_1:1=$a1" \
-		-F "\$ACTION_KEY=$key" -F "name=$1" -F "password=$2"
+		-F "\$ACTION_KEY=$key" -F "name=$1" -F "password=$2" "${extra[@]}" \
+		${login_extra[@]+"${login_extra[@]}"}
 }
 
-# login NAME PASSWORD: sets $status, $elapsed and $cookie (name=value, empty
+# login NAME PASSWORD [FIELD]: sets $status, $elapsed and $cookie (name=value, empty
 # when the server set none).
 login() {
 	local out
-	out=$(post_login "$1" "$2" "$work/h" "$work/b")
+	out=$(post_login "$1" "$2" "$work/h" "$work/b" "${3:-}")
 	status=${out% *}
 	elapsed=${out#* }
 	cookie=$({ grep -i "^set-cookie: $SESSION_COOKIE_NAME=" "$work/h" || true; } |
@@ -57,24 +61,37 @@ logout_field() {
 		{ grep -o 'name="\$ACTION_ID_[0-9a-f]*"' || true; } | head -1 | sed 's/name="//; s/"$//'
 }
 
-# remove_args COOKIE: fills REMOVE_ARGS with the curl -F arguments that submit
-# the first Remove form of the queue page, and REMOVE_ID with its entry id.
-remove_args() {
-	local form n
-	form=$(curl -s -b "$1" "$panel/queue" | sed 's/<form/\n<form/g' |
-		{ grep 'name="id" value=' || true; } | head -1)
-	n=$(printf '%s' "$form" | { grep -o 'ACTION_REF_[0-9]*' || true; } | head -1 | sed 's/ACTION_REF_//')
-	REMOVE_ID=$(html_field "$form" 'id')
-	REMOVE_FIELD0="\$ACTION_$n:0"
-	REMOVE_ARGS=(
-		-F "\$ACTION_REF_$n="
-		-F "\$ACTION_$n:0=$(html_field "$form" "\$ACTION_$n:0")"
-		-F "\$ACTION_$n:1=$(html_field "$form" "\$ACTION_$n:1")"
-		-F "\$ACTION_KEY=$(html_field "$form" '$ACTION_KEY')"
-		-F "id=$REMOVE_ID"
-	)
-	REMOVE_ACTION_ID=$(printf '%s' "$form" | { grep -o 'id&quot;:&quot;[0-9a-f]*' || true; } |
-		head -1 | sed 's/.*;//')
+# The queue entry the remove-entry checks target: the stand-in's first one.
+REMOVE_ID="11111111-1111-4111-8111-111111111111"
+
+# action_id FILE: id of the Server Action defined in the source file that ends
+# with FILE, read from the build's reference manifest. A Server Action id is not
+# in the HTML any more (the queue's Remove button is a client component), so the
+# checks post to the action the way the browser's client does.
+action_id() {
+	node -e '
+		const m = require(process.argv[1]).node;
+		const hit = Object.entries(m).find(([, v]) => v.filename.endsWith(process.argv[2]));
+		if (hit) process.stdout.write(hit[0]);
+	' "$standalone/.next/server/server-reference-manifest.json" "$1"
+}
+
+# post_action FILE ARGS_JSON [COOKIE]: post the Server Action defined in the
+# source file that ends with FILE, with ARGS_JSON as its arguments, the way the
+# browser's client does. Body to $work/b, headers to $work/h, status printed.
+post_action() {
+	local cookie=()
+	[[ -n "${3:-}" ]] && cookie=(-b "$3")
+	curl -s -o "$work/b" -D "$work/h" -w '%{http_code}' -X POST \
+		-H "Next-Action: $(action_id "$1")" \
+		-H 'Content-Type: text/plain;charset=UTF-8' \
+		"${cookie[@]}" -d "$2" "$panel/queue"
+}
+
+# post_remove [COOKIE]: post the remove-entry action for $REMOVE_ID, with the
+# cookie when one is given, and print the HTTP status.
+post_remove() {
+	post_action features/queue/actions/remove-entry/index.ts "[{\"id\":\"$REMOVE_ID\"}]" "${1:-}"
 }
 
 nonce_of_csp() {

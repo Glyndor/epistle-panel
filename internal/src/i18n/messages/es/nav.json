@@ -5,5 +5,17 @@
 	"domains": "Dominios",
 	"accounts": "Cuentas",
 	"queue": "Cola",
-	"logout": "Cerrar sesión"
+	"logout": "Cerrar sesión",
+	"brandSubtitle": "Panel de administración",
+	"manage": "Gestión",
+	"toggle": "Mostrar u ocultar la barra lateral",
+	"sheetTitle": "Navegación",
+	"sheetDescription": "Páginas del panel de administración.",
+	"close": "Cerrar",
+	"signedInAs": "Sesión iniciada como {name}",
+	"language": "Idioma",
+	"languageEn": "English",
+	"languageEs": "Español",
+	"notifications": "Notificaciones",
+	"dismiss": "Cerrar aviso"
 }
