@@ -9,7 +9,7 @@ webmail can be added without reworking what is here.
 | Group | Holds | Frame |
 |---|---|---|
 | `(auth)` | `/login` | `(auth)/layout.tsx`: a bare `main`, no navigation |
-| `(admin)` | `/`, `/domains`, `/accounts`, `/queue`, `/app/deliveries`, `/app/suppression` | `(admin)/layout.tsx`: checks the session, then `AppShell` with the admin navigation |
+| `(admin)` | `/`, `/domains`, `/accounts`, `/queue`, `/app/deliveries`, `/app/suppression`, `/app/accounts/[name]` | `(admin)/layout.tsx`: checks the session, then `AppShell` with the admin navigation |
 | `(mail)` | not built yet | will bring its own layout; see below |
 
 Group names are not part of a URL, so adding `(mail)` changes no existing
@@ -30,6 +30,14 @@ absolute in-app path, which `schemas/nav-item` enforces, and a route that exists
 in the app tree: `typedRoutes` types it as `Route`, so an entry added before its
 page fails `bun run typecheck` and `bun run build` (`typecheck` runs
 `next typegen` first, which writes the route types in `.next/types`).
+
+Everything that needs a session lives under `/app` (owner decision); outside it
+only `/login`, `/robots.txt` and the operator's public assets answer without one.
+`lib/routes` holds the paths in one place. `/app/accounts/[name]` is reached
+from the accounts table and is not a sidebar entry; the older pages still sit at
+the root until they move, so the Accounts entry is not marked on it yet. Its
+`not-found.tsx` in the `(admin)` group renders inside the shell without a second
+`main` landmark.
 
 ## The shell and its contract
 

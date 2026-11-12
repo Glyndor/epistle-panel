@@ -33,6 +33,8 @@ describe("AccountsPage", () => {
 			accounts: [
 				{
 					name: "alice",
+					display_name: null,
+					dynamic: true,
 					addresses: ["alice@example.org", "a@example.org"],
 				},
 			],
@@ -49,8 +51,18 @@ describe("AccountsPage", () => {
 	it("puts accounts in a table with a header for each column", async () => {
 		stubFetchJson({
 			accounts: [
-				{ name: "alice", addresses: ["alice@example.org"] },
-				{ name: "bob", addresses: [] },
+				{
+					name: "alice",
+					display_name: null,
+					dynamic: true,
+					addresses: ["alice@example.org"],
+				},
+				{
+					name: "bob",
+					display_name: null,
+					dynamic: true,
+					addresses: [],
+				},
 			],
 		});
 

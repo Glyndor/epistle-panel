@@ -1,3 +1,4 @@
+import type accountDetail from "@/i18n/messages/en/accountDetail.json";
 import type accounts from "@/i18n/messages/en/accounts.json";
 import type auth from "@/i18n/messages/en/auth.json";
 import type dashboard from "@/i18n/messages/en/dashboard.json";
@@ -20,6 +21,7 @@ declare module "next-intl" {
 			nav: typeof nav;
 			domains: typeof domains;
 			accounts: typeof accounts;
+			accountDetail: typeof accountDetail;
 			queue: typeof queue;
 			suppression: typeof suppression;
 			deliveries: typeof deliveries;

@@ -96,7 +96,10 @@ export function clientStandIn() {
 	return {
 		useTranslations: () => (key: string) => key,
 		useLocale: () => intl.locale,
-		useFormatter: () => ({ number: (value: number) => String(value) }),
+		useFormatter: () => ({
+			number: (value: number) => String(value),
+			dateTime: (value: Date) => value.toISOString(),
+		}),
 		NextIntlClientProvider: ProviderStandIn,
 	};
 }
