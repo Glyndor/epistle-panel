@@ -1,0 +1,16 @@
+name: DCO
+
+# The organisation's sign-off gate: every commit on a pull request carries a
+# Signed-off-by trailer. The logic is the shared reusable; the pull_request
+# trigger has to live in the repository.
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+jobs:
+  dco:
+    uses: Glyndor/.github/.github/workflows/dco.yml@d5041b038b7d4935e75400dff612962e6fa14893 # v1.21.0

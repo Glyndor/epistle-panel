@@ -1,0 +1,24 @@
+name: Line limit
+
+# The file-size standard (soft 300, hard 500 code lines). It only asks a question
+# when a source file changes, so it is filtered to the extensions it reads and to
+# its own file; a documentation-only change cannot move the answer.
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "**.ts"
+      - "**.tsx"
+      - "**.mjs"
+      - "**.js"
+      - "**.py"
+      - "**.sh"
+      - ".github/workflows/line-limit.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  line-limit:
+    uses: Glyndor/.github/.github/workflows/line-limit.yml@d5041b038b7d4935e75400dff612962e6fa14893 # v1.21.0
