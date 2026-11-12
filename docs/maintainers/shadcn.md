@@ -83,6 +83,7 @@ kept.
 | DropdownMenu, non-modal, loaded on demand | language menu | none after opening; the modal default injects a style element and was replaced. Its code loads on hover, focus or press of a placeholder button |
 | Sheet, native `<dialog>` | sidebar below 768 px | none after opening; Radix Dialog violated and was replaced |
 | Separator | header, sidebar | no violation |
+| Form (react-hook-form) | sign-in | no violation; classes only |
 | Toaster (own) | mutation outcomes, one region in the shell | none; classes only |
 | Skeleton | loading states | no violation; static, never pulses |
 

@@ -9,7 +9,7 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem,
 } from "@/components/ui/sidebar/menu";
-import { logout } from "@/lib/auth/actions/logout";
+import { logout } from "@/features/auth/actions/logout";
 
 /**
  * Sidebar footer: who is signed in, the language entry and Sign out. Sign out is

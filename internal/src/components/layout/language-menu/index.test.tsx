@@ -9,11 +9,14 @@ import {
 
 import { SidebarProvider } from "@/components/ui/sidebar/provider";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
+import { resetIntl } from "@/test/next-intl";
 
 const cookies = mockRequestCookies();
 const { LanguageMenu } = await import(".");
 
 beforeEach(() => {
+	// Another file may have left the stand-in's locale on `es`.
+	resetIntl();
 	cookies.reset();
 });
 afterEach(cleanup);
