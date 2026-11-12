@@ -2,7 +2,10 @@ name: Container
 
 # Build the image and run the smoke checks: the version label matches
 # package.json, the server answers on its port, the login page is public, every
-# other route redirects to it without a session, and the runtime user is 65532.
+# other route redirects to it without a session, the runtime user is 65532, and
+# every base the Containerfile pins is a multi-architecture index (the release
+# builds arm64, which no run here does, so a digest that names one architecture
+# would only fail after the release is published).
 # A change that touches none of the listed inputs cannot break them, so it does
 # not pay to run. The list includes this workflow: one whose `paths:` does not
 # list itself never runs on the pull request that edits it. The negated
@@ -18,6 +21,7 @@ on:
       - ".github/workflows/container.yml"
       - "Containerfile"
       - ".containerignore"
+      - "scripts/version/check-base-indexes.sh"
       - "internal/**"
       - "!internal/**/*.test.ts"
       - "!internal/**/*.test.tsx"
@@ -29,6 +33,7 @@ on:
       - ".github/workflows/container.yml"
       - "Containerfile"
       - ".containerignore"
+      - "scripts/version/check-base-indexes.sh"
       - "internal/**"
       - "!internal/**/*.test.ts"
       - "!internal/**/*.test.tsx"
@@ -51,6 +56,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      - name: Every pinned base is an amd64 and arm64 index
+        run: bash scripts/version/check-base-indexes.sh
 
       - name: Read the package version
         id: version
