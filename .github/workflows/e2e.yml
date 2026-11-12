@@ -1,0 +1,82 @@
+name: End-to-end
+
+# Builds the panel and runs scripts/e2e/run.sh and scripts/headers/verify.sh
+# against the built standalone server and a stand-in API, over 127.0.0.1. Those
+# checks see what the unit tests cannot: the headers and cookie a real server
+# emits, the proxy, the actions and the limiter bundled separately. The answer
+# changes only when the code they exercise or the scripts change, so the
+# workflow runs only for those paths and lists itself, so an edit to it runs on
+# its own pull request. Not a required check: a skipped workflow would leave a
+# required one pending. It uses no secrets.
+
+on:
+  pull_request:
+    paths:
+      - "internal/src/lib/auth/**"
+      - "internal/src/lib/security-headers/**"
+      - "internal/src/lib/api/**"
+      - "internal/src/lib/config/**"
+      - "internal/src/proxy.ts"
+      - "internal/next.config.ts"
+      - "internal/src/app/**"
+      - "scripts/e2e/**"
+      - "scripts/headers/**"
+      - ".github/workflows/e2e.yml"
+  push:
+    branches: [develop]
+    paths:
+      - "internal/src/lib/auth/**"
+      - "internal/src/lib/security-headers/**"
+      - "internal/src/lib/api/**"
+      - "internal/src/lib/config/**"
+      - "internal/src/proxy.ts"
+      - "internal/next.config.ts"
+      - "internal/src/app/**"
+      - "scripts/e2e/**"
+      - "scripts/headers/**"
+      - ".github/workflows/e2e.yml"
+
+permissions:
+  contents: read
+
+# A newer push to a pull request supersedes the older run. A push to develop
+# is never cancelled, so every merge keeps its own result.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  e2e:
+    name: e2e
+    runs-on: ubuntu-latest
+    # An estimate: this workflow has not run on a runner yet. Locally the build
+    # takes under a minute and the scripts about two, so 15 leaves room for a
+    # cold install and a slow runner.
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          # Same Bun as ci.yml, release.yml and the Containerfile;
+          # scripts/version/check-bun-version.sh keeps them equal.
+          bun-version: 1.4.4
+
+      - name: Install dependencies
+        working-directory: internal
+        run: bun install --frozen-lockfile
+
+      - name: Build the panel
+        working-directory: internal
+        run: bun run build
+
+      - name: Tests of the e2e scripts
+        run: bun test scripts/e2e
+
+      - name: End-to-end scenarios
+        run: bash scripts/e2e/run.sh
+
+      - name: Security headers
+        run: bash scripts/headers/verify.sh
