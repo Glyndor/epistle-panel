@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { NextIntlClientProvider } from "next-intl";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getLocale, getMessages, getTranslations } from "next-intl/server";
 
 import { SiteNav } from "@/components/site-nav";
+import { pickClientMessages } from "@/i18n/messages";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth/session";
 
 import "./globals.css";
@@ -21,13 +22,15 @@ export default async function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
 	const locale = await getLocale();
 	const t = await getTranslations("nav");
+	// Client components get only their namespaces; the server pages read the rest.
+	const messages = await getMessages();
 	const session = await verifySession(
 		(await cookies()).get(SESSION_COOKIE)?.value,
 	);
 	return (
 		<html lang={locale} className="h-full antialiased">
 			<body className="flex min-h-full flex-col">
-				<NextIntlClientProvider>
+				<NextIntlClientProvider messages={pickClientMessages(messages)}>
 					{session ? (
 						<>
 							<a
