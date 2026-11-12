@@ -13,7 +13,10 @@
  * separately and would otherwise each get their own empty copy of the module.
  */
 
-/** Most revocations kept; the oldest is dropped first when the set is full. */
+/**
+ * Most revocations kept. When the set is full, the entry that expires first is
+ * dropped, so the revocations with the longest life left are the last to go.
+ */
 export const MAX_REVOKED_TOKENS = 10_000;
 
 const STORE = Symbol.for("epistle-panel.revoked-sessions");
@@ -45,20 +48,35 @@ function prune(revoked: Store, nowSeconds: number): void {
 	}
 }
 
+/** Drop the entry that expires first; the earliest inserted wins a tie. */
+function evictNearestExpiry(revoked: Store): void {
+	let nearest: string | undefined;
+	let nearestExp = Number.POSITIVE_INFINITY;
+	for (const [key, exp] of revoked) {
+		if (exp < nearestExp) {
+			nearest = key;
+			nearestExp = exp;
+		}
+	}
+	if (nearest !== undefined) {
+		revoked.delete(nearest);
+	}
+}
+
 /**
  * Remember `token` as revoked until `exp` (Unix seconds), the point where it
  * stops verifying on its own. When the set is still full after pruning, the
- * oldest entry is evicted: tokens share one lifetime, so it is also the one
- * closest to expiring.
+ * entry with the nearest `exp` is evicted, not the oldest inserted: whatever is
+ * dropped is the revocation that would have lapsed soonest anyway, so the cap
+ * costs the shortest possible window in which a revoked token verifies again.
+ * Reaching the cap takes {@link MAX_REVOKED_TOKENS} sign-outs inside one
+ * session lifetime.
  */
 export async function revokeToken(token: string, exp: number): Promise<void> {
 	const revoked = store();
 	prune(revoked, Math.floor(Date.now() / 1000));
 	if (revoked.size >= MAX_REVOKED_TOKENS) {
-		const oldest = revoked.keys().next();
-		if (!oldest.done) {
-			revoked.delete(oldest.value);
-		}
+		evictNearestExpiry(revoked);
 	}
 	revoked.set(await fingerprint(token), exp);
 }

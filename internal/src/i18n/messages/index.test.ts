@@ -1,8 +1,13 @@
 import { describe, expect, it } from "bun:test";
-import { readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { loadMessages, NAMESPACES } from ".";
+import {
+	CLIENT_NAMESPACES,
+	loadMessages,
+	NAMESPACES,
+	pickClientMessages,
+} from ".";
 
 /** Every dot-namespaced leaf key in a message catalog, with its string value. */
 function leaves(catalog: unknown, prefix = ""): Map<string, string> {
@@ -67,5 +72,57 @@ describe("message catalogs", () => {
 				);
 			}
 		}
+	});
+});
+
+/** Source files under `src` that may call `useTranslations`, tests excluded. */
+function sourceFiles(dir: string): string[] {
+	return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+		const path = join(dir, entry.name);
+		if (entry.isDirectory()) {
+			return sourceFiles(path);
+		}
+		return /\.tsx?$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name)
+			? [path]
+			: [];
+	});
+}
+
+describe("client message subset", () => {
+	it("lists only declared namespaces", () => {
+		for (const namespace of CLIENT_NAMESPACES) {
+			expect(NAMESPACES).toContain(namespace);
+		}
+	});
+
+	it("covers exactly the namespaces client components translate with", () => {
+		// `useTranslations` is the hook client components use, so the namespaces
+		// it names in the source are the ones the provider must carry. A new
+		// client namespace missing from the list would fall back to English or
+		// the raw key in the browser; a listed one nobody reads would ship dead
+		// strings.
+		const used = new Set<string>();
+		for (const file of sourceFiles(join(import.meta.dir, "..", ".."))) {
+			const text = readFileSync(file, "utf8");
+			for (const match of text.matchAll(/useTranslations\("(\w+)"\)/g)) {
+				used.add(match[1] as string);
+			}
+		}
+		expect([...used].sort()).toEqual([...CLIENT_NAMESPACES].sort());
+	});
+
+	it("drops every namespace only the server renders", async () => {
+		const full = await loadMessages("en");
+		const picked = pickClientMessages(full);
+		expect(Object.keys(picked).sort()).toEqual(
+			[...CLIENT_NAMESPACES].sort(),
+		);
+		for (const namespace of NAMESPACES) {
+			if (!(CLIENT_NAMESPACES as readonly string[]).includes(namespace)) {
+				expect(picked).not.toHaveProperty(namespace);
+			}
+		}
+		// The client namespaces keep their strings untouched.
+		expect(picked.queue).toEqual(full.queue);
 	});
 });

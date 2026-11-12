@@ -23,7 +23,8 @@ files above and leave nothing behind.
 Picking the panel up
 --------------------
 
-epistle reads the image file when it renders the stack. The postinst of this
+The design is that epistle reads the image file when it renders the stack. The
+postinst of this
 package has a hook for asking epistle to do that after an install or upgrade,
 but it is empty: the epistle release that reads the file does not exist yet, and
 the package does not guess at a command. Once epistle supports the panel, run

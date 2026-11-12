@@ -64,7 +64,7 @@ export default async function QueuePage({
 					{page.next_cursor && (
 						<a
 							href={`/queue?cursor=${encodeURIComponent(page.next_cursor)}`}
-							className="self-start text-sm text-zinc-600 underline hover:text-zinc-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500 dark:text-zinc-400 dark:hover:text-zinc-100"
+							className="inline-flex min-h-11 items-center self-start text-sm text-zinc-600 underline hover:text-zinc-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500 dark:text-zinc-400 dark:hover:text-zinc-100"
 						>
 							{t("next")}
 						</a>

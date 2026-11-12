@@ -4,8 +4,8 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { verifyCredentials } from "@/lib/api/client";
-import { holdUntilFloor } from "@/lib/auth/failure-floor";
-import { admitAttempt, recordSuccess } from "@/lib/auth/login-limiter";
+import { admitAttempt } from "@/lib/auth/login-limiter";
+import { holdUntilFloor } from "@/lib/auth/response-floor";
 import {
 	createSession,
 	SESSION_COOKIE,
@@ -22,12 +22,12 @@ export interface LoginState {
 
 /**
  * Verify submitted credentials against the mail server and, if they belong to
- * a panel admin, establish the session cookie and redirect into the panel. Any
- * failure — bad credentials, a non-admin account, an unreachable server or a
- * refused attempt — takes the same minimum time and returns an error, so the
- * response does not reveal which accounts exist. The limiter runs first: a
- * refused attempt never reaches the API. Only `throttled` tells a refusal apart,
- * and it applies to any name, existing or not.
+ * a panel admin, establish the session cookie and redirect into the panel.
+ * Every outcome, success included, takes the same minimum time (see
+ * `response-floor`), and a failure returns the same error whatever its cause,
+ * so the response does not reveal which accounts exist. The limiter runs first:
+ * a refused attempt never reaches the API. Only `throttled` tells a refusal
+ * apart, and it applies to any name, existing or not.
  */
 export async function login(
 	_previous: LoginState,
@@ -44,7 +44,8 @@ export async function login(
 	if (!name || !password) {
 		return fail();
 	}
-	if (!admitAttempt(name).allowed) {
+	const admission = admitAttempt(name);
+	if (!admission.allowed) {
 		return fail(true);
 	}
 
@@ -52,13 +53,16 @@ export async function login(
 	try {
 		result = await verifyCredentials(name, password);
 	} catch {
+		admission.settle("error");
 		return fail();
 	}
 	if (!result.valid || !result.admin) {
+		admission.settle("failure");
 		return fail();
 	}
 
-	recordSuccess(name);
+	admission.settle("success");
+	await holdUntilFloor(startedAt);
 	const store = await cookies();
 	store.set(
 		SESSION_COOKIE,
