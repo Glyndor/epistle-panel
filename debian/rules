@@ -1,0 +1,20 @@
+#!/usr/bin/make -f
+
+# Nothing is compiled: the application lives in the container image. The only
+# build-time work is writing the image reference for this version, so the image
+# epistle pulls is the one this package was released with.
+VERSION := $(shell dpkg-parsechangelog -SVersion)
+SHARE = debian/epistle-panel/usr/share/glyndor/epistle-panel
+
+%:
+	dh $@
+
+override_dh_auto_build:
+
+override_dh_auto_test:
+
+override_dh_auto_install:
+	install -d -m 0755 $(SHARE)
+	printf 'ghcr.io/glyndor/epistle-panel:%s\n' '$(VERSION)' > $(SHARE)/image
+	install -m 0644 debian/image.README $(SHARE)/README
+	chmod 0644 $(SHARE)/image

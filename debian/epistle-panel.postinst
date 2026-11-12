@@ -1,0 +1,25 @@
+#!/bin/sh
+set -eu
+
+# This package owns no state: no account, no directory, no secret. The panel
+# service is rendered by epistle into the stack it generates, from the image
+# reference in /usr/share/glyndor/epistle-panel/image.
+#
+# Hook, deliberately empty. Once epistle's `stack update` reads that file and
+# adds the panel to the stack, this is where it is asked to do so, with the same
+# guards epistle's own postinst uses (as the account that owns the stack, only
+# when the stack is enabled, never failing the installation). The released
+# epistle does not read the file yet, so there is nothing safe to call today.
+# Until then: sudo epistle stack update, after epistle supports the panel.
+case "$1" in
+configure) ;;
+abort-upgrade | abort-remove | abort-deconfigure) ;;
+*)
+	echo "postinst called with unknown argument '$1'" >&2
+	exit 1
+	;;
+esac
+
+#DEBHELPER#
+
+exit 0
