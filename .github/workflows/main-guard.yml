@@ -4,12 +4,20 @@ on:
   pull_request:
     branches: ["main"]
 
+# Required on main, so it has no `paths:` filter and no job-level `if:`: a
+# skipped required check reports success. A newer push to the same pull request
+# supersedes the run in flight.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions: {}
 
 jobs:
   develop-only:
     name: develop-only
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Require develop as source branch
         env:
