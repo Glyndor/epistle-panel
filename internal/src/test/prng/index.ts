@@ -4,8 +4,10 @@
  * Every case draws from its own stream, derived from a base seed and the case
  * number, so a failure message that prints both replays that one case alone.
  * The streams are deterministic: the same seed gives the same inputs on every
- * machine and run. Set `GENERATED_SEED` to explore other inputs locally; CI
- * never sets it.
+ * machine and run. Set `GENERATED_SEED` to a non-negative integer to explore
+ * other inputs, for instance `GENERATED_SEED=$RANDOM bun test`; CI leaves it
+ * unset and keeps the default. Every failure prints the seed in force, and
+ * running again with that value replays the whole run.
  */
 
 /** Seed every generated-input test uses unless `GENERATED_SEED` overrides it. */
@@ -79,12 +81,22 @@ export function createRng(seed: number): Rng {
 	};
 }
 
-/** The seed in force: `GENERATED_SEED` when it is an integer, else the default. */
+/**
+ * The seed in force: `GENERATED_SEED` when it is set, else the default. A
+ * value that is not a non-negative integer throws instead of falling back, so
+ * a mistyped seed cannot make a run look explored when it replayed the default.
+ */
 export function activeSeed(): number {
-	const fromEnv = process.env.GENERATED_SEED;
-	return fromEnv !== undefined && /^\d+$/.test(fromEnv)
-		? Number(fromEnv)
-		: DEFAULT_SEED;
+	const fromEnv = process.env.GENERATED_SEED?.trim();
+	if (fromEnv === undefined || fromEnv === "") {
+		return DEFAULT_SEED;
+	}
+	if (!/^\d+$/.test(fromEnv) || !Number.isSafeInteger(Number(fromEnv))) {
+		throw new Error(
+			`GENERATED_SEED must be a non-negative integer, got "${fromEnv}"`,
+		);
+	}
+	return Number(fromEnv);
 }
 
 /**
@@ -117,7 +129,7 @@ export async function replayCase(
 	} catch (error) {
 		const detail = error instanceof Error ? error.message : String(error);
 		throw new Error(
-			`${label}: seed=${seed} case=${index} (replay with replayCase): ${detail}`,
+			`${label}: seed=${seed} case=${index} (rerun the suite with GENERATED_SEED=${seed}, or call replayCase): ${detail}`,
 			{ cause: error },
 		);
 	}
