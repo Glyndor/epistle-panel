@@ -57,9 +57,32 @@ describe("sniffImage", () => {
 			'<svg><a href="javascript:alert(1)"></a></svg>',
 			"<svg><foreignObject><div/></foreignObject></svg>",
 			"<svg><SCRIPT>x</SCRIPT></svg>",
+			'<svg><a xlink:href="&#106;avascript:alert(1)"></a></svg>',
+			'<svg><a xlink:href="&#x6a;avascript:alert(1)"></a></svg>',
+			'<svg><a xlink:href="&#X6A;avascript&#58;alert(1)"></a></svg>',
+			'<svg><a xlink:href="java&#9;script:alert(1)"></a></svg>',
+			'<svg><a xlink:href="javascript&#x3a;alert(1)"></a></svg>',
+			'<svg o&#110;load="alert(1)"></svg>',
+			"<svg>&#60;script>x</svg>",
 		]) {
 			expect(sniffImage(text(svg))).toBeUndefined();
 		}
+	});
+
+	it("keeps a malformed or harmless character reference from rejecting a clean SVG", () => {
+		for (const svg of [
+			"<svg><text>&#;&#x;&#xZZ;&#99999999999;&#38;#106;</text></svg>",
+			"<svg><text>a &amp; b &#169; &#x1F600;</text></svg>",
+		]) {
+			expect(sniffImage(text(svg))).toBe("image/svg+xml");
+		}
+	});
+
+	it("decodes references in linear time", () => {
+		const hostile = text(`<svg>${"&#".repeat(200_000)}</svg>`);
+		const started = performance.now();
+		expect(sniffImage(hostile)).toBe("image/svg+xml");
+		expect(performance.now() - started).toBeLessThan(500);
 	});
 
 	it("refuses text that is not an SVG, HTML, and binary that is not an image", () => {
