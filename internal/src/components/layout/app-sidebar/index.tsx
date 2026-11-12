@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-
 import { EpistleMark } from "@/components/icons/epistle-mark";
 import { NavMain } from "@/components/layout/nav-main";
 import { NavUser } from "@/components/layout/nav-user";
@@ -16,13 +15,20 @@ import {
 	SidebarSeparator,
 } from "@/components/ui/sidebar/regions";
 import { Sidebar } from "@/components/ui/sidebar/sidebar";
+import type { NavGroup } from "@/features/navigation/schemas/nav-item";
 
 /**
  * The application sidebar: brand, primary navigation and the signed-in user.
  * A Server Component that hands translated strings to the client parts, so the
  * sheet title and the close label are in the user's language.
  */
-export async function AppSidebar({ name }: { name: string }) {
+export async function AppSidebar({
+	name,
+	groups,
+}: {
+	name: string;
+	groups: readonly NavGroup[];
+}) {
 	const t = await getTranslations("nav");
 
 	return (
@@ -55,7 +61,7 @@ export async function AppSidebar({ name }: { name: string }) {
 				</SidebarMenu>
 			</SidebarHeader>
 			<SidebarContent>
-				<NavMain />
+				<NavMain groups={groups} />
 			</SidebarContent>
 			<SidebarSeparator />
 			<SidebarFooter>

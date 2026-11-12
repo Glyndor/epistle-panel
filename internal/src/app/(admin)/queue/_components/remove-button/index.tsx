@@ -6,7 +6,7 @@ import { useFormStatus } from "react-dom";
 import {
 	type RemoveState,
 	removeEntry,
-} from "@/app/(app)/queue/_actions/remove-entry";
+} from "@/app/(admin)/queue/_actions/remove-entry";
 import { Button } from "@/components/ui/button";
 
 function Submit({

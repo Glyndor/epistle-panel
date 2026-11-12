@@ -61,7 +61,7 @@ describe("RootLayout", () => {
 		expect(html).toContain('<main id="main-content">content</main>');
 	});
 
-	it("renders no navigation of its own: the shell lives in the (app) layout", async () => {
+	it("renders no navigation of its own: the shell lives in the (admin) layout", async () => {
 		const html = await renderLayout();
 
 		expect(html).not.toContain("<nav");

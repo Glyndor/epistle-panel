@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
 import { useSidebar } from "@/components/ui/sidebar/context";
 import { SidebarProvider } from "@/components/ui/sidebar/provider";
+import { navForRole } from "@/features/navigation/queries/nav-for-role";
 
 let pathname = "/domains";
 mock.module("next/navigation", () => ({
@@ -31,7 +32,7 @@ function Probe() {
 function renderNav() {
 	return render(
 		<SidebarProvider>
-			<NavMain />
+			<NavMain groups={navForRole("admin")} />
 		</SidebarProvider>,
 	);
 }
@@ -73,7 +74,7 @@ describe("NavMain", () => {
 		render(
 			<SidebarProvider>
 				<Probe />
-				<NavMain />
+				<NavMain groups={navForRole("admin")} />
 			</SidebarProvider>,
 		);
 		fireEvent.click(screen.getByRole("button", { name: "sheet-false" }));
@@ -112,5 +113,41 @@ describe("NavMain", () => {
 			"aria-current",
 			"page",
 		);
+	});
+});
+
+describe("NavMain data", () => {
+	it("draws exactly the groups it is given, with a label per group", () => {
+		render(
+			<SidebarProvider>
+				<NavMain
+					groups={[
+						{
+							label: "manage",
+							items: [
+								{
+									href: "/queue",
+									label: "queue",
+									icon: "inbox",
+								},
+							],
+						},
+					]}
+				/>
+			</SidebarProvider>,
+		);
+
+		expect(screen.getAllByRole("link")).toHaveLength(1);
+		expect(screen.getByText("manage")).toBeInTheDocument();
+	});
+
+	it("draws nothing for an empty navigation", () => {
+		render(
+			<SidebarProvider>
+				<NavMain groups={[]} />
+			</SidebarProvider>,
+		);
+
+		expect(screen.queryByRole("link")).toBeNull();
 	});
 });

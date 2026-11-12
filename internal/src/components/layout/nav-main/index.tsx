@@ -21,19 +21,18 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem,
 } from "@/components/ui/sidebar/menu";
+import type {
+	NavGroup,
+	NavIconName,
+} from "@/features/navigation/schemas/nav-item";
 
-interface NavItem {
-	href: string;
-	key: "status" | "domains" | "accounts" | "queue";
-	icon: LucideIcon;
-}
-
-const ITEMS: readonly NavItem[] = [
-	{ href: "/", key: "status", icon: LayoutDashboardIcon },
-	{ href: "/domains", key: "domains", icon: GlobeIcon },
-	{ href: "/accounts", key: "accounts", icon: UsersIcon },
-	{ href: "/queue", key: "queue", icon: InboxIcon },
-];
+/** The icon each name in the navigation config stands for. */
+const ICONS: Record<NavIconName, LucideIcon> = {
+	dashboard: LayoutDashboardIcon,
+	globe: GlobeIcon,
+	users: UsersIcon,
+	inbox: InboxIcon,
+};
 
 /** Whether `pathname` is the page of `href` or one below it. */
 function isActive(href: string, pathname: string): boolean {
@@ -42,44 +41,52 @@ function isActive(href: string, pathname: string): boolean {
 		: pathname === href || pathname.startsWith(`${href}/`);
 }
 
-/** The panel's primary navigation: icon and label per page, the current one marked. */
-export function NavMain() {
+/**
+ * A surface's primary navigation: icon and label per entry, grouped, the
+ * current page marked. It draws what the config gave it, so it knows no route.
+ */
+export function NavMain({ groups }: { groups: readonly NavGroup[] }) {
 	const t = useTranslations("nav");
 	const pathname = usePathname();
 	const { setOpenMobile } = useSidebar();
 
 	return (
-		<SidebarGroup>
-			<SidebarGroupLabel>{t("manage")}</SidebarGroupLabel>
-			<SidebarGroupContent>
-				<nav aria-label={t("label")}>
-					<SidebarMenu>
-						{ITEMS.map(({ href, key, icon: Icon }) => {
-							const active = isActive(href, pathname);
-							return (
-								<SidebarMenuItem key={href}>
-									<SidebarMenuButton
-										asChild
-										isActive={active}
-										tooltip={t(key)}
-									>
-										<Link
-											href={href}
-											aria-current={
-												active ? "page" : undefined
-											}
-											onClick={() => setOpenMobile(false)}
+		<nav aria-label={t("label")}>
+			{groups.map((group) => (
+				<SidebarGroup key={group.label}>
+					<SidebarGroupLabel>{t(group.label)}</SidebarGroupLabel>
+					<SidebarGroupContent>
+						<SidebarMenu>
+							{group.items.map(({ href, label, icon }) => {
+								const Icon = ICONS[icon];
+								const active = isActive(href, pathname);
+								return (
+									<SidebarMenuItem key={href}>
+										<SidebarMenuButton
+											asChild
+											isActive={active}
+											tooltip={t(label)}
 										>
-											<Icon aria-hidden="true" />
-											<span>{t(key)}</span>
-										</Link>
-									</SidebarMenuButton>
-								</SidebarMenuItem>
-							);
-						})}
-					</SidebarMenu>
-				</nav>
-			</SidebarGroupContent>
-		</SidebarGroup>
+											<Link
+												href={href}
+												aria-current={
+													active ? "page" : undefined
+												}
+												onClick={() =>
+													setOpenMobile(false)
+												}
+											>
+												<Icon aria-hidden="true" />
+												<span>{t(label)}</span>
+											</Link>
+										</SidebarMenuButton>
+									</SidebarMenuItem>
+								);
+							})}
+						</SidebarMenu>
+					</SidebarGroupContent>
+				</SidebarGroup>
+			))}
+		</nav>
 	);
 }
