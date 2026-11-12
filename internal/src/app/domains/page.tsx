@@ -34,7 +34,7 @@ export default async function DomainsPage() {
 		>
 			<h1 className="font-semibold text-3xl">{t("heading")}</h1>
 			{domains === null ? (
-				<Alert variant="destructive">
+				<Alert variant="warning">
 					<AlertDescription>{t("unreachable")}</AlertDescription>
 				</Alert>
 			) : domains.length === 0 ? (

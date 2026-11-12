@@ -103,6 +103,8 @@ describe("QueuePage", () => {
 		);
 
 		expect(screen.getByRole("alert")).toHaveTextContent("unreachable");
+		// An unreachable API is a warning, not a destructive state.
+		expect(screen.getByRole("alert")).toHaveClass("bg-warning");
 	});
 
 	it("redirects to the login page without a session and never calls the API", async () => {

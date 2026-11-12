@@ -35,7 +35,7 @@ export default async function AccountsPage() {
 		>
 			<h1 className="font-semibold text-3xl">{t("heading")}</h1>
 			{accounts === null ? (
-				<Alert variant="destructive">
+				<Alert variant="warning">
 					<AlertDescription>{t("unreachable")}</AlertDescription>
 				</Alert>
 			) : accounts.length === 0 ? (

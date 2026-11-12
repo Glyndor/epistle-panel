@@ -21,6 +21,9 @@
 	--accent-foreground: oklch(0.21 0.006 285.885);
 	--destructive: oklch(0.505 0.213 27.518);
 	--destructive-foreground: #ffffff;
+	/* Amber, the colours of the unreachable notice before the theme existed. */
+	--warning: oklch(0.987 0.022 95.277);
+	--warning-foreground: oklch(0.414 0.112 45.904);
 	--border: oklch(0.92 0.004 286.32);
 	--input: oklch(0.552 0.016 285.938);
 	--ring: oklch(0.552 0.016 285.938);
@@ -43,6 +46,8 @@
 		--accent-foreground: oklch(0.967 0.001 286.375);
 		--destructive: oklch(0.808 0.114 19.571);
 		--destructive-foreground: oklch(0.141 0.005 285.823);
+		--warning: oklch(0.279 0.077 45.635);
+		--warning-foreground: oklch(0.924 0.12 95.746);
 		--border: oklch(0.274 0.006 286.033);
 		--input: oklch(0.552 0.016 285.938);
 		--ring: oklch(0.705 0.015 286.067);
@@ -66,6 +71,8 @@
 	--color-accent-foreground: var(--accent-foreground);
 	--color-destructive: var(--destructive);
 	--color-destructive-foreground: var(--destructive-foreground);
+	--color-warning: var(--warning);
+	--color-warning-foreground: var(--warning-foreground);
 	--color-border: var(--border);
 	--color-input: var(--input);
 	--color-ring: var(--ring);

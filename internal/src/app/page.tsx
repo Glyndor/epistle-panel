@@ -46,7 +46,7 @@ export default async function HomePage() {
 		>
 			<h1 className="font-semibold text-3xl">{t("heading")}</h1>
 			{status === null ? (
-				<Alert variant="destructive">
+				<Alert variant="warning">
 					<AlertDescription>{t("unreachable")}</AlertDescription>
 				</Alert>
 			) : (

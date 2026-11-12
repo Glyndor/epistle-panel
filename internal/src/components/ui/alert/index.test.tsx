@@ -24,6 +24,14 @@ describe("Alert", () => {
 		expect(screen.getByRole("alert")).toHaveClass("text-destructive");
 	});
 
+	it("colours the warning variant with the warning tokens, not the destructive one", () => {
+		render(<Alert variant="warning">Unreachable</Alert>);
+
+		const alert = screen.getByRole("alert");
+		expect(alert).toHaveClass("bg-warning", "text-warning-foreground");
+		expect(alert).not.toHaveClass("text-destructive");
+	});
+
 	it("keeps the default variant on the plain card colours", () => {
 		render(<Alert>Note</Alert>);
 

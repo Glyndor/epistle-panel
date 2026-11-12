@@ -26,6 +26,8 @@ export function LoginForm() {
 					type="text"
 					autoComplete="username"
 					required
+					aria-invalid={state.error || undefined}
+					aria-describedby={state.error ? "login-error" : undefined}
 				/>
 			</div>
 			<div className="flex flex-col gap-2">
@@ -36,15 +38,17 @@ export function LoginForm() {
 					type="password"
 					autoComplete="current-password"
 					required
+					aria-invalid={state.error || undefined}
+					aria-describedby={state.error ? "login-error" : undefined}
 				/>
 			</div>
 			{state.error ? (
-				<Alert variant="destructive">
+				<Alert id="login-error" variant="destructive">
 					<AlertDescription>{t("error")}</AlertDescription>
 				</Alert>
 			) : null}
-			<Button type="submit" disabled={pending}>
-				{t("submit")}
+			<Button type="submit" disabled={pending} aria-busy={pending}>
+				{pending ? t("pending") : t("submit")}
 			</Button>
 		</form>
 	);

@@ -43,7 +43,7 @@ export default async function QueuePage({
 		>
 			<h1 className="font-semibold text-3xl">{t("heading")}</h1>
 			{page === null ? (
-				<Alert variant="destructive">
+				<Alert variant="warning">
 					<AlertDescription>{t("unreachable")}</AlertDescription>
 				</Alert>
 			) : page.entries.length === 0 ? (
