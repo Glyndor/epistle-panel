@@ -1,7 +1,8 @@
 #!/bin/sh
 set -eu
 
-# This package owns no state: no account, no directory, no secret. The panel
+# This package owns no state: no account, no secret and no directory outside
+# /usr/share. The panel
 # service is rendered by epistle into the stack it generates, from the image
 # reference in /usr/share/glyndor/epistle-panel/image.
 #

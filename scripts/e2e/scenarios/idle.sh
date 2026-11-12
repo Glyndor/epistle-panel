@@ -3,7 +3,7 @@
 # Sourced by the runner, which provides the helpers in scripts/e2e/lib.
 
 scenario_idle() {
-	echo "# memory and CPU, idle and after 200 requests"
+	echo "# memory and CPU, idle and after 400 requests"
 	fresh
 	login admin correct-horse
 	local good=$cookie

@@ -1,7 +1,7 @@
 name: Bun version
 
-# One Bun release must be named by ci.yml, audit.yml, release.yml and the
-# Containerfile. Dependabot moves the digest of the `COPY --from` that carries
+# One Bun release must be named by ci.yml, audit.yml, e2e.yml, release.yml and
+# the Containerfile. Dependabot moves the digest of the `COPY --from` that carries
 # Bun in the image only through the docker ecosystem's `FROM` handling, so the
 # release is recorded as text and compared here. The answer changes only when
 # one of those files does, so the workflow runs only for them; it lists itself

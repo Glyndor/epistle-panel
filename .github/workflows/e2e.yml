@@ -49,9 +49,9 @@ jobs:
   e2e:
     name: e2e
     runs-on: ubuntu-latest
-    # An estimate: this workflow has not run on a runner yet. Locally the build
-    # takes under a minute and the scripts about two, so 15 leaves room for a
-    # cold install and a slow runner.
+    # An estimate with a margin: runs on 2026-11-12 finished between about 1 and
+    # 8 minutes, and locally the build takes under a minute and the scripts
+    # about two, so 15 leaves room for a cold install and a slow runner.
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
