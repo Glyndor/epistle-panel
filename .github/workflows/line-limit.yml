@@ -6,7 +6,10 @@ name: Line limit
 
 on:
   pull_request:
-    branches: [main, develop]
+    # The check reads the tree, and the promotion pull request to main carries a
+    # tree it already read on develop. Content that reaches main by any other
+    # route is out of this trigger's reach: main takes only develop (main-guard).
+    branches: [develop]
     paths:
       - "**.ts"
       - "**.tsx"

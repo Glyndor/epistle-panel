@@ -10,6 +10,9 @@ name: Bun version
 
 on:
   pull_request:
+    # Into develop only: the promotion pull request to main carries a tree this
+    # check already answered for on develop, and it is not required on main.
+    branches: [develop]
     paths:
       - ".github/workflows/**"
       - "Containerfile"

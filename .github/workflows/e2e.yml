@@ -11,6 +11,9 @@ name: End-to-end
 
 on:
   pull_request:
+    # Into develop only: the promotion pull request to main carries a tree this
+    # check already answered for on develop, and it is not required on main.
+    branches: [develop]
     paths:
       - "internal/src/lib/auth/**"
       - "internal/src/lib/security-headers/**"
