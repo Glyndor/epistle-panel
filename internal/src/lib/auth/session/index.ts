@@ -170,7 +170,12 @@ async function readToken(
 	} catch {
 		return null;
 	}
-	if (typeof payload.sub !== "string" || !Number.isInteger(payload.exp)) {
+	// A signed `null` parses fine and has no fields to read.
+	if (
+		payload === null ||
+		typeof payload.sub !== "string" ||
+		!Number.isInteger(payload.exp)
+	) {
 		return null;
 	}
 	const now = Math.floor(Date.now() / 1000);
