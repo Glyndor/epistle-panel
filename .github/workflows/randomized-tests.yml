@@ -15,7 +15,10 @@ on:
     # check already answered for on develop.
     branches: [develop]
     paths:
-      - "internal/**"
+      - "internal/src/**"
+      - "internal/package.json"
+      - "internal/bun.lock"
+      - "internal/bunfig.toml"
       - "scripts/test/**"
       - ".github/workflows/randomized-tests.yml"
 

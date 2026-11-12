@@ -4,7 +4,10 @@ on:
   push:
     branches: [main, develop]
   pull_request:
-    branches: [main, develop]
+    # Into develop only: the promotion pull request to main carries a tree this
+    # check already answered for on develop, and it is not required on main
+    # (the ruleset there requires `develop-only`). The push to main still runs it.
+    branches: [develop]
 
 permissions:
   contents: read
