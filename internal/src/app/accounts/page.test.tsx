@@ -1,14 +1,24 @@
-import { afterEach, describe, expect, it, mock } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import { cleanup, render, screen } from "@testing-library/react";
 
 import { stubFetchJson, stubFetchReject } from "@/lib/api/test-support/fetch";
+import {
+	mockRequestCookies,
+	RedirectSignal,
+} from "@/lib/auth/test-support/cookies";
 
 mock.module("next-intl/server", () => ({
 	getTranslations: async () => (key: string) => key,
 }));
 
+const cookies = mockRequestCookies();
+
 const { default: AccountsPage } = await import("./page");
 
+beforeEach(async () => {
+	cookies.reset();
+	await cookies.signIn();
+});
 afterEach(cleanup);
 
 describe("AccountsPage", () => {
@@ -44,5 +54,21 @@ describe("AccountsPage", () => {
 		render(await AccountsPage());
 
 		expect(screen.getByRole("alert")).toHaveTextContent("unreachable");
+	});
+
+	it("redirects to the login page without a session and never calls the API", async () => {
+		cookies.reset();
+		stubFetchJson({});
+		const before = globalThis.fetch;
+
+		const outcome = await (async () => await AccountsPage())().catch(
+			(error) => error,
+		);
+
+		expect(outcome).toBeInstanceOf(RedirectSignal);
+		expect(outcome.target).toBe("/login");
+		expect(
+			(before as unknown as { mock: { calls: unknown[] } }).mock.calls,
+		).toHaveLength(0);
 	});
 });

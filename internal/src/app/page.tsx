@@ -4,6 +4,7 @@ import { UnreachableNotice } from "@/components/unreachable-notice";
 import { getStatus } from "@/lib/api/client";
 import { logApiFailure } from "@/lib/api/log-failure";
 import type { Status } from "@/lib/api/schemas";
+import { requireSession } from "@/lib/auth/require-session";
 
 async function loadStatus(): Promise<Status | null> {
 	try {
@@ -34,6 +35,7 @@ function StatusCard({
 }
 
 export default async function HomePage() {
+	await requireSession();
 	const t = await getTranslations("dashboard");
 	const format = await getFormatter();
 	const status = await loadStatus();

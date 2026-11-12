@@ -1,0 +1,73 @@
+import { mock } from "bun:test";
+
+import { createSession, SESSION_COOKIE } from "../../session";
+
+/** What a Server Action or Component asked the cookie store to write. */
+export interface CookieWrite {
+	name: string;
+	value: string;
+	options: Record<string, unknown> | undefined;
+}
+
+/** Thrown by the stubbed `redirect`, carrying the target path. */
+export class RedirectSignal extends Error {
+	readonly target: string;
+
+	constructor(target: string) {
+		super(`NEXT_REDIRECT ${target}`);
+		this.target = target;
+	}
+}
+
+/**
+ * Replace `next/headers` and `next/navigation` with an in-memory cookie jar and
+ * a `redirect` that throws {@link RedirectSignal}, as the real one throws to
+ * stop the render. Returns handles to sign a session in or out and to read what
+ * was written. Call it from the test file before importing the code under test.
+ */
+export function mockRequestCookies() {
+	const jar = new Map<string, string>();
+	const writes: CookieWrite[] = [];
+
+	mock.module("next/headers", () => ({
+		cookies: async () => ({
+			get: (name: string) => {
+				const value = jar.get(name);
+				return value === undefined ? undefined : { name, value };
+			},
+			set: (
+				name: string,
+				value: string,
+				options?: Record<string, unknown>,
+			) => {
+				writes.push({ name, value, options });
+				jar.set(name, value);
+			},
+			delete: (name: string) => {
+				jar.delete(name);
+			},
+		}),
+	}));
+	mock.module("next/navigation", () => ({
+		redirect: (target: string) => {
+			throw new RedirectSignal(target);
+		},
+		usePathname: () => "/",
+	}));
+
+	return {
+		jar,
+		writes,
+		/** Put a freshly minted session for `sub` in the jar and return its token. */
+		async signIn(sub = "admin"): Promise<string> {
+			const token = await createSession(sub);
+			jar.set(SESSION_COOKIE, token);
+			return token;
+		},
+		/** Empty the jar and the write log. */
+		reset(): void {
+			jar.clear();
+			writes.length = 0;
+		},
+	};
+}

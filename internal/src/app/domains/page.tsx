@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { UnreachableNotice } from "@/components/unreachable-notice";
 import { getDomains } from "@/lib/api/client";
 import { logApiFailure } from "@/lib/api/log-failure";
+import { requireSession } from "@/lib/auth/require-session";
 
 async function loadDomains(): Promise<string[] | null> {
 	try {
@@ -14,6 +15,7 @@ async function loadDomains(): Promise<string[] | null> {
 }
 
 export default async function DomainsPage() {
+	await requireSession();
 	const t = await getTranslations("domains");
 	const domains = await loadDomains();
 
