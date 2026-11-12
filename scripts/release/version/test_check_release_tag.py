@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Tests for `scripts/version/check_release_tag.py`.
+"""Tests for `scripts/release/version/check_release_tag.py`.
 
 Run from the repository root with:
 
-	python3 -I -m unittest discover -s scripts/version -p 'test_*.py' -v
+	python3 -I -m unittest discover -s scripts/release/version -p 'test_*.py' -v
 
 The script reads `internal/package.json` and `debian/changelog` relative to
 the working directory, so each test builds a small tree in a temporary

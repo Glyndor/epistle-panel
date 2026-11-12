@@ -69,7 +69,7 @@ shape the three providers share.
 What the panel guarantees:
 
 - **The CSP is widened for one provider, on the sign-in page only.** The sources
-  come from the per-provider allowlist in `lib/security-headers/captcha-sources`
+  come from the per-provider allowlist in `features/auth/captcha/csp-sources`
   (a custom provider gets the origin of its own script) and go into `script-src`,
   `connect-src` and a new `frame-src`; no other directive changes, there is no
   `unsafe-inline`, and no other page or response is widened. The widget's styles

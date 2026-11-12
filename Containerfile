@@ -8,7 +8,7 @@
 
 # Bun is its own stage, so that the pin is a `FROM <image>:<tag>@sha256:...` line:
 # that is the form Dependabot's docker ecosystem reads and moves. The tag names
-# the Bun release; scripts/version/check-bun-version.sh compares it with the
+# the Bun release; scripts/consistency/check-bun-version.sh compares it with the
 # workflows, so a tag that moves without them is caught. The project builds
 # with Bun but `next build` runs under Node, so the builder carries both.
 FROM docker.io/oven/bun:1.4.4-debian@sha256:93d5032fe06d163427822dc1598f420363759bb18155c9cc90eb1be05a64a19e AS bun

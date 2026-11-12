@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const scripts = join(import.meta.dir, "..");
+const scripts = import.meta.dir;
 const root = join(scripts, "..", "..");
 
 /** Run the sourced shell function `call` with `file` as its first argument. */
@@ -89,7 +89,7 @@ describe("unnonced_scripts", () => {
 describe("CAPTCHA scenario constants", () => {
 	test("the scenario's token and secret are the stand-in provider's", async () => {
 		const shell = readFileSync(join(scripts, "scenarios", "captcha.sh"), "utf8");
-		const standIn = await import("../stand-in-api");
+		const standIn = await import("./stand-in-api");
 		const token = /^CAPTCHA_SOLVED_TOKEN="([^"]+)"$/m.exec(shell)?.[1];
 		const secret = /^CAPTCHA_SECRET="([^"]+)"$/m.exec(shell)?.[1];
 

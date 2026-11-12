@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Tests for scripts/version/check-bun-version.sh. Run from anywhere:
-#   bash scripts/version/test-check-bun-version.sh
+# Tests for scripts/consistency/check-bun-version.sh. Run from anywhere:
+#   bash scripts/consistency/test-check-bun-version.sh
 # The script finds the repository from its own location, so each case copies it
 # into a tree of its own with a Containerfile and one workflow.
 set -uo pipefail
@@ -17,13 +17,13 @@ digest=$(printf '0%.0s' $(seq 1 64))
 tree() {
 	local root
 	root=$(mktemp -d "$tmp/tree.XXXXXX")
-	mkdir -p "$root/scripts/version" "$root/.github/workflows"
-	cp "$here/check-bun-version.sh" "$root/scripts/version/"
+	mkdir -p "$root/scripts/consistency" "$root/.github/workflows"
+	cp "$here/check-bun-version.sh" "$root/scripts/consistency/"
 	printf '%s\nFROM node AS builder\n%s\n' "$1" "$2" > "$root/Containerfile"
 	printf 'jobs:\n  x:\n    steps:\n      - with:\n          bun-version: %s\n' "$3" > "$root/.github/workflows/x.yml"
 	echo "$root"
 }
-check() { sh "$1/scripts/version/check-bun-version.sh"; }
+check() { sh "$1/scripts/consistency/check-bun-version.sh"; }
 stage="FROM docker.io/oven/bun:1.4.4-debian@sha256:$digest AS bun"
 copy='COPY --from=bun /usr/local/bin/bun /usr/local/bin/bun'
 

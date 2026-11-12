@@ -22,7 +22,7 @@ on:
       - ".github/workflows/container.yml"
       - "Containerfile"
       - ".containerignore"
-      - "scripts/version/check-base-indexes.sh"
+      - "scripts/consistency/check-base-indexes.sh"
       - "internal/src/**"
       - "internal/next.config.ts"
       - "internal/tsconfig.json"
@@ -39,7 +39,7 @@ on:
       - ".github/workflows/container.yml"
       - "Containerfile"
       - ".containerignore"
-      - "scripts/version/check-base-indexes.sh"
+      - "scripts/consistency/check-base-indexes.sh"
       - "internal/src/**"
       - "internal/next.config.ts"
       - "internal/tsconfig.json"
@@ -69,7 +69,7 @@ jobs:
           persist-credentials: false
 
       - name: Every pinned base is an amd64 and arm64 index
-        run: bash scripts/version/check-base-indexes.sh
+        run: bash scripts/consistency/check-base-indexes.sh
 
       - name: Read the package version
         id: version

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import { buildCsp } from "..";
+import { buildCsp } from "@/lib/security-headers";
 import {
 	CAPTCHA_CSP_ALLOWLIST,
 	CAPTCHA_PROVIDERS,

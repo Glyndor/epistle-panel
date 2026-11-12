@@ -12,7 +12,7 @@ on:
     paths:
       - ".github/workflows/debian.yml"
       - "debian/**"
-      - "scripts/version/check-changelog.sh"
+      - "scripts/release/version/check-changelog.sh"
       - "scripts/debian/**"
       - "internal/package.json"
   pull_request:
@@ -22,7 +22,7 @@ on:
     paths:
       - ".github/workflows/debian.yml"
       - "debian/**"
-      - "scripts/version/check-changelog.sh"
+      - "scripts/release/version/check-changelog.sh"
       - "scripts/debian/**"
       - "internal/package.json"
 
@@ -48,7 +48,7 @@ jobs:
           persist-credentials: false
 
       - name: debian/changelog matches internal/package.json
-        run: sh scripts/version/check-changelog.sh
+        run: sh scripts/release/version/check-changelog.sh
 
       - name: dpkg-buildpackage and lintian
         run: BUILD_IMAGE="$DEBIAN_IMAGE" sh scripts/debian/build.sh "$RUNNER_TEMP/deb"
