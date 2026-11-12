@@ -1,15 +1,19 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 
 import {
+	type Admission,
 	admitAttempt,
+	attemptsInFlight,
 	BASE_LOCK_MS,
 	FREE_ATTEMPTS,
-	GLOBAL_MAX_ATTEMPTS,
+	GLOBAL_MAX_FAILURES,
 	GLOBAL_WINDOW_MS,
-	IDLE_FORGET_MS,
+	KNOWN_GOOD_MS,
+	MAX_IN_FLIGHT,
+	MAX_KNOWN_GOOD_NAMES,
 	MAX_LOCK_MS,
 	MAX_TRACKED_NAMES,
-	recordSuccess,
+	type Outcome,
 	resetLoginLimiter,
 	trackedNames,
 } from ".";
@@ -18,10 +22,23 @@ beforeEach(resetLoginLimiter);
 
 const T0 = 1_000_000;
 
+/** Admit one attempt for `name` at `now` and report `outcome` for it at once. */
+function attempt(
+	name: string,
+	now: number,
+	outcome: Outcome = "failure",
+): Admission {
+	const admission = admitAttempt(name, now);
+	if (admission.allowed) {
+		admission.settle(outcome, now);
+	}
+	return admission;
+}
+
 /** Admit `count` attempts for `name` at `now`, expecting each to pass. */
 function pass(name: string, count: number, now: number): void {
 	for (let i = 0; i < count; i++) {
-		expect(admitAttempt(name, now).allowed).toBe(true);
+		expect(attempt(name, now).allowed).toBe(true);
 	}
 }
 
@@ -29,8 +46,7 @@ describe("per-name backoff", () => {
 	it("admits the free attempts and then locks the name", () => {
 		pass("ops", FREE_ATTEMPTS + 1, T0);
 
-		const next = admitAttempt("ops", T0 + 1);
-		expect(next).toEqual({
+		expect(admitAttempt("ops", T0 + 1)).toEqual({
 			allowed: false,
 			retryAfterMs: BASE_LOCK_MS - 1,
 		});
@@ -40,26 +56,9 @@ describe("per-name backoff", () => {
 		pass("ops", FREE_ATTEMPTS + 1, T0);
 		pass("ops", 1, T0 + BASE_LOCK_MS);
 
-		const next = admitAttempt("ops", T0 + BASE_LOCK_MS + 1);
-		expect(next).toEqual({
+		expect(admitAttempt("ops", T0 + BASE_LOCK_MS + 1)).toEqual({
 			allowed: false,
 			retryAfterMs: BASE_LOCK_MS * 2 - 1,
-		});
-	});
-
-	it("caps the lock", () => {
-		let now = T0;
-		pass("ops", FREE_ATTEMPTS + 1, now);
-		let lock = BASE_LOCK_MS;
-		for (let i = 0; i < 30; i++) {
-			now += lock;
-			pass("ops", 1, now);
-			lock = Math.min(lock * 2, MAX_LOCK_MS);
-		}
-
-		expect(admitAttempt("ops", now + 1)).toEqual({
-			allowed: false,
-			retryAfterMs: MAX_LOCK_MS - 1,
 		});
 	});
 
@@ -75,33 +74,100 @@ describe("per-name backoff", () => {
 	it("tracks names independently and ignores case and padding", () => {
 		pass("ops", FREE_ATTEMPTS + 1, T0);
 
-		expect(admitAttempt("other", T0 + 1).allowed).toBe(true);
+		expect(attempt("other", T0 + 1).allowed).toBe(true);
 		expect(admitAttempt("  OPS ", T0 + 1).allowed).toBe(false);
 	});
 
 	it("clears a name on success", () => {
 		pass("ops", FREE_ATTEMPTS, T0);
-		recordSuccess("ops");
+		attempt("ops", T0, "success");
 
 		pass("ops", FREE_ATTEMPTS + 1, T0 + 1);
 	});
+});
 
-	it("forgets an idle name", () => {
-		pass("ops", FREE_ATTEMPTS + 1, T0);
+describe("a lock ends with its chain", () => {
+	interface Run {
+		/** End of every lock the attacker ran into. */
+		lockEnds: number[];
+	}
 
-		const later = T0 + BASE_LOCK_MS + IDLE_FORGET_MS + 1;
-		expect(admitAttempt("ops", later).allowed).toBe(true);
+	/** Fail `name` the instant each lock expires, like a patient attacker. */
+	function hammer(name: string, until: number): Run {
+		const run: Run = { lockEnds: [] };
+		let now = T0;
+		while (now < until) {
+			const next = admitAttempt(name, now);
+			if (next.allowed) {
+				next.settle("failure", now);
+				now += 1;
+			} else {
+				run.lockEnds.push(now + next.retryAfterMs);
+				now += next.retryAfterMs;
+			}
+		}
+		return run;
+	}
+
+	it("lets the right password in as soon as the chain is over, whatever the attacker did", () => {
+		// With a lock renewed by each admitted attempt this stays refused.
+		hammer("admin", T0 + MAX_LOCK_MS);
+
+		expect(attempt("admin", T0 + MAX_LOCK_MS, "success").allowed).toBe(
+			true,
+		);
+	});
+
+	it("never locks a name beyond the end of its first chain", () => {
+		const run = hammer("admin", T0 + MAX_LOCK_MS - 1);
+
+		expect(Math.max(...run.lockEnds)).toBeLessThanOrEqual(T0 + MAX_LOCK_MS);
+	});
+
+	it("starts a clean chain once MAX_LOCK_MS has passed since the first attempt", () => {
+		pass("admin", FREE_ATTEMPTS + 1, T0);
+		const lateness = T0 + MAX_LOCK_MS;
+
+		pass("admin", FREE_ATTEMPTS + 1, lateness);
+		expect(admitAttempt("admin", lateness + 1).allowed).toBe(false);
+	});
+
+	it("does not let one request per chain hold a name", () => {
+		// A single failing request every MAX_LOCK_MS never builds a lock at all.
+		for (let i = 0; i < 20; i++) {
+			expect(attempt("admin", T0 + i * MAX_LOCK_MS).allowed).toBe(true);
+		}
+		expect(attempt("admin", T0 + 20 * MAX_LOCK_MS, "success").allowed).toBe(
+			true,
+		);
+	});
+
+	it("admits a bounded number of attempts per chain", () => {
+		let now = T0;
+		let admitted = 0;
+		while (now < T0 + MAX_LOCK_MS) {
+			const next = admitAttempt("admin", now);
+			if (next.allowed) {
+				next.settle("failure", now);
+				admitted += 1;
+				now += 1;
+			} else {
+				now += next.retryAfterMs;
+			}
+		}
+
+		expect(admitted).toBeLessThanOrEqual(FREE_ATTEMPTS + 10);
+		expect(admitted).toBeGreaterThan(FREE_ATTEMPTS);
 	});
 });
 
-describe("global ceiling", () => {
-	it("refuses every name once the window is full, then reopens", () => {
-		for (let i = 0; i < GLOBAL_MAX_ATTEMPTS; i++) {
-			expect(admitAttempt(`name-${i}`, T0).allowed).toBe(true);
+describe("global ceiling on failures", () => {
+	it("refuses unknown names once the failure window is full, then reopens", () => {
+		for (let i = 0; i < GLOBAL_MAX_FAILURES; i++) {
+			expect(attempt(`name-${i}`, T0).allowed).toBe(true);
 		}
 
-		const refused = admitAttempt("someone-new", T0 + 5);
-		expect(refused).toEqual({
+		expect(admitAttempt("someone-new", T0 + 5)).toEqual({
 			allowed: false,
 			retryAfterMs: GLOBAL_WINDOW_MS - 5,
 		});
@@ -110,13 +176,98 @@ describe("global ceiling", () => {
 		);
 	});
 
-	it("gives an attempt back to the window on success", () => {
-		for (let i = 0; i < GLOBAL_MAX_ATTEMPTS; i++) {
-			admitAttempt(`name-${i}`, T0);
+	it("does not count successes or failed calls", () => {
+		for (let i = 0; i < GLOBAL_MAX_FAILURES * 2; i++) {
+			attempt(`ok-${i}`, T0, "success");
+			attempt(`down-${i}`, T0, "error");
 		}
-		recordSuccess("name-0");
 
-		expect(admitAttempt("fresh", T0 + 1).allowed).toBe(true);
+		expect(attempt("fresh", T0 + 1).allowed).toBe(true);
+	});
+
+	it("keeps a name that signed in earlier out of a flood of failing names", () => {
+		attempt("admin", T0, "success");
+		for (let i = 0; i < GLOBAL_MAX_FAILURES; i++) {
+			attempt(`burn-${i}`, T0 + 1);
+		}
+
+		expect(admitAttempt("burn-new", T0 + 2).allowed).toBe(false);
+		expect(attempt("admin", T0 + 2, "success").allowed).toBe(true);
+	});
+
+	it("forgets a signed-in name after KNOWN_GOOD_MS and bounds the set", () => {
+		attempt("admin", T0, "success");
+		const later = T0 + KNOWN_GOOD_MS + 1;
+		for (let i = 0; i < GLOBAL_MAX_FAILURES; i++) {
+			attempt(`burn-${i}`, later);
+		}
+		expect(admitAttempt("admin", later + 1).allowed).toBe(false);
+
+		resetLoginLimiter();
+		for (let i = 0; i < MAX_KNOWN_GOOD_NAMES + 5; i++) {
+			attempt(`good-${i}`, T0, "success");
+		}
+		for (let i = 0; i < GLOBAL_MAX_FAILURES; i++) {
+			attempt(`burn-${i}`, T0 + 1);
+		}
+		expect(admitAttempt("good-0", T0 + 2).allowed).toBe(false);
+		expect(admitAttempt("good-5", T0 + 2).allowed).toBe(true);
+	});
+
+	it("still applies the name's own lock to a signed-in name", () => {
+		attempt("admin", T0, "success");
+		pass("admin", FREE_ATTEMPTS + 1, T0 + 1);
+
+		expect(admitAttempt("admin", T0 + 2).allowed).toBe(false);
+	});
+});
+
+describe("concurrent attempts", () => {
+	it("refuses attempts beyond MAX_IN_FLIGHT until one settles", () => {
+		const held: Admission[] = [];
+		for (let i = 0; i < MAX_IN_FLIGHT; i++) {
+			const admission = admitAttempt(`slow-${i}`, T0);
+			expect(admission.allowed).toBe(true);
+			held.push(admission);
+		}
+		expect(attemptsInFlight()).toBe(MAX_IN_FLIGHT);
+
+		expect(admitAttempt("one-more", T0).allowed).toBe(false);
+		const first = held[0];
+		if (first?.allowed) {
+			first.settle("error", T0);
+		}
+
+		expect(admitAttempt("one-more", T0).allowed).toBe(true);
+	});
+
+	it("frees the slot once, however often settle is called", () => {
+		const admission = admitAttempt("ops", T0);
+		if (!admission.allowed) {
+			throw new Error("expected the attempt to be admitted");
+		}
+		admission.settle("failure", T0);
+		admission.settle("failure", T0);
+		admission.settle("success", T0);
+
+		expect(attemptsInFlight()).toBe(0);
+		// Only the first report counted: one failure, no success.
+		for (let i = 0; i < GLOBAL_MAX_FAILURES - 1; i++) {
+			attempt(`burn-${i}`, T0);
+		}
+		expect(admitAttempt("ops-2", T0).allowed).toBe(false);
+	});
+
+	it("does not count a refused attempt against its name", () => {
+		for (let i = 0; i < MAX_IN_FLIGHT; i++) {
+			admitAttempt(`slow-${i}`, T0);
+		}
+		for (let i = 0; i < 10; i++) {
+			expect(admitAttempt("ops", T0).allowed).toBe(false);
+		}
+		resetLoginLimiter();
+
+		pass("ops", FREE_ATTEMPTS + 1, T0);
 	});
 });
 
@@ -124,7 +275,7 @@ describe("memory bound", () => {
 	it("keeps at most MAX_TRACKED_NAMES names", () => {
 		for (let i = 0; i < MAX_TRACKED_NAMES + 50; i++) {
 			// A new window each time so the global ceiling does not interfere.
-			admitAttempt(`name-${i}`, T0 + i * GLOBAL_WINDOW_MS);
+			attempt(`name-${i}`, T0 + i * GLOBAL_WINDOW_MS);
 		}
 
 		expect(trackedNames()).toBeLessThanOrEqual(MAX_TRACKED_NAMES);

@@ -47,16 +47,18 @@ export async function request<T>(
 	const authorization = `Bearer ${await token()}`;
 	const signal = AbortSignal.timeout(timeoutMs);
 
+	// `new Headers` takes a plain object, a `Headers` or a list of pairs, which
+	// a spread would drop or mangle; the two below replace any the caller sent.
+	const headers = new Headers(init?.headers);
+	headers.set("Authorization", authorization);
+	headers.set("Accept", "application/json");
+
 	let body: unknown;
 	let response: Response;
 	try {
 		response = await fetch(url, {
 			...init,
-			headers: {
-				...init?.headers,
-				Authorization: authorization,
-				Accept: "application/json",
-			},
+			headers,
 			cache: "no-store",
 			redirect: "error",
 			signal,

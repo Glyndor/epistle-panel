@@ -124,15 +124,40 @@ An invalid value makes every API call fail without sending a request.
   in the browser. The revocation list lives in the memory of one panel process:
   it is lost on restart and not shared between replicas, so run a single
   instance. After a restart a token revoked earlier is accepted again until it
-  expires.
-- Sign-in attempts are limited by account name: three free tries, then a lock
-  that doubles each time (2 seconds up to 15 minutes), plus a global ceiling of
-  60 attempts per minute. The limiter is checked before the API is called and
-  also lives in process memory. It does not read forwarded client-address
-  headers. The Epistle API has its own failed-authentication limiter, which
-  currently sees one address for all panel traffic; forwarding the admin's
-  address to it is a separate change in Epistle.
-- Every failed sign-in takes at least one second, whatever the cause.
+  expires. The list holds at most 10,000 entries; past that, the entry that
+  expires first is dropped, so the revocations with the most life left are the
+  last to go. Reaching the cap takes 10,000 sign-outs inside one session
+  lifetime, after which a dropped token verifies again until it expires.
+- Sign-in attempts are limited in memory, per process, before the API is called,
+  and the limiter does not read forwarded client-address headers. The Epistle API
+  has its own failed-authentication limiter, which currently sees one address for
+  all panel traffic; forwarding the admin's address to it is a separate change in
+  Epistle. Three limits apply:
+  - Per account name, in chains. Three free tries, then a lock that doubles
+    (2 seconds and up). A chain starts with the first attempt and lasts 15
+    minutes: no lock ends later than the chain, a lock is never renewed, and
+    afterwards the name starts from a clean count. The right password is refused
+    while a lock holds, and the lock ends. About a dozen attempts per name pass
+    in each chain.
+  - Globally, 60 failed attempts per minute across all names. Only failures
+    count. Once the ceiling is hit, names that signed in during this process in
+    the last 8 hours still get through, subject to their own lock.
+  - At most 8 attempts wait on the API at once, for every name.
+  What an attacker can still do: keep 60 failing attempts per minute going to
+  refuse every name that has not signed in during this process, for example the
+  first sign-in after a restart, for as long as the flood lasts; fail one name
+  enough times to lock it for the rest of its chain (up to 15 minutes); and,
+  by sending a request the moment a name's chain restarts, keep that name locked
+  across chains. A limiter keyed by name cannot rule that last case out; closing
+  it takes a second factor or a client address from a trusted proxy.
+- Every sign-in takes at least one second, whatever the outcome, so an unknown
+  account, a wrong password and a success look alike by time. That only holds
+  while the API answers within the floor, and the real API's password hash time
+  was not measured. Set `EPISTLE_PANEL_LOGIN_MIN_MS` (whole milliseconds, 0 to
+  30000) to raise or lower it; a value that does not parse keeps the default.
+- A render error shows the panel's own error page (translated, no inline
+  styles), not Next's built-in one, which the Content Security Policy would
+  leave unstyled.
 
 ## Contributing
 

@@ -41,6 +41,69 @@ afterEach(() => {
 	process.env.EPISTLE_API_TOKEN = "test-token";
 });
 
+describe("request headers", () => {
+	/** Headers of the single call `fetch` received, as a `Headers`. */
+	function sentHeaders(): Headers {
+		const call = fetchMock().mock.calls[0];
+		const init = (call?.[1] ?? {}) as RequestInit;
+		return new Headers(init.headers);
+	}
+
+	it("sends the bearer token and Accept with a plain object", async () => {
+		stubFetchJson({ ok: true });
+
+		await request("/x", schema, { headers: { "X-Trace": "a" } });
+
+		expect(sentHeaders().get("authorization")).toBe("Bearer test-token");
+		expect(sentHeaders().get("accept")).toBe("application/json");
+		expect(sentHeaders().get("x-trace")).toBe("a");
+	});
+
+	it("keeps the headers of a Headers instance", async () => {
+		stubFetchJson({ ok: true });
+
+		await request("/x", schema, {
+			headers: new Headers({
+				"Content-Type": "application/json",
+				"X-Trace": "b",
+			}),
+		});
+
+		expect(sentHeaders().get("content-type")).toBe("application/json");
+		expect(sentHeaders().get("x-trace")).toBe("b");
+		expect(sentHeaders().get("authorization")).toBe("Bearer test-token");
+	});
+
+	it("keeps the headers of a list of pairs", async () => {
+		stubFetchJson({ ok: true });
+
+		await request("/x", schema, {
+			headers: [
+				["Content-Type", "application/json"],
+				["X-Trace", "c"],
+			],
+		});
+
+		expect(sentHeaders().get("content-type")).toBe("application/json");
+		expect(sentHeaders().get("x-trace")).toBe("c");
+		expect(sentHeaders().get("accept")).toBe("application/json");
+	});
+
+	it("lets the caller override neither Authorization nor Accept", async () => {
+		stubFetchJson({ ok: true });
+
+		await request("/x", schema, {
+			headers: new Headers({
+				authorization: "Bearer other",
+				accept: "text/html",
+			}),
+		});
+
+		expect(sentHeaders().get("authorization")).toBe("Bearer test-token");
+		expect(sentHeaders().get("accept")).toBe("application/json");
+	});
+});
+
 describe("request time budget", () => {
 	it("defaults to ten seconds", () => {
 		expect(REQUEST_TIMEOUT_MS).toBe(10_000);
