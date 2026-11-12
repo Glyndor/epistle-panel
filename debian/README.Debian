@@ -1,0 +1,34 @@
+epistle-panel for Debian
+========================
+
+This package does not install the panel. The panel runs only inside the
+container image ghcr.io/glyndor/epistle-panel, as one service of the stack that
+epistle generates. There is no standalone compose file.
+
+What the package installs
+-------------------------
+
+  /usr/share/glyndor/epistle-panel/image    one line: ghcr.io/glyndor/epistle-panel:<version>
+  /usr/share/glyndor/epistle-panel/README   what that file is for
+
+The tag equals the package version, so `apt upgrade` is what moves the panel to
+a new release. The reference has no digest because the digest is not known when
+the package is built.
+
+The package creates no account, no directory outside /usr/share and no secret.
+epistle creates the panel's secrets and its API key next to its own data, and
+the stack runs as epistle's account. `apt remove` and `apt purge` delete the two
+files above and leave nothing behind.
+
+Picking the panel up
+--------------------
+
+epistle reads the image file when it renders the stack. The postinst of this
+package has a hook for asking epistle to do that after an install or upgrade,
+but it is empty: the epistle release that reads the file does not exist yet, and
+the package does not guess at a command. Once epistle supports the panel, run
+
+  sudo epistle stack update
+
+to add or update the service. Until then installing this package changes
+nothing in a running stack.

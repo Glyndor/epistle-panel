@@ -1,22 +1,108 @@
 version: 2
 
+# Weekly everywhere. The freshness gate in ci.yml fails after 15 days without a
+# Dependabot pull request, so a weekly run tolerates one missed run and a
+# daily one would make the gate unable to tell a dead Dependabot from a busy
+# one. Grouping keeps the open count far below the limit: the previous setup
+# had no groups and a limit of 10, so ten open pull requests silenced it.
+#
+# `target-branch: develop` stays. Dependabot SECURITY updates ignore it and open
+# against main, where main-guard refuses them; .github/workflows/
+# dependabot-security-watch.yml reports those instead of letting them sit.
+#
+# Labels must exist in the repository (`gh label list`), or Dependabot drops
+# them. `cooldown` delays a new release for a few days before a version update;
+# security updates are not delayed. Docker and github-actions accept only
+# `default-days`.
+
 updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "daily"
-    labels: ["type:deps", "type:ci"]
-    open-pull-requests-limit: 10
+      interval: "weekly"
+      day: "monday"
+    cooldown:
+      default-days: 3
+    labels: ["type:deps", "type:ci", "area:meta"]
+    open-pull-requests-limit: 25
     target-branch: "develop"
+    commit-message:
+      prefix: "ci(deps)"
+    groups:
+      # Split so each pull request has one answer: the reusables are the pins
+      # whose bump usually changes nothing this repository calls, and closing
+      # that no-op must not close the third-party bump that mattered
+      # (standards/ci/pins/no-op-pin-bump). Dependabot names a reusable by its
+      # full path, `Glyndor/.github/.github/workflows/<file>`, hence the `*`.
+      glyndor-reusables:
+        patterns: ["Glyndor/.github*"]
+      third-party:
+        patterns: ["*"]
+        exclude-patterns: ["Glyndor/.github*"]
 
-  # The application itself lives on develop (package.json + bun.lock); main
-  # only carries the repository scaffolding. Without this entry the whole
-  # front-end dependency tree — Next.js, React, the auth surface — goes
-  # unwatched, which for a webmail panel is the half that faces the user.
+  # The Next.js project lives in internal/ (package.json + bun.lock). Majors
+  # are left out of every group, so each major arrives as its own pull request.
   - package-ecosystem: "bun"
+    directory: "/internal"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+    cooldown:
+      default-days: 3
+      semver-major-days: 7
+    labels: ["type:deps", "area:frontend"]
+    open-pull-requests-limit: 25
+    target-branch: "develop"
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      # Exact-pinned and released together; one without the other breaks.
+      react:
+        patterns: ["react", "react-dom"]
+        update-types: ["minor", "patch"]
+      # next-intl has a peer dependency on next.
+      next:
+        patterns: ["next", "next-intl"]
+        update-types: ["minor", "patch"]
+      zod:
+        patterns: ["zod"]
+        update-types: ["minor", "patch"]
+      testing:
+        patterns:
+          - "@testing-library/*"
+          - "@happy-dom/*"
+        update-types: ["minor", "patch"]
+      types:
+        patterns: ["@types/*", "typescript"]
+        update-types: ["minor", "patch"]
+      # Biome replaces ESLint here, and Tailwind ships as two packages.
+      build-tooling:
+        patterns:
+          - "@biomejs/*"
+          - "tailwindcss"
+          - "@tailwindcss/*"
+          - "babel-plugin-react-compiler"
+        update-types: ["minor", "patch"]
+      # Anything not named above (today: server-only), so a new dependency
+      # does not open a pull request of its own for every patch.
+      other:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  # The Containerfile pins every base by digest, so a moved tag never changes
+  # the image silently; this is what moves the digests on purpose. The Bun release
+  # in the image is also recorded in the `# <version>-debian` comment above its
+  # `COPY --from`, and scripts/version/check-bun-version.sh compares that with
+  # the workflows, so a digest that moves without the others is caught.
+  - package-ecosystem: "docker"
     directory: "/"
     schedule:
-      interval: "daily"
-    labels: ["type:deps"]
+      interval: "weekly"
+      day: "wednesday"
+    cooldown:
+      default-days: 3
+    labels: ["type:deps", "area:meta"]
     open-pull-requests-limit: 10
     target-branch: "develop"
+    commit-message:
+      prefix: "chore(deps)"

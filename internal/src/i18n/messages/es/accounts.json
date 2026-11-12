@@ -1,0 +1,5 @@
+{
+	"heading": "Cuentas",
+	"unreachable": "No se puede contactar con la API de gestión del servidor de correo. Comprueba que el servidor está en marcha y que el panel está configurado.",
+	"empty": "Aún no hay cuentas configuradas."
+}

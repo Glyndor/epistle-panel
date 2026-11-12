@@ -14,3 +14,8 @@ indent_size = 2
 [*.md]
 indent_style = space
 indent_size = 2
+
+# pip-compile output, indented with spaces by the tool.
+[*requirements.txt]
+indent_style = space
+indent_size = 4

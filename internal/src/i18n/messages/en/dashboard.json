@@ -1,0 +1,8 @@
+{
+	"heading": "Status",
+	"unreachable": "The mail server's management API is unreachable. Check that the server is running and the panel is configured.",
+	"version": "Version",
+	"domains": "Domains",
+	"accounts": "Accounts",
+	"queue": "Queue"
+}

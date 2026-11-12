@@ -1,0 +1,5 @@
+The file "image" holds one line: the container image reference, by tag, that
+matches the version of the epistle-panel package. epistle reads it to add the
+panel service to the stack it generates. There is no digest because the image
+digest is not known when the package is built. Do not edit the file; apt
+replaces it on upgrade and deletes it on removal.
