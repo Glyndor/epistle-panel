@@ -1,0 +1,37 @@
+name: Bun version
+
+# One Bun release must be named by ci.yml, audit.yml, release.yml and the
+# Containerfile. Dependabot moves the digest of the `COPY --from` that carries
+# Bun in the image only through the docker ecosystem's `FROM` handling, so the
+# release is recorded as text and compared here. The answer changes only when
+# one of those files does, so the workflow runs only for them; it lists itself
+# and its script so an edit to either runs on its own pull request. Not a
+# required check: a skipped workflow would leave a required one pending.
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/**"
+      - "Containerfile"
+      - "scripts/version/check-bun-version.sh"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bun-version:
+    name: bun version
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: One Bun release everywhere
+        run: sh scripts/version/check-bun-version.sh
