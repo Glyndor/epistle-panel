@@ -281,3 +281,101 @@ describe("memory bound", () => {
 		expect(trackedNames()).toBeLessThanOrEqual(MAX_TRACKED_NAMES);
 	});
 });
+
+describe("limits, in literals", () => {
+	// The numbers are written out on purpose: a test that reads a limit from the
+	// module it checks agrees with whatever the module says, so changing the
+	// limit would change the oracle with it.
+	const MINUTE = 60_000;
+	const EIGHT_HOURS = 8 * 60 * MINUTE;
+
+	it("keeps the documented values", () => {
+		expect({
+			FREE_ATTEMPTS,
+			BASE_LOCK_MS,
+			MAX_LOCK_MS,
+			GLOBAL_WINDOW_MS,
+			GLOBAL_MAX_FAILURES,
+			MAX_IN_FLIGHT,
+			KNOWN_GOOD_MS,
+			MAX_TRACKED_NAMES,
+			MAX_KNOWN_GOOD_NAMES,
+		}).toEqual({
+			FREE_ATTEMPTS: 3,
+			BASE_LOCK_MS: 2_000,
+			MAX_LOCK_MS: 900_000,
+			GLOBAL_WINDOW_MS: 60_000,
+			GLOBAL_MAX_FAILURES: 60,
+			MAX_IN_FLIGHT: 8,
+			KNOWN_GOOD_MS: 28_800_000,
+			MAX_TRACKED_NAMES: 10_000,
+			MAX_KNOWN_GOOD_NAMES: 1_000,
+		});
+	});
+
+	it("locks a name for 2 s after its fourth attempt and doubles it for the fifth", () => {
+		for (let i = 0; i < 4; i++) {
+			expect(attempt("ops", T0).allowed).toBe(true);
+		}
+		expect(admitAttempt("ops", T0)).toEqual({
+			allowed: false,
+			retryAfterMs: 2_000,
+		});
+
+		expect(attempt("ops", T0 + 2_000).allowed).toBe(true);
+		expect(admitAttempt("ops", T0 + 2_000)).toEqual({
+			allowed: false,
+			retryAfterMs: 4_000,
+		});
+	});
+
+	it("refuses the 61st failing name in a minute and not the 60th", () => {
+		for (let i = 0; i < 59; i++) {
+			attempt(`name-${i}`, T0);
+		}
+		expect(attempt("name-59", T0).allowed).toBe(true);
+
+		expect(admitAttempt("name-60", T0)).toEqual({
+			allowed: false,
+			retryAfterMs: 60_000,
+		});
+		expect(admitAttempt("name-60", T0 + MINUTE - 1).allowed).toBe(false);
+		expect(admitAttempt("name-60", T0 + MINUTE).allowed).toBe(true);
+	});
+
+	it("exempts a signed-in name from the ceiling for eight hours, not a millisecond more", () => {
+		const burn = (at: number) => {
+			for (let i = 0; i < 60; i++) {
+				attempt(`burn-${i}`, at);
+			}
+		};
+
+		attempt("admin", T0, "success");
+		burn(T0 + EIGHT_HOURS - 1);
+		expect(admitAttempt("admin", T0 + EIGHT_HOURS - 1).allowed).toBe(true);
+
+		resetLoginLimiter();
+		attempt("admin", T0, "success");
+		burn(T0 + EIGHT_HOURS);
+		expect(admitAttempt("admin", T0 + EIGHT_HOURS).allowed).toBe(false);
+	});
+
+	it("drops the oldest name when the table is full of live chains", () => {
+		// Four attempts lock "first"; every other name stays inside its chain,
+		// so nothing is stale and the oldest record has to make room.
+		for (let i = 0; i < 4; i++) {
+			attempt("first", T0, "error");
+		}
+		expect(admitAttempt("first", T0).allowed).toBe(false);
+		for (let i = 0; i < 9_999; i++) {
+			attempt(`other-${i}`, T0, "error");
+		}
+		expect(trackedNames()).toBe(10_000);
+
+		attempt("one-more", T0, "error");
+
+		expect(trackedNames()).toBe(10_000);
+		// "first" was the oldest record: its lock went with it.
+		expect(admitAttempt("first", T0).allowed).toBe(true);
+	});
+});

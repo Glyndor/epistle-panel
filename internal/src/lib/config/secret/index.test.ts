@@ -108,7 +108,7 @@ describe("readSecret", () => {
 
 	// Root ignores file modes, so the unreadable case cannot be built there.
 	it.skipIf(process.getuid?.() === 0)(
-		"fails closed on an unreadable file",
+		"fails closed on an unreadable file (not run as root, which ignores file modes)",
 		async () => {
 			const path = secretFile("hunter2\n");
 			chmodSync(path, 0o000);

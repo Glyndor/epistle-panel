@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { cleanup, render, screen } from "@testing-library/react";
 
 import { stubFetchJson, stubFetchReject } from "@/lib/api/test-support/fetch";
@@ -6,12 +6,6 @@ import {
 	mockRequestCookies,
 	RedirectSignal,
 } from "@/lib/auth/test-support/cookies";
-
-// Translations: echo the key so assertions stay locale-independent.
-mock.module("next-intl/server", () => ({
-	getTranslations: async () => (key: string) => key,
-	getFormatter: async () => ({ number: (value: number) => String(value) }),
-}));
 
 const cookies = mockRequestCookies();
 

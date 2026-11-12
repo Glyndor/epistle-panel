@@ -1,5 +1,29 @@
 import { mock } from "bun:test";
 
+/** What one stubbed `fetch` call was asked to send. */
+export interface SentRequest {
+	url: string;
+	/** The verb, `GET` when the caller named none, as `fetch` itself defaults. */
+	method: string;
+	headers: Headers;
+	body: string | undefined;
+	cache: RequestCache | undefined;
+}
+
+/** The calls the current `fetch` stub received, oldest first. */
+export function sentRequests(): SentRequest[] {
+	const stub = globalThis.fetch as unknown as {
+		mock: { calls: Array<[string | URL, RequestInit | undefined]> };
+	};
+	return stub.mock.calls.map(([url, init]) => ({
+		url: String(url),
+		method: init?.method ?? "GET",
+		headers: new Headers(init?.headers),
+		body: init?.body === undefined ? undefined : String(init.body),
+		cache: init?.cache,
+	}));
+}
+
 /** Replace global `fetch` with one returning `body` as JSON at `status`. */
 export function stubFetchJson(body: unknown, status = 200): void {
 	globalThis.fetch = mock(

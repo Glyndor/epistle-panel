@@ -163,6 +163,13 @@ describe("request time budget", () => {
 });
 
 describe("request response handling", () => {
+	it("never reads from or writes to the Next fetch cache, whatever the caller asks", async () => {
+		stubFetchJson({ ok: true });
+		await request("/x", schema, { cache: "force-cache" });
+		const [, init] = fetchMock().mock.calls[0] as [unknown, RequestInit];
+		expect(init.cache).toBe("no-store");
+	});
+
 	it("refuses a redirect instead of following it", async () => {
 		stubFetchJson({ ok: true });
 		await request("/x", schema);

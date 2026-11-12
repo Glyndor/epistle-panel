@@ -156,6 +156,58 @@ describe("token lifetime", () => {
 	});
 });
 
+describe("session lifetime, in literals", () => {
+	// These numbers are written out on purpose: a test that reads the limit from
+	// the module it checks agrees with whatever the module says.
+	const EIGHT_HOURS = 28_800;
+	const NOW = new Date("2026-03-01T12:00:00Z");
+	const now = () => Math.floor(NOW.getTime() / 1000);
+
+	it("is eight hours, for the token and for the cookie", () => {
+		expect(SESSION_MAX_AGE_SECONDS).toBe(EIGHT_HOURS);
+		expect(SESSION_COOKIE_OPTIONS.maxAge).toBe(EIGHT_HOURS);
+	});
+
+	it("mints a token that expires exactly eight hours from now", async () => {
+		setSystemTime(NOW);
+		const token = await createSession("ops");
+
+		const payload = JSON.parse(
+			atob(
+				(token.split(".")[0] as string)
+					.replaceAll("-", "+")
+					.replaceAll("_", "/"),
+			),
+		) as { exp: number };
+		expect(payload.exp).toBe(now() + EIGHT_HOURS);
+	});
+
+	it("accepts an exp eight hours out and refuses one second more", async () => {
+		setSystemTime(NOW);
+
+		expect(
+			await verifySession(
+				await signRaw({ sub: "ops", exp: now() + EIGHT_HOURS }),
+			),
+		).toEqual({ sub: "ops" });
+		expect(
+			await verifySession(
+				await signRaw({ sub: "ops", exp: now() + EIGHT_HOURS + 1 }),
+			),
+		).toBeNull();
+	});
+
+	it("stops accepting a token the second its exp is reached", async () => {
+		setSystemTime(NOW);
+		const token = await signRaw({ sub: "ops", exp: now() + 10 });
+
+		setSystemTime(new Date(NOW.getTime() + 9_000));
+		expect(await verifySession(token)).toEqual({ sub: "ops" });
+		setSystemTime(new Date(NOW.getTime() + 10_000));
+		expect(await verifySession(token)).toBeNull();
+	});
+});
+
 describe("revocation", () => {
 	it("makes a revoked token stop verifying", async () => {
 		const token = await createSession("ops");

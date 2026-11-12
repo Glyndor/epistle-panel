@@ -1,10 +1,6 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
-mock.module("next-intl", () => ({
-	useTranslations: () => (key: string) => key,
-}));
-
 const { default: ErrorPage } = await import("./error");
 
 afterEach(cleanup);
