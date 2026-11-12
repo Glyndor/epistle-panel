@@ -3,7 +3,7 @@ name: Pin policy
 # The reusable pins in this repository are compared with the latest released
 # tag of the shared workflows. The answer changes in two ways only: when a
 # workflow file changes, and when a new tag is released upstream. So it runs on
-# a pull request that touches `.github/` and once a week, not on every change.
+# a pull request that touches `.github/workflows/` and once a week, not on every change.
 # The check keeps its context, `pin-policy / pin policy`, because the job id
 # below is the one `ci.yml` used. Not a required check, so a path filter cannot
 # leave one pending.
@@ -17,7 +17,7 @@ on:
   pull_request:
     branches: [develop]
     paths:
-      - ".github/**"
+      - ".github/workflows/**"
   schedule:
     - cron: "41 6 * * 1"
   workflow_dispatch:
