@@ -3,6 +3,17 @@
 # component tests render against happy-dom under `bun test`.
 preload = ["./src/test/setup/index.ts"]
 
+# Per-test limit in milliseconds, stated here so it does not follow the Bun
+# default. The slowest test measures about 0.5 s; 10 s leaves room for a loaded
+# CI runner without letting a hung test sit for long.
+timeout = 10000
+
+# Fail `bun test --coverage` below 90% of lines and of functions. Bun reads the
+# value as a fraction from 0 to 1 (0.9 is 90%): a value such as 90 is out of
+# range, so the run always exits 1. Bun prints nothing when the gate fails, so
+# run `scripts/test/coverage.sh`, which prints the number and the threshold.
+coverageThreshold = { lines = 0.9, functions = 0.9 }
+
 # Keep test helpers out of the coverage report so the number describes
 # production code. The patterns are globs matched against the file path.
 coveragePathIgnorePatterns = [
