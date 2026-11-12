@@ -111,6 +111,29 @@ another host use `https`, or list the host in `EPISTLE_API_ALLOW_HTTP_HOSTS`
 (comma separated) when the link is already private, for example over WireGuard.
 An invalid value makes every API call fail without sending a request.
 
+### Sessions and sign-in limits
+
+- The session cookie is named `__Host-epistle_admin_session` and is always
+  `Secure`, `HttpOnly`, `SameSite=Lax`, `Path=/` with no `Domain`. The `__Host-`
+  prefix requires `Secure`, so the cookie does not depend on `NODE_ENV`. Serve
+  the panel over HTTPS, normally terminated by your reverse proxy. Chrome and
+  Firefox also accept it on `http://localhost`, which keeps `bun run dev` working;
+  over plain HTTP on any other host the browser drops the cookie and sign-in
+  does not stick. Safari on `http://localhost` was not checked.
+- Sessions last 8 hours. Signing out revokes the token on the server, not only
+  in the browser. The revocation list lives in the memory of one panel process:
+  it is lost on restart and not shared between replicas, so run a single
+  instance. After a restart a token revoked earlier is accepted again until it
+  expires.
+- Sign-in attempts are limited by account name: three free tries, then a lock
+  that doubles each time (2 seconds up to 15 minutes), plus a global ceiling of
+  60 attempts per minute. The limiter is checked before the API is called and
+  also lives in process memory. It does not read forwarded client-address
+  headers. The Epistle API has its own failed-authentication limiter, which
+  currently sees one address for all panel traffic; forwarding the admin's
+  address to it is a separate change in Epistle.
+- Every failed sign-in takes at least one second, whatever the cause.
+
 ## Contributing
 
 Branch from `develop` and open the pull request against `develop`. The
