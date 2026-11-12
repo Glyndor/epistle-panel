@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 
+import { Button } from "@/components/ui/button";
 import { logout } from "@/lib/auth/actions/logout";
 
 /** Primary navigation across the admin views, marking the active route. */
@@ -17,7 +18,7 @@ export function SiteNav() {
 		{ href: "/queue", label: t("queue") },
 	];
 	return (
-		<header className="border-zinc-200 border-b dark:border-zinc-800">
+		<header className="border-b">
 			<nav
 				aria-label={t("label")}
 				className="mx-auto flex w-full max-w-3xl flex-wrap items-center px-2 py-1.5"
@@ -28,27 +29,29 @@ export function SiteNav() {
 							? pathname === "/"
 							: pathname.startsWith(link.href);
 					return (
-						<Link
+						<Button
 							key={link.href}
-							href={link.href}
-							aria-current={active ? "page" : undefined}
-							className={`inline-flex min-h-11 min-w-11 items-center justify-center whitespace-nowrap rounded px-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500 ${
-								active
-									? "font-semibold text-zinc-900 dark:text-zinc-100"
-									: "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-							}`}
+							asChild
+							variant="ghost"
+							className="px-2 text-muted-foreground aria-[current=page]:font-semibold aria-[current=page]:text-foreground"
 						>
-							{link.label}
-						</Link>
+							<Link
+								href={link.href}
+								aria-current={active ? "page" : undefined}
+							>
+								{link.label}
+							</Link>
+						</Button>
 					);
 				})}
 				<form action={logout} className="ml-auto">
-					<button
+					<Button
 						type="submit"
-						className="inline-flex min-h-11 min-w-11 items-center justify-center whitespace-nowrap rounded px-2 text-sm text-zinc-600 hover:text-zinc-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500 dark:text-zinc-400 dark:hover:text-zinc-100"
+						variant="ghost"
+						className="px-2 text-muted-foreground"
 					>
 						{t("logout")}
-					</button>
+					</Button>
 				</form>
 			</nav>
 		</header>
