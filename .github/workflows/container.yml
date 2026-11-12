@@ -2,10 +2,11 @@ name: Container
 
 # Build the image and run the smoke checks: the version label matches
 # package.json, the server answers on its port, the login page is public, every
-# other route redirects to it without a session, the runtime user is 65532, and
-# every base the Containerfile pins is a multi-architecture index (the release
-# builds arm64, which no run here does, so a digest that names one architecture
-# would only fail after the release is published).
+# other route redirects to it without a session, the runtime user is 65532, the
+# server runs with a read-only root and no capability, and every base the
+# Containerfile pins is a multi-architecture index (the release builds arm64,
+# which no run here does, so a digest that names one architecture would only
+# fail after the release is published).
 # A change that touches none of the listed inputs cannot break them, so it does
 # not pay to run. The list includes this workflow: one whose `paths:` does not
 # list itself never runs on the pull request that edits it. The negated
@@ -116,7 +117,12 @@ jobs:
       - name: The server answers and gates every route but the login page
         run: |
           set -euo pipefail
+          # Run the way an operator can: root file system read-only with a
+          # writable /tmp, no capability, no privilege gain. The server has to
+          # answer without writing anywhere else in the image.
           podman run -d --name panel \
+            --read-only --tmpfs /tmp \
+            --cap-drop=ALL --security-opt no-new-privileges \
             -p 127.0.0.1:17587:7587 \
             -e EPISTLE_API_URL=http://127.0.0.1:1 \
             -e EPISTLE_API_TOKEN=ci-token \
