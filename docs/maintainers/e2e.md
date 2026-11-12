@@ -10,15 +10,31 @@ behaviour only shows on the real thing. `scripts/e2e/` checks it.
 cd internal && bun run build && cd ..
 scripts/e2e/run.sh              # every scenario, about 40 s
 scripts/e2e/run.sh noauth idle  # some of them
-bun test scripts/e2e            # the stand-in API's own tests
+scripts/headers/verify.sh       # headers, nonce and redirects, one server
+bun test scripts/e2e            # the stand-in API's and the shared checks' tests
 ```
 
 It needs bash, node, bun and curl, uses only 127.0.0.1 and picks free ports
-(`PANEL_PORT` and `STAND_IN_PORT` override them). It is not part of the default
-CI. A workflow that fits it would run on pull requests that touch
-`internal/src/lib/auth/**`, `internal/src/proxy.ts`, `internal/next.config.ts`,
-`internal/src/lib/config/**` or `scripts/e2e/**`, build the panel and call the
-script.
+(`PANEL_PORT` and `STAND_IN_PORT` override them).
+
+The `End-to-end` workflow (`.github/workflows/e2e.yml`) builds the panel and runs
+`bun test scripts/e2e`, `scripts/e2e/run.sh` and `scripts/headers/verify.sh` on
+pull requests and on pushes to `develop` that touch `internal/src/lib/auth/**`,
+`internal/src/lib/security-headers/**`, `internal/src/lib/api/**`,
+`internal/src/lib/config/**`, `internal/src/proxy.ts`, `internal/next.config.ts`,
+`internal/src/app/**`, `scripts/e2e/**`, `scripts/headers/**` or the workflow
+itself. It is not a required check, so a docs-only change neither runs nor waits
+on it. Its `timeout-minutes: 15` is an estimate: it had not run on a runner when
+it was written. A red run means a real server behaved differently from the unit
+tests, so read its log before merging anyway.
+
+Two small files are sourced by both scripts: `session-cookie.sh` holds the
+session cookie name, and a test fails when it differs from `SESSION_COOKIE` in
+`internal/src/lib/auth/session/index.ts`; `html-checks.sh` holds the check that
+every `<script>` tag carries the nonce, whatever its attributes. A script that
+sends a stale cookie name is redirected to `/login`, and every header check
+still passes on the redirect, so `verify.sh` also asserts a 200 with an HTML
+body before it checks anything else.
 
 `scripts/e2e/stand-in-api/` answers the paths the panel calls, validated
 against the panel's own zod schemas in its test. It knows the accounts `admin`
@@ -30,14 +46,14 @@ secret, and switches the data endpoints to `hang` or `huge` through
 
 | Scenario | Proves |
 |---|---|
-| `headers` | CSP with a fresh nonce per request, no `unsafe-inline`, the nonce on every script, the other headers, the cookie flags, no inline style on every page and on the 404 page |
+| `headers` | CSP with a fresh nonce per request, no `unsafe-inline`, the nonce on every script tag (with or without attributes), the other headers, the cookie flags, no inline style on every page and on the 404 page |
 | `logout` | a replayed cookie is refused by the proxy and by an action after logout, and reaches no API endpoint; another session survives |
-| `limiter` | three free tries, then the lock; locked attempts never reach the API; another name signs in; a failure takes 1 s |
-| `limiter-global` | 70 parallel attempts with 70 names: exactly 60 reach the API |
+| `limiter` | three free tries, then the lock; locked attempts never reach the API; another name signs in; the lock ends; a failure and a success each take at least 1 s |
+| `limiter-global` | 60 failing names fill the global window and the 61st unknown name is refused; the admin, who signed in before, is still admitted. The cap of 8 concurrent API calls is covered by the unit tests, since parallel curl processes cannot make the count deterministic |
 | `noauth` | every route and Server Action is redirected without a session, with a garbage or altered cookie, and the stand-in sees nothing |
 | `degraded` | a hanging API degrades the page within the 10 s budget and the server keeps answering; a body over the cap degrades quickly with bounded memory |
 | `rotation` | replacing a `_FILE` secret does not change a running process, in any bundle; a restart picks it up |
-| `idle` | idle CPU and memory after 200 requests |
+| `idle` | idle CPU, and a memory ceiling after 400 requests |
 
 ## Browser checks (manual)
 
