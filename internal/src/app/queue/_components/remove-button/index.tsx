@@ -3,11 +3,11 @@
 import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
-
 import {
 	type RemoveState,
 	removeEntry,
 } from "@/app/queue/_actions/remove-entry";
+import { Button } from "@/components/ui/button";
 
 function Submit({
 	label,
@@ -20,14 +20,15 @@ function Submit({
 }) {
 	const { pending } = useFormStatus();
 	return (
-		<button
+		<Button
 			type="submit"
+			variant="destructive"
 			disabled={pending}
 			aria-label={ariaLabel}
-			className="min-h-11 min-w-11 shrink-0 rounded-md border border-red-700 px-3 text-red-700 text-sm hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 disabled:opacity-50 dark:border-red-300 dark:text-red-300 dark:hover:bg-red-950"
+			className="shrink-0"
 		>
 			{pending ? pendingLabel : label}
-		</button>
+		</Button>
 	);
 }
 
@@ -67,7 +68,7 @@ export function RemoveButton({
 			{state?.ok === false && (
 				<span
 					role="alert"
-					className="text-right text-red-700 text-xs dark:text-red-300"
+					className="text-right text-destructive text-xs"
 				>
 					{t("removeError")}
 				</span>

@@ -10,9 +10,7 @@ export default async function LoginPage() {
 			id="main-content"
 			className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 p-4"
 		>
-			<h1 className="font-semibold text-2xl text-zinc-900 dark:text-zinc-100">
-				{t("heading")}
-			</h1>
+			<h1 className="font-semibold text-2xl">{t("heading")}</h1>
 			<LoginForm />
 		</main>
 	);

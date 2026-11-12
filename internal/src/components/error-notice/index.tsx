@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+
 /** Text of an {@link ErrorNotice}, already translated by the caller. */
 export interface ErrorNoticeLabels {
 	heading: string;
@@ -27,23 +29,16 @@ export function ErrorNotice({
 			className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-8"
 		>
 			<h1 className="font-semibold text-3xl">{labels.heading}</h1>
-			<p role="alert" className="text-zinc-500 dark:text-zinc-400">
+			<p role="alert" className="text-muted-foreground">
 				{labels.body}
 			</p>
 			<div className="flex items-center gap-4">
-				<button
-					type="button"
-					onClick={onRetry}
-					className="rounded bg-zinc-900 px-4 py-2 text-sm text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500 dark:bg-zinc-100 dark:text-zinc-900"
-				>
+				<Button type="button" onClick={onRetry}>
 					{labels.retry}
-				</button>
-				<a
-					href="/"
-					className="text-sm text-zinc-600 underline hover:text-zinc-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500 dark:text-zinc-400 dark:hover:text-zinc-100"
-				>
-					{labels.home}
-				</a>
+				</Button>
+				<Button asChild variant="link">
+					<a href="/">{labels.home}</a>
+				</Button>
 			</div>
 		</main>
 	);
