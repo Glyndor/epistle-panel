@@ -37,6 +37,11 @@ const config = (
 
 beforeEach(() => {
 	resetScriptCache();
+	// Test files share one document in a single process, so scripts that another
+	// file left in the head would count here and make the first test depend on order.
+	for (const script of scripts()) {
+		script.remove();
+	}
 });
 afterEach(() => {
 	scriptsFinishWith("load");
