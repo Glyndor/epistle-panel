@@ -1,4 +1,7 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it, type Mock } from "bun:test";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 import {
 	EpistleApiError,
@@ -13,6 +16,7 @@ import { stubFetchJson, stubFetchReject } from "./test-fetch";
 const ID = "01890a5d-ac96-774b-b9aa-9be4c3bd6b0e";
 
 afterEach(() => {
+	delete process.env.EPISTLE_API_TOKEN_FILE;
 	delete process.env.EPISTLE_API_TOKEN;
 	process.env.EPISTLE_API_TOKEN = "test-token";
 });
@@ -80,5 +84,41 @@ describe("client errors", () => {
 			queue_size: 0,
 		});
 		expect(getStatus()).rejects.toThrow("EPISTLE_API_TOKEN");
+	});
+});
+
+describe("client token file", () => {
+	const status = { version: "1.0.0", domains: 0, accounts: 0, queue_size: 0 };
+
+	function bearer(): string | undefined {
+		const [, init] = (globalThis.fetch as unknown as Mock<typeof fetch>)
+			.mock.calls[0] as [unknown, RequestInit];
+		return (init.headers as Record<string, string>).Authorization;
+	}
+
+	function tokenFile(content: string): { path: string; cleanup: () => void } {
+		const dir = mkdtempSync(join(tmpdir(), "epistle-token-"));
+		const path = join(dir, "token");
+		writeFileSync(path, content);
+		return { path, cleanup: () => rmSync(dir, { recursive: true }) };
+	}
+
+	it("sends the token read from EPISTLE_API_TOKEN_FILE over the plain one", async () => {
+		const file = tokenFile("file-token\n");
+		process.env.EPISTLE_API_TOKEN_FILE = file.path;
+		stubFetchJson(status);
+		await getStatus();
+		file.cleanup();
+		expect(bearer()).toBe("Bearer file-token");
+	});
+
+	it("makes no request when the token file is unusable", async () => {
+		const file = tokenFile("");
+		process.env.EPISTLE_API_TOKEN_FILE = file.path;
+		stubFetchJson(status);
+		const error = await getStatus().catch((e) => e);
+		file.cleanup();
+		expect(error.message).toContain("EPISTLE_API_TOKEN_FILE");
+		expect(globalThis.fetch).not.toHaveBeenCalled();
 	});
 });
