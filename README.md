@@ -1,10 +1,10 @@
 # epistle-panel
 
-Admin panel for the [Epistle mail server](https://github.com/Glyndor/epistle): domains, accounts, email security and queues on top of its management API.
+Admin panel for the [Epistle mail server](https://github.com/Glyndor/epistle): server status, domains, accounts and queues on top of its management API.
 
 [![CI](https://github.com/Glyndor/epistle-panel/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/Glyndor/epistle-panel/actions/workflows/ci.yml)
 
-> 🚧 Early development. The foundation is in place; feature views are on the way.
+> 🚧 Early development. The status, accounts, domains and queue views work; the rest of the management API is not covered yet.
 
 ## 🧱 Stack
 
@@ -15,20 +15,23 @@ Admin panel for the [Epistle mail server](https://github.com/Glyndor/epistle): d
 
 ## 📦 Install
 
-The panel runs only as a service of the stack that [epistle](https://github.com/Glyndor/epistle)
-generates. There is no standalone compose file. It ships in two forms, neither
-published yet: `.github/workflows/release.yml` builds both when a `v*` tag is
+The panel is meant to run only as a service of the stack that
+[epistle](https://github.com/Glyndor/epistle) generates. There is no standalone
+compose file. It ships in two forms, neither published yet: `.github/workflows/release.yml` builds both when a `v*` tag is
 pushed, and no release exists so far. See [docs/maintainers/releasing.md](docs/maintainers/releasing.md).
 
 - **Container image.** `ghcr.io/glyndor/epistle-panel`, built from the `Containerfile`
   at the repository root. It runs as uid 65532 and listens on port 7587. The
   application runs here and nowhere else.
 - **apt package.** `epistle-panel` is a thin package with no Node runtime and no
-  application code. It depends on `epistle` and `podup` and installs one file,
-  `/usr/share/glyndor/epistle-panel/image`, naming the image tag that matches the
-  package version. epistle reads it to add the panel to its stack. The package
-  creates no account, directory or secret. Adding the service to a running stack
-  needs an epistle release that reads that file; see `debian/README.Debian`.
+  application code. It depends on `epistle`, `podup` and `glyndor-archive-keyring`
+  and installs two files: `/usr/share/glyndor/epistle-panel/image`, naming the
+  image tag that matches the package version, and
+  `/usr/share/glyndor/epistle-panel/README`, saying what that file is for. The
+  design is that epistle reads the image file to add the panel to its stack, but
+  the epistle release that does so does not exist yet, so installing the package
+  changes no running stack today; see `debian/README.Debian`. The package
+  creates no account, no directory outside `/usr/share` and no secret.
 
 TLS is not the panel's job: put your own proxy in front of it.
 
@@ -53,7 +56,7 @@ proxy_set_header X-Forwarded-Host  $host;
 proxy_set_header X-Forwarded-Proto $scheme;
 ```
 
-`scripts/headers/verify.sh` starts the built standalone server and asserts the
+`scripts/headers/verify.sh` (the port is `PORT`, default 7598) starts the built standalone server and asserts the
 headers, and that a hostile `Host` or `X-Forwarded-Host` never reaches the
 redirect's `Location`, against real HTTP. Run it after `bun run build` in
 `internal/`.
@@ -117,9 +120,10 @@ An invalid value makes every API call fail without sending a request.
   `Secure`, `HttpOnly`, `SameSite=Lax`, `Path=/` with no `Domain`. The `__Host-`
   prefix requires `Secure`, so the cookie does not depend on `NODE_ENV`. Serve
   the panel over HTTPS, normally terminated by your reverse proxy. Chrome and
-  Firefox also accept it on `http://localhost`, which keeps `bun run dev` working;
-  over plain HTTP on any other host the browser drops the cookie and sign-in
-  does not stick. Safari on `http://localhost` was not checked.
+  Firefox are documented as accepting it on `http://localhost`, which keeps
+  `bun run dev` working; over plain HTTP on any other host the browser drops the
+  cookie and sign-in does not stick. Only Chromium was checked here (see
+  [docs/maintainers/e2e.md](docs/maintainers/e2e.md)); Safari and Firefox were not.
 - Sessions last 8 hours. Signing out revokes the token on the server, not only
   in the browser. The revocation list lives in the memory of one panel process:
   it is lost on restart and not shared between replicas, so run a single
@@ -154,7 +158,7 @@ An invalid value makes every API call fail without sending a request.
   account, a wrong password and a success look alike by time. That only holds
   while the API answers within the floor, and the real API's password hash time
   was not measured. Set `EPISTLE_PANEL_LOGIN_MIN_MS` (whole milliseconds, 0 to
-  30000) to raise or lower it; a value that does not parse keeps the default.
+  30000) to raise or lower it; a value that does not parse, or one above 30000, keeps the default.
 - A render error shows the panel's own error page (translated, no inline
   styles), not Next's built-in one, which the Content Security Policy would
   leave unstyled.
@@ -175,17 +179,21 @@ bun run build
 The Debian package has its own checks, run by the `Debian package` workflow:
 `scripts/debian/build.sh <output-dir>` builds and lints the `.deb` in a Debian
 container, and `scripts/debian/smoke.sh <path-to-.deb>` installs it there.
-Both need podman or docker.
+Both need podman or docker. `BUILD_IMAGE` and `SMOKE_IMAGE` replace the Debian
+image they use, `docker.io/library/debian:trixie` by default.
 
 `scripts/e2e/run.sh` checks the built server against a stand-in API
 (see [docs/maintainers/e2e.md](docs/maintainers/e2e.md)); the `End-to-end` workflow
 runs it, and `scripts/headers/verify.sh`, on pull requests that touch the code it
 exercises.
 
-Other workflows run only when their answer can change: `Dependency audit`
-(lockfile or manifest, plus weekly), `actionlint` (workflow files), `Bun
-version` (one Bun release across the workflows and the Containerfile) and
-`Dependabot security watch`. None of them is a required check.
+Other workflows run only when their answer can change: `Container` (the image
+inputs), `Debian package` (the package inputs), `Dependency audit` (lockfile or
+manifest, plus weekly), `actionlint` (workflow files), `Bun version` (one Bun
+release across the workflows and the Containerfile) and `Dependabot security
+watch`. `Line limit` runs when a `.ts` or `.tsx` file changes. `DCO` runs on
+every pull request into `main` or `develop`, and `guard` on every pull request
+into `main`. `Release` runs on a `v*` tag.
 
 ## License
 

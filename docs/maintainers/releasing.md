@@ -56,4 +56,6 @@ The workflow calls these, each with an explicit interpreter, and they can be run
 | `scripts/release/publish/` | `publish-manifest.sh` and `image_tags.py`, which decides the image tags |
 | `scripts/debian/` | `build.sh` and `smoke.sh` (with `smoke-inner.sh`), which build, lint and smoke-test the package in a clean Debian container |
 
+`build.sh` reads `BUILD_IMAGE` and `smoke.sh` reads `SMOKE_IMAGE` to replace the Debian image, `docker.io/library/debian:trixie` by default.
+
 A consumer checks a published release as described in [Verifying a release](../operators/verifying-a-release.md).

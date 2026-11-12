@@ -24,8 +24,8 @@ pull requests and on pushes to `develop` that touch `internal/src/lib/auth/**`,
 `internal/src/lib/config/**`, `internal/src/proxy.ts`, `internal/next.config.ts`,
 `internal/src/app/**`, `scripts/e2e/**`, `scripts/headers/**` or the workflow
 itself. It is not a required check, so a docs-only change neither runs nor waits
-on it. Its `timeout-minutes: 15` is an estimate: it had not run on a runner when
-it was written. A red run means a real server behaved differently from the unit
+on it. Its `timeout-minutes: 15` is an estimate with a margin: runs on 2026-11-12
+finished between about 1 and 8 minutes. A red run means a real server behaved differently from the unit
 tests, so read its log before merging anyway.
 
 `run.sh` is a thin runner: argument parsing, the stand-in and panel start and
@@ -71,15 +71,17 @@ secret, and switches the data endpoints to `hang` or `huge` through
 
 ## Browser checks (manual)
 
-Start the stand-in and the standalone server by hand (see the top of
-`scripts/e2e/run.sh` for the variables), then use a Chromium-based browser with
+Start the stand-in and the standalone server by hand (`STAND_IN_TOKEN` is
+required by the stand-in, `STAND_IN_PORT` and `PANEL_PORT` set the ports, and
+`lib/processes.sh` shows the variables the panel needs), then use a Chromium-based browser with
 the console open.
 
 1. Open `http://127.0.0.1:<port>/login` and `http://localhost:<port>/login`.
    Sign in as `admin` / `correct-horse`. In Chromium both origins count as
    secure, so the `__Host-` cookie is stored (Secure, HttpOnly, Path=/,
    SameSite=Lax, no Domain). Over plain HTTP on any other host name the browser
-   drops it and sign-in does not stick. Safari and Firefox were not checked.
+   drops it and sign-in does not stick. Firefox and Safari were not checked here; Firefox is documented as accepting
+   the cookie on `http://localhost` (see the README).
 2. Visit `/`, `/accounts`, `/domains`, `/queue`: the console must show no CSP
    violation and no error, and the login form must be hydrated (a failed
    sign-in shows the alert without a page reload).
@@ -94,8 +96,8 @@ the console open.
 ## Measured on 2026-11-12 (Node 24, Next 16.4.6)
 
 - Failed sign-in: 1.0 to 1.4 s.
-- Idle: about 120 MiB resident, no CPU. After 1200 requests resident memory
-  peaked near 350 MiB and fell back to about 190 MiB once idle, so it is
+- Idle: about 120 MiB resident, no CPU. After 1200 requests in a manual run
+  resident memory peaked near 350 MiB and fell back to about 190 MiB once idle, so it is
   garbage-collector headroom, not growth. The container has no heap cap; set
   one (`NODE_OPTIONS=--max-old-space-size`) if its memory limit is tight.
 - A 64 MiB streamed body is cut at the 5 MiB cap; memory grew by about 26 MiB.

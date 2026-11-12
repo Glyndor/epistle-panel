@@ -1,9 +1,9 @@
 name: Debian package
 
 # Builds the epistle-panel .deb, lints it, and installs it in a clean Debian
-# container. The package is a podup stack fragment with no application code, so
-# the checks are about its footprint: account, directories, modes, secrets and a
-# compose fragment that parses. The list below includes this workflow: one whose
+# container. The package carries no application code, only the image reference
+# and a README for it, so the checks are about its footprint: account, group,
+# files, modes, idempotent reinstall and a purge that leaves nothing behind. The list below includes this workflow: one whose
 # `paths:` does not list itself never runs on the pull request that edits it.
 
 on:

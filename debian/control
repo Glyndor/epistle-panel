@@ -13,11 +13,13 @@ Package: epistle-panel
 Architecture: all
 Depends: ${misc:Depends}, epistle, podup, glyndor-archive-keyring
 Description: web panel for the epistle mail server, installed as a stack service
- epistle-panel is the web interface for epistle: webmail and administration
+ epistle-panel is the web interface for epistle: administration
  on top of epistle's management API.
  .
  This package carries no application code and no Node runtime. The panel runs
  only inside its container image, ghcr.io/glyndor/epistle-panel. The package
- installs one small file naming the image tag that matches the package version;
- epistle reads it and adds the panel service to the stack it generates. The
- package creates no account, no directory and no secret.
+ installs two small files: one naming the image tag that matches the package
+ version, and a README for it. epistle is meant to read the first and add the
+ panel service to the stack it generates; the epistle release that does so does
+ not exist yet. The package creates no account, no directory outside
+ /usr/share and no secret.
