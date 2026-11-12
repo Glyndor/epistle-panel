@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { REQUEST_TIMEOUT_MS } from "../request";
 import {
+	sentRequests,
 	stubFetchHang,
 	stubFetchJson,
 	stubFetchReject,
@@ -46,18 +47,136 @@ describe("client getters", () => {
 		expect((await getAccounts()).accounts[0]?.name).toBe("a");
 	});
 
-	it("builds the queue query string and parses the page", async () => {
-		stubFetchJson({ entries: [] });
-		expect((await getQueue()).entries).toEqual([]);
-		stubFetchJson({ entries: [] });
-		expect(
-			(await getQueue({ limit: 2, cursor: ID })).next_cursor,
-		).toBeUndefined();
+	it("parses a queue page", async () => {
+		stubFetchJson({ entries: [], next_cursor: ID });
+		const page = await getQueue();
+		expect(page.entries).toEqual([]);
+		expect(page.next_cursor).toBe(ID);
 	});
 
-	it("removes a queue entry", async () => {
+	it("parses the removal confirmation", async () => {
 		stubFetchJson({ removed: ID });
 		expect((await removeQueueEntry(ID)).removed).toBe(ID);
+	});
+});
+
+describe("client requests", () => {
+	const BASE = "http://127.0.0.1:8025";
+	const status = { version: "1", domains: 0, accounts: 0, queue_size: 0 };
+
+	/** The single request the stub received, after checking there was one. */
+	function onlyRequest() {
+		const calls = sentRequests();
+		expect(calls).toHaveLength(1);
+		return calls[0] as ReturnType<typeof sentRequests>[number];
+	}
+
+	it("reads the status with GET /api/v1/status", async () => {
+		stubFetchJson(status);
+		await getStatus();
+		const sent = onlyRequest();
+		expect([sent.method, sent.url]).toEqual([
+			"GET",
+			`${BASE}/api/v1/status`,
+		]);
+		expect(sent.body).toBeUndefined();
+	});
+
+	it("reads the domains with GET /api/v1/domains", async () => {
+		stubFetchJson({ domains: [] });
+		await getDomains();
+		const sent = onlyRequest();
+		expect([sent.method, sent.url]).toEqual([
+			"GET",
+			`${BASE}/api/v1/domains`,
+		]);
+	});
+
+	it("reads the accounts with GET /api/v1/accounts", async () => {
+		stubFetchJson({ accounts: [] });
+		await getAccounts();
+		const sent = onlyRequest();
+		expect([sent.method, sent.url]).toEqual([
+			"GET",
+			`${BASE}/api/v1/accounts`,
+		]);
+	});
+
+	it("asks for the first queue page with no query string", async () => {
+		stubFetchJson({ entries: [] });
+		await getQueue();
+		const sent = onlyRequest();
+		expect([sent.method, sent.url]).toEqual([
+			"GET",
+			`${BASE}/api/v1/queue`,
+		]);
+	});
+
+	it("sends the cursor, the limit, or both, as query parameters", async () => {
+		const urls: string[] = [];
+		for (const params of [
+			{ cursor: ID },
+			{ limit: 2 },
+			{ limit: 2, cursor: ID },
+		]) {
+			stubFetchJson({ entries: [] });
+			await getQueue(params);
+			urls.push(onlyRequest().url);
+		}
+		expect(urls).toEqual([
+			`${BASE}/api/v1/queue?cursor=${ID}`,
+			`${BASE}/api/v1/queue?limit=2`,
+			`${BASE}/api/v1/queue?limit=2&cursor=${ID}`,
+		]);
+	});
+
+	it("removes an entry with DELETE /api/v1/queue/<id> and no body", async () => {
+		stubFetchJson({ removed: ID });
+		await removeQueueEntry(ID);
+		const sent = onlyRequest();
+		expect([sent.method, sent.url]).toEqual([
+			"DELETE",
+			`${BASE}/api/v1/queue/${ID}`,
+		]);
+		expect(sent.body).toBeUndefined();
+	});
+
+	it("encodes the id into one path segment, whatever it holds", async () => {
+		const urls: string[] = [];
+		for (const id of ["../status", "a/b", "a?b=c#d", "a b", "%2e%2e"]) {
+			stubFetchJson({ removed: ID });
+			await removeQueueEntry(id);
+			urls.push(onlyRequest().url);
+		}
+		expect(urls).toEqual([
+			`${BASE}/api/v1/queue/..%2Fstatus`,
+			`${BASE}/api/v1/queue/a%2Fb`,
+			`${BASE}/api/v1/queue/a%3Fb%3Dc%23d`,
+			`${BASE}/api/v1/queue/a%20b`,
+			`${BASE}/api/v1/queue/%252e%252e`,
+		]);
+	});
+
+	it("verifies credentials with POST /api/v1/auth/verify and a JSON body", async () => {
+		stubFetchJson({ valid: true, admin: true });
+		await verifyCredentials("ops", "pw&=1");
+		const sent = onlyRequest();
+		expect([sent.method, sent.url]).toEqual([
+			"POST",
+			`${BASE}/api/v1/auth/verify`,
+		]);
+		expect(sent.headers.get("content-type")).toBe("application/json");
+		expect(JSON.parse(sent.body ?? "")).toEqual({
+			name: "ops",
+			password: "pw&=1",
+		});
+		expect(sent.url).not.toContain("pw");
+	});
+
+	it("keeps the response out of the Next fetch cache on every call", async () => {
+		stubFetchJson(status);
+		await getStatus();
+		expect(onlyRequest().cache).toBe("no-store");
 	});
 });
 
@@ -163,7 +282,7 @@ describe("client time budgets", () => {
 		expect(await budgetOf(() => verifyCredentials("ops", "pw"))).toBe(
 			VERIFY_TIMEOUT_MS,
 		);
-		expect(VERIFY_TIMEOUT_MS).toBeGreaterThan(REQUEST_TIMEOUT_MS);
+		expect(VERIFY_TIMEOUT_MS).toBe(30_000);
 	});
 
 	it("rejects a call that never gets an answer", async () => {

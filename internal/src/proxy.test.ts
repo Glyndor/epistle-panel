@@ -165,3 +165,76 @@ describe("proxy", () => {
 		);
 	});
 });
+
+describe("proxy script policy per environment", () => {
+	const cookie = () => createSession("admin");
+
+	/** Run `body` with `NODE_ENV` set to `value`, then put the old value back. */
+	async function underNodeEnv(
+		value: string,
+		body: () => Promise<void>,
+	): Promise<void> {
+		const env = process.env as Record<string, string | undefined>;
+		const saved = env.NODE_ENV;
+		env.NODE_ENV = value;
+		try {
+			await body();
+		} finally {
+			env.NODE_ENV = saved;
+		}
+	}
+
+	const scriptSrc = (response: Response): string =>
+		(response.headers.get("content-security-policy") ?? "")
+			.split("; ")
+			.find((part) => part.startsWith("script-src ")) ?? "";
+
+	const signedIn = async () => {
+		const req = new NextRequest("http://panel.test/queue");
+		req.cookies.set(SESSION_COOKIE, await cookie());
+		return req;
+	};
+
+	for (const value of ["production", "test"]) {
+		it(`never allows eval when NODE_ENV is ${value}`, async () => {
+			await underNodeEnv(value, async () => {
+				const allowed = await proxy(await signedIn());
+				const redirected = await proxy(
+					new NextRequest("http://panel.test/queue"),
+				);
+
+				for (const response of [allowed, redirected]) {
+					expect(scriptSrc(response)).toMatch(
+						/^script-src 'self' 'nonce-[^']+' 'strict-dynamic'$/,
+					);
+				}
+				expect(
+					allowed.headers.get(
+						"x-middleware-request-content-security-policy",
+					),
+				).not.toContain("unsafe-eval");
+			});
+		});
+	}
+
+	it("allows eval in development only, on every response and on the forwarded header", async () => {
+		await underNodeEnv("development", async () => {
+			const allowed = await proxy(await signedIn());
+			const redirected = await proxy(
+				new NextRequest("http://panel.test/queue"),
+			);
+
+			expect(scriptSrc(allowed)).toEndWith(
+				"'strict-dynamic' 'unsafe-eval'",
+			);
+			expect(scriptSrc(redirected)).toEndWith(
+				"'strict-dynamic' 'unsafe-eval'",
+			);
+			expect(
+				allowed.headers.get(
+					"x-middleware-request-content-security-policy",
+				),
+			).toContain("'unsafe-eval'");
+		});
+	});
+});
