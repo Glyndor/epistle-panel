@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
+import { captureCookieWrites } from "@/test/cookie-capture";
 import { SidebarProvider } from "../provider";
 import { SidebarTrigger } from ".";
 
@@ -24,14 +25,8 @@ describe("SidebarTrigger", () => {
 	});
 
 	it("runs the caller's handler and then toggles the sidebar", () => {
-		const writes: string[] = [];
-		Object.defineProperty(document, "cookie", {
-			configurable: true,
-			get: () => "",
-			set: (value: string) => {
-				writes.push(value);
-			},
-		});
+		const capture = captureCookieWrites();
+		const { writes } = capture;
 		const onClick = mock(() => {});
 		render(
 			<SidebarProvider>
@@ -43,6 +38,6 @@ describe("SidebarTrigger", () => {
 
 		expect(onClick).toHaveBeenCalledTimes(1);
 		expect(writes.at(-1)).toStartWith("sidebar_state=false");
-		delete (document as { cookie?: string }).cookie;
+		capture.restore();
 	});
 });

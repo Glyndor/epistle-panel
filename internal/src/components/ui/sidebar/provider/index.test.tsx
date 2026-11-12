@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
+import { captureCookieWrites } from "@/test/cookie-capture";
 import { useSidebar } from "../context";
 import { SIDEBAR_COOKIE, SidebarProvider } from ".";
 
@@ -13,18 +14,6 @@ function Probe() {
 	);
 }
 
-/** Capture what the provider writes to `document.cookie`; happy-dom keeps none without a URL. */
-function captureCookies() {
-	const writes: string[] = [];
-	Object.defineProperty(document, "cookie", {
-		configurable: true,
-		get: () => writes.join("; "),
-		set: (value: string) => {
-			writes.push(value);
-		},
-	});
-	return writes;
-}
 function MobileProbe() {
 	const { isMobile, openMobile, toggleSidebar } = useSidebar();
 	return (
@@ -34,15 +23,19 @@ function MobileProbe() {
 	);
 }
 
+let capture: ReturnType<typeof captureCookieWrites> | undefined;
+
 afterEach(() => {
 	cleanup();
-	delete (document as { cookie?: string }).cookie;
+	capture?.restore();
+	capture = undefined;
 	window.innerWidth = 1024;
 });
 
 describe("SidebarProvider", () => {
 	it("starts expanded or collapsed as told, then toggles and remembers the choice", () => {
-		const writes = captureCookies();
+		capture = captureCookieWrites();
+		const { writes } = capture;
 		render(
 			<SidebarProvider defaultOpen={false}>
 				<Probe />
@@ -91,7 +84,8 @@ describe("SidebarProvider", () => {
 
 	it("opens the mobile sheet instead of the rail on a narrow viewport", () => {
 		window.innerWidth = 400;
-		const writes = captureCookies();
+		capture = captureCookieWrites();
+		const { writes } = capture;
 		render(
 			<SidebarProvider>
 				<MobileProbe />
