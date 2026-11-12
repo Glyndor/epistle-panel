@@ -55,18 +55,18 @@ export function SidebarProvider({
 		return () => window.removeEventListener("keydown", onKeyDown);
 	}, [toggleSidebar]);
 
-	const value = React.useMemo<SidebarContextProps>(
-		() => ({
-			state: open ? "expanded" : "collapsed",
-			open,
-			setOpen,
-			isMobile,
-			openMobile,
-			setOpenMobile,
-			toggleSidebar,
-		}),
-		[open, setOpen, isMobile, openMobile, toggleSidebar],
-	);
+	// No `useMemo`: React Compiler (`reactCompiler` in next.config.ts) memoizes
+	// the context value. The two callbacks stay because the effect above lists
+	// one as a dependency, which Biome checks without the compiler.
+	const value: SidebarContextProps = {
+		state: open ? "expanded" : "collapsed",
+		open,
+		setOpen,
+		isMobile,
+		openMobile,
+		setOpenMobile,
+		toggleSidebar,
+	};
 
 	return (
 		<SidebarContext.Provider value={value}>

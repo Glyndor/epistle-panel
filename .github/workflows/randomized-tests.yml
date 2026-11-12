@@ -1,0 +1,53 @@
+name: Randomized tests
+
+# Runs the unit suite once in random file and test order with a fixed seed
+# (seed 1 of scripts/test/randomized.sh). A suite that passes in the default
+# order and fails in another depends on state one test leaves for the next; the
+# required check in ci.yml runs the default order only, because the workflow it
+# calls is shared with other repositories. A fixed seed keeps a failure
+# reproducible: `scripts/test/randomized.sh 1` or
+# `bun test --randomize --seed=1` in internal/ replays it. Not a required check,
+# so a path filter cannot leave one pending. It uses no secrets.
+
+on:
+  pull_request:
+    # Into develop only: a promotion pull request to main carries a tree this
+    # check already answered for on develop.
+    branches: [develop]
+    paths:
+      - "internal/**"
+      - "scripts/test/**"
+      - ".github/workflows/randomized-tests.yml"
+
+permissions:
+  contents: read
+
+# A newer push to a pull request supersedes the run in flight.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  randomized:
+    name: randomized
+    runs-on: ubuntu-latest
+    # The suite takes about 6 s and the install under a minute; 10 leaves room
+    # for a cold cache on a slow runner.
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          # Same Bun as ci.yml, release.yml and the Containerfile;
+          # scripts/version/check-bun-version.sh keeps them equal.
+          bun-version: 1.4.4
+
+      - name: Install dependencies
+        working-directory: internal
+        run: bun install --frozen-lockfile
+
+      - name: Unit tests in random order, seed 1
+        run: bash scripts/test/randomized.sh 1

@@ -3,6 +3,13 @@
 Run everything from `internal/`: `bun test` for the suite, `bun test --coverage`
 for the report the CI gate reads (90% of lines).
 
+`bunfig.toml` also holds the gate and the per-test limit: `coverageThreshold`
+(0.9 of lines and of functions) and `timeout` (10 s; the slowest test measures
+about 0.5 s). Bun reads the threshold as a fraction, so `90` is out of range and
+makes every run exit 1. Bun prints nothing when the threshold fails, so
+`scripts/test/coverage.sh` runs the same command and prints the measured lines
+and functions next to the threshold, naming the one that is short.
+
 ## What the coverage number counts
 
 `bunfig.toml` lists `coveragePathIgnorePatterns`, so test helpers
@@ -35,7 +42,11 @@ bun test --randomize --seed=9     # replay one
 ```
 
 The required CI check runs the default order only, because the workflow it calls
-is shared with other repositories.
+is shared with other repositories. The `Randomized tests` workflow
+(`.github/workflows/randomized-tests.yml`) runs `scripts/test/randomized.sh 1`,
+seed 1, on pull requests into `develop` that touch `internal/**`. It is not a
+required check; a failing run prints the tail of the suite's output and the seed
+to replay.
 
 ## Time
 
