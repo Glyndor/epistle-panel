@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,9 +39,9 @@ export function LoginForm() {
 				/>
 			</div>
 			{state.error ? (
-				<p role="alert" className="text-destructive text-sm">
-					{t("error")}
-				</p>
+				<Alert variant="destructive">
+					<AlertDescription>{t("error")}</AlertDescription>
+				</Alert>
 			) : null}
 			<Button type="submit" disabled={pending}>
 				{t("submit")}

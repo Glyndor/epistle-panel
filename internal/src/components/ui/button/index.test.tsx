@@ -57,6 +57,14 @@ describe("Button", () => {
 		}
 	});
 
+	it("underlines the link variant at rest and changes it on hover", () => {
+		// A link whose hover looks like its rest state has no hover feedback.
+		const classes = buttonVariants({ variant: "link" });
+		expect(classes).toContain("underline");
+		expect(classes).toContain("hover:no-underline");
+		expect(classes).toContain("active:text-primary/70");
+	});
+
 	it("lets a caller class override a variant utility", () => {
 		render(<Button className="px-2">Save</Button>);
 

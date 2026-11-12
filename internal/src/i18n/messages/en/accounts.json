@@ -1,5 +1,7 @@
 {
 	"heading": "Accounts",
 	"unreachable": "The mail server's management API is unreachable. Check that the server is running and the panel is configured.",
-	"empty": "No accounts are configured yet."
+	"empty": "No accounts are configured yet.",
+	"name": "Account",
+	"addresses": "Addresses"
 }

@@ -51,3 +51,17 @@ The CLI writes a flat `src/components/ui/<name>.tsx`. Then:
    renders the component.
 
 New runtime packages join the `ui` group of `.github/dependabot.yml`.
+
+## In use
+
+| Component | Where | CSP (built server, console read) |
+|---|---|---|
+| Button | sign-in, nav, Remove, error and 404 pages | no violation, no `style` attribute |
+| Input, Label | sign-in form | no violation |
+| Alert | unreachable notice on four pages, sign-in error | no violation |
+| Card | status counters | no violation |
+| Table | queue, domains, accounts | no violation |
+
+Not used on purpose: Dialog, AlertDialog, Select, Popover, Tooltip and DropdownMenu,
+which position with inline styles. The Remove confirmation stays the native
+`confirm` until the owner decides how to allow a modal under this policy.

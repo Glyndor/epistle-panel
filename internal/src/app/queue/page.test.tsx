@@ -50,6 +50,25 @@ describe("QueuePage", () => {
 		).toBeInTheDocument();
 	});
 
+	it("puts the queue in a table whose action column has a name", async () => {
+		stubFetchJson({
+			entries: [
+				{
+					id: ID,
+					reverse_path: "a@example.org",
+					recipients: ["b@example.org"],
+				},
+			],
+		});
+
+		render(await QueuePage({ searchParams: Promise.resolve({}) }));
+
+		expect(
+			screen.getAllByRole("columnheader").map((cell) => cell.textContent),
+		).toEqual(["from", "to", "actions"]);
+		expect(screen.getAllByRole("row")).toHaveLength(2);
+	});
+
 	it("renders a next-page link when the API returns a cursor", async () => {
 		stubFetchJson({
 			entries: [

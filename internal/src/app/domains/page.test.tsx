@@ -31,6 +31,18 @@ describe("DomainsPage", () => {
 		expect(screen.getByText("example.net")).toBeInTheDocument();
 	});
 
+	it("puts domains in a table with a labelled column", async () => {
+		stubFetchJson({ domains: ["example.org", "example.net"] });
+
+		render(await DomainsPage());
+
+		expect(screen.getByRole("table")).toBeInTheDocument();
+		expect(
+			screen.getAllByRole("columnheader").map((cell) => cell.textContent),
+		).toEqual(["name"]);
+		expect(screen.getAllByRole("row")).toHaveLength(3);
+	});
+
 	it("shows the empty state when there are no domains", async () => {
 		stubFetchJson({ domains: [] });
 

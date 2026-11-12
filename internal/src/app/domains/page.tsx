@@ -1,6 +1,14 @@
 import { getTranslations } from "next-intl/server";
 
-import { UnreachableNotice } from "@/components/unreachable-notice";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "@/components/ui/table";
 import { getDomains } from "@/lib/api/client";
 import { logApiFailure } from "@/lib/api/log-failure";
 import { requireSession } from "@/lib/auth/require-session";
@@ -26,20 +34,28 @@ export default async function DomainsPage() {
 		>
 			<h1 className="font-semibold text-3xl">{t("heading")}</h1>
 			{domains === null ? (
-				<UnreachableNotice message={t("unreachable")} />
+				<Alert variant="destructive">
+					<AlertDescription>{t("unreachable")}</AlertDescription>
+				</Alert>
 			) : domains.length === 0 ? (
-				<p className="text-zinc-500 dark:text-zinc-400">{t("empty")}</p>
+				<p className="text-muted-foreground">{t("empty")}</p>
 			) : (
-				<ul className="divide-y divide-zinc-200 rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
-					{domains.map((domain) => (
-						<li
-							key={domain}
-							className="break-all p-4 font-mono text-sm"
-						>
-							{domain}
-						</li>
-					))}
-				</ul>
+				<Table>
+					<TableHeader>
+						<TableRow>
+							<TableHead scope="col">{t("name")}</TableHead>
+						</TableRow>
+					</TableHeader>
+					<TableBody>
+						{domains.map((domain) => (
+							<TableRow key={domain}>
+								<TableCell className="break-all font-mono">
+									{domain}
+								</TableCell>
+							</TableRow>
+						))}
+					</TableBody>
+				</Table>
 			)}
 		</main>
 	);
