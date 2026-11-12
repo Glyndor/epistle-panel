@@ -20,6 +20,7 @@ scenario_headers() {
 	assert_eq "x-frame-options" "$(header x-frame-options)" DENY
 	assert_eq "x-content-type-options" "$(header x-content-type-options)" nosniff
 	assert_eq "referrer-policy" "$(header referrer-policy)" no-referrer
+	assert_eq "x-robots-tag on the login page" "$(header x-robots-tag)" "noindex, nofollow, noarchive, nosnippet, noimageindex"
 	assert_contains "permissions-policy denies the camera" "$(header permissions-policy)" "camera=()"
 	assert_eq "x-powered-by is absent" "$(header x-powered-by)" ""
 	fetch /login
@@ -36,6 +37,7 @@ scenario_headers() {
 	fetch "$css"
 	assert_eq "static asset" "$status" 200
 	assert_eq "static asset keeps nosniff" "$(header x-content-type-options)" nosniff
+	assert_eq "static asset carries x-robots-tag" "$(header x-robots-tag)" "noindex, nofollow, noarchive, nosnippet, noimageindex"
 	assert_absent "the stylesheet wires no font variable that nothing defines" "$(cat "$work/b")" "font-geist"
 	assert_contains "the stylesheet carries the system font stack" "$(cat "$work/b")" "--font-mono:ui-monospace"
 
@@ -60,6 +62,11 @@ scenario_headers() {
 		assert_eq "$path: no script tag without the nonce" "$(unnonced_scripts "$work/b" "$nonce1")" 0
 		assert_eq "$path: no inline style attribute or element" \
 			"$({ grep -o -E ' style="|<style' "$work/b" || true; } | wc -l | tr -d ' ')" 0
+		assert_eq "$path: x-robots-tag" "$(header x-robots-tag)" "noindex, nofollow, noarchive, nosnippet, noimageindex"
+		assert_contains "$path: robots meta tag" "$(cat "$work/b")" '<meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex"'
+		assert_absent "$path: no canonical link" "$(cat "$work/b")" 'rel="canonical"'
+		assert_absent "$path: no Open Graph or Twitter tags" "$(cat "$work/b")" 'property="og:'
+		assert_absent "$path: no Twitter card" "$(cat "$work/b")" 'name="twitter:'
 		assert_absent "$path: not the unreachable alert" "$(cat "$work/b")" 'role="alert"'
 		assert_absent "$path: no server-only message in the client payload" "$(cat "$work/b")" "No accounts are configured yet."
 		assert_contains "$path: the client strings are in the payload" "$(cat "$work/b")" "Could not remove the message"

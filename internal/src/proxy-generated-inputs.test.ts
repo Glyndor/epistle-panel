@@ -18,7 +18,7 @@ const isDotDot = (segment: string) => /^(\.|%2e)(\.|%2e)$/i.test(segment);
 /**
  * Reference model of the gate, written from the intent and not from the code:
  * what a URL parser leaves of a request path, then which routes are open.
- * Only the exact login route and the static assets need no session; every
+ * Only the exact login route, the static assets and `/robots.txt` need no session; every
  * other path, however it is spelled, is gated.
  */
 function expectedVerdict(rawPath: string): Verdict {
@@ -48,7 +48,8 @@ function expectedVerdict(rawPath: string): Verdict {
 	if (
 		path.startsWith("/_next/static/") ||
 		path === "/_next/image" ||
-		path === "/favicon.ico"
+		path === "/favicon.ico" ||
+		path === "/robots.txt"
 	) {
 		return "static";
 	}
@@ -103,6 +104,14 @@ const BASES = [
 	"/faviconxico",
 	"/favicon.ico/",
 	"/favicon.icox",
+	"/robots.txt",
+	"/robots.txtx",
+	"/robots.txt/",
+	"/robots.txt/queue",
+	"/x/robots.txt",
+	"/ROBOTS.TXT",
+	"/robots%2etxt",
+	"/robotsxtxt",
 	"/lоgin",
 	"/ｌｏｇｉｎ",
 	"/login​",

@@ -118,11 +118,22 @@ describe("applySecurityHeaders", () => {
 		);
 	});
 
+	it("marks the response as not to be indexed", () => {
+		const headers = new Headers();
+
+		applySecurityHeaders(headers, "default-src 'self'");
+
+		expect(headers.get("x-robots-tag")).toBe(
+			"noindex, nofollow, noarchive, nosnippet, noimageindex",
+		);
+	});
+
 	it("lists the headers the static config shares with the proxy", () => {
 		expect(STATIC_SECURITY_HEADERS.map(([name]) => name)).toEqual([
 			"X-Frame-Options",
 			"X-Content-Type-Options",
 			"Referrer-Policy",
+			"X-Robots-Tag",
 			"Permissions-Policy",
 		]);
 	});

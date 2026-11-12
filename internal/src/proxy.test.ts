@@ -21,6 +21,21 @@ describe("proxy matcher", () => {
 		}
 	});
 
+	it("skips /robots.txt as that exact path, and nothing around it", () => {
+		expect(covered.test("/robots.txt")).toBe(false);
+		for (const path of [
+			"/robots.txtx",
+			"/robots.txt/",
+			"/robots.txt/queue",
+			"/x/robots.txt",
+			"/ROBOTS.TXT",
+			"/robotsxtxt",
+			"/queue/robots.txt",
+		]) {
+			expect(covered.test(path)).toBe(true);
+		}
+	});
+
 	it("covers the login route so it gets the nonce, and every other route", () => {
 		for (const path of [
 			"/",
@@ -65,6 +80,9 @@ describe("proxy", () => {
 		expect(response.headers.get("referrer-policy")).toBe("no-referrer");
 		expect(response.headers.get("permissions-policy")).toContain(
 			"camera=()",
+		);
+		expect(response.headers.get("x-robots-tag")).toBe(
+			"noindex, nofollow, noarchive, nosnippet, noimageindex",
 		);
 	};
 

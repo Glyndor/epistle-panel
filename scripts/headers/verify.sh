@@ -84,15 +84,16 @@ expect_secure_headers() {
 	expect_header x-frame-options DENY "$label"
 	expect_header x-content-type-options nosniff "$label"
 	expect_header referrer-policy no-referrer "$label"
+	expect_header x-robots-tag "noindex, nofollow, noarchive, nosnippet, noimageindex" "$label"
 	[ -n "$(header permissions-policy)" ] || fail "$label: no Permissions-Policy"
 	[ -z "$(header x-powered-by)" ] || fail "$label: X-Powered-By is present"
 	case "$(header content-security-policy)" in
 	*"frame-ancestors 'none'"*) ;;
-	"") [ "$label" = "static asset" ] || fail "$label: no Content-Security-Policy" ;;
+	"") [ "$label" = "static asset" ] || [ "$label" = "robots.txt" ] || fail "$label: no Content-Security-Policy" ;;
 	*) fail "$label: CSP lacks frame-ancestors 'none'" ;;
 	esac
 	# Each header must appear once: a duplicate means two layers set it.
-	for name in x-frame-options x-content-type-options referrer-policy; do
+	for name in x-frame-options x-content-type-options referrer-policy x-robots-tag; do
 		count=$(grep -ci "^$name:" "$work/h" || true)
 		[ "$count" = 1 ] || fail "$label: $name appears $count times"
 	done
@@ -135,6 +136,30 @@ done
 # A Server Action POST without a session is redirected, headers included.
 fetch -X POST -H "Next-Action: 00" -H "Content-Type: text/plain" -d "[]" "$base/queue"
 expect_secure_headers "server action without session"
+
+# robots.txt answers without a session, refuses everything, and opens nothing
+# else: every look-alike path is still redirected to the login page.
+fetch "$base/robots.txt"
+status=$(sed -n '1s/^[^ ]* \([0-9]*\).*/\1/p' "$work/h")
+[ "$status" = 200 ] || fail "robots.txt without a session: status $status, want 200"
+expect_secure_headers "robots.txt"
+grep -qx 'Disallow: /' "$work/b" || fail "robots.txt does not say 'Disallow: /'"
+! grep -qi '^allow:\|^sitemap:' "$work/b" || fail "robots.txt allows a path or names a sitemap"
+for path in /robots.txtx /robots.txt/queue /x/robots.txt /ROBOTS.TXT /queue; do
+	fetch "$base$path"
+	status=$(sed -n '1s/^[^ ]* \([0-9]*\).*/\1/p' "$work/h")
+	[ "$status" = 307 ] || fail "$path without a session: status $status, want 307"
+done
+
+# The page itself says it is not to be indexed.
+fetch -H "Cookie: $SESSION_COOKIE_NAME=$cookie" "$base/queue"
+grep -q '<meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex"' "$work/b" ||
+	fail "authenticated page: no robots meta tag"
+for forbidden in 'rel="canonical"' 'property="og:' 'name="twitter:' 'name="description"'; do
+	! grep -q "$forbidden" "$work/b" || fail "authenticated page carries $forbidden"
+done
+fetch "$base/sitemap.xml"
+[ "$(sed -n '1s/^[^ ]* \([0-9]*\).*/\1/p' "$work/h")" = 307 ] || fail "sitemap.xml is reachable without a session"
 
 # Static assets skip the proxy but keep the static headers.
 chunk=$(grep -o '/_next/static/[^"]*\.js' "$work/b" | head -n 1 || true)

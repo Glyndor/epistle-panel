@@ -67,6 +67,13 @@ const DENIED_FEATURES = [
 	"usb",
 ] as const;
 
+/**
+ * The panel is never indexed: every response says so, including redirects,
+ * static assets and `robots.txt`, whatever the markup contains.
+ */
+export const ROBOTS_DIRECTIVES =
+	"noindex, nofollow, noarchive, nosnippet, noimageindex";
+
 /** Headers that do not vary per request, as name/value pairs. */
 export const STATIC_SECURITY_HEADERS: ReadonlyArray<
 	readonly [name: string, value: string]
@@ -74,6 +81,7 @@ export const STATIC_SECURITY_HEADERS: ReadonlyArray<
 	["X-Frame-Options", "DENY"],
 	["X-Content-Type-Options", "nosniff"],
 	["Referrer-Policy", "no-referrer"],
+	["X-Robots-Tag", ROBOTS_DIRECTIVES],
 	["Permissions-Policy", DENIED_FEATURES.map((f) => `${f}=()`).join(", ")],
 ];
 
