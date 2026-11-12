@@ -29,7 +29,8 @@ html_field() {
 
 # post_login NAME PASSWORD HEADER_FILE BODY_FILE [FIELD]: posts the login form
 # without JavaScript, with one more form field (name=value) when FIELD is given,
-# and prints the status and the total time.
+# and prints the status and the total time. Extra curl arguments in the array
+# login_extra, such as -F captcha=TOKEN, are sent with it.
 post_login() {
 	local html a0 a1 key extra=()
 	[[ -n "${5:-}" ]] && extra=(-F "$5")
@@ -39,7 +40,8 @@ post_login() {
 	key=$(html_field "$html" '$ACTION_KEY')
 	curl -s -D "$3" -o "$4" -w '%{http_code} %{time_total}' "$panel/login" \
 		-F '$ACTION_REF_1=' -F "\$ACTION_1:0=$a0" -F "\$ACTION_1:1=$a1" \
-		-F "\$ACTION_KEY=$key" -F "name=$1" -F "password=$2" "${extra[@]}"
+		-F "\$ACTION_KEY=$key" -F "name=$1" -F "password=$2" "${extra[@]}" \
+		${login_extra[@]+"${login_extra[@]}"}
 }
 
 # login NAME PASSWORD [FIELD]: sets $status, $elapsed and $cookie (name=value, empty

@@ -9,6 +9,8 @@
  * proxy (which owns the nonce) and its tests on one definition.
  */
 
+import type { CspWidening } from "./captcha-sources";
+
 /** Header Next reads from the request to learn the nonce it must stamp on its inline scripts. */
 export const CSP_HEADER = "content-security-policy";
 
@@ -30,21 +32,32 @@ export function generateNonce(): string {
  * `'strict-dynamic'` lets the nonced bootstrap load Next's chunks, and the
  * host allowlist is ignored by browsers that support it. `development` adds
  * `'unsafe-eval'`, which React's dev tooling needs and production never does.
+ * `widening` adds one CAPTCHA provider's sources to `script-src`, `connect-src`
+ * and a new `frame-src`, and to nothing else; the proxy passes it for the
+ * sign-in page only.
  */
-export function buildCsp(nonce: string, development = false): string {
+export function buildCsp(
+	nonce: string,
+	development = false,
+	widening?: CspWidening,
+): string {
 	const scriptSrc = [
 		"'self'",
 		`'nonce-${nonce}'`,
 		"'strict-dynamic'",
 		...(development ? ["'unsafe-eval'"] : []),
+		...(widening?.script ?? []),
 	];
+	const connectSrc = ["'self'", ...(widening?.connect ?? [])];
 	return [
 		"default-src 'self'",
 		`script-src ${scriptSrc.join(" ")}`,
 		"style-src 'self'",
 		"img-src 'self' data:",
 		"font-src 'self'",
-		"connect-src 'self'",
+		`connect-src ${connectSrc.join(" ")}`,
+		// Frames fall back to `default-src 'self'` unless a provider needs more.
+		...(widening ? [`frame-src 'self' ${widening.frame.join(" ")}`] : []),
 		"object-src 'none'",
 		"base-uri 'none'",
 		"form-action 'self'",

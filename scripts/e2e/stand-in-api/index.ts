@@ -26,6 +26,8 @@ export interface LoggedRequest {
 	headers: string[];
 	/** The account name of a sign-in call; never the password. */
 	name?: string;
+	/** For a CAPTCHA verification: whether the secret matched, and whether the token solved it. */
+	captcha?: { secret: "valid" | "wrong"; token: "solved" | "unsolved" };
 }
 
 /** Options of {@link createStandIn}. */
@@ -53,6 +55,34 @@ const SEED_IDS = [
 	"44444444-4444-4444-8444-444444444444",
 	"55555555-5555-4555-8555-555555555555",
 ];
+
+/** The token the stand-in CAPTCHA widget "solves" with, and the secret its verification endpoint expects. */
+export const CAPTCHA_SOLVED_TOKEN = "stand-in-solved-token";
+export const CAPTCHA_SECRET = "stand-in-captcha-secret";
+
+/** Name of the input the stand-in widget writes its token into. */
+export const CAPTCHA_FIELD = "stand-in-captcha-response";
+
+/**
+ * The widget script of the stand-in CAPTCHA provider, in the `custom` contract:
+ * it finds the container, and writes a solved token into an input of that name
+ * inside the same form, as a real provider's script does.
+ */
+const CAPTCHA_WIDGET_JS = `(() => {
+	const draw = () => {
+		const box = document.querySelector(".captcha-widget[data-sitekey]");
+		const form = box && box.closest("form");
+		if (!box || !form || form.elements.namedItem("${CAPTCHA_FIELD}")) { return; }
+		const input = document.createElement("input");
+		input.type = "hidden";
+		input.name = "${CAPTCHA_FIELD}";
+		input.value = "${CAPTCHA_SOLVED_TOKEN}";
+		form.append(input);
+		box.textContent = "stand-in captcha solved";
+	};
+	draw();
+})();
+`;
 
 /** Entries per queue page when the caller gives no `limit`. */
 const DEFAULT_PAGE = 2;
@@ -151,11 +181,46 @@ export function createStandIn(options: StandInOptions) {
 		});
 	}
 
+	/** The stand-in CAPTCHA provider: a widget script and a verification endpoint. */
+	async function handleCaptcha(request: Request, path: string): Promise<Response> {
+		if (path === "/__captcha/widget.js" && request.method === "GET") {
+			return new Response(CAPTCHA_WIDGET_JS, {
+				headers: { "content-type": "text/javascript" },
+			});
+		}
+		if (path === "/__captcha/verify" && request.method === "POST") {
+			const form = new URLSearchParams(await request.text());
+			const solved = form.get("response") === CAPTCHA_SOLVED_TOKEN;
+			log.push({
+				method: request.method,
+				path,
+				bearer: "absent",
+				headers: [...request.headers.keys()].sort(),
+				captcha: {
+					secret: form.get("secret") === CAPTCHA_SECRET ? "valid" : "wrong",
+					token: solved ? "solved" : "unsolved",
+				},
+			});
+			if (form.get("secret") !== CAPTCHA_SECRET) {
+				return json({ success: false, "error-codes": ["invalid-input-secret"] });
+			}
+			return json(
+				solved
+					? { success: true }
+					: { success: false, "error-codes": ["invalid-input-response"] },
+			);
+		}
+		return json({ error: "unknown captcha path" }, 404);
+	}
+
 	async function handle(request: Request): Promise<Response> {
 		const url = new URL(request.url);
 		const path = url.pathname;
 		if (path.startsWith("/__control/")) {
 			return handleControl(request, path);
+		}
+		if (path.startsWith("/__captcha/")) {
+			return handleCaptcha(request, path);
 		}
 
 		const entry: LoggedRequest = {

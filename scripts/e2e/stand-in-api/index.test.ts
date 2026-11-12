@@ -9,7 +9,13 @@ import {
 	statusSchema,
 	verifyResultSchema,
 } from "../../../internal/src/lib/api/schemas";
-import { createStandIn, type LoggedRequest } from "./index";
+import {
+	CAPTCHA_FIELD,
+	CAPTCHA_SECRET,
+	CAPTCHA_SOLVED_TOKEN,
+	createStandIn,
+	type LoggedRequest,
+} from "./index";
 
 const TOKEN = "stand-in-test-token";
 const { server } = createStandIn({ token: TOKEN });
@@ -156,5 +162,58 @@ describe("modes", () => {
 
 	test("an unknown mode is refused", async () => {
 		expect((await setMode("explode")).status).toBe(400);
+	});
+});
+
+describe("CAPTCHA provider", () => {
+	const verifyToken = async (secret: string, response: string) => {
+		const result = await fetch(`${base}/__captcha/verify`, {
+			method: "POST",
+			headers: { "Content-Type": "application/x-www-form-urlencoded" },
+			body: new URLSearchParams({ secret, response }),
+		});
+		return (await result.json()) as { success: boolean; "error-codes"?: string[] };
+	};
+
+	test("confirms the solved token with the right secret", async () => {
+		expect(await verifyToken(CAPTCHA_SECRET, CAPTCHA_SOLVED_TOKEN)).toEqual({ success: true });
+	});
+
+	test("refuses an unsolved token and a wrong secret", async () => {
+		expect(await verifyToken(CAPTCHA_SECRET, "nope")).toEqual({
+			success: false,
+			"error-codes": ["invalid-input-response"],
+		});
+		expect((await verifyToken("wrong", CAPTCHA_SOLVED_TOKEN)).success).toBe(false);
+	});
+
+	test("serves the widget script, which writes the solved token into its named input", async () => {
+		const script = await (await fetch(`${base}/__captcha/widget.js`)).text();
+
+		expect(script).toContain(CAPTCHA_FIELD);
+		expect(script).toContain(CAPTCHA_SOLVED_TOKEN);
+		expect((await fetch(`${base}/__captcha/widget.js`)).headers.get("content-type")).toBe(
+			"text/javascript",
+		);
+	});
+
+	test("logs whether the secret and the token were right, and neither value", async () => {
+		await verifyToken("wrong", "nope");
+		await verifyToken(CAPTCHA_SECRET, CAPTCHA_SOLVED_TOKEN);
+
+		const entries = (await logged()).filter((entry) => entry.captcha);
+		expect(entries.map((entry) => entry.captcha)).toEqual([
+			{ secret: "wrong", token: "unsolved" },
+			{ secret: "valid", token: "solved" },
+		]);
+		const dump = JSON.stringify(entries);
+		expect(dump).not.toContain(CAPTCHA_SECRET);
+		expect(dump).not.toContain(CAPTCHA_SOLVED_TOKEN);
+	});
+
+	test("does not touch the API's bearer check", async () => {
+		const response = await fetch(`${base}/api/v1/status`);
+
+		expect(response.status).toBe(401);
 	});
 });

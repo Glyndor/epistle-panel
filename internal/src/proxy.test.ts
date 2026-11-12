@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 
 import { NextRequest } from "next/server";
 
@@ -275,5 +275,77 @@ describe("proxy script policy per environment", () => {
 				),
 			).toContain("'unsafe-eval'");
 		});
+	});
+});
+
+describe("proxy with a CAPTCHA provider enabled", () => {
+	const names = [
+		"EPISTLE_PANEL_CAPTCHA_PROVIDER",
+		"EPISTLE_PANEL_CAPTCHA_SITE_KEY",
+		"EPISTLE_PANEL_CAPTCHA_SECRET_KEY",
+	];
+	const csp = (response: Response) =>
+		response.headers.get("content-security-policy") ?? "";
+	const get = (path: string, cookie?: string) => {
+		const req = new NextRequest(`http://panel.test${path}`);
+		if (cookie) {
+			req.cookies.set(SESSION_COOKIE, cookie);
+		}
+		return proxy(req);
+	};
+
+	beforeEach(() => {
+		process.env["EPISTLE_PANEL_CAPTCHA_PROVIDER"] = "turnstile";
+		process.env["EPISTLE_PANEL_CAPTCHA_SITE_KEY"] = "site";
+		process.env["EPISTLE_PANEL_CAPTCHA_SECRET_KEY"] = "secret";
+	});
+	afterEach(() => {
+		for (const name of names) {
+			delete process.env[name];
+		}
+	});
+
+	it("widens the sign-in page's policy with that provider's hosts, and keeps it free of inline styles", async () => {
+		for (const path of ["/login", "/login/"]) {
+			const policy = csp(await get(path));
+
+			expect(policy).toContain("script-src 'self'");
+			expect(policy).toContain("https://challenges.cloudflare.com");
+			expect(policy).toContain(
+				"frame-src 'self' https://challenges.cloudflare.com",
+			);
+			expect(policy).toContain("style-src 'self';");
+			expect(policy).not.toContain("unsafe-inline");
+		}
+	});
+
+	it("widens no other response: a page, a redirect, and look-alikes of the login path", async () => {
+		const session = await createSession("admin");
+		for (const response of [
+			await get("/queue", session),
+			await get("/queue"),
+			await get("/loginx"),
+			await get("/x/login"),
+		]) {
+			expect(csp(response)).not.toContain("challenges.cloudflare.com");
+			expect(csp(response)).not.toContain("frame-src");
+		}
+	});
+
+	it("leaves the sign-in page's policy alone when the CAPTCHA is off or misconfigured", async () => {
+		delete process.env["EPISTLE_PANEL_CAPTCHA_PROVIDER"];
+		expect(csp(await get("/login"))).not.toContain(
+			"challenges.cloudflare.com",
+		);
+
+		process.env["EPISTLE_PANEL_CAPTCHA_PROVIDER"] = "turnstile";
+		delete process.env["EPISTLE_PANEL_CAPTCHA_SITE_KEY"];
+		expect(csp(await get("/login"))).not.toContain(
+			"challenges.cloudflare.com",
+		);
+	});
+
+	it("still serves the sign-in page without a session", async () => {
+		expect((await get("/login")).status).toBe(200);
 	});
 });

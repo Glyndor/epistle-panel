@@ -23,7 +23,11 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { login } from "@/features/auth/actions/login";
+import type { PublicCaptcha } from "@/features/auth/captcha/providers";
+import type { WidgetHandle } from "@/features/auth/captcha/widget-adapters";
+import { CaptchaWidget } from "@/features/auth/components/captcha-widget";
 import {
+	captchaLoginSchema,
 	isLoginErrorKey,
 	LOGIN_NAME_MAX,
 	LOGIN_PASSWORD_MAX,
@@ -48,19 +52,20 @@ import { INITIAL_LOGIN_STATE } from "@/features/auth/schemas/login-state";
  * })` inside the field), mode is `onSubmit` with `onChange` revalidation, so a
  * field stays quiet until the first submit and then corrects itself as you type.
  */
-export function LoginForm() {
+export function LoginForm({ captcha }: { captcha: PublicCaptcha | null }) {
 	const t = useTranslations("auth");
 	const [state, formAction, pending] = useActionState(
 		login,
 		INITIAL_LOGIN_STATE,
 	);
 	const form = useForm<LoginInput>({
-		resolver: zodResolver(loginSchema),
-		defaultValues: { name: "", password: "" },
+		resolver: zodResolver(captcha ? captchaLoginSchema : loginSchema),
+		defaultValues: { name: "", password: "", captcha: "" },
 		mode: "onSubmit",
 		reValidateMode: "onChange",
 	});
 	const formElement = useRef<HTMLFormElement>(null);
+	const widget = useRef<WidgetHandle | null>(null);
 	const [hydrated, setHydrated] = useState(false);
 	const rejected = state.outcome !== "idle";
 
@@ -73,6 +78,9 @@ export function LoginForm() {
 		if (state.outcome !== "idle") {
 			form.resetField("password");
 			form.setFocus("password");
+			// A token is single use: draw a new challenge for the next attempt.
+			widget.current?.reset();
+			form.setValue("captcha", "");
 		}
 	}, [state]);
 
@@ -80,8 +88,21 @@ export function LoginForm() {
 		const data = formElement.current
 			? new FormData(formElement.current)
 			: new FormData();
+		// The widget keeps its token outside the form's own inputs; the action
+		// reads it from the `captcha` field.
+		data.set("captcha", form.getValues("captcha") ?? "");
 		startTransition(() => formAction(data));
 	});
+
+	// Take the token from the widget when the person submits, so a widget that
+	// writes it into the page (the custom provider) is read as well as one that
+	// calls back; the schema then asks for it before any request is made.
+	const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+		if (captcha) {
+			form.setValue("captcha", widget.current?.readToken() ?? "");
+		}
+		void submit(event);
+	};
 
 	const message = (key: string) => (isLoginErrorKey(key) ? t(key) : key);
 	const serverError = rejected
@@ -93,7 +114,7 @@ export function LoginForm() {
 			<form
 				ref={formElement}
 				action={formAction}
-				onSubmit={submit}
+				onSubmit={onSubmit}
 				noValidate={hydrated}
 				className="flex flex-col gap-4"
 			>
@@ -137,6 +158,34 @@ export function LoginForm() {
 						</FormItem>
 					)}
 				/>
+				{captcha ? (
+					<FormField
+						control={form.control}
+						name="captcha"
+						render={() => (
+							<FormItem>
+								<CaptchaWidget
+									config={captcha}
+									label={t("captchaLabel")}
+									handle={(value) => {
+										widget.current = value;
+									}}
+									onToken={(token) => {
+										form.setValue("captcha", token);
+										form.clearErrors("captcha");
+									}}
+									onError={() =>
+										form.setError("captcha", {
+											type: "load",
+											message: "captchaLoadFailed",
+										})
+									}
+								/>
+								<FormMessage render={message} />
+							</FormItem>
+						)}
+					/>
+				) : null}
 				{rejected ? (
 					<Alert id="login-error" variant="destructive">
 						<AlertDescription>{t("error")}</AlertDescription>
