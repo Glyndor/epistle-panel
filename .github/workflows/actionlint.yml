@@ -1,0 +1,52 @@
+name: actionlint
+
+# The lint of a workflow can only change when a workflow changes, so the job
+# runs only for those paths; it lists itself through the glob. Not a required
+# check: a workflow skipped by `paths:` leaves a required check pending.
+#
+# actionlint is third-party tooling, so it is fetched as a release binary at a
+# pinned version and checked against a pinned SHA-256 before it runs, and the
+# job holds no secret: `contents: read`, and the checkout keeps no
+# credentials. A tag-pinned docker:// image would not be hash-verified.
+# To bump: take the new version and the linux_amd64 line from the release's
+# `actionlint_<version>_checksums.txt`. shellcheck on the runner image lets
+# actionlint check the `run:` scripts too.
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  actionlint:
+    name: actionlint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      ACTIONLINT_VERSION: 1.7.12
+      ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install actionlint at a verified hash
+        run: |
+          set -euo pipefail
+          archive="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          curl --fail --silent --show-error --location --retry 3 \
+            --output "$RUNNER_TEMP/$archive" \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/${archive}"
+          echo "${ACTIONLINT_SHA256}  $RUNNER_TEMP/$archive" | sha256sum --check --strict
+          tar --extract --gzip --file "$RUNNER_TEMP/$archive" --directory "$RUNNER_TEMP" actionlint
+
+      - name: Lint the workflows
+        run: '"$RUNNER_TEMP/actionlint" -color'
