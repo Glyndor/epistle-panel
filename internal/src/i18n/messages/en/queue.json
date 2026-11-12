@@ -1,0 +1,13 @@
+{
+	"heading": "Outbound queue",
+	"unreachable": "The mail server's management API is unreachable. Check that the server is running and the panel is configured.",
+	"empty": "The outbound queue is empty.",
+	"from": "From",
+	"to": "To",
+	"remove": "Remove",
+	"removing": "Removing…",
+	"removeLabel": "Remove the message to {recipients} from the queue",
+	"removeError": "Could not remove the message. Please try again.",
+	"confirm": "Remove the queued message to {recipients}? This cannot be undone.",
+	"next": "Next page"
+}
