@@ -12,6 +12,7 @@ import {
 import {
 	EpistleApiError,
 	getAccounts,
+	getDeliveries,
 	getDomains,
 	getQueue,
 	getStatus,
@@ -129,6 +130,28 @@ describe("client requests", () => {
 			`${BASE}/api/v1/queue?cursor=${ID}`,
 			`${BASE}/api/v1/queue?limit=2`,
 			`${BASE}/api/v1/queue?limit=2&cursor=${ID}`,
+		]);
+	});
+
+	it("asks for deliveries with no query string, skips absent filters and encodes the rest", async () => {
+		const urls: string[] = [];
+		for (const params of [
+			undefined,
+			{ outcome: undefined, since: undefined },
+			{ outcome: "failed", limit: 100 },
+			{ recipient: "a+b@x.org&limit=1", since: "24h" },
+		]) {
+			stubFetchJson({ entries: [] });
+			await getDeliveries(params);
+			const sent = onlyRequest();
+			expect([sent.method, sent.body]).toEqual(["GET", undefined]);
+			urls.push(sent.url);
+		}
+		expect(urls).toEqual([
+			`${BASE}/api/v1/deliveries`,
+			`${BASE}/api/v1/deliveries`,
+			`${BASE}/api/v1/deliveries?outcome=failed&limit=100`,
+			`${BASE}/api/v1/deliveries?recipient=a%2Bb%40x.org%26limit%3D1&since=24h`,
 		]);
 	});
 

@@ -9,7 +9,7 @@ webmail can be added without reworking what is here.
 | Group | Holds | Frame |
 |---|---|---|
 | `(auth)` | `/login` | `(auth)/layout.tsx`: a bare `main`, no navigation |
-| `(admin)` | `/`, `/domains`, `/accounts`, `/queue`, `/suppression` | `(admin)/layout.tsx`: checks the session, then `AppShell` with the admin navigation |
+| `(admin)` | `/`, `/domains`, `/accounts`, `/queue`, `/deliveries`, `/suppression` | `(admin)/layout.tsx`: checks the session, then `AppShell` with the admin navigation |
 | `(mail)` | not built yet | will bring its own layout; see below |
 
 Group names are not part of a URL, so adding `(mail)` changes no existing

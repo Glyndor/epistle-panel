@@ -48,11 +48,12 @@ describe("NavMain", () => {
 			"/domains",
 			"/accounts",
 			"/queue",
+			"/deliveries",
 			"/suppression",
 		]);
 		expect(
 			container.querySelectorAll("a > svg[aria-hidden='true']"),
-		).toHaveLength(5);
+		).toHaveLength(6);
 	});
 
 	it("marks only the current page with aria-current", () => {

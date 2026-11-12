@@ -1,0 +1,37 @@
+{
+	"heading": "Entregas",
+	"description": "Qué pasó con cada mensaje para cada destinatario, de más reciente a más antiguo. Las horas son UTC.",
+	"unreachable": "No se puede contactar con la API de gestión del servidor de correo. Comprueba que el servidor está en marcha y que el panel está configurado.",
+	"disabled": "El registro de entregas está desactivado en el servidor. Pon una retención de más de 0 días en los ajustes de almacenamiento del servidor para registrar entregas.",
+	"empty": "Ninguna entrega coincide.",
+	"full": "La API devuelve como máximo 100 registros y no tiene página siguiente. Acota la lista con los filtros para ver otros.",
+	"filter": "Filtrar estos registros",
+	"time": "Hora (UTC)",
+	"outcome": "Resultado",
+	"recipient": "Destinatario",
+	"from": "De",
+	"account": "Cuenta",
+	"remote": "Servidor remoto",
+	"reply": "Respuesta",
+	"attempt": "Intento",
+	"none": "-",
+	"any": "Cualquier resultado",
+	"anyTime": "Cualquier momento",
+	"since": "Desde",
+	"apply": "Aplicar",
+	"clear": "Limpiar",
+	"outcomes": {
+		"delivered": "Entregado",
+		"deferred": "Aplazado",
+		"failed": "Fallido",
+		"suppressed": "Suprimido",
+		"canceled": "Cancelado"
+	},
+	"windows": {
+		"15m": "Últimos 15 minutos",
+		"1h": "Última hora",
+		"24h": "Últimas 24 horas",
+		"7d": "Últimos 7 días",
+		"30d": "Últimos 30 días"
+	}
+}

@@ -34,7 +34,7 @@ describe("AppSidebar", () => {
 			"/",
 		);
 		const nav = screen.getByRole("navigation", { name: "label" });
-		expect(nav.querySelectorAll("a")).toHaveLength(5);
+		expect(nav.querySelectorAll("a")).toHaveLength(6);
 		expect(
 			screen.getByRole("button", { name: "logout" }),
 		).toBeInTheDocument();

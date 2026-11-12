@@ -1,6 +1,6 @@
 # Data pages: Query, Table and Server Actions
 
-The status, queue, suppression, domains and accounts pages share one shape. The API token and
+The status, queue, deliveries, suppression, domains and accounts pages share one shape. The API token and
 the session stay on the server; the browser never calls the API.
 
 ## The flow
@@ -52,6 +52,37 @@ handler and its OpenAPI file:
   `encodeURIComponent`, so a `/`, `?`, `#` or `%` in it cannot change the route.
   Removing an address that is not on the list answers 200, so a second click is
   harmless. The API's per-account lists (`?account=`) are not shown.
+
+## The delivery log
+
+`/deliveries` reads `GET /api/v1/deliveries` (scope `read`), read only. Measured
+against the handler and the OpenAPI file:
+
+- **It does not page.** There is no cursor: the answer is at most `limit` records
+  (default 50, cut to 1 to 100) and `{"entries": [...]}` only. The panel asks for
+  100 and says so when the page comes back full, since older records may exist.
+  Narrowing is by `outcome`, `since` and `recipient`, which are in the URL as a
+  plain GET form (`?outcome=failed&since=24h&recipient=...`), so a view can be
+  bookmarked and the form works without script. `account` is a filter of the API
+  that the panel does not offer.
+- **Order.** The API reads the newest day first but, inside a day, oldest first, so
+  `loadDeliveries` sorts the page by time, newest first. With a full page that
+  came from a busy day, the 100 returned are the first 100 of the newest day, not
+  necessarily the 100 newest; the notice says to narrow with the filters.
+- **Values.** `outcome` is one of `delivered`, `deferred`, `failed`, `suppressed`,
+  `canceled` (an unknown one is `400 invalid_input`); `since` is a duration or an
+  RFC 3339 timestamp and the panel offers `15m`, `1h`, `24h`, `7d`, `30d` only. The
+  filters are read from the URL with one schema that the action enforces too, each
+  field on its own, so a bad value is dropped and the others stay. The recipient
+  goes through the address schema of `lib/mail-address`.
+- **Log off.** With `[storage] delivery_log_days = 0` the API answers `404`; the
+  panel shows that as a notice, not as an unreachable API. A key bound to one
+  account sees only its own records; the panel's token is unconfined.
+- **Display.** Times are printed in UTC (`YYYY-MM-DD HH:MM:SS`), not in the
+  viewer's zone, so the server render and the browser agree. A remote reply is
+  text from another server (the API keeps its first 200 bytes) and is rendered as
+  text. The `extra` map of a record is not read. The refresh is every 30 s while
+  the tab is in view.
 
 ## Tables
 
