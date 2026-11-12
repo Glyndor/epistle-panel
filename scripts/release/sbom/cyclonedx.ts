@@ -1,6 +1,6 @@
 // Write a CycloneDX 1.5 SBOM of the panel's runtime dependencies.
 //
-// Usage: bun scripts/release/sbom.ts <bun.lock> <package.json> <output.json>
+// Usage: bun scripts/release/sbom/cyclonedx.ts <bun.lock> <package.json> <output.json>
 //
 // The document is made from the lockfile alone, by this script. No package is
 // installed and no third-party tool runs, so the job that makes it executes no
@@ -23,7 +23,7 @@ type Lock = {
 
 const [lockPath, manifestPath, outPath] = Bun.argv.slice(2);
 if (!lockPath || !manifestPath || !outPath) {
-	console.error("usage: sbom.ts <bun.lock> <package.json> <output.json>");
+	console.error("usage: cyclonedx.ts <bun.lock> <package.json> <output.json>");
 	process.exit(2);
 }
 

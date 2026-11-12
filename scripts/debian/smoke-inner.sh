@@ -1,5 +1,5 @@
 #!/bin/sh
-# Runs inside the container started by debian-smoke.sh, as root.
+# Runs inside the container started by smoke.sh, as root.
 set -eu
 
 fail() {

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Write SHA256SUMS for the release files and sign them with the org Ed25519 key.
 #
-# Usage: sign_release.sh <dist-dir> <tag>
+# Usage: sign-release.sh <dist-dir> <tag>
 #
 # The key comes from GLYNDOR_RELEASE_ED25519_KEY, never from the command line.
 # The signing dependencies go into an isolated virtualenv from the hash-pinned
@@ -10,8 +10,8 @@
 # refuses to re-sign with its own key anything it did not verify first.
 set -euo pipefail
 
-dist=${1:?usage: sign_release.sh <dist-dir> <tag>}
-tag=${2:?usage: sign_release.sh <dist-dir> <tag>}
+dist=${1:?usage: sign-release.sh <dist-dir> <tag>}
+tag=${2:?usage: sign-release.sh <dist-dir> <tag>}
 here=$(cd "$(dirname "$0")" && pwd)
 version=${tag#v}
 
@@ -32,5 +32,5 @@ sbom="epistle-panel-${tag}.cdx.json"
 # signature is made after it, which is why it does not list itself.
 (cd "$dist" && sha256sum -- "$deb" "$sbom" > SHA256SUMS)
 for f in "$deb" "$sbom" SHA256SUMS; do
-	"$py" "$here/sign.py" "$dist/$f"
+	"$py" "$here/sign_file.py" "$dist/$f"
 done

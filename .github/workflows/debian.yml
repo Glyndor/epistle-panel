@@ -12,15 +12,15 @@ on:
     paths:
       - ".github/workflows/debian.yml"
       - "debian/**"
-      - "scripts/check-version.sh"
-      - "scripts/debian-*.sh"
+      - "scripts/version/check-changelog.sh"
+      - "scripts/debian/**"
       - "internal/package.json"
   pull_request:
     paths:
       - ".github/workflows/debian.yml"
       - "debian/**"
-      - "scripts/check-version.sh"
-      - "scripts/debian-*.sh"
+      - "scripts/version/check-changelog.sh"
+      - "scripts/debian/**"
       - "internal/package.json"
 
 concurrency:
@@ -45,10 +45,10 @@ jobs:
           persist-credentials: false
 
       - name: debian/changelog matches internal/package.json
-        run: sh scripts/check-version.sh
+        run: sh scripts/version/check-changelog.sh
 
       - name: dpkg-buildpackage and lintian
-        run: BUILD_IMAGE="$DEBIAN_IMAGE" sh scripts/debian-build.sh "$RUNNER_TEMP/deb"
+        run: BUILD_IMAGE="$DEBIAN_IMAGE" sh scripts/debian/build.sh "$RUNNER_TEMP/deb"
 
       - name: Install, reinstall, remove and purge in a clean container
-        run: SMOKE_IMAGE="$DEBIAN_IMAGE" sh scripts/debian-smoke.sh "$RUNNER_TEMP"/deb/epistle-panel_*_all.deb
+        run: SMOKE_IMAGE="$DEBIAN_IMAGE" sh scripts/debian/smoke.sh "$RUNNER_TEMP"/deb/epistle-panel_*_all.deb

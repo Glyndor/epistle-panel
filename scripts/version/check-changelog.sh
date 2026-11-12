@@ -5,7 +5,7 @@
 # Reads both files as text: it needs no dpkg and no Node.
 set -eu
 
-root=$(cd "$(dirname "$0")/.." && pwd)
+root=$(cd "$(dirname "$0")/../.." && pwd)
 
 package=$(sed -n 's/^[[:space:]]*"version":[[:space:]]*"\([^"]*\)".*/\1/p' "$root/internal/package.json" | head -n 1)
 changelog=$(sed -n '1s/^epistle-panel (\([^)]*\)).*/\1/p' "$root/debian/changelog")
