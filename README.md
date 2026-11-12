@@ -152,6 +152,9 @@ The Debian package has its own checks, run by the `Debian package` workflow:
 container, and `scripts/debian/smoke.sh <path-to-.deb>` installs it there.
 Both need podman or docker.
 
+`scripts/e2e/run.sh` checks the built server against a stand-in API
+(see [docs/maintainers/e2e.md](docs/maintainers/e2e.md)); it is not part of CI.
+
 Other workflows run only when their answer can change: `Dependency audit`
 (lockfile or manifest, plus weekly), `actionlint` (workflow files), `Bun
 version` (one Bun release across the workflows and the Containerfile) and
