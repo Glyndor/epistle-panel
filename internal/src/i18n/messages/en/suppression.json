@@ -1,0 +1,17 @@
+{
+	"heading": "Suppression list",
+	"description": "Addresses the server will not send to, for example after a permanent bounce. Taking one off lets it receive mail again.",
+	"unreachable": "The mail server's management API is unreachable. Check that the server is running and the panel is configured.",
+	"empty": "No address is suppressed.",
+	"address": "Address",
+	"remove": "Remove",
+	"removing": "Removing…",
+	"removeLabel": "Remove {address} from the suppression list",
+	"removeError": "Could not remove the address. Please try again.",
+	"confirm": "Take {address} off the suppression list? The server will send mail to it again.",
+	"next": "Next page",
+	"actions": "Actions",
+	"filter": "Filter this page",
+	"first": "First page",
+	"removed": "Address taken off the suppression list."
+}

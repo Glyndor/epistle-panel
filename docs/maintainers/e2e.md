@@ -40,7 +40,7 @@ the line limit:
 | `scripts/e2e/lib/reporting.sh` | the pass and fail counters and the `assert_*` helpers |
 | `scripts/e2e/lib/processes.sh` | secrets, start and restart of the stand-in and the panel, its control calls |
 | `scripts/e2e/lib/http.sh` | `fetch`, `login`, the form-field readers, memory and CPU counters |
-| `scripts/e2e/scenarios/<name>.sh` | one scenario each: `headers`, `logout`, `limiter`, `limiter-global`, `noauth`, `degraded`, `rotation`, `idle`, `theme`, `body-limit`, `captcha`, `csrf`, `set-locale`, `unknown-variable` |
+| `scripts/e2e/scenarios/<name>.sh` | one scenario each: `headers`, `logout`, `limiter`, `limiter-global`, `noauth`, `degraded`, `rotation`, `idle`, `theme`, `body-limit`, `captcha`, `csrf`, `set-locale`, `unknown-variable`, `suppression` |
 
 A new scenario is a new file in `scenarios/`, a `source` line and a `case` entry
 in `run.sh`, and a row in the table below.
@@ -55,7 +55,9 @@ body before it checks anything else.
 
 `scripts/e2e/stand-in-api/` answers the paths the panel calls, validated
 against the panel's own zod schemas in its test. It knows the accounts `admin`
-and `ops` (admins) and `user` (not an admin), logs every request without any
+and `ops` (admins) and `user` (not an admin), keeps a suppression list
+(`stand-in-api/suppression.ts`, paged by `after`, seeded with a `/` and a `+`
+address), logs every request without any
 secret, and switches the data endpoints to `hang` or `huge` through
 `POST /__control/mode`.
 
@@ -76,6 +78,7 @@ secret, and switches the data endpoints to `hang` or `huge` through
 | `csrf` | a Server Action post with a valid session and a foreign `Origin` (or `Origin: null`) is refused by Next and the API sees no `DELETE`; the panel's own `Origin` is accepted. It also pins a measured dependency: a foreign `Origin` together with the same foreign `X-Forwarded-Host` passes Next's check and the action runs (see below) |
 | `set-locale` | the `set-locale` action with an unknown or path-like language answers `false` and writes no `locale` cookie; a supported language writes it; without a session the proxy redirects and nothing is written |
 | `unknown-variable` | a misspelt `EPISTLE_PANEL_` name is warned about in the startup log by name, the value is never printed, a name the panel reads (and the `_FILE` form of a secret) is not warned about, and the panel still serves |
+| `suppression` | `/suppression` and its Server Action are denied without a session and the stand-in sees nothing; the first page, the encoded `after` cursor and the next link; a hostile `?after=` (`../`, `%2e%2e%2f`, line breaks, a bidi override, 300 characters, an injected parameter) is dropped and the first page is fetched; hostile action arguments (the same, an extra field, an empty or non-object argument) reach no `DELETE`; a valid removal sends the address as one percent-encoded path segment (the stand-in's seed holds a `/` and a `+`) and the address leaves the page |
 | `theme` | `/theme.css`, `/brand/logo` and `/brand/favicon` answer without a session when configured and 404 when not; the sign-in page links the stylesheet and shows the name, the logo and the original copyright notice; the CSP is the same with and without a theme; look-alike paths stay behind the gate; a symlink, an oversized or a missing file is a 404 and a log line with no path, and a symlink or a FIFO as the logo is refused the same way; an SVG with script is refused, also when `javascript:` is written with numeric character references |
 
 ## Origin check of Server Actions, measured
@@ -139,7 +142,7 @@ the console open.
    SameSite=Lax, no Domain). Over plain HTTP on any other host name the browser
    drops it and sign-in does not stick. Firefox and Safari were not checked here; Firefox is documented as accepting
    the cookie on `http://localhost` (see the README).
-2. Visit `/`, `/accounts`, `/domains`, `/queue`: the console must show no CSP
+2. Visit `/`, `/accounts`, `/domains`, `/queue`, `/suppression`: the console must show no CSP
    violation and no error, and the login form must be hydrated (a failed
    sign-in shows the alert without a page reload).
 3. On `/queue` press Remove and accept the confirmation: the entry disappears

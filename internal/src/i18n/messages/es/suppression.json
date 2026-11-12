@@ -1,0 +1,17 @@
+{
+	"heading": "Lista de supresión",
+	"description": "Direcciones a las que el servidor no envía, por ejemplo tras un rebote definitivo. Quitar una permite que vuelva a recibir correo.",
+	"unreachable": "No se puede contactar con la API de gestión del servidor de correo. Comprueba que el servidor está en marcha y que el panel está configurado.",
+	"empty": "Ninguna dirección está suprimida.",
+	"address": "Dirección",
+	"remove": "Quitar",
+	"removing": "Quitando…",
+	"removeLabel": "Quitar {address} de la lista de supresión",
+	"removeError": "No se pudo quitar la dirección. Inténtalo de nuevo.",
+	"confirm": "¿Quitar {address} de la lista de supresión? El servidor volverá a enviarle correo.",
+	"next": "Página siguiente",
+	"actions": "Acciones",
+	"filter": "Filtrar esta página",
+	"first": "Primera página",
+	"removed": "Dirección quitada de la lista de supresión."
+}

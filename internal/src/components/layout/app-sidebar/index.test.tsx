@@ -17,7 +17,7 @@ afterEach(() => {
 });
 
 describe("AppSidebar", () => {
-	it("holds the brand, the four pages and the signed-in user", async () => {
+	it("holds the brand, the pages and the signed-in user", async () => {
 		render(
 			<SidebarProvider>
 				{
@@ -34,7 +34,7 @@ describe("AppSidebar", () => {
 			"/",
 		);
 		const nav = screen.getByRole("navigation", { name: "label" });
-		expect(nav.querySelectorAll("a")).toHaveLength(4);
+		expect(nav.querySelectorAll("a")).toHaveLength(5);
 		expect(
 			screen.getByRole("button", { name: "logout" }),
 		).toBeInTheDocument();

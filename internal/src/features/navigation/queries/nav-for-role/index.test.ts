@@ -13,7 +13,7 @@ const item = (href: NavItem["href"], roles: NavItem["roles"]): NavItem => ({
 });
 
 describe("navForRole", () => {
-	it("gives the admin role the four admin pages in one group", () => {
+	it("gives the admin role the admin pages in one group", () => {
 		const groups = navForRole("admin");
 
 		expect(groups).toHaveLength(1);
@@ -23,6 +23,7 @@ describe("navForRole", () => {
 			"/domains",
 			"/accounts",
 			"/queue",
+			"/suppression",
 		]);
 	});
 

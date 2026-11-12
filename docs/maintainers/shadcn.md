@@ -89,7 +89,7 @@ kept.
 | Input, Label | sign-in form | no violation |
 | Alert | `warning` for the unreachable notice on four pages, `destructive` for the sign-in error | no violation |
 | Card | status counters | no violation |
-| Table | queue, domains, accounts | no violation |
+| Table | queue, suppression, domains, accounts | no violation |
 | Sidebar (provider, rail, menu, trigger) | every signed-in page | none at first paint, after hydration, collapsed or expanded; width variables are classes |
 | Sidebar tooltip (own, no popper) | collapsed sidebar icons | none after hover or keyboard focus (placed through the CSSOM); Escape dismisses it |
 | DropdownMenu, non-modal, loaded on demand | language menu | none after opening; the modal default injects a style element and was replaced. Its code loads on hover, focus or press of a placeholder button |

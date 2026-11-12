@@ -6,6 +6,7 @@ import type error from "@/i18n/messages/en/error.json";
 import type nav from "@/i18n/messages/en/nav.json";
 import type notFound from "@/i18n/messages/en/notFound.json";
 import type queue from "@/i18n/messages/en/queue.json";
+import type suppression from "@/i18n/messages/en/suppression.json";
 import type table from "@/i18n/messages/en/table.json";
 
 // Type every `useTranslations`/`getTranslations` key against the English source
@@ -19,6 +20,7 @@ declare module "next-intl" {
 			domains: typeof domains;
 			accounts: typeof accounts;
 			queue: typeof queue;
+			suppression: typeof suppression;
 			notFound: typeof notFound;
 			auth: typeof auth;
 			error: typeof error;
