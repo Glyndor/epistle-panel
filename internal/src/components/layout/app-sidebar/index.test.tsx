@@ -1,11 +1,20 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
 import { cleanup, render, screen } from "@testing-library/react";
 import { SidebarProvider } from "@/components/ui/sidebar/provider";
+import { COPYRIGHT_NOTICE } from "@/features/branding/copyright";
+import {
+	BRAND_LOGO_VARIABLE,
+	BRAND_NAME_VARIABLE,
+} from "@/features/branding/queries/brand";
 import { navForRole } from "@/features/navigation/queries/nav-for-role";
 
 const { AppSidebar } = await import(".");
 
-afterEach(cleanup);
+afterEach(() => {
+	cleanup();
+	delete process.env[BRAND_NAME_VARIABLE];
+	delete process.env[BRAND_LOGO_VARIABLE];
+});
 
 describe("AppSidebar", () => {
 	it("holds the brand, the four pages and the signed-in user", async () => {
@@ -20,7 +29,7 @@ describe("AppSidebar", () => {
 			</SidebarProvider>,
 		);
 
-		expect(screen.getByRole("link", { name: /brand/ })).toHaveAttribute(
+		expect(screen.getByRole("link", { name: /Epistle/ })).toHaveAttribute(
 			"href",
 			"/",
 		);
@@ -47,5 +56,44 @@ describe("AppSidebar", () => {
 		expect(
 			container.querySelector("a[href='/'] svg[aria-hidden='true']"),
 		).not.toBeNull();
+	});
+
+	it("shows the operator's name and logo, and keeps the original copyright notice", async () => {
+		process.env[BRAND_NAME_VARIABLE] = "Acme Mail";
+		process.env[BRAND_LOGO_VARIABLE] = "/run/logo.svg";
+		const { container } = render(
+			<SidebarProvider>
+				{
+					await AppSidebar({
+						name: "admin",
+						groups: navForRole("admin"),
+					})
+				}
+			</SidebarProvider>,
+		);
+
+		expect(
+			screen.getByRole("link", { name: /Acme Mail/ }),
+		).toBeInTheDocument();
+		expect(container.querySelector("a[href='/'] img")).toHaveAttribute(
+			"src",
+			"/brand/logo",
+		);
+		expect(screen.getByText(COPYRIGHT_NOTICE)).toBeInTheDocument();
+	});
+
+	it("keeps the copyright notice with the default branding too", async () => {
+		render(
+			<SidebarProvider>
+				{
+					await AppSidebar({
+						name: "admin",
+						groups: navForRole("admin"),
+					})
+				}
+			</SidebarProvider>,
+		);
+
+		expect(screen.getByText(COPYRIGHT_NOTICE)).toBeInTheDocument();
 	});
 });

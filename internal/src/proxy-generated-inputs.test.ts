@@ -49,7 +49,10 @@ function expectedVerdict(rawPath: string): Verdict {
 		path.startsWith("/_next/static/") ||
 		path === "/_next/image" ||
 		path === "/favicon.ico" ||
-		path === "/robots.txt"
+		path === "/robots.txt" ||
+		path === "/theme.css" ||
+		path === "/brand/logo" ||
+		path === "/brand/favicon"
 	) {
 		return "static";
 	}
@@ -112,6 +115,17 @@ const BASES = [
 	"/ROBOTS.TXT",
 	"/robots%2etxt",
 	"/robotsxtxt",
+	"/theme.css",
+	"/theme.cssx",
+	"/theme.css/",
+	"/x/theme.css",
+	"/THEME.CSS",
+	"/brand/logo",
+	"/brand/logox",
+	"/brand/logo/x",
+	"/brand/favicon",
+	"/brand/favicon.ico",
+	"/brand",
 	"/lоgin",
 	"/ｌｏｇｉｎ",
 	"/login​",

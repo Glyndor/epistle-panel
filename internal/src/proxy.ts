@@ -52,15 +52,18 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-	// Everything except Next internals, static assets and `/robots.txt`. The
+	// Everything except Next internals, static assets, `/robots.txt` and the
+	// operator's public assets (`/theme.css`, `/brand/logo`, `/brand/favicon`). The
 	// login route stays inside the matcher so it receives the nonce-bearing CSP;
 	// the proxy itself lets it through without a session. The skipped names are
 	// anchored: an unanchored `_next/image` or an unescaped dot in `favicon.ico`
 	// would also skip `/_next/imagex` and `/faviconxico`, which belong behind
 	// the gate. `robots.txt` is skipped as that exact path only, so a crawler
 	// reads `Disallow: /` without a session; `next.config.ts` still stamps its
-	// headers, `X-Robots-Tag` included.
+	// headers, `X-Robots-Tag` included. The theme and brand assets are skipped as
+	// those exact paths for the same reason: the sign-in page needs them before
+	// any session, and they open nothing else.
 	matcher: [
-		"/((?!_next/static/|_next/image$|favicon\\.ico$|robots\\.txt$).*)",
+		"/((?!_next/static/|_next/image$|favicon\\.ico$|robots\\.txt$|theme\\.css$|brand/logo$|brand/favicon$).*)",
 	],
 };

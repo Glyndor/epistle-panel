@@ -34,10 +34,23 @@ describe("generateMetadata", () => {
 		});
 	});
 
-	it("takes the title from the app namespace and carries no description, canonical link, Open Graph, Twitter or sitemap metadata", async () => {
+	it("names the page after the brand, and uses the operator's favicon only when one is set", async () => {
+		expect((await generateMetadata()).title).toBe("Epistle");
+		expect(await generateMetadata()).not.toHaveProperty("icons");
+
+		process.env.EPISTLE_PANEL_BRAND_NAME = "Acme Mail";
+		process.env.EPISTLE_PANEL_BRAND_FAVICON_FILE = "/run/favicon.ico";
+		const metadata = await generateMetadata();
+		delete process.env.EPISTLE_PANEL_BRAND_NAME;
+		delete process.env.EPISTLE_PANEL_BRAND_FAVICON_FILE;
+
+		expect(metadata.title).toBe("Acme Mail");
+		expect(metadata.icons).toEqual({ icon: "/brand/favicon" });
+	});
+
+	it("carries no description, canonical link, Open Graph, Twitter or sitemap metadata", async () => {
 		const metadata = await generateMetadata();
 
-		expect(metadata.title).toBe("title");
 		for (const key of [
 			"description",
 			"alternates",
@@ -59,6 +72,17 @@ describe("RootLayout", () => {
 
 		expect(html).toStartWith('<html lang="es"');
 		expect(html).toContain('<main id="main-content">content</main>');
+	});
+
+	it("links the operator's stylesheet only when one is configured", async () => {
+		expect(await renderLayout()).not.toContain("/theme.css");
+
+		process.env.EPISTLE_PANEL_THEME_CSS_FILE = "/run/theme.css";
+		const html = await renderLayout();
+		delete process.env.EPISTLE_PANEL_THEME_CSS_FILE;
+
+		expect(html).toContain('href="/theme.css"');
+		expect(html).toContain('rel="stylesheet"');
 	});
 
 	it("renders no navigation of its own: the shell lives in the (admin) layout", async () => {

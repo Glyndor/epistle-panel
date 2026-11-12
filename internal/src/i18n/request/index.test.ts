@@ -65,23 +65,27 @@ describe("locale resolution", () => {
 describe("missing messages", () => {
 	it("answers a key missing from the active locale with its English string", async () => {
 		const config = await resolve("es");
-		const english = (await loadMessages("en")).app.title as string;
+		const english = (await loadMessages("en")).notFound.heading as string;
 
-		expect(config.getMessageFallback({ key: "app.title" })).toBe(english);
+		expect(config.getMessageFallback({ key: "notFound.heading" })).toBe(
+			english,
+		);
 	});
 
 	it("answers a key English does not have with the key itself", async () => {
 		const config = await resolve("es");
 
-		expect(config.getMessageFallback({ key: "app.nope" })).toBe("app.nope");
+		expect(config.getMessageFallback({ key: "notFound.nope" })).toBe(
+			"notFound.nope",
+		);
 		expect(config.getMessageFallback({ key: "nope.title" })).toBe(
 			"nope.title",
 		);
 		// A path that ends on a branch, not a string, is not a message either.
-		expect(config.getMessageFallback({ key: "app" })).toBe("app");
-		expect(config.getMessageFallback({ key: "app.title.deeper" })).toBe(
-			"app.title.deeper",
-		);
+		expect(config.getMessageFallback({ key: "notFound" })).toBe("notFound");
+		expect(
+			config.getMessageFallback({ key: "notFound.heading.deeper" }),
+		).toBe("notFound.heading.deeper");
 	});
 
 	it("swallows the error so a gap does not flood the log", async () => {

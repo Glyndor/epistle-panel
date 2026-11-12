@@ -21,6 +21,27 @@ describe("proxy matcher", () => {
 		}
 	});
 
+	it("skips the operator's theme and brand assets as those exact paths, and nothing around them", () => {
+		for (const path of ["/theme.css", "/brand/logo", "/brand/favicon"]) {
+			expect(covered.test(path)).toBe(false);
+		}
+		for (const path of [
+			"/theme.cssx",
+			"/theme.css/queue",
+			"/x/theme.css",
+			"/THEME.CSS",
+			"/theme%2ecss",
+			"/brand/logox",
+			"/brand/logo/x",
+			"/brand",
+			"/brand/",
+			"/brand/favicon.ico",
+			"/x/brand/logo",
+		]) {
+			expect(covered.test(path)).toBe(true);
+		}
+	});
+
 	it("skips /robots.txt as that exact path, and nothing around it", () => {
 		expect(covered.test("/robots.txt")).toBe(false);
 		for (const path of [

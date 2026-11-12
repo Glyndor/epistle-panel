@@ -2,7 +2,6 @@
 
 import * as React from "react";
 
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/class-names";
 import { SidebarContext, type SidebarContextProps } from "../context";
 import { useIsMobile } from "../use-is-mobile";
@@ -71,18 +70,16 @@ export function SidebarProvider({
 
 	return (
 		<SidebarContext.Provider value={value}>
-			<TooltipProvider delayDuration={0}>
-				<div
-					data-slot="sidebar-wrapper"
-					className={cn(
-						"group/sidebar-wrapper flex min-h-svh w-full [--sidebar-width-icon:3rem] [--sidebar-width:14rem] pointer-coarse:[--sidebar-width-icon:4rem]",
-						className,
-					)}
-					{...props}
-				>
-					{children}
-				</div>
-			</TooltipProvider>
+			<div
+				data-slot="sidebar-wrapper"
+				className={cn(
+					"group/sidebar-wrapper flex min-h-svh w-full [--sidebar-width-icon:3rem] [--sidebar-width:14rem] pointer-coarse:[--sidebar-width-icon:4rem]",
+					className,
+				)}
+				{...props}
+			>
+				{children}
+			</div>
 		</SidebarContext.Provider>
 	);
 }

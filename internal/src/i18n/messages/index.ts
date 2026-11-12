@@ -5,7 +5,6 @@ import type { Locale } from "@/i18n/locales";
  * `./<locale>/<namespace>.json`; the file holds the keys under that namespace.
  */
 export const NAMESPACES = [
-	"app",
 	"dashboard",
 	"nav",
 	"domains",

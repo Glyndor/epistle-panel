@@ -1,5 +1,4 @@
 import type accounts from "@/i18n/messages/en/accounts.json";
-import type app from "@/i18n/messages/en/app.json";
 import type auth from "@/i18n/messages/en/auth.json";
 import type dashboard from "@/i18n/messages/en/dashboard.json";
 import type domains from "@/i18n/messages/en/domains.json";
@@ -14,7 +13,6 @@ import type queue from "@/i18n/messages/en/queue.json";
 declare module "next-intl" {
 	interface AppConfig {
 		Messages: {
-			app: typeof app;
 			dashboard: typeof dashboard;
 			nav: typeof nav;
 			domains: typeof domains;

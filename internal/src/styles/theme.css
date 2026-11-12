@@ -1,0 +1,127 @@
+/* The panel's theme: every colour, radius, font and the spacing unit, as
+   semantic tokens, in this one file. Components read the roles (`bg-primary`,
+   `rounded-md`, `font-sans`) and never a palette value, so an operator can
+   restyle the whole interface from a mounted stylesheet (`/theme.css`, see
+   docs/maintainers/customising.md) by redefining these variables, with no
+   rebuild. The light and dark values follow `prefers-color-scheme`. Anything
+   that needs a different Tailwind config or different markup needs a rebuild. */
+/* Theme tokens in the names shadcn/ui components read. The light and dark
+   values follow `prefers-color-scheme`, so a component never needs a `dark:`
+   utility: it reads `bg-primary` and the token changes underneath it. The
+   values are the zinc steps the panel already used, expressed as the semantic
+   roles. `--input` and `--ring` are kept at 3:1 or more against `--background`
+   (a field border and a focus ring are non-text components). */
+:root {
+	--background: #ffffff;
+	--foreground: #171717;
+	--card: #ffffff;
+	--card-foreground: #171717;
+	--primary: oklch(0.21 0.006 285.885);
+	--primary-foreground: #ffffff;
+	--secondary: oklch(0.967 0.001 286.375);
+	--secondary-foreground: oklch(0.21 0.006 285.885);
+	--muted: oklch(0.967 0.001 286.375);
+	--muted-foreground: oklch(0.5 0.016 285.938);
+	--accent: oklch(0.967 0.001 286.375);
+	--accent-foreground: oklch(0.21 0.006 285.885);
+	--destructive: oklch(0.505 0.213 27.518);
+	--destructive-foreground: #ffffff;
+	/* Amber, the colours of the unreachable notice before the theme existed. */
+	--warning: oklch(0.987 0.022 95.277);
+	--warning-foreground: oklch(0.414 0.112 45.904);
+	--border: oklch(0.92 0.004 286.32);
+	--input: oklch(0.552 0.016 285.938);
+	--ring: oklch(0.552 0.016 285.938);
+	--radius: 0.5rem;
+	--overlay: rgb(0 0 0 / 0.5);
+	--popover: #ffffff;
+	--popover-foreground: #171717;
+	/* The rail is one step off the page so it reads as its own surface; its
+	   text, hover fill, border and focus ring are measured on that surface. */
+	--sidebar: oklch(0.985 0 0);
+	--sidebar-foreground: oklch(0.21 0.006 285.885);
+	--sidebar-accent: oklch(0.94 0.002 286.32);
+	--sidebar-accent-foreground: oklch(0.21 0.006 285.885);
+	--sidebar-border: oklch(0.92 0.004 286.32);
+	--sidebar-ring: oklch(0.552 0.016 285.938);
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--background: #0a0a0a;
+		--foreground: #ededed;
+		--card: #0a0a0a;
+		--card-foreground: #ededed;
+		--primary: oklch(0.967 0.001 286.375);
+		--primary-foreground: oklch(0.21 0.006 285.885);
+		--secondary: oklch(0.274 0.006 286.033);
+		--secondary-foreground: oklch(0.967 0.001 286.375);
+		--muted: oklch(0.274 0.006 286.033);
+		--muted-foreground: oklch(0.705 0.015 286.067);
+		--accent: oklch(0.274 0.006 286.033);
+		--accent-foreground: oklch(0.967 0.001 286.375);
+		--destructive: oklch(0.808 0.114 19.571);
+		--destructive-foreground: oklch(0.141 0.005 285.823);
+		--warning: oklch(0.279 0.077 45.635);
+		--warning-foreground: oklch(0.924 0.12 95.746);
+		--border: oklch(0.274 0.006 286.033);
+		--input: oklch(0.552 0.016 285.938);
+		--ring: oklch(0.705 0.015 286.067);
+		--overlay: rgb(0 0 0 / 0.6);
+		--popover: #171717;
+		--popover-foreground: #ededed;
+		--sidebar: oklch(0.17 0.004 286);
+		--sidebar-foreground: oklch(0.967 0.001 286.375);
+		--sidebar-accent: oklch(0.274 0.006 286.033);
+		--sidebar-accent-foreground: oklch(0.967 0.001 286.375);
+		--sidebar-border: oklch(0.274 0.006 286.033);
+		--sidebar-ring: oklch(0.705 0.015 286.067);
+	}
+}
+
+/* Fonts and the spacing unit. System stacks only: the CSP is
+   default-src 'self', so a font must come from the panel's own origin (an
+   operator can add an `@font-face` to `/theme.css` that points at a file the
+   panel serves) and the container cannot download one. `--spacing` is the unit
+   every `p-*`, `gap-*` and `size-*` utility multiplies. */
+@theme {
+	--font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
+		"Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+	--font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+		"Liberation Mono", "Courier New", monospace;
+	--spacing: 0.25rem;
+}
+
+@theme inline {
+	--color-background: var(--background);
+	--color-foreground: var(--foreground);
+	--color-card: var(--card);
+	--color-card-foreground: var(--card-foreground);
+	--color-primary: var(--primary);
+	--color-primary-foreground: var(--primary-foreground);
+	--color-secondary: var(--secondary);
+	--color-secondary-foreground: var(--secondary-foreground);
+	--color-muted: var(--muted);
+	--color-muted-foreground: var(--muted-foreground);
+	--color-accent: var(--accent);
+	--color-accent-foreground: var(--accent-foreground);
+	--color-destructive: var(--destructive);
+	--color-destructive-foreground: var(--destructive-foreground);
+	--color-warning: var(--warning);
+	--color-warning-foreground: var(--warning-foreground);
+	--color-overlay: var(--overlay);
+	--color-popover: var(--popover);
+	--color-popover-foreground: var(--popover-foreground);
+	--color-sidebar: var(--sidebar);
+	--color-sidebar-foreground: var(--sidebar-foreground);
+	--color-sidebar-accent: var(--sidebar-accent);
+	--color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+	--color-sidebar-border: var(--sidebar-border);
+	--color-sidebar-ring: var(--sidebar-ring);
+	--color-border: var(--border);
+	--color-input: var(--input);
+	--color-ring: var(--ring);
+	--radius-sm: calc(var(--radius) - 4px);
+	--radius-md: calc(var(--radius) - 2px);
+	--radius-lg: var(--radius);
+}

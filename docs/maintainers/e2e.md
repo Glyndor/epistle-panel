@@ -40,7 +40,7 @@ the line limit:
 | `scripts/e2e/lib/reporting.sh` | the pass and fail counters and the `assert_*` helpers |
 | `scripts/e2e/lib/processes.sh` | secrets, start and restart of the stand-in and the panel, its control calls |
 | `scripts/e2e/lib/http.sh` | `fetch`, `login`, the form-field readers, memory and CPU counters |
-| `scripts/e2e/scenarios/<name>.sh` | one scenario each: `headers`, `logout`, `limiter`, `limiter-global`, `noauth`, `degraded`, `rotation`, `idle` |
+| `scripts/e2e/scenarios/<name>.sh` | one scenario each: `headers`, `logout`, `limiter`, `limiter-global`, `noauth`, `degraded`, `rotation`, `idle`, `theme` |
 
 A new scenario is a new file in `scenarios/`, a `source` line and a `case` entry
 in `run.sh`, and a row in the table below.
@@ -71,6 +71,7 @@ secret, and switches the data endpoints to `hang` or `huge` through
 | `degraded` | a hanging API degrades the page within the 10 s budget and the server keeps answering; a body over the cap degrades quickly with bounded memory |
 | `rotation` | replacing a `_FILE` secret does not change a running process, in any bundle; a restart picks it up |
 | `idle` | idle CPU, and a memory ceiling after 400 requests |
+| `theme` | `/theme.css`, `/brand/logo` and `/brand/favicon` answer without a session when configured and 404 when not; the sign-in page links the stylesheet and shows the name, the logo and the original copyright notice; the CSP is the same with and without a theme; look-alike paths stay behind the gate; a symlink, an oversized or a missing file is a 404 and a log line with no path; an SVG with script is refused |
 
 ## Browser checks (manual)
 

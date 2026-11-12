@@ -79,8 +79,8 @@ kept.
 | Card | status counters | no violation |
 | Table | queue, domains, accounts | no violation |
 | Sidebar (provider, rail, menu, trigger) | every signed-in page | none at first paint, after hydration, collapsed or expanded; width variables are classes |
-| Tooltip | collapsed sidebar icons | none after opening (positioned through the CSSOM) |
-| DropdownMenu, non-modal | language menu | none after opening; the modal default injects a style element and was replaced |
+| Sidebar tooltip (own, no popper) | collapsed sidebar icons | none after hover or keyboard focus (placed through the CSSOM); Escape dismisses it |
+| DropdownMenu, non-modal, loaded on demand | language menu | none after opening; the modal default injects a style element and was replaced. Its code loads on hover, focus or press of a placeholder button |
 | Sheet, native `<dialog>` | sidebar below 768 px | none after opening; Radix Dialog violated and was replaced |
 | Separator | header, sidebar | no violation |
 

@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { cleanup, render, screen } from "@testing-library/react";
 
+import { COPYRIGHT_NOTICE } from "@/features/branding/copyright";
+
 import AuthLayout from "./layout";
 
 afterEach(cleanup);
@@ -18,5 +20,16 @@ describe("AuthLayout", () => {
 		expect(main).toContainElement(screen.getByText("form"));
 		expect(screen.queryByRole("navigation")).toBeNull();
 		expect(screen.queryByRole("banner")).toBeNull();
+	});
+
+	it("shows the brand and the original copyright notice", () => {
+		render(
+			<AuthLayout>
+				<p>form</p>
+			</AuthLayout>,
+		);
+
+		expect(screen.getByText("Epistle")).toBeInTheDocument();
+		expect(screen.getByText(COPYRIGHT_NOTICE)).toBeInTheDocument();
 	});
 });
