@@ -91,6 +91,11 @@ The Debian package has its own checks, run by the `Debian package` workflow:
 container, and `scripts/debian/smoke.sh <path-to-.deb>` installs it there.
 Both need podman or docker.
 
+Other workflows run only when their answer can change: `Dependency audit`
+(lockfile or manifest, plus weekly), `actionlint` (workflow files), `Bun
+version` (one Bun release across the workflows and the Containerfile) and
+`Dependabot security watch`. None of them is a required check.
+
 ## License
 
 [MIT](LICENSE)

@@ -1,0 +1,62 @@
+name: Dependency audit
+
+# `bun audit` reads internal/bun.lock and asks the advisory database; the
+# answer changes only when the lockfile changes or when a new advisory is
+# published. So it runs on a pull request only when the lockfile or the
+# manifest is in it, on a push to main for the same paths, and once a week to
+# catch advisories published against a lockfile that did not move.
+#
+# Advisory only, on purpose: it is not a required check in either ruleset. A
+# new advisory is a third party's disclosure timing and must never block an
+# unrelated merge, and a workflow skipped by `paths:` leaves a required check
+# pending forever. The release workflow keeps its own `bun audit` as the
+# blocking gate. This file lists itself so an edit to it runs on its own pull
+# request. GitHub reads `schedule:` from the default branch only, so the cron
+# starts once this reaches main; `workflow_dispatch` covers the gap.
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/audit.yml"
+      - "internal/bun.lock"
+      - "internal/package.json"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/audit.yml"
+      - "internal/bun.lock"
+      - "internal/package.json"
+  schedule:
+    - cron: "23 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  audit:
+    name: bun audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          # Same Bun as ci.yml, release.yml and the Containerfile;
+          # scripts/version/check-bun-version.sh keeps them equal.
+          bun-version: 1.4.4
+
+      - name: Advisories in the lockfile
+        working-directory: internal
+        # Exits non-zero on any advisory, development dependencies included,
+        # and on a failed lookup, the same as the release gate. An advisory
+        # judged not to apply is passed as `--ignore=<GHSA id>` with the
+        # reason beside it, in a reviewed change.
+        run: bun audit
