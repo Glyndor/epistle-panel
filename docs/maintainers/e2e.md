@@ -71,7 +71,7 @@ secret, and switches the data endpoints to `hang` or `huge` through
 | `degraded` | a hanging API degrades the page within the 10 s budget and the server keeps answering; a body over the cap degrades quickly with bounded memory |
 | `rotation` | replacing a `_FILE` secret does not change a running process, in any bundle; a restart picks it up |
 | `idle` | idle CPU, and a memory ceiling after 400 requests |
-| `body-limit` | a Server Action body over the 8 KB `experimental.serverActions.bodySizeLimit` in `next.config.ts` is refused before the action runs (the API sees no call), while the widest sign-in the form can send (about 4.1 KB) and a normal action are accepted |
+| `body-limit` | a Server Action body over the 16 KB `experimental.serverActions.bodySizeLimit` in `next.config.ts` is refused before the action runs (the API sees no call), while the widest sign-in the form can send (about 4.1 KB, also with a 4 KB CAPTCHA-sized token) and a normal action are accepted |
 | `theme` | `/theme.css`, `/brand/logo` and `/brand/favicon` answer without a session when configured and 404 when not; the sign-in page links the stylesheet and shows the name, the logo and the original copyright notice; the CSP is the same with and without a theme; look-alike paths stay behind the gate; a symlink, an oversized or a missing file is a 404 and a log line with no path; an SVG with script is refused |
 
 ## Browser checks (manual)

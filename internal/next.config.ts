@@ -13,7 +13,7 @@ const nextConfig: NextConfig = {
 	reactCompiler: true,
 	typedRoutes: true,
 	experimental: {
-		serverActions: { bodySizeLimit: "8kb" },
+		serverActions: { bodySizeLimit: "16kb" },
 	},
 	// Do not announce the framework on every response.
 	poweredByHeader: false,

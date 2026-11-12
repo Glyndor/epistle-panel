@@ -11,14 +11,20 @@ scenario_body_limit() {
 
 	# The widest sign-in the form can send: a 254 character name and a 1024
 	# character password, the password in three-byte characters. That body is
-	# about 4.1 KB as multipart, so the 8 KB limit in next.config.ts keeps one
-	# doubling of headroom over the largest request any action takes.
+	# about 4.1 KB as multipart, and a CAPTCHA provider token adds 2 to 4 KB, so
+	# the 16 KB limit in next.config.ts keeps headroom over the largest request.
 	local name password
 	name=$(head -c 254 /dev/zero | tr '\0' 'n')
 	password=$(printf '€%.0s' $(seq 1 1024))
 	login "$name" "$password"
 	assert_eq "the widest sign-in is read by the action" "$status" 200
 	assert_eq "the widest sign-in reached the API once" "$(verify_calls)" 1
+
+	# The same sign-in with a synthetic 4 KB provider token on top.
+	reset_api
+	login "$name" "$password" "captcha-token=$(head -c 4096 /dev/zero | tr '\0' 't')"
+	assert_eq "the widest sign-in with a 4 KB token is read by the action" "$status" 200
+	assert_eq "the widest sign-in with a token reached the API once" "$(verify_calls)" 1
 
 	reset_api
 	assert_eq "an in-limit action is accepted" "$(post_remove "$good")" 200
