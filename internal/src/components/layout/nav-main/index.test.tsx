@@ -3,7 +3,6 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
 import { useSidebar } from "@/components/ui/sidebar/context";
 import { SidebarProvider } from "@/components/ui/sidebar/provider";
-import { intlClientMock } from "@/test/intl-client";
 
 let pathname = "/domains";
 mock.module("next/navigation", () => ({
@@ -12,7 +11,6 @@ mock.module("next/navigation", () => ({
 		throw new Error("NEXT_REDIRECT");
 	},
 }));
-mock.module("next-intl", () => intlClientMock);
 
 const { NavMain } = await import(".");
 

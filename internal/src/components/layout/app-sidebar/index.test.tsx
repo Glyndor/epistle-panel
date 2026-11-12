@@ -2,11 +2,6 @@ import { afterEach, describe, expect, it, mock } from "bun:test";
 import { cleanup, render, screen } from "@testing-library/react";
 
 import { SidebarProvider } from "@/components/ui/sidebar/provider";
-import { intlClientMock } from "@/test/intl-client";
-import { intlServerMock } from "@/test/intl-server";
-
-mock.module("next-intl/server", () => intlServerMock);
-mock.module("next-intl", () => intlClientMock);
 
 const { AppSidebar } = await import(".");
 

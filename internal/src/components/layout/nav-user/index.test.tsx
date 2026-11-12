@@ -9,9 +9,7 @@ import {
 
 import { SidebarProvider } from "@/components/ui/sidebar/provider";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
-import { intlClientMock } from "@/test/intl-client";
 
-mock.module("next-intl", () => intlClientMock);
 const cookies = mockRequestCookies();
 
 const { NavUser } = await import(".");

@@ -95,6 +95,7 @@ export function serverStandIn() {
 export function clientStandIn() {
 	return {
 		useTranslations: () => (key: string) => key,
+		useLocale: () => intl.locale,
 		NextIntlClientProvider: ProviderStandIn,
 	};
 }

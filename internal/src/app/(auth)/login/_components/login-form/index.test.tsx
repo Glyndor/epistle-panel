@@ -8,9 +8,6 @@ import {
 } from "@testing-library/react";
 
 import type { LoginState } from "@/lib/auth/actions/login";
-import { intlClientMock } from "@/test/intl-client";
-
-mock.module("next-intl", () => intlClientMock);
 
 const calls: FormData[] = [];
 let result: LoginState = { error: true };

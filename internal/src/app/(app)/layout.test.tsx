@@ -5,12 +5,8 @@ import {
 	mockRequestCookies,
 	RedirectSignal,
 } from "@/lib/auth/test-support/cookies";
-import { intlClientMock } from "@/test/intl-client";
-import { intlServerMock } from "@/test/intl-server";
 import { resolveServerTree } from "@/test/server-tree";
 
-mock.module("next-intl/server", () => intlServerMock);
-mock.module("next-intl", () => intlClientMock);
 const cookies = mockRequestCookies();
 
 const { default: AppLayout } = await import("./layout");

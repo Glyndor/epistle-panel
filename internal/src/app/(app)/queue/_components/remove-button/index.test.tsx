@@ -8,9 +8,7 @@ import {
 } from "@testing-library/react";
 
 import { stubFetchReject } from "@/lib/api/test-support/fetch";
-import { intlClientMock } from "@/test/intl-client";
 
-mock.module("next-intl", () => intlClientMock);
 mock.module("next/cache", () => ({ revalidatePath: () => {} }));
 
 const { RemoveButton } = await import(".");

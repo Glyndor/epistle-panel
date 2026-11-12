@@ -1,10 +1,6 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
 import { cleanup, render, screen } from "@testing-library/react";
 
-import { intlServerMock } from "@/test/intl-server";
-
-mock.module("next-intl/server", () => intlServerMock);
-
 const { SkipLink } = await import(".");
 
 afterEach(cleanup);
