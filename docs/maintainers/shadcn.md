@@ -18,7 +18,11 @@ helpers (`class-variance-authority`, `clsx`, `tailwind-merge`).
 - **Radix overlays that lock page scroll are out.** A modal Radix Dialog or
   DropdownMenu injects a `<style>` element (react-remove-scroll), a
   `style-src-elem` violation. The dropdown is non-modal (`modal={false}`) and the
-  Sheet is a native `<dialog>`; see the table below.
+  Sheet is a native `<dialog>`; see the table below. Every Radix overlay that is
+  added needs a test that asserts `document.head.querySelectorAll("style").length`
+  does not grow when it opens; `components/ui/dropdown-menu/index.test.tsx` is the
+  pattern to copy. Reading the console in the built server is not enough on its
+  own, because nothing forces anyone to do it.
 - **Compact on a fine pointer, 44 px on a coarse one.** The panel is an
   administration surface, so controls are 32 px (`min-h-8`) and menu rows 32 px.
   Every interactive component adds `pointer-coarse:min-h-11` (or `size-11`), and
