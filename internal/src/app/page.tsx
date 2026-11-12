@@ -2,6 +2,7 @@ import { getFormatter, getTranslations } from "next-intl/server";
 
 import { UnreachableNotice } from "@/components/unreachable-notice";
 import { getStatus } from "@/lib/api/client";
+import { logApiFailure } from "@/lib/api/log-failure";
 import type { Status } from "@/lib/api/schemas";
 
 async function loadStatus(): Promise<Status | null> {
@@ -10,7 +11,7 @@ async function loadStatus(): Promise<Status | null> {
 	} catch (error) {
 		// Render the unreachable state; never surface error internals to the
 		// browser, but keep a server-side trace to debug auth/schema failures.
-		console.error("status fetch failed:", error);
+		logApiFailure("status fetch", error);
 		return null;
 	}
 }

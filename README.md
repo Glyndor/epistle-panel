@@ -98,6 +98,18 @@ export EPISTLE_PANEL_SESSION_SECRET_FILE="/run/secrets/epistle_panel_session_sec
   case: a missing session secret locks every route and a missing API token
   fails every API call.
 - Error messages name the variable, never the path or the content.
+- The path must be absolute and name a regular file of at most 64 KiB; a symlink
+  is refused. The value is read once per process, so rotate a secret by
+  restarting the service.
+
+### API address
+
+`EPISTLE_API_URL` must be a bare `http` or `https` origin: no credentials, path,
+query or fragment. Link-local and metadata addresses (`169.254.0.0/16`,
+`fe80::/10`) are refused. Plain `http` is accepted for a loopback host only; for
+another host use `https`, or list the host in `EPISTLE_API_ALLOW_HTTP_HOSTS`
+(comma separated) when the link is already private, for example over WireGuard.
+An invalid value makes every API call fail without sending a request.
 
 ## Contributing
 
