@@ -2,13 +2,14 @@ import { getTranslations } from "next-intl/server";
 
 import { UnreachableNotice } from "@/components/unreachable-notice";
 import { getAccounts } from "@/lib/api/client";
+import { logApiFailure } from "@/lib/api/log-failure";
 import type { Accounts } from "@/lib/api/schemas";
 
 async function loadAccounts(): Promise<Accounts["accounts"] | null> {
 	try {
 		return (await getAccounts()).accounts;
 	} catch (error) {
-		console.error("accounts fetch failed:", error);
+		logApiFailure("accounts fetch", error);
 		return null;
 	}
 }

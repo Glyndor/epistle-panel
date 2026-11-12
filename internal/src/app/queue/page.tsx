@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 
 import { UnreachableNotice } from "@/components/unreachable-notice";
 import { getQueue } from "@/lib/api/client";
+import { logApiFailure } from "@/lib/api/log-failure";
 import type { QueuePage as QueuePageData } from "@/lib/api/schemas";
 
 import { RemoveButton } from "./_components/remove-button";
@@ -10,7 +11,7 @@ async function loadQueue(cursor?: string): Promise<QueuePageData | null> {
 	try {
 		return await getQueue(cursor ? { cursor } : undefined);
 	} catch (error) {
-		console.error("queue fetch failed:", error);
+		logApiFailure("queue fetch", error);
 		return null;
 	}
 }

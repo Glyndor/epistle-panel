@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { z } from "zod";
 
 import { removeQueueEntry } from "@/lib/api/client";
+import { logApiFailure } from "@/lib/api/log-failure";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth/session";
 
 export type RemoveState = { ok: boolean } | null;
@@ -34,7 +35,7 @@ export async function removeEntry(
 	try {
 		await removeQueueEntry(id.data);
 	} catch (error) {
-		console.error("queue remove failed:", error);
+		logApiFailure("queue remove", error);
 		return { ok: false };
 	}
 	revalidatePath("/queue");

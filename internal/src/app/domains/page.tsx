@@ -2,12 +2,13 @@ import { getTranslations } from "next-intl/server";
 
 import { UnreachableNotice } from "@/components/unreachable-notice";
 import { getDomains } from "@/lib/api/client";
+import { logApiFailure } from "@/lib/api/log-failure";
 
 async function loadDomains(): Promise<string[] | null> {
 	try {
 		return (await getDomains()).domains;
 	} catch (error) {
-		console.error("domains fetch failed:", error);
+		logApiFailure("domains fetch", error);
 		return null;
 	}
 }
