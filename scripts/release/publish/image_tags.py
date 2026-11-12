@@ -12,7 +12,7 @@ patches and a consumer pinning `0` keeps getting minors.
 
 Pre-release versions like `v1.0.0-rc.1` are not supported and fail. The
 release workflow refuses such a tag before anything is built
-(scripts/version/check_release_tag.py), so a pre-release never reaches this
+(scripts/release/version/check_release_tag.py), so a pre-release never reaches this
 script, and publishing one here would move `:0` onto a candidate. Supporting
 them means changing both scripts together.
 
@@ -30,7 +30,7 @@ import re
 import sys
 
 # Anchored regex: `MAJOR.MINOR.PATCH` exactly, each component `0` or a number
-# without a leading zero (semver forbids them). scripts/version/
+# without a leading zero (semver forbids them). scripts/release/version/
 # check_release_tag.py accepts the same shape, so a tag that passes it is never
 # refused here, after the release is published.
 VERSION_RE = re.compile(

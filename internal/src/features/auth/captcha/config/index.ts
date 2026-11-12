@@ -3,9 +3,9 @@ import "server-only";
 import {
 	CAPTCHA_PROVIDERS,
 	type CaptchaProviderId,
-	type CspWidening,
 	captchaCspWidening,
-} from "@/lib/security-headers/captcha-sources";
+} from "@/features/auth/captcha/csp-sources";
+import type { CspWidening } from "@/lib/security-headers";
 import { BUILT_IN_PROVIDERS, type PublicCaptcha } from "../providers";
 
 /** Environment variables of the sign-in CAPTCHA. Off unless the provider is set. */

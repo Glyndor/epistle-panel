@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import { CAPTCHA_CSP_ALLOWLIST } from "@/lib/security-headers/captcha-sources";
+import { CAPTCHA_CSP_ALLOWLIST } from "@/features/auth/captcha/csp-sources";
 
 import { BUILT_IN_PROVIDERS } from ".";
 

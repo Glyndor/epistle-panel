@@ -49,7 +49,7 @@ The workflow calls these, each with an explicit interpreter, and they can be run
 
 | Folder | What it holds |
 | --- | --- |
-| `scripts/version/` | `check_release_tag.py` (tag, `package.json` and `debian/changelog` agree) and `check-changelog.sh` (the same without a tag, run by the Debian package workflow) |
+| `scripts/release/version/` | `check_release_tag.py` (tag, `package.json` and `debian/changelog` agree) and `check-changelog.sh` (the same without a tag, run by the Debian package workflow) |
 | `scripts/release/verify/` | `check-files.sh`, the allowlist of files a release directory may hold at each stage |
 | `scripts/release/sbom/` | `cyclonedx.ts`, the SBOM writer |
 | `scripts/release/sign/` | `sign-release.sh`, `sign_file.py` and the hash-pinned `sign-requirements.txt` |

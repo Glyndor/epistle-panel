@@ -9,7 +9,12 @@
  * proxy (which owns the nonce) and its tests on one definition.
  */
 
-import type { CspWidening } from "./captcha-sources";
+/** Sources a provider adds to the Content-Security-Policy, by directive. */
+export interface CspWidening {
+	readonly script: readonly string[];
+	readonly frame: readonly string[];
+	readonly connect: readonly string[];
+}
 
 /** Header Next reads from the request to learn the nonce it must stamp on its inline scripts. */
 export const CSP_HEADER = "content-security-policy";

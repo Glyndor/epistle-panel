@@ -1,3 +1,5 @@
+import type { CspWidening } from "@/lib/security-headers";
+
 /** The CAPTCHA providers the sign-in page can load a widget from. */
 export const CAPTCHA_PROVIDERS = [
 	"turnstile",
@@ -6,13 +8,6 @@ export const CAPTCHA_PROVIDERS = [
 	"custom",
 ] as const;
 export type CaptchaProviderId = (typeof CAPTCHA_PROVIDERS)[number];
-
-/** Sources a provider adds to the Content-Security-Policy, by directive. */
-export interface CspWidening {
-	readonly script: readonly string[];
-	readonly frame: readonly string[];
-	readonly connect: readonly string[];
-}
 
 /**
  * What each built-in provider needs and nothing more, from the provider's own

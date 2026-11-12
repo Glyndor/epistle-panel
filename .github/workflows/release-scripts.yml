@@ -16,7 +16,6 @@ on:
     paths:
       - ".github/workflows/release-scripts.yml"
       - "scripts/release/**"
-      - "scripts/version/**"
 
 permissions:
   contents: read
@@ -40,7 +39,7 @@ jobs:
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           # Same Bun as ci.yml, release.yml and the Containerfile;
-          # scripts/version/check-bun-version.sh keeps them equal. The SBOM
+          # scripts/consistency/check-bun-version.sh keeps them equal. The SBOM
           # writer is the one script here that runs under it.
           bun-version: 1.4.4
 
@@ -48,7 +47,7 @@ jobs:
         run: |
           set -euo pipefail
           shellcheck -x --source-path=SCRIPTDIR \
-            scripts/release/*/*.sh scripts/version/*.sh
+            scripts/release/*/*.sh
 
       - name: Compile the Python scripts
         env:
@@ -56,7 +55,7 @@ jobs:
           PYTHONPYCACHEPREFIX: ${{ runner.temp }}/pycache
         run: |
           set -euo pipefail
-          find scripts/release scripts/version -name '*.py' -print0 \
+          find scripts/release -name '*.py' -print0 \
             | xargs -0 python3 -I -m py_compile
 
       - name: Make the signing environment
@@ -71,14 +70,14 @@ jobs:
       - name: Python tests
         run: |
           set -euo pipefail
-          for dir in scripts/release/publish scripts/release/sign scripts/version; do
+          for dir in scripts/release/publish scripts/release/sign scripts/release/version; do
             "$RUNNER_TEMP/sign-venv/bin/python" -I -m unittest discover -s "$dir" -p 'test_*.py' -v
           done
 
       - name: Shell tests
         run: |
           set -euo pipefail
-          for test in scripts/release/*/test-*.sh scripts/version/test-*.sh; do
+          for test in scripts/release/*/test-*.sh; do
             echo "== $test"
             bash "$test"
           done
