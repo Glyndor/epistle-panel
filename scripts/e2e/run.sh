@@ -329,6 +329,8 @@ scenario_headers() {
 	fetch "$css"
 	assert_eq "static asset" "$status" 200
 	assert_eq "static asset keeps nosniff" "$(header x-content-type-options)" nosniff
+	assert_absent "the stylesheet wires no font variable that nothing defines" "$(cat "$work/b")" "font-geist"
+	assert_contains "the stylesheet carries the system font stack" "$(cat "$work/b")" "--font-mono:ui-monospace"
 
 	login admin correct-horse
 	assert_eq "login success redirects" "$status" 303
@@ -352,6 +354,8 @@ scenario_headers() {
 		assert_eq "$path: no inline style attribute or element" \
 			"$({ grep -o -E ' style="|<style' "$work/b" || true; } | wc -l | tr -d ' ')" 0
 		assert_absent "$path: not the unreachable alert" "$(cat "$work/b")" 'role="alert"'
+		assert_absent "$path: no server-only message in the client payload" "$(cat "$work/b")" "No accounts are configured yet."
+		assert_contains "$path: the client strings are in the payload" "$(cat "$work/b")" "Could not remove the message"
 	done
 
 	fetch /does-not-exist "$cookie"
