@@ -16,8 +16,8 @@ and functions next to the threshold, naming the one that is short.
 (`src/test/**`, every `test-support/` folder) and the `*.test.*` files are out of
 the report. The number describes production code only. A production file that no
 test imports is not in the report at all, so a new page or action needs a test
-that loads it; `bun test --coverage` will not point at the gap. The login page
-and the login form had none when this was written.
+that loads it; `bun test --coverage` will not point at the gap. Every page,
+action and client component has its own test today, and a new one keeps that.
 
 ## Order independence
 

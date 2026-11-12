@@ -1,4 +1,4 @@
-import type { CaptchaProviderId } from "@/lib/security-headers/captcha-sources";
+import type { CaptchaProviderId } from "@/features/auth/captcha/csp-sources";
 
 /** Where a built-in provider's widget script and verification endpoint live. */
 export interface BuiltInProvider {

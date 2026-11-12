@@ -107,7 +107,7 @@ updates:
   # The Containerfile pins every base by digest, so a moved tag never changes
   # the image silently; this is what moves the digests on purpose. The Bun
   # release is the tag of the `FROM docker.io/oven/bun:<version>-debian@sha256:`
-  # stage, which this reads and moves; scripts/version/check-bun-version.sh
+  # stage, which this reads and moves; scripts/consistency/check-bun-version.sh
   # compares that tag with the workflows' `bun-version:`, so a Bun that moves
   # without them is caught.
   - package-ecosystem: "docker"

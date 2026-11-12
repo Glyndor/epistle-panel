@@ -125,7 +125,7 @@ jobs:
         # with the version users already have, and apt reports nothing to
         # upgrade. The tag and package.json can agree while the changelog lags,
         # which is why all three are compared here and not only the first two.
-        run: python3 scripts/version/check_release_tag.py "$TAG"
+        run: python3 scripts/release/version/check_release_tag.py "$TAG"
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:

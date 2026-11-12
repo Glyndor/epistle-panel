@@ -5,7 +5,7 @@ name: Bun version
 # `FROM docker.io/oven/bun:<version>-debian@sha256:... AS bun` stage but not
 # the `bun-version:` lines, so the releases are read as text and compared here. The answer changes only when
 # one of those files does, so the workflow runs only for them; it lists itself
-# and its script so an edit to either runs on its own pull request. Not a
+# and its scripts so an edit to either runs on its own pull request. Not a
 # required check: a skipped workflow would leave a required one pending.
 
 on:
@@ -16,7 +16,8 @@ on:
     paths:
       - ".github/workflows/**"
       - "Containerfile"
-      - "scripts/version/check-bun-version.sh"
+      - "scripts/consistency/**"
+      - "scripts/release/lib/assertions.sh"
   workflow_dispatch:
 
 permissions:
@@ -36,5 +37,11 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Lint the consistency scripts
+        run: shellcheck -x --source-path=SCRIPTDIR scripts/consistency/*.sh
+
+      - name: Tests of the Bun version check
+        run: bash scripts/consistency/test-check-bun-version.sh
+
       - name: One Bun release everywhere
-        run: sh scripts/version/check-bun-version.sh
+        run: sh scripts/consistency/check-bun-version.sh

@@ -78,5 +78,27 @@ scenario_theme() {
 	start_panel
 	fetch /brand/logo
 	assert_eq "brand: an SVG that carries script is refused" "$status" 404
+	# The same payload written with numeric character references.
+	for payload in '&#106;avascript:' '&#x6a;avascript&#58;' 'java&#9;script:'; do
+		printf '<svg xmlns:xlink="http://www.w3.org/1999/xlink"><a xlink:href="%s alert(1)">x</a></svg>' "$payload" >"$dir/entity.svg"
+		panel_env=("EPISTLE_PANEL_BRAND_LOGO_FILE=$dir/entity.svg")
+		start_panel
+		fetch /brand/logo
+		assert_eq "brand: an SVG with $payload is refused" "$status" 404
+	done
+	# The same reader serves the logo, so a symlink or a FIFO there is a 404 too.
+	# The FIFO has no writer: without O_NONBLOCK the open would hang the request.
+	printf '<svg xmlns="http://www.w3.org/2000/svg"></svg>' >"$dir/real.svg"
+	ln -s "$dir/real.svg" "$dir/link.svg"
+	mkfifo "$dir/pipe.svg"
+	for bad in "$dir/link.svg" "$dir/pipe.svg"; do
+		panel_env=("EPISTLE_PANEL_BRAND_LOGO_FILE=$bad")
+		start_panel
+		fetch /brand/logo
+		assert_eq "brand: $(basename "$bad") as the logo is refused with a 404" "$status" 404
+		assert_absent "brand: the 404 body says nothing about the file" "$(cat "$work/b")" "$dir"
+		assert_contains "brand: the log names the logo variable" "$(cat "$work/panel.log")" "EPISTLE_PANEL_BRAND_LOGO_FILE is set but"
+		assert_absent "brand: the log has no path" "$(cat "$work/panel.log")" "$dir"
+	done
 	panel_env=()
 }

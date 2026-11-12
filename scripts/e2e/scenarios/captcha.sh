@@ -4,7 +4,7 @@
 #
 # The CAPTCHA is a stand-in provider served by the stand-in API and described to
 # the panel through the `custom` provider. The two constants below equal the
-# stand-in's (`scripts/e2e/shared-checks` asserts it).
+# stand-in's (`scripts/e2e/html-checks.test.ts` asserts it).
 
 CAPTCHA_SOLVED_TOKEN="stand-in-solved-token"
 CAPTCHA_SECRET="stand-in-captcha-secret"

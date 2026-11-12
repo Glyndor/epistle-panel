@@ -19,6 +19,10 @@ on:
     branches: [develop]
     paths:
       - ".github/workflows/**"
+  push:
+    branches: [develop]
+    paths:
+      - ".github/workflows/**"
   workflow_dispatch:
 
 permissions:

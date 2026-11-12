@@ -14,7 +14,7 @@
 # exercises.
 #
 # Usage: scripts/e2e/run.sh [scenario...]
-#   scenarios: headers logout limiter limiter-global noauth degraded rotation idle theme body-limit captcha unknown-variable
+#   scenarios: headers logout limiter limiter-global noauth degraded rotation idle theme body-limit captcha csrf set-locale unknown-variable
 # With no argument every scenario runs. Exit status is non-zero when any check
 # fails. Override the ports with PANEL_PORT and STAND_IN_PORT.
 set -euo pipefail
@@ -63,6 +63,7 @@ panel_pid=""
 stand_in_pid=""
 panel_env=()
 login_extra=()
+action_headers=()
 passed=0
 failed=0
 
@@ -114,12 +115,16 @@ cp -R "$internal/.next/static" "$standalone/.next/static"
 . "$root/scripts/e2e/scenarios/theme.sh"
 # shellcheck source=scripts/e2e/scenarios/body-limit.sh
 . "$root/scripts/e2e/scenarios/body-limit.sh"
+# shellcheck source=scripts/e2e/scenarios/csrf.sh
+. "$root/scripts/e2e/scenarios/csrf.sh"
+# shellcheck source=scripts/e2e/scenarios/set-locale.sh
+. "$root/scripts/e2e/scenarios/set-locale.sh"
 # shellcheck source=scripts/e2e/scenarios/unknown-variable.sh
 . "$root/scripts/e2e/scenarios/unknown-variable.sh"
 
 # ---------------------------------------------------------------- main
 
-all=(headers logout limiter limiter-global noauth degraded rotation idle theme body-limit captcha unknown-variable)
+all=(headers logout limiter limiter-global noauth degraded rotation idle theme body-limit captcha csrf set-locale unknown-variable)
 selected=("$@")
 ((${#selected[@]})) || selected=("${all[@]}")
 
@@ -136,6 +141,8 @@ for name in "${selected[@]}"; do
 	theme) scenario_theme ;;
 	body-limit) scenario_body_limit ;;
 	captcha) scenario_captcha ;;
+	csrf) scenario_csrf ;;
+	set-locale) scenario_set_locale ;;
 	unknown-variable) scenario_unknown_variable ;;
 	*)
 		echo "error: unknown scenario '$name'" >&2
