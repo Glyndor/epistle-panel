@@ -103,6 +103,7 @@ describe("RootLayout", () => {
 			"error",
 			"nav",
 			"queue",
+			"suppression",
 			"table",
 		]);
 	});

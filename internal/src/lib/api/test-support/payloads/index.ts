@@ -112,6 +112,25 @@ export const responseModels: Record<string, ResponseModel> = {
 			? { entries }
 			: { entries, next_cursor: cursor };
 	},
+	suppression: (v) => {
+		if (!isObj(v)) {
+			return undefined;
+		}
+		const addresses = listOf(v["addresses"], (s) =>
+			isString(s) ? s : undefined,
+		);
+		const cursor = v["next_cursor"];
+		if (!addresses || (cursor !== undefined && !isString(cursor))) {
+			return undefined;
+		}
+		return cursor === undefined
+			? { addresses }
+			: { addresses, next_cursor: cursor };
+	},
+	removedAddress: (v) =>
+		isObj(v) && isString(v["removed"])
+			? { removed: v["removed"] }
+			: undefined,
 	removed: (v) =>
 		isObj(v) && isString(v["removed"]) && UUID_RE.test(v["removed"])
 			? { removed: v["removed"] }
@@ -167,6 +186,16 @@ export const responseGenerators: Record<string, (rng: Rng) => Json> = {
 		}
 		return page;
 	},
+	suppression: (rng) => {
+		const page: { [key: string]: Json } = {
+			addresses: Array.from({ length: rng.int(0, 4) }, () => word(rng)),
+		};
+		if (rng.chance()) {
+			page["next_cursor"] = word(rng);
+		}
+		return page;
+	},
+	removedAddress: (rng) => ({ removed: word(rng) }),
 	removed: (rng) => ({ removed: uuid(rng) }),
 	status: (rng) => ({
 		version: word(rng),

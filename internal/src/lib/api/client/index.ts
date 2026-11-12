@@ -10,9 +10,13 @@ import {
 	type QueuePage,
 	queuePageSchema,
 	type Removed,
+	type RemovedAddress,
+	removedAddressSchema,
 	removedSchema,
 	type Status,
+	type SuppressionPage,
 	statusSchema,
+	suppressionPageSchema,
 	type VerifyResult,
 	verifyResultSchema,
 } from "../schemas";
@@ -61,6 +65,34 @@ export function removeQueueEntry(id: string): Promise<Removed> {
 	return request(`/api/v1/queue/${encodeURIComponent(id)}`, removedSchema, {
 		method: "DELETE",
 	});
+}
+
+/**
+ * Fetch one page of the global suppression list, the addresses after `after`
+ * when given. The panel's token is unconfined, so the global list is allowed.
+ */
+export function getSuppression(params?: {
+	limit?: number;
+	after?: string;
+}): Promise<SuppressionPage> {
+	const query = new URLSearchParams();
+	if (params?.limit !== undefined) {
+		query.set("limit", String(params.limit));
+	}
+	if (params?.after !== undefined) {
+		query.set("after", params.after);
+	}
+	const suffix = query.size > 0 ? `?${query}` : "";
+	return request(`/api/v1/suppression${suffix}`, suppressionPageSchema);
+}
+
+/** Take one address off the global suppression list. Answers 200 when it was not there. */
+export function removeSuppression(address: string): Promise<RemovedAddress> {
+	return request(
+		`/api/v1/suppression/${encodeURIComponent(address)}`,
+		removedAddressSchema,
+		{ method: "DELETE" },
+	);
 }
 
 /**

@@ -11,12 +11,13 @@ describe("NAV_ITEMS", () => {
 		}
 	});
 
-	it("keeps the four admin pages at their URLs, in order", () => {
+	it("keeps the admin pages at their URLs, in order", () => {
 		expect(NAV_ITEMS.map((item) => item.href)).toEqual([
 			"/",
 			"/domains",
 			"/accounts",
 			"/queue",
+			"/suppression",
 		]);
 	});
 

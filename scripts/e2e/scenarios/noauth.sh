@@ -14,7 +14,7 @@ scenario_noauth() {
 	reset_api
 
 	local path
-	for path in / /accounts /domains /queue "/queue?cursor=11111111-1111-4111-8111-111111111111" /nope /login/../queue; do
+	for path in / /accounts /domains /queue "/queue?cursor=11111111-1111-4111-8111-111111111111" /suppression "/suppression?after=alpha%40example.test" /nope /login/../queue; do
 		fetch "$path"
 		assert_eq "no cookie: GET $path" "$status" 307
 		assert_contains "no cookie: $path goes to /login" "$(header location)" "/login"

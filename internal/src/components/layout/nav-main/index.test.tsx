@@ -38,7 +38,7 @@ function renderNav() {
 }
 
 describe("NavMain", () => {
-	it("links the four pages, with an icon each that assistive tech skips", () => {
+	it("links the pages, with an icon each that assistive tech skips", () => {
 		const { container } = renderNav();
 
 		const nav = screen.getByRole("navigation", { name: "label" });
@@ -48,10 +48,11 @@ describe("NavMain", () => {
 			"/domains",
 			"/accounts",
 			"/queue",
+			"/suppression",
 		]);
 		expect(
 			container.querySelectorAll("a > svg[aria-hidden='true']"),
-		).toHaveLength(4);
+		).toHaveLength(5);
 	});
 
 	it("marks only the current page with aria-current", () => {

@@ -35,4 +35,11 @@ export const NAV_ITEMS: readonly NavItem[] = [
 		group: "manage",
 		roles: ["admin"],
 	},
+	{
+		href: "/suppression",
+		label: "suppression",
+		icon: "ban",
+		group: "manage",
+		roles: ["admin"],
+	},
 ];

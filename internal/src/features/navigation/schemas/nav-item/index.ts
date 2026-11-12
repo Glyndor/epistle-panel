@@ -11,7 +11,13 @@ export const roleSchema = z.enum(["admin", "user"]);
 export type Role = z.infer<typeof roleSchema>;
 
 /** Names of the icons a navigation entry can ask for, resolved by the sidebar. */
-export const NAV_ICON_NAMES = ["dashboard", "globe", "users", "inbox"] as const;
+export const NAV_ICON_NAMES = [
+	"dashboard",
+	"globe",
+	"users",
+	"inbox",
+	"ban",
+] as const;
 export const navIconSchema = z.enum(NAV_ICON_NAMES);
 export type NavIconName = z.infer<typeof navIconSchema>;
 
@@ -21,6 +27,7 @@ export const navLabelKeySchema = z.enum([
 	"domains",
 	"accounts",
 	"queue",
+	"suppression",
 ]);
 export type NavLabelKey = z.infer<typeof navLabelKeySchema>;
 

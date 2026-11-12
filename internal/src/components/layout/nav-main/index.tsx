@@ -1,6 +1,7 @@
 "use client";
 
 import {
+	BanIcon,
 	GlobeIcon,
 	InboxIcon,
 	LayoutDashboardIcon,
@@ -32,6 +33,7 @@ const ICONS: Record<NavIconName, LucideIcon> = {
 	globe: GlobeIcon,
 	users: UsersIcon,
 	inbox: InboxIcon,
+	ban: BanIcon,
 };
 
 /** Whether `pathname` is the page of `href` or one below it. */

@@ -13,6 +13,9 @@
  * name.
  */
 
+import { apiError, json } from "./responses";
+import { createSuppressionStore } from "./suppression";
+
 /** Behaviour of the data endpoints, switched at run time through the control path. */
 export type Mode = "ok" | "hang" | "huge";
 
@@ -92,17 +95,6 @@ const HUGE_BYTES = 64 * 1024 * 1024;
 
 const CHUNK = new TextEncoder().encode(`${" ".repeat(65_535)}\n`);
 
-function json(body: unknown, status = 200): Response {
-	return new Response(JSON.stringify(body), {
-		status,
-		headers: { "Content-Type": "application/json" },
-	});
-}
-
-function apiError(status: number, code: string, message: string): Response {
-	return json({ error: { code, message } }, status);
-}
-
 /** A body that never ends within the panel's budget and has no `content-length`. */
 function hugeBody(): Response {
 	let sent = 0;
@@ -129,6 +121,7 @@ export function createStandIn(options: StandInOptions) {
 	const log: LoggedRequest[] = [];
 	let mode: Mode = "ok";
 	let queue = [...SEED_IDS];
+	const suppression = createSuppressionStore();
 
 	const bearerOf = (request: Request): LoggedRequest["bearer"] => {
 		const header = request.headers.get("authorization");
@@ -149,6 +142,7 @@ export function createStandIn(options: StandInOptions) {
 			log.length = 0;
 			mode = "ok";
 			queue = [...SEED_IDS];
+			suppression.reset();
 			return json({ ok: true });
 		}
 		if (path === "/__control/mode" && request.method === "POST") {
@@ -283,6 +277,10 @@ export function createStandIn(options: StandInOptions) {
 			}
 			queue = queue.filter((other) => other !== id);
 			return json({ removed: id });
+		}
+		const answered = suppression.handle(request, url);
+		if (answered) {
+			return answered;
 		}
 		return apiError(404, "not_found", "No such endpoint");
 	}

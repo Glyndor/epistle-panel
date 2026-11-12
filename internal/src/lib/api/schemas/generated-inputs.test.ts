@@ -16,8 +16,10 @@ import {
 	apiErrorSchema,
 	domainsSchema,
 	queuePageSchema,
+	removedAddressSchema,
 	removedSchema,
 	statusSchema,
+	suppressionPageSchema,
 	verifyResultSchema,
 } from ".";
 
@@ -29,6 +31,8 @@ const schemas: Record<string, z.ZodType> = {
 	verify: verifyResultSchema,
 	domains: domainsSchema,
 	queue: queuePageSchema,
+	suppression: suppressionPageSchema,
+	removedAddress: removedAddressSchema,
 	removed: removedSchema,
 	status: statusSchema,
 };
