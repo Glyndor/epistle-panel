@@ -1,6 +1,7 @@
 import { getFormatter, getTranslations } from "next-intl/server";
 
-import { UnreachableNotice } from "@/components/unreachable-notice";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Card } from "@/components/ui/card";
 import { getStatus } from "@/lib/api/client";
 import { logApiFailure } from "@/lib/api/log-failure";
 import type { Status } from "@/lib/api/schemas";
@@ -25,12 +26,10 @@ function StatusCard({
 	value: string | number;
 }) {
 	return (
-		<div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
-			<dt className="text-sm text-zinc-500 dark:text-zinc-400">
-				{label}
-			</dt>
+		<Card>
+			<dt className="text-muted-foreground text-sm">{label}</dt>
 			<dd className="font-semibold text-2xl">{value}</dd>
-		</div>
+		</Card>
 	);
 }
 
@@ -47,7 +46,9 @@ export default async function HomePage() {
 		>
 			<h1 className="font-semibold text-3xl">{t("heading")}</h1>
 			{status === null ? (
-				<UnreachableNotice message={t("unreachable")} />
+				<Alert variant="warning">
+					<AlertDescription>{t("unreachable")}</AlertDescription>
+				</Alert>
 			) : (
 				<dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
 					<StatusCard label={t("version")} value={status.version} />

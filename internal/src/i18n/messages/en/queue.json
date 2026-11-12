@@ -9,5 +9,6 @@
 	"removeLabel": "Remove the message to {recipients} from the queue",
 	"removeError": "Could not remove the message. Please try again.",
 	"confirm": "Remove the queued message to {recipients}? This cannot be undone.",
-	"next": "Next page"
+	"next": "Next page",
+	"actions": "Actions"
 }

@@ -1,6 +1,15 @@
 import { getTranslations } from "next-intl/server";
 
-import { UnreachableNotice } from "@/components/unreachable-notice";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "@/components/ui/table";
 import { getQueue } from "@/lib/api/client";
 import { logApiFailure } from "@/lib/api/log-failure";
 import type { QueuePage as QueuePageData } from "@/lib/api/schemas";
@@ -34,40 +43,54 @@ export default async function QueuePage({
 		>
 			<h1 className="font-semibold text-3xl">{t("heading")}</h1>
 			{page === null ? (
-				<UnreachableNotice message={t("unreachable")} />
+				<Alert variant="warning">
+					<AlertDescription>{t("unreachable")}</AlertDescription>
+				</Alert>
 			) : page.entries.length === 0 ? (
-				<p className="text-zinc-500 dark:text-zinc-400">{t("empty")}</p>
+				<p className="text-muted-foreground">{t("empty")}</p>
 			) : (
 				<>
-					<ul className="divide-y divide-zinc-200 rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
-						{page.entries.map((entry) => (
-							<li
-								key={entry.id}
-								className="flex items-start justify-between gap-4 p-4"
-							>
-								<div className="flex min-w-0 flex-col gap-1">
-									<span className="break-all font-mono text-sm">
-										{t("from")}:{" "}
+					<Table>
+						<TableHeader>
+							<TableRow>
+								<TableHead scope="col">{t("from")}</TableHead>
+								<TableHead scope="col">{t("to")}</TableHead>
+								<TableHead scope="col" className="text-right">
+									<span className="sr-only">
+										{t("actions")}
+									</span>
+								</TableHead>
+							</TableRow>
+						</TableHeader>
+						<TableBody>
+							{page.entries.map((entry) => (
+								<TableRow key={entry.id}>
+									<TableCell className="break-all font-mono">
 										{entry.reverse_path || "<>"}
-									</span>
-									<span className="break-all text-sm text-zinc-500 dark:text-zinc-400">
-										{t("to")}: {entry.recipients.join(", ")}
-									</span>
-								</div>
-								<RemoveButton
-									id={entry.id}
-									recipients={entry.recipients.join(", ")}
-								/>
-							</li>
-						))}
-					</ul>
+									</TableCell>
+									<TableCell className="break-all text-muted-foreground">
+										{entry.recipients.join(", ")}
+									</TableCell>
+									<TableCell className="text-right">
+										<RemoveButton
+											id={entry.id}
+											recipients={entry.recipients.join(
+												", ",
+											)}
+										/>
+									</TableCell>
+								</TableRow>
+							))}
+						</TableBody>
+					</Table>
 					{page.next_cursor && (
-						<a
-							href={`/queue?cursor=${encodeURIComponent(page.next_cursor)}`}
-							className="inline-flex min-h-11 items-center self-start text-sm text-zinc-600 underline hover:text-zinc-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500 dark:text-zinc-400 dark:hover:text-zinc-100"
-						>
-							{t("next")}
-						</a>
+						<Button asChild variant="link" className="self-start">
+							<a
+								href={`/queue?cursor=${encodeURIComponent(page.next_cursor)}`}
+							>
+								{t("next")}
+							</a>
+						</Button>
 					)}
 				</>
 			)}

@@ -51,3 +51,27 @@ The CLI writes a flat `src/components/ui/<name>.tsx`. Then:
    renders the component.
 
 New runtime packages join the `ui` group of `.github/dependabot.yml`.
+
+## In use
+
+| Component | Where | CSP (built server, console read) |
+|---|---|---|
+| Button | sign-in, nav, Remove, error and 404 pages | no violation, no `style` attribute |
+| Input, Label | sign-in form | no violation |
+| Alert | `warning` for the unreachable notice on four pages, `destructive` for the sign-in error | no violation |
+| Card | status counters | no violation |
+| Table | queue, domains, accounts | no violation |
+
+Not used on purpose: Dialog, AlertDialog, Select, Popover, Tooltip and DropdownMenu,
+which position with inline styles. The Remove confirmation stays the native
+`confirm` until the owner decides how to allow a modal under this policy.
+
+## Semantic roles of the Alert
+
+An unreachable API is a warning, not a destructive state, so the Alert has three
+variants: `default`, `warning` (amber, `--warning` and `--warning-foreground`) and
+`destructive` (red, for a failure the person caused or can retry, such as a refused
+sign-in). Do not borrow `destructive` for a state that only needs attention. Both
+themes' values live in `globals.css` and were measured: text on the alert 8.73
+(light) and 12.05 (dark), border against the page 4.23 and 7.95, border against the
+alert 4.08 and 6.02.

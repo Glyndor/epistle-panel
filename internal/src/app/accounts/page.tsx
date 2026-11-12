@@ -1,6 +1,14 @@
 import { getTranslations } from "next-intl/server";
 
-import { UnreachableNotice } from "@/components/unreachable-notice";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "@/components/ui/table";
 import { getAccounts } from "@/lib/api/client";
 import { logApiFailure } from "@/lib/api/log-failure";
 import type { Accounts } from "@/lib/api/schemas";
@@ -27,25 +35,32 @@ export default async function AccountsPage() {
 		>
 			<h1 className="font-semibold text-3xl">{t("heading")}</h1>
 			{accounts === null ? (
-				<UnreachableNotice message={t("unreachable")} />
+				<Alert variant="warning">
+					<AlertDescription>{t("unreachable")}</AlertDescription>
+				</Alert>
 			) : accounts.length === 0 ? (
-				<p className="text-zinc-500 dark:text-zinc-400">{t("empty")}</p>
+				<p className="text-muted-foreground">{t("empty")}</p>
 			) : (
-				<ul className="divide-y divide-zinc-200 rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
-					{accounts.map((account) => (
-						<li
-							key={account.name}
-							className="flex flex-col gap-1 p-4"
-						>
-							<span className="font-semibold">
-								{account.name}
-							</span>
-							<span className="break-all font-mono text-sm text-zinc-500 dark:text-zinc-400">
-								{account.addresses.join(", ")}
-							</span>
-						</li>
-					))}
-				</ul>
+				<Table>
+					<TableHeader>
+						<TableRow>
+							<TableHead scope="col">{t("name")}</TableHead>
+							<TableHead scope="col">{t("addresses")}</TableHead>
+						</TableRow>
+					</TableHeader>
+					<TableBody>
+						{accounts.map((account) => (
+							<TableRow key={account.name}>
+								<TableCell className="break-all font-semibold">
+									{account.name}
+								</TableCell>
+								<TableCell className="break-all font-mono text-muted-foreground">
+									{account.addresses.join(", ")}
+								</TableCell>
+							</TableRow>
+						))}
+					</TableBody>
+				</Table>
 			)}
 		</main>
 	);

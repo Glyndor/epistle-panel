@@ -40,6 +40,24 @@ describe("AccountsPage", () => {
 		).toBeInTheDocument();
 	});
 
+	it("puts accounts in a table with a header for each column", async () => {
+		stubFetchJson({
+			accounts: [
+				{ name: "alice", addresses: ["alice@example.org"] },
+				{ name: "bob", addresses: [] },
+			],
+		});
+
+		render(await AccountsPage());
+
+		expect(screen.getByRole("table")).toBeInTheDocument();
+		expect(
+			screen.getAllByRole("columnheader").map((cell) => cell.textContent),
+		).toEqual(["name", "addresses"]);
+		// One header row and one row per account.
+		expect(screen.getAllByRole("row")).toHaveLength(3);
+	});
+
 	it("shows the empty state when there are no accounts", async () => {
 		stubFetchJson({ accounts: [] });
 
@@ -54,6 +72,8 @@ describe("AccountsPage", () => {
 		render(await AccountsPage());
 
 		expect(screen.getByRole("alert")).toHaveTextContent("unreachable");
+		// An unreachable API is a warning, not a destructive state.
+		expect(screen.getByRole("alert")).toHaveClass("bg-warning");
 	});
 
 	it("redirects to the login page without a session and never calls the API", async () => {

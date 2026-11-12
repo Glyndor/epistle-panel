@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,6 +26,8 @@ export function LoginForm() {
 					type="text"
 					autoComplete="username"
 					required
+					aria-invalid={state.error || undefined}
+					aria-describedby={state.error ? "login-error" : undefined}
 				/>
 			</div>
 			<div className="flex flex-col gap-2">
@@ -35,15 +38,17 @@ export function LoginForm() {
 					type="password"
 					autoComplete="current-password"
 					required
+					aria-invalid={state.error || undefined}
+					aria-describedby={state.error ? "login-error" : undefined}
 				/>
 			</div>
 			{state.error ? (
-				<p role="alert" className="text-destructive text-sm">
-					{t("error")}
-				</p>
+				<Alert id="login-error" variant="destructive">
+					<AlertDescription>{t("error")}</AlertDescription>
+				</Alert>
 			) : null}
-			<Button type="submit" disabled={pending}>
-				{t("submit")}
+			<Button type="submit" disabled={pending} aria-busy={pending}>
+				{pending ? t("pending") : t("submit")}
 			</Button>
 		</form>
 	);
