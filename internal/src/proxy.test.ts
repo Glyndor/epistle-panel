@@ -295,9 +295,9 @@ describe("proxy with a CAPTCHA provider enabled", () => {
 	};
 
 	beforeEach(() => {
-		process.env.EPISTLE_PANEL_CAPTCHA_PROVIDER = "turnstile";
-		process.env.EPISTLE_PANEL_CAPTCHA_SITE_KEY = "site";
-		process.env.EPISTLE_PANEL_CAPTCHA_SECRET_KEY = "secret";
+		process.env["EPISTLE_PANEL_CAPTCHA_PROVIDER"] = "turnstile";
+		process.env["EPISTLE_PANEL_CAPTCHA_SITE_KEY"] = "site";
+		process.env["EPISTLE_PANEL_CAPTCHA_SECRET_KEY"] = "secret";
 	});
 	afterEach(() => {
 		for (const name of names) {
@@ -333,13 +333,13 @@ describe("proxy with a CAPTCHA provider enabled", () => {
 	});
 
 	it("leaves the sign-in page's policy alone when the CAPTCHA is off or misconfigured", async () => {
-		delete process.env.EPISTLE_PANEL_CAPTCHA_PROVIDER;
+		delete process.env["EPISTLE_PANEL_CAPTCHA_PROVIDER"];
 		expect(csp(await get("/login"))).not.toContain(
 			"challenges.cloudflare.com",
 		);
 
-		process.env.EPISTLE_PANEL_CAPTCHA_PROVIDER = "turnstile";
-		delete process.env.EPISTLE_PANEL_CAPTCHA_SITE_KEY;
+		process.env["EPISTLE_PANEL_CAPTCHA_PROVIDER"] = "turnstile";
+		delete process.env["EPISTLE_PANEL_CAPTCHA_SITE_KEY"];
 		expect(csp(await get("/login"))).not.toContain(
 			"challenges.cloudflare.com",
 		);

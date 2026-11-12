@@ -84,7 +84,7 @@ beforeEach(() => {
 	resetLoginLimiter();
 	resetCaptchaLog();
 	clearSecretCache();
-	process.env.EPISTLE_PANEL_LOGIN_MIN_MS = "0";
+	process.env["EPISTLE_PANEL_LOGIN_MIN_MS"] = "0";
 	errors = spyOn(console, "error").mockImplementation(() => {});
 });
 afterEach(() => {
@@ -94,7 +94,7 @@ afterEach(() => {
 		delete process.env[name];
 	}
 	delete process.env[`${CAPTCHA_VARIABLES.secretKey}_FILE`];
-	delete process.env.EPISTLE_PANEL_LOGIN_MIN_MS;
+	delete process.env["EPISTLE_PANEL_LOGIN_MIN_MS"];
 	clearSecretCache();
 	useRealClock();
 });
@@ -204,7 +204,7 @@ describe("login with the CAPTCHA on", () => {
 	it("holds a CAPTCHA refusal to the same minimum time as any other failure", async () => {
 		enable();
 		stubRoutes(() => json({ success: false }));
-		process.env.EPISTLE_PANEL_LOGIN_MIN_MS = "300";
+		process.env["EPISTLE_PANEL_LOGIN_MIN_MS"] = "300";
 		useFakeClock();
 
 		const refused = await timeIt(() => login(INITIAL, form(TOKEN)));

@@ -8,6 +8,7 @@ import { ConfigError } from "@/lib/config/config-error";
 import { readSecret } from "@/lib/config/secret";
 import { CAPTCHA_VARIABLES, type CaptchaConfig } from "../config";
 import { CAPTCHA_ACTION, CAPTCHA_TOKEN_MAX } from "../providers";
+import { createSlotGate } from "../slot-gate";
 
 /** Time the provider has to answer, in milliseconds. */
 export const VERIFY_TIMEOUT_MS = 5_000;
@@ -15,8 +16,17 @@ export const VERIFY_TIMEOUT_MS = 5_000;
 /** Largest verification answer read, in bytes. Real ones are a few hundred. */
 export const VERIFY_MAX_BYTES = 16 * 1024;
 
-/** Verifications that may be in flight at once; more are refused without a call. */
+/** Verifications that may be in flight at once. */
 export const VERIFY_MAX_IN_FLIGHT = 16;
+
+/**
+ * A call above the ceiling waits for a slot, first in first out, for at most
+ * this long and with at most this many others in line; past either it is
+ * refused without a request. A short burst is absorbed; sustained concurrency
+ * above the ceiling still refuses sign-ins.
+ */
+export const VERIFY_QUEUE_WAIT_MS = 1_500;
+export const VERIFY_QUEUE_MAX = 32;
 
 /** How the check ended. Every `ok: false` is the same generic failure for the person. */
 export type CaptchaVerdict =
@@ -51,7 +61,11 @@ const answerSchema = z.object({
 
 const SAFE_CODE = /^[a-z0-9-]{1,50}$/;
 
-let inFlight = 0;
+const slots = createSlotGate({
+	max: VERIFY_MAX_IN_FLIGHT,
+	queueMax: VERIFY_QUEUE_MAX,
+	waitMs: VERIFY_QUEUE_WAIT_MS,
+});
 
 const failure = (
 	reason: "rejected" | "mismatch" | "unavailable" | "misconfigured",
@@ -94,11 +108,9 @@ export async function verifyCaptcha(
 			`${CAPTCHA_VARIABLES.secretKey} is not set`,
 		);
 	}
-	if (inFlight >= VERIFY_MAX_IN_FLIGHT) {
+	if (!(await slots.acquire())) {
 		return failure("unavailable", "too-many-in-flight");
 	}
-
-	inFlight += 1;
 	try {
 		const response = await fetch(config.verifyUrl, {
 			method: "POST",
@@ -155,6 +167,6 @@ export async function verifyCaptcha(
 			error instanceof Error ? error.name : "error",
 		);
 	} finally {
-		inFlight -= 1;
+		slots.release();
 	}
 }

@@ -14,7 +14,13 @@ import {
 	getCaptchaConfig,
 } from "../config";
 import { CAPTCHA_TOKEN_MAX } from "../providers";
-import { VERIFY_MAX_BYTES, VERIFY_MAX_IN_FLIGHT, verifyCaptcha } from ".";
+import {
+	VERIFY_MAX_BYTES,
+	VERIFY_MAX_IN_FLIGHT,
+	VERIFY_QUEUE_MAX,
+	VERIFY_QUEUE_WAIT_MS,
+	verifyCaptcha,
+} from ".";
 
 const SECRET = "the-secret-key-value";
 const TOKEN = "the-token-value";
@@ -302,37 +308,156 @@ describe("verifyCaptcha (inputs and secret)", () => {
 		expect(sentRequests()).toHaveLength(0);
 	});
 
-	it("caps the calls in flight, refusing the extra one without a request, and frees the slots as answers arrive", async () => {
-		const waiting: Array<(response: Response) => void> = [];
-		globalThis.fetch = mock(
-			() => new Promise<Response>((resolve) => waiting.push(resolve)),
-		) as unknown as typeof fetch;
-		const config = enabled("recaptcha");
-		const pending = Array.from({ length: VERIFY_MAX_IN_FLIGHT }, () =>
-			verifyCaptcha(config, TOKEN),
-		);
-		await new Promise((resolve) => setTimeout(resolve, 10));
+	describe("the ceiling on calls in flight", () => {
+		const answer = () =>
+			new Response(JSON.stringify({ success: true }), {
+				headers: { "content-type": "application/json" },
+			});
 
-		const extra = await verifyCaptcha(config, TOKEN);
-
-		expect(extra).toEqual({
-			ok: false,
-			reason: "unavailable",
-			detail: "too-many-in-flight",
+		// The gate is shared by the whole module: every call left hanging by a
+		// case is answered afterwards, so no case leaves a slot held for the next.
+		const hanging: Array<(response: Response) => void> = [];
+		afterEach(async () => {
+			for (let round = 0; round < 10 && hanging.length > 0; round += 1) {
+				for (const resolve of hanging.splice(0)) {
+					resolve(answer());
+				}
+				await settle();
+			}
 		});
-		expect(sentRequests()).toHaveLength(VERIFY_MAX_IN_FLIGHT);
-		for (const resolve of waiting) {
-			resolve(
-				new Response(JSON.stringify({ success: true }), {
-					headers: { "content-type": "application/json" },
-				}),
-			);
-		}
-		expect(await Promise.all(pending)).toEqual(
-			Array.from({ length: VERIFY_MAX_IN_FLIGHT }, () => ({ ok: true })),
-		);
 
-		stubFetchJson({ success: true });
-		expect(await verifyCaptcha(config, TOKEN)).toEqual({ ok: true });
+		function holdAll() {
+			const waiting: Array<(response: Response) => void> = [];
+			globalThis.fetch = mock(
+				() =>
+					new Promise<Response>((resolve) => {
+						waiting.push(resolve);
+						hanging.push(resolve);
+					}),
+			) as unknown as typeof fetch;
+			return waiting;
+		}
+		const settle = () => new Promise((resolve) => setTimeout(resolve, 10));
+
+		it("serves a call above the ceiling when a slot frees within the wait, and sends no extra request before", async () => {
+			const waiting = holdAll();
+			const config = enabled("recaptcha");
+			const held = Array.from({ length: VERIFY_MAX_IN_FLIGHT }, () =>
+				verifyCaptcha(config, TOKEN),
+			);
+			await settle();
+			const extra = verifyCaptcha(config, TOKEN);
+			await settle();
+			expect(sentRequests()).toHaveLength(VERIFY_MAX_IN_FLIGHT);
+
+			waiting[0]?.(answer());
+			await settle();
+			expect(sentRequests()).toHaveLength(VERIFY_MAX_IN_FLIGHT + 1);
+			for (const resolve of waiting.slice(1)) {
+				resolve(answer());
+			}
+
+			expect(await extra).toEqual({ ok: true });
+			expect(await Promise.all(held)).toEqual(
+				Array.from({ length: VERIFY_MAX_IN_FLIGHT }, () => ({
+					ok: true,
+				})),
+			);
+		});
+
+		it("serves a burst above the ceiling in arrival order", async () => {
+			const waiting = holdAll();
+			const config = enabled("recaptcha");
+			const tokens = Array.from(
+				{ length: VERIFY_MAX_IN_FLIGHT + 3 },
+				(_, n) => `token-${n}`,
+			);
+			const calls = tokens.map((token) => verifyCaptcha(config, token));
+			await settle();
+
+			// Free one slot at a time; the line is served first in, first out.
+			for (let freed = 0; freed < 3; freed += 1) {
+				waiting[freed]?.(answer());
+				await settle();
+			}
+
+			const order = sentRequests()
+				.slice(VERIFY_MAX_IN_FLIGHT)
+				.map(
+					(request) =>
+						String(request.body).match(/response=([^&]+)/)?.[1],
+				);
+			expect(order).toEqual(["token-16", "token-17", "token-18"]);
+			for (const resolve of waiting.slice(3)) {
+				resolve(answer());
+			}
+			await Promise.all(calls);
+		});
+
+		it("refuses a call that waited the full bounded time, still without a request", async () => {
+			holdAll();
+			const config = enabled("recaptcha");
+			for (let n = 0; n < VERIFY_MAX_IN_FLIGHT; n += 1) {
+				void verifyCaptcha(config, TOKEN);
+			}
+			await settle();
+
+			const started = performance.now();
+			const extra = await verifyCaptcha(config, TOKEN);
+			const waited = performance.now() - started;
+
+			expect(extra).toEqual({
+				ok: false,
+				reason: "unavailable",
+				detail: "too-many-in-flight",
+			});
+			expect(waited).toBeGreaterThanOrEqual(VERIFY_QUEUE_WAIT_MS - 50);
+			expect(waited).toBeLessThan(VERIFY_QUEUE_WAIT_MS + 500);
+			expect(sentRequests()).toHaveLength(VERIFY_MAX_IN_FLIGHT);
+		});
+
+		it("refuses at once when the line is already at its length", async () => {
+			holdAll();
+			const config = enabled("recaptcha");
+			for (
+				let n = 0;
+				n < VERIFY_MAX_IN_FLIGHT + VERIFY_QUEUE_MAX;
+				n += 1
+			) {
+				void verifyCaptcha(config, TOKEN);
+			}
+			await settle();
+
+			const started = performance.now();
+			const extra = await verifyCaptcha(config, TOKEN);
+
+			expect(extra).toMatchObject({ detail: "too-many-in-flight" });
+			expect(performance.now() - started).toBeLessThan(200);
+		});
+
+		it("always gives the slot back, on a failed call and on a timeout", async () => {
+			const config = enabled("recaptcha");
+			globalThis.fetch = mock(() =>
+				Promise.reject(new Error("boom")),
+			) as unknown as typeof fetch;
+			for (let n = 0; n < VERIFY_MAX_IN_FLIGHT * 2; n += 1) {
+				expect(await verifyCaptcha(config, TOKEN)).toMatchObject({
+					reason: "unavailable",
+					detail: "Error",
+				});
+			}
+			globalThis.fetch = mock(() =>
+				Promise.reject(new DOMException("timed out", "TimeoutError")),
+			) as unknown as typeof fetch;
+			for (let n = 0; n < VERIFY_MAX_IN_FLIGHT * 2; n += 1) {
+				expect(await verifyCaptcha(config, TOKEN)).toMatchObject({
+					reason: "unavailable",
+					detail: "TimeoutError",
+				});
+			}
+
+			stubFetchJson({ success: true });
+			expect(await verifyCaptcha(config, TOKEN)).toEqual({ ok: true });
+		});
 	});
 });

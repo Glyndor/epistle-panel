@@ -80,6 +80,13 @@ What the panel guarantees:
   ceiling, which would otherwise let it lock an operator out or burn the shared
   allowance. The price is one provider call per attempt, bounded by a timeout of
   5 s, a 16 KiB cap on the answer, no redirects and at most 16 calls in flight.
+  A call above that ceiling waits for a slot, first in first out, for at most
+  1.5 s with at most 32 others in line, and only then is refused without a
+  request, so a short burst is absorbed. A slot is always given back, on an
+  error and on a timeout. What it does not stop: concurrency kept above the
+  ceiling and the line for longer than that still refuses sign-ins, the same
+  trade-off as the cap on API calls. The client address is not trusted here, so
+  the ceiling cannot be split per client.
 - **It fails closed.** A provider named without a usable setup (missing site key
   or secret, unknown provider, bad URL), an unreadable secret file, an outage,
   a timeout or an answer that is not the expected shape all refuse the sign-in

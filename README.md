@@ -143,7 +143,7 @@ variable, never the path.
 
 When it is on, the sign-in page's Content-Security-Policy gains the provider's
 hosts and no other page does. A provider named without a complete setup refuses
-every sign-in, with a log line that names the variable. See
+every sign-in, with a log line that names the variable. The provider calls are capped (16 at once, a short bounded line behind them); sustained load above that cap refuses sign-ins, the same trade-off as the API-call cap. See
 [docs/maintainers/forms.md](docs/maintainers/forms.md).
 
 ### Sessions and sign-in limits
