@@ -199,6 +199,19 @@ describe("readSecret cache", () => {
 		expect(await readSecret(NAME)).toBe("other");
 	});
 
+	it("shares the cache with another copy of the module", async () => {
+		// The proxy, the pages and the actions each load their own copy of the
+		// module; a rotated file must not make one copy read a new value.
+		const path = secretFile("first\n");
+		process.env[FILE_VAR] = path;
+		const other = (await import(`.?copy=${Math.random()}`)) as {
+			readSecret: typeof readSecret;
+		};
+		expect(await readSecret(NAME)).toBe("first");
+		writeFileSync(path, "second\n");
+		expect(await other.readSecret(NAME)).toBe("first");
+	});
+
 	it("does not cache a failure", async () => {
 		const path = join(dir, "late");
 		process.env[FILE_VAR] = path;
