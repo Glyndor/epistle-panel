@@ -4,6 +4,7 @@ import { UnreachableNotice } from "@/components/unreachable-notice";
 import { getAccounts } from "@/lib/api/client";
 import { logApiFailure } from "@/lib/api/log-failure";
 import type { Accounts } from "@/lib/api/schemas";
+import { requireSession } from "@/lib/auth/require-session";
 
 async function loadAccounts(): Promise<Accounts["accounts"] | null> {
 	try {
@@ -15,6 +16,7 @@ async function loadAccounts(): Promise<Accounts["accounts"] | null> {
 }
 
 export default async function AccountsPage() {
+	await requireSession();
 	const t = await getTranslations("accounts");
 	const accounts = await loadAccounts();
 

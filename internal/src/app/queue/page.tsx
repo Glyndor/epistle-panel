@@ -4,8 +4,9 @@ import { UnreachableNotice } from "@/components/unreachable-notice";
 import { getQueue } from "@/lib/api/client";
 import { logApiFailure } from "@/lib/api/log-failure";
 import type { QueuePage as QueuePageData } from "@/lib/api/schemas";
-
+import { requireSession } from "@/lib/auth/require-session";
 import { RemoveButton } from "./_components/remove-button";
+import { parseCursor } from "./_params/cursor";
 
 async function loadQueue(cursor?: string): Promise<QueuePageData | null> {
 	try {
@@ -19,11 +20,12 @@ async function loadQueue(cursor?: string): Promise<QueuePageData | null> {
 export default async function QueuePage({
 	searchParams,
 }: {
-	searchParams: Promise<{ cursor?: string }>;
+	searchParams: Promise<{ cursor?: string | string[] }>;
 }) {
+	await requireSession();
 	const t = await getTranslations("queue");
 	const { cursor } = await searchParams;
-	const page = await loadQueue(cursor);
+	const page = await loadQueue(parseCursor(cursor));
 
 	return (
 		<main
