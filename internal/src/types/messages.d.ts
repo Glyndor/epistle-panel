@@ -4,6 +4,7 @@ import type auth from "@/i18n/messages/en/auth.json";
 import type dashboard from "@/i18n/messages/en/dashboard.json";
 import type domains from "@/i18n/messages/en/domains.json";
 import type nav from "@/i18n/messages/en/nav.json";
+import type notFound from "@/i18n/messages/en/notFound.json";
 import type queue from "@/i18n/messages/en/queue.json";
 
 // Type every `useTranslations`/`getTranslations` key against the English source
@@ -18,6 +19,7 @@ declare module "next-intl" {
 			domains: typeof domains;
 			accounts: typeof accounts;
 			queue: typeof queue;
+			notFound: typeof notFound;
 			auth: typeof auth;
 		};
 	}
