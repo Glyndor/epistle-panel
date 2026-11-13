@@ -108,6 +108,25 @@ The proxy matcher stays wide so every page, public or not, gets the nonce-bearin
 CSP; the decision is in the proxy function, not in the matcher, and the pages and
 Server Actions still check the role themselves.
 
+## The header's far end
+
+`components/layout/header-actions` is the far end of both headers, the admin
+shell's and the webmail's: the theme button and the profile menu. It is one
+component, so the two areas cannot drift. The profile menu
+(`components/layout/user-menu`, its Radix code loaded on the first press) shows
+what the layout read from the session and nothing else: the account's name,
+its initials and its role, then the language, the theme, the way into the
+administration and sign out. The address of the administration is built on the
+server and handed down only for an admin session in an installation whose
+admin area is on; the menu never derives it from the role.
+
+One choice is stored at a time: while the language or the theme is on its way
+to the server the button is marked busy and looks it, and the items wait.
+
+The menu needs script. Sign out and the way into the administration are also
+in the served page as a plain form and a plain link, inside a `noscript`, so a
+browser without script keeps both.
+
 ## The shell and its contract
 
 `components/layout/app-shell` draws the skip link, the sidebar, the header and
