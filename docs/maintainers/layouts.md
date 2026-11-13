@@ -97,6 +97,36 @@ rail and its regions are separate leaves) and keeps the same rules:
   server for CSP violations (see `shadcn.md`);
 - 32 px controls on a fine pointer, 44 px on a coarse one.
 
+## Theme
+
+Light, dark or the system's, chosen from the theme button of each header
+(`features/theme/components/theme-switcher`). The choice lives in the `theme`
+cookie and nowhere else:
+
+- `features/theme/config/choices` is the one list (`system`, `light`, `dark`).
+- The root layout is the only reader of the cookie (`queries/theme-choice`).
+  It writes `data-theme="light"` or `data-theme="dark"` on `<html>`; for
+  `system`, no cookie or a value that is not exactly a choice there is no
+  attribute. The server paints it because the policy allows no inline script
+  that could set it before the first frame: a reload shows no other theme
+  first.
+- `styles/theme.css` holds the dark values for both ways of getting them (the
+  browser prefers dark and light was not chosen, or dark was chosen) and a test
+  keeps the two lists equal. It also sets `color-scheme`, so the list of a
+  native select and the scrollbars follow. The framed body of a message is
+  another document: the frame's address carries the pinned theme (`?theme=`,
+  parsed again by the route) and the body writes it into its own
+  `color-scheme`, so a change of theme loads the frame again in the new one.
+- The button changes the attribute at once and calls the `set-theme` Server
+  Action, which checks the session, parses the value with the same schema and
+  writes the cookie (Secure, SameSite=Lax, a year; not HttpOnly, so
+  `global-error`, which replaces the document, can read it in the browser).
+  When the action refuses, the previous theme comes back and a toast says so.
+- Every control that shows the theme reads the attribute
+  (`hooks/use-theme-choice`), so two of them on one page cannot disagree. While
+  a client component is rendered on the server there is no document to read:
+  the root layout hands the choice down through `ThemeChoiceProvider`.
+
 ## Server first, streamed
 
 A page is a Server Component. It checks the session, paints its heading and
