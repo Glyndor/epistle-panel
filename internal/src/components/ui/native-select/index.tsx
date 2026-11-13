@@ -9,7 +9,7 @@ import { cn } from "@/lib/class-names";
  * real `select`, with the panel's own arrow. It works before any script has
  * loaded and inside a plain `GET` form, and it needs no overlay, which is why
  * it is used where Radix Select cannot be (its markup carries a style
- * attribute the policy refuses).
+ * attribute the policy refuses). A press tints it, as it does a button.
  */
 function NativeSelect({
 	className,
@@ -23,7 +23,11 @@ function NativeSelect({
 		>
 			<select
 				data-slot="native-select"
-				className={cn(FIELD_CLASS, "appearance-none pe-8", className)}
+				className={cn(
+					FIELD_CLASS,
+					"appearance-none pe-8 active:bg-accent/70",
+					className,
+				)}
 				{...props}
 			>
 				{children}

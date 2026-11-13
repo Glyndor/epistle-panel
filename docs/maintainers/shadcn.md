@@ -114,6 +114,16 @@ The generated Sidebar exceeded 300 code lines, so it lives in leaf folders under
 Parts the panel does not use (rail, input, skeleton, sub-menus, badges, separator) were not
 kept.
 
+What the CLI did when `pagination` was added on 2026-11-13, so the next run is
+no surprise: it wrote `ui/pagination.tsx` and a second, flat `ui/button.tsx`
+beside the existing `ui/button/`, and added `cn` and the `radix-ui` umbrella
+to `package.json` and `bun.lock`. The flat button was deleted, `package.json`
+and the lockfile were restored (the component needs no new package) and
+`node_modules` reinstalled from the lockfile. The generated file drew links
+with hard-coded English names; ours draws buttons, since the tables change
+page in place, takes its names from the caller and marks the ends with
+`aria-disabled`.
+
 ## In use
 
 | Component | Where | CSP (built server, console read) |
@@ -128,7 +138,9 @@ kept.
 | Textarea | addresses of a new account, the composer's body | no violation; the shared field look, taller |
 | RadioGroup | what to do with queued mail when an account is deleted | no violation, no style attribute. One tab stop; an arrow key moves the focus and takes the choice it lands on while the key is held (a script that releases the key in the same instant moves only the focus: press with a delay when testing in a browser), Space takes the focused choice, a click on the label takes it too. 16 px, 24 px on a coarse pointer |
 | Collapsible | all headers of a message, the keyboard shortcuts of the list | no violation; the served page has no style attribute (Radix sets the content's size from script once it opens). Closed to start with: the content is not in the page until the button is used, and the button says so (`aria-expanded`) |
-| NativeSelect | delivery log filters | no violation. A real `select` on the shared field look with the panel's arrow: it works before any script loads and in a plain `GET` form, which is where Radix Select cannot be used |
+| NativeSelect | delivery log filters, the page size of a table | no violation. A real `select` on the shared field look with the panel's arrow: it works before any script loads and in a plain `GET` form, which is where Radix Select cannot be used |
+| Pagination | the foot of the accounts, domains and delivery tables (`components/data-table/pagination`) | no violation, no style attribute (built server, 360, 768 and 1280 px, light and dark; axe clean). Buttons, not links. 32 px, 44 px on a coarse pointer. Enter on Next up to the last page keeps the focus on it. At an end the control dims its icon and its text, not itself: dimmed whole, its focus ring measured 1.89:1 (light) and 2.75:1 (dark); now 4.28:1 and 7.87:1 |
+| DropdownMenu tick boxes, rendered in `main` | the Filters menu of the accounts and domains tables | no violation with the menu open and after a tick. Non-modal like the others; a tick leaves it open, Escape returns the focus to the button. The box is drawn ticked and unticked, with the field's edge line (3.4:1 or more against the row and its own fill, measured in both themes) |
 | Kbd | the keys in the shortcuts list | no violation; static |
 | Badge | delivery outcome | no violation; static, the label always says the outcome |
 | Empty | empty tables and the empty sections of the account page | no violation; static |
@@ -144,7 +156,30 @@ kept.
 | Native `<select>` | delivery log filters | no violation. Radix Select was measured and kept out: its `SelectValue` puts `style="pointer-events:none"` in the server HTML (a `style-src` violation, and a nonce cannot cover an attribute), its viewport injects a `<style>` element with no nonce prop wired, and the filter form is a plain GET form that works without script |
 | Skeleton | loading states | no violation; static, never pulses |
 
-Measured in the built server and not used: Radix Dialog (same result as AlertDialog, with the nonce: no violation, but no screen needs it), Popover and Tooltip (no violation, no screen needs them; the sidebar keeps its own tooltip), Select (above). Sonner (it injects a `<style>` element with no nonce when it loads, 16 violations in one page view with version 2.0.8; the panel's own `components/ui/toaster` replaces it). From the shadcn catalogue nothing else is installed: a component joins the tree when a screen uses it, so Spinner (a looping animation, against the no-decoration rule), InputOTP (the panel never takes a one-time code, it shows a secret), Kbd (no shortcut exists), Pagination, ToggleGroup, Checkbox and Switch (no such control in any screen) wait for the screen that needs them. `Field` is not used because the forms already compose `Form` (react-hook-form); the two do not mix.
+Measured in the built server and not used: Radix Dialog (same result as AlertDialog, with the nonce: no violation, but no screen needs it), Popover and Tooltip (no violation, no screen needs them; the sidebar keeps its own tooltip), Select (above). Sonner (it injects a `<style>` element with no nonce when it loads, 16 violations in one page view with version 2.0.8; the panel's own `components/ui/toaster` replaces it). From the shadcn catalogue nothing else is installed: a component joins the tree when a screen uses it, so Spinner (a looping animation, against the no-decoration rule), InputOTP (the panel never takes a one-time code, it shows a secret), Kbd (no shortcut exists), ToggleGroup, Checkbox and Switch (no such control in any screen) wait for the screen that needs them. The tick boxes of the Filters menu are menu items of the DropdownMenu, not the Checkbox component. `Field` is not used because the forms already compose `Form` (react-hook-form); the two do not mix.
+
+## The focus ring and a filled control
+
+Decided 2026-11-13, with the numbers measured in the built panel. The focus
+ring is an outline 2 px away from the control (`outline-offset-2`), so it is
+painted on the surface around the control and never on the control's own
+fill. It is held to 3:1 against that surface: 4.28:1 in the light theme and
+7.87:1 in the dark one. Against the fill of a primary control (the current
+page of a table, a primary button) the same ring measures 3.67:1 in the light
+theme and 2.27:1 in the dark one. That second pair is accepted as it is: the
+two colours do not touch, and the gap between them is the surface the ring
+does contrast with. Do not "fix" it by moving the ring onto the control.
+
+A menu item draws its ring inside itself (`-outline-offset-2`), in the ring
+colour from the start (`outline-ring` with no `focus:`): the items have a
+colour transition, and with the colour set only on focus the ring faded in
+from the text colour over its first 150 ms. The item under the pointer shows
+the ring too, since in a Radix menu the pointer moves the focus.
+
+The tick box of a menu item has a 2 px line on its four sides
+(`inset-ring-2 inset-ring-field-edge`) and a small corner (`rounded-xs`, a
+third of `--radius`, defined with the other radii in the theme). The line is
+what makes an unticked box visible at 3:1; it stays.
 
 ## Semantic roles of the Alert
 

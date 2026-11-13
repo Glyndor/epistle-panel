@@ -149,4 +149,26 @@ describe("DeliveriesTable", () => {
 		expect(alert).toHaveTextContent("unreachable");
 		expect(alert).toHaveClass("bg-warning");
 	});
+
+	it("shows 25 records a page, and narrows through its own form, not a Filters menu", async () => {
+		stubFetchJson({
+			entries: Array.from({ length: 30 }, (_, index) =>
+				entry({
+					spool_id: `01890a5d-ac96-774b-b9aa-9be4c3bd6c${String(index).padStart(2, "0")}`,
+					recipient: `r${index}@example.net`,
+					time: 1_700_000_000 - index,
+				}),
+			),
+		});
+
+		render(withQuery(<DeliveriesTable filters={{}} />));
+		await screen.findByText("r0@example.net");
+
+		expect(screen.getAllByRole("row").slice(1)).toHaveLength(25);
+		expect(screen.queryByText("r25@example.net")).toBeNull();
+		fireEvent.click(screen.getByRole("button", { name: "next" }));
+		expect(screen.getAllByRole("row").slice(1)).toHaveLength(5);
+		expect(screen.getByText("r25@example.net")).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: /filters/ })).toBeNull();
+	});
 });

@@ -4,5 +4,16 @@
 	"sortable": "sortable",
 	"sortedAscending": "sorted ascending",
 	"sortedDescending": "sorted descending",
-	"loading": "Loading"
+	"loading": "Loading",
+	"filters": "Filters",
+	"filtersActive": "{count, plural, one {# active filter} other {# active filters}}",
+	"clearFilters": "Clear filters",
+	"deselectAll": "Deselect all",
+	"range": "{from}–{to} of {count}",
+	"pageSize": "Rows per page",
+	"pagination": "Pages of the table",
+	"previous": "Previous",
+	"next": "Next",
+	"pageOf": "Page {page} of {pages}",
+	"page": "Page {page}"
 }

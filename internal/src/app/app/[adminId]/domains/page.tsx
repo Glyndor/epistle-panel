@@ -2,16 +2,13 @@ import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
 import { PrefetchBoundary } from "@/components/prefetch-boundary";
-import { TableSkeleton } from "@/components/skeletons/table-skeleton";
 import { DomainsTable } from "@/features/domains/components/domains-table";
+import { DomainsTableSkeleton } from "@/features/domains/components/domains-table-skeleton";
 import { domainsQueryOptions } from "@/features/domains/queries/domains-query";
 import { loadDomains } from "@/features/domains/queries/load-domains";
 import { AdminBreadcrumbs } from "@/features/navigation/components/admin-breadcrumbs";
 import { requireAdmin } from "@/lib/auth/require-session";
 import { prefetchSpec } from "@/lib/query/prefetch";
-
-/** Columns of the domains table, shared with its skeleton. */
-export const DOMAINS_COLUMNS = 1;
 
 /** The domains page: the heading at once, the list streamed in, then owned by Query. */
 export default async function DomainsPage() {
@@ -22,7 +19,7 @@ export default async function DomainsPage() {
 		<>
 			<AdminBreadcrumbs routes={routes} page="domains" />
 			<h1 className="font-semibold text-lg">{t("heading")}</h1>
-			<Suspense fallback={<TableSkeleton columns={DOMAINS_COLUMNS} />}>
+			<Suspense fallback={<DomainsTableSkeleton />}>
 				<PrefetchBoundary
 					queries={[
 						prefetchSpec(

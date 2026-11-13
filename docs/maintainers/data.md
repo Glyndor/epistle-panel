@@ -118,12 +118,154 @@ differences that matter:
 
 ## Tables
 
-`components/data-table` wraps TanStack Table v9 with the two features the panel
-uses, sorting and a text filter, and nothing else. Reads stay in the owner's
-render (`table.state`, `getRowModel`): with React Compiler on, a child that read
-table state through a method of a stable object would be memoised stale. The
-queue pages through the API's cursor, as a link to `?cursor=`, so a page can be
-bookmarked; sorting and filtering apply to the page on screen.
+`components/data-table` wraps TanStack Table v9 with the features the panel
+uses: sorting, a text filter, a filter by column for the facets, and pages.
+Nothing else is registered, so nothing else is bundled.
+
+| Folder | Holds |
+|---|---|
+| `data-table/` | `DataTable`, the owner of the table and of its state |
+| `data-table/features` | the registered features, `columnHelper`, the facet filter, the column `meta` type |
+| `data-table/toolbar` | the bar: text filter, Filters menu, count, the page's own content |
+| `data-table/header` | the header row and its sort buttons |
+| `data-table/filters-menu` | the Filters button and its menu of tick boxes |
+| `data-table/announcer` | the one live region that tells a screen reader the rows changed |
+| `data-table/pagination` | the foot: range, page size, previous, next, page numbers |
+| `data-table/no-rows` | the empty row, with the way back when the filters caused it |
+| `data-table/paging`, `data-table/facets` | the arithmetic of pages and of the selection, as plain functions |
+
+Reads stay in the owner's render (`table.state`, `getRowModel`): with React
+Compiler on, a child that read table state through a method of a stable object
+would be memoised stale. So the parts take plain values and callbacks, never
+the table, a header or a column. The unit tests do not run the compiler; a
+stale part shows only in the built panel, which is why the browser checks in
+`e2e.md` press the controls and read the rows.
+
+### Where the state lives
+
+Order, text filter, ticked facets, page and page size are React state of
+`DataTable`, in the browser. They are not in the URL: a reload, or a link sent
+to someone, opens the first page with no filter. The lists the API pages (the
+queue with `?cursor=`, the suppression list with `?after=`) and the delivery
+log's own filter form are in the URL, as before.
+
+### Pages
+
+Paging is over the rows the query returned: 10, 25, 50 or 100 a page, 25 to
+start with. The foot shows the range ("1–25 of 132") and the page size. When
+the rows take more than one page it also has previous and next at every
+width; the page numbers join them once the foot is at least 28rem wide, and
+below that "Page 2 of 6" stands between the two. A list that fits one page has
+no page controls. Previous and next are marked `aria-disabled` at the ends
+instead of being disabled, so the focus is not lost when the page under it
+becomes the last; there they dim what they hold and not themselves, so the
+focus ring keeps its contrast (see shadcn.md).
+
+A change of the rows is said to a screen reader by one live region
+(`data-table/announcer`), not by the sentences on screen: the range of a paged
+table, the count of one that is not, or that no row matches. It waits until
+the rows have been still for half a second, so a word typed in the filter is
+one announcement and not one per letter, and it is emptied 2.5 s later, so at
+rest each sentence is in the page once. The two times are a choice, not yet
+checked with a screen reader.
+
+- The page goes back to the first when the order, the text filter or a facet
+  changes, and `DataTable` does that itself. The table is given no way to
+  write the page (no `onPaginationChange`) and its own reset is off
+  (`autoResetPageIndex: false`), because that reset also fires when the data
+  changes, which would throw the viewer off their page on every refresh.
+  Measured in the unit test of the refresh: with the callback wired and the
+  reset left on, the table writes page 1 a moment after the data changes; with
+  the reset off it writes nothing. Do not wire the one without keeping the
+  other.
+- When a refresh makes the list shorter than the page on screen, the last page
+  that still has rows is shown.
+- A new size keeps the row that was first on screen.
+- `pagination={false}` turns it off. The queue and the suppression list pass
+  it: the API already pages them and their links are in `toolbar`, so they are
+  not paged twice. Sorting and filtering apply to the page on screen there.
+
+### Facets
+
+A facet narrows the table by a column whose values are a closed set the API
+really reports. Today: where an account is defined (made through the API, or
+declared in the configuration file) and whether a domain takes mail or is
+switched off (`disabled` in `GET /api/v1/domains`). The queue and the
+suppression list have no such field in the API (an entry is an id, a sender
+and recipients; a suppressed address is only the address), so they have no
+Filters menu. The delivery log narrows through its own form, on the server.
+
+To add one:
+
+1. Give the table a column whose accessor returns the raw value, a short key
+   such as `"api"` or `"file"`, with an `id`. Set `enableGlobalFilter: false`
+   on it, or the text filter would match the keys instead of what the row
+   shows. Draw the value as words in `cell` (a `Badge`).
+2. Pass `facets` to `DataTable`: the column's id, the group's label and one
+   `{ value, label }` per value, together with
+   `filtersMenu={DataTableFiltersMenu}` (imported from
+   `components/data-table/filters-menu`; the types ask for the two together).
+   That is all; every column filter of the panel
+   uses `filterFn_oneOf`, which keeps a row whose value is exactly one of the
+   ticked options (not a substring: `active` does not bring `inactive`).
+3. Add the labels to the six locales and a test that ticks the box and reads
+   the rows.
+
+Ticking leaves the menu open; the button counts the ticked boxes; "Deselect
+all" in the menu unticks them and leaves the text filter alone. When the
+filters leave no row, the empty row offers "Clear filters", which takes the
+text and the facets off and sends the focus to the filter field. The two have
+different names because they do different things.
+
+Who brings the menu's code is decided on purpose. The table that has facets
+imports `DataTableFiltersMenu` and hands it to `DataTable` as `filtersMenu`;
+`DataTable` itself does not import it. Two things were measured on the build
+(first-load JavaScript of a route, compressed, from the build manifest):
+
+- Loaded apart with `next/dynamic`, the button was drawn by the server and
+  looked ready, and a press on it while its code was still on the way was
+  lost. So it is not loaded apart.
+- Imported by `DataTable`, it put the Radix menu and its popper (19.1 kB) in
+  every table's page: the queue and the suppression list went from 251.5 to
+  270.3 kB, the delivery log from 237.2 to 266.3 kB, for a menu they never
+  draw. So `DataTable` does not import it.
+
+With each table that has facets importing it, the queue and the suppression
+list are at 250.2 and 250.1 kB and the delivery log at 235.9 kB, with no Radix
+menu in their first load; the domains page, which now draws the menu, went
+from 236.1 to 265.4 kB.
+
+A test reads the sources and fails if `DataTable` imports the menu, if a table
+without facets does, or if anything loads it apart.
+
+### Focus and long values
+
+- A sort button the keyboard reaches is scrolled into the table's box
+  (`scrollIntoView` with `nearest`), since a wide table scrolls sideways and a
+  header that was tabbed to could stay almost outside it. A pointer does not
+  trigger it: moving the button during a click would lose the click.
+- The delete dialog is controlled (the row's menu opens it), so it has no
+  trigger of its own to return the focus to and left it on the page's body.
+  The row tells it which button opened it: closing without deleting (Cancel,
+  Escape, a refusal) gives the focus back to that button. When the account is
+  deleted its row leaves, so the focus goes to the table's filter field, or
+  to the page's heading when no table is drawn.
+- Addresses and names wrap with `wrap-anywhere` (`overflow-wrap: anywhere`):
+  a break at a hyphen or a space first, and inside a word only when nothing
+  else fits. `break-all` cut every address mid-word.
+
+### A column that leaves a narrow table
+
+`DataTable` is a size container. A column can give classes to its header and
+its cells through `meta.className`, such as `hidden @md:table-cell`, and show
+the same value inside another cell below that width. The accounts table does
+it with the origin, which sits under the account name at 360 px so the row
+actions stay on screen. Under the name the label may wrap between its words:
+on one line the longer translations made the table wider than the window
+(measured at 360 px in the six languages: the table is 328 px in a 328 px box).
+It does not break inside a word, so at 320 px, which the panel does not
+target, the longest words still make the table a few pixels wider than its
+box and it scrolls sideways.
 
 ## Server Actions across instances
 

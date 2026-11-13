@@ -3,5 +3,8 @@
 	"unreachable": "L’API di gestione del server di posta non è raggiungibile. Verifica che il server sia in esecuzione e che il pannello sia configurato.",
 	"empty": "Nessun dominio è ancora configurato.",
 	"name": "Dominio",
+	"state": "Stato",
+	"stateActive": "Attivo",
+	"stateDisabled": "Disattivato",
 	"filter": "Filtra i domini"
 }

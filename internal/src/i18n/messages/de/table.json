@@ -4,5 +4,16 @@
 	"sortable": "sortierbar",
 	"sortedAscending": "aufsteigend sortiert",
 	"sortedDescending": "absteigend sortiert",
-	"loading": "Wird geladen"
+	"loading": "Wird geladen",
+	"filters": "Filter",
+	"filtersActive": "{count, plural, one {# Filter aktiv} other {# Filter aktiv}}",
+	"clearFilters": "Filter entfernen",
+	"deselectAll": "Alle abwählen",
+	"range": "{from}–{to} von {count}",
+	"pageSize": "Zeilen pro Seite",
+	"pagination": "Seiten der Tabelle",
+	"previous": "Zurück",
+	"next": "Weiter",
+	"pageOf": "Seite {page} von {pages}",
+	"page": "Seite {page}"
 }

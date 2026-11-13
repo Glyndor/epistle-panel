@@ -294,6 +294,25 @@ export function createAccountsStore(names: readonly string[]) {
 		remove(name: string): void {
 			state.delete(name);
 		},
+		/**
+		 * Add `count` accounts named `seed-001` onwards, so a list is long
+		 * enough to page. Every fourth one stands for an account declared in
+		 * the configuration file. `reset()` takes them away.
+		 */
+		seed(count: number): void {
+			for (let index = 1; index <= count; index++) {
+				const name = `seed-${String(index).padStart(3, "0")}`;
+				state.set(name, {
+					displayName: null,
+					totp: false,
+					passwordChanges: 0,
+					masked: [],
+					archive: null,
+					addresses: [`${name}@${DOMAIN}`],
+					dynamic: index % 4 !== 0,
+				});
+			}
+		},
 		reset(): void {
 			state = fresh();
 		},

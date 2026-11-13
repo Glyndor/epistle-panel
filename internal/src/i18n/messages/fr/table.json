@@ -4,5 +4,16 @@
 	"sortable": "triable",
 	"sortedAscending": "tri croissant",
 	"sortedDescending": "tri décroissant",
-	"loading": "Chargement"
+	"loading": "Chargement",
+	"filters": "Filtres",
+	"filtersActive": "{count, plural, one {# filtre actif} other {# filtres actifs}}",
+	"clearFilters": "Retirer les filtres",
+	"deselectAll": "Tout décocher",
+	"range": "{from}–{to} sur {count}",
+	"pageSize": "Lignes par page",
+	"pagination": "Pages du tableau",
+	"previous": "Précédent",
+	"next": "Suivant",
+	"pageOf": "Page {page} sur {pages}",
+	"page": "Page {page}"
 }

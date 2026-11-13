@@ -3,7 +3,7 @@
 import { MoreHorizontalIcon } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { useAdminRoutes } from "@/components/layout/admin-routes";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,8 @@ export function AccountRowActions({ row }: { row: AccountRow }) {
 	// so the table's scroll box does not clip it, and it stays inside a landmark.
 	const [main, setMain] = useState<HTMLElement | null>(null);
 	const named = isAccountName(row.name);
+	/** The menu's button: where the focus returns when the delete dialog closes. */
+	const trigger = useRef<HTMLButtonElement>(null);
 
 	return (
 		<>
@@ -45,6 +47,7 @@ export function AccountRowActions({ row }: { row: AccountRow }) {
 			>
 				<DropdownMenuTrigger asChild>
 					<Button
+						ref={trigger}
 						variant="ghost"
 						size="icon"
 						aria-label={t("actionsFor", { name: row.name })}
@@ -79,6 +82,7 @@ export function AccountRowActions({ row }: { row: AccountRow }) {
 					name={row.name}
 					open
 					onOpenChange={setDeleting}
+					returnFocus={trigger}
 				/>
 			) : null}
 		</>

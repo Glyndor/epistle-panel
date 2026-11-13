@@ -16,6 +16,13 @@
 import { apiError, json } from "./responses";
 import { createDeliveriesStore } from "./deliveries";
 import { createSuppressionStore } from "./suppression";
+import {
+	parseSeed,
+	SEED_DOMAIN,
+	SEED_ERROR,
+	type SeededDomain,
+	seededDomains,
+} from "./seed";
 import { createAccountsStore } from "./accounts";
 import { handleLifecycle } from "./accounts/lifecycle";
 import { createJmapStore } from "./jmap";
@@ -141,6 +148,8 @@ export function createStandIn(options: StandInOptions) {
 	let delayMs = 0;
 	const sleep = options.sleep ?? ((ms: number) => Bun.sleep(ms));
 	let queue = [...SEED_IDS];
+	/** Domains added through `/__control/seed`, after the one it starts with. */
+	let moreDomains: SeededDomain[] = [];
 	const suppression = createSuppressionStore();
 	const deliveries = createDeliveriesStore();
 	const accounts = createAccountsStore(Object.keys(ACCOUNTS));
@@ -166,6 +175,7 @@ export function createStandIn(options: StandInOptions) {
 			mode = "ok";
 			delayMs = 0;
 			queue = [...SEED_IDS];
+			moreDomains = [];
 			suppression.reset();
 			accounts.reset();
 			jmap.reset();
@@ -195,6 +205,18 @@ export function createStandIn(options: StandInOptions) {
 			}
 			jmap.oversizeBlobs(body.oversize);
 			return json({ oversize: body.oversize });
+		}
+		if (path === "/__control/seed" && request.method === "POST") {
+			const counts = parseSeed(await request.json());
+			if (counts === null) {
+				return json({ error: SEED_ERROR }, 400);
+			}
+			accounts.seed(counts.accounts);
+			moreDomains = seededDomains(counts.domains);
+			return json({
+				accounts: accounts.list().length,
+				domains: 1 + moreDomains.length,
+			});
 		}
 		if (path === "/__control/delay" && request.method === "POST") {
 			const body = (await request.json()) as { ms?: unknown };
@@ -309,13 +331,18 @@ export function createStandIn(options: StandInOptions) {
 		if (path === "/api/v1/status") {
 			return json({
 				version: "0.0.0-stand-in",
-				domains: 1,
+				domains: 1 + moreDomains.length,
 				accounts: accounts.list().length,
 				queue_size: queue.length,
 			});
 		}
 		if (path === "/api/v1/domains") {
-			return json({ domains: ["example.test"] });
+			return json({
+				domains: [SEED_DOMAIN, ...moreDomains.map((domain) => domain.name)],
+				disabled: moreDomains
+					.filter((domain) => domain.disabled)
+					.map((domain) => domain.name),
+			});
 		}
 		if (path === "/api/v1/accounts" && request.method === "GET") {
 			return json({ accounts: accounts.list() });
