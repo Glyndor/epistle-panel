@@ -25,6 +25,11 @@ describe("the interim provider", () => {
 		});
 	});
 
+	it("never presents the operator's token for a session of another role", async () => {
+		await cookies.signIn("ana", "user");
+		expect(await currentMailSession()).toBeNull();
+	});
+
 	it("gives nothing without a session or without a token", async () => {
 		expect(await currentMailSession()).toBeNull();
 		await cookies.signIn("ana");

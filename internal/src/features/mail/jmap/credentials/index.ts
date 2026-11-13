@@ -29,15 +29,17 @@ export interface MailCredentialProvider {
  * The provider used until the end-user sign-in exists: the panel's own session
  * names the account, and the panel's API token is the bearer. That token is
  * the operator's, so this provider is only fit for an account whose owner is
- * the operator; it does not make the webmail safe for other users, which needs
- * a token bound to the user's account (see docs/maintainers/mail.md).
+ * the operator, so it is given only to a session with the admin role and the
+ * session of any other role gets nothing: the operator's token never acts for an
+ * end user. The webmail becomes usable by other users with a token bound to
+ * their account (see docs/maintainers/mail.md).
  */
 export const interimProvider: MailCredentialProvider = {
 	async current() {
 		const session = await verifySession(
 			(await cookies()).get(SESSION_COOKIE)?.value,
 		);
-		if (!session) {
+		if (session?.role !== "admin") {
 			return null;
 		}
 		const bearer = await readSecret("EPISTLE_API_TOKEN").catch(
