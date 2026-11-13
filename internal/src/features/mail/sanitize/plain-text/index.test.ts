@@ -27,7 +27,9 @@ describe("plainTextOf", () => {
 			"<script>x</script>",
 		);
 		expect(
-			plainTextOf("<blockquote><div>a<br>b</div><div>c</div></blockquote>"),
+			plainTextOf(
+				"<blockquote><div>a<br>b</div><div>c</div></blockquote>",
+			),
 		).toBe("a\nb\nc");
 	});
 
