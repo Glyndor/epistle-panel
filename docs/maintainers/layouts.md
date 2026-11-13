@@ -108,6 +108,36 @@ The proxy matcher stays wide so every page, public or not, gets the nonce-bearin
 CSP; the decision is in the proxy function, not in the matcher, and the pages and
 Server Actions still check the role themselves.
 
+## The header's far end
+
+`components/layout/header-actions` is the far end of both headers, the admin
+shell's and the webmail's: the theme button and the profile menu. It is one
+component, so the two areas cannot drift. The profile menu
+(`components/layout/user-menu`, its Radix code loaded on the first press) shows
+what the layout read from the session and nothing else: the account's name,
+its initials and its role, then the language, the theme, the way into the
+administration and sign out. The address of the administration is built on the
+server and handed down only for an admin session in an installation whose
+admin area is on; the menu never derives it from the role.
+
+Inside one menu, one thing goes to the server at a time: while a language or a
+theme picked there is being stored, or the session is being ended, that menu's
+button is marked busy and looks it, and its rows wait. The two menus are
+independent of each other on purpose: the theme and the language are separate
+choices, each stored by its own action, so a theme picked from the theme button
+while a language is on its way is stored as well, and both hold.
+
+Both buttons open from the keyboard with Enter, Space or the down arrow, with
+the focus on the first row, also on the first press, before the menu's code has
+arrived.
+
+The menu needs script. Sign out and the way into the administration are also
+in the served page as a plain form and a plain link, inside a `noscript`, so a
+browser without script keeps both. They take room the menu does not: the
+header is a row with a least height that wraps, so on a narrow window without
+script that end goes under the rest of the bar and the page is not pushed
+sideways.
+
 ## The shell and its contract
 
 `components/layout/app-shell` draws the skip link, the sidebar, the header and

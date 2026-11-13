@@ -1,6 +1,5 @@
 {
 	"heading": "Correo",
-	"admin": "Administración",
 	"folders": "Carpetas",
 	"foldersTitle": "Carpetas",
 	"foldersDescription": "Las carpetas de tu buzón.",
@@ -67,9 +66,6 @@
 	"shortcutPrevious": "Mensaje anterior",
 	"shortcutSearch": "Buscar",
 	"shortcutBack": "Volver a la lista",
-	"language": "Idioma",
-	"signOut": "Cerrar sesión",
-	"signedInAs": "Sesión iniciada como {name}",
 	"skipList": "Saltar a los mensajes",
 	"toolbarLabel": "Acciones del mensaje",
 	"star": "Destacar",

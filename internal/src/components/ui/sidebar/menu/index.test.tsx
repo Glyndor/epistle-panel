@@ -132,6 +132,55 @@ describe("SidebarMenuButton", () => {
 		expect(entered).toBe(1);
 	});
 
+	it("shows the tooltip on keyboard focus, not on a focus the pointer gave, and hides it on blur", async () => {
+		renderMenu(false);
+		const button = screen.getByRole("button", { name: "Domains" });
+		const original = button.matches.bind(button);
+		const tip = () =>
+			document.querySelector("[data-slot='sidebar-tooltip']");
+
+		// A focus that is not a keyboard one: no tooltip.
+		button.matches = ((selector: string) =>
+			selector === ":focus-visible"
+				? false
+				: original(selector)) as typeof button.matches;
+		fireEvent.focus(button);
+		expect(tip()).toBeNull();
+
+		// A keyboard focus: the tooltip names the control.
+		button.matches = ((selector: string) =>
+			selector === ":focus-visible"
+				? true
+				: original(selector)) as typeof button.matches;
+		fireEvent.focus(button);
+		expect(tip()).toHaveTextContent("Domains");
+
+		fireEvent.blur(button);
+		await new Promise((resolve) => setTimeout(resolve, 200));
+		expect(tip()).toBeNull();
+	});
+
+	it("runs the caller's focus and blur handlers too", () => {
+		const seen: string[] = [];
+		render(
+			<SidebarProvider defaultOpen={false}>
+				<SidebarMenuButton
+					tooltip="X"
+					onFocus={() => seen.push("focus")}
+					onBlur={() => seen.push("blur")}
+				>
+					X
+				</SidebarMenuButton>
+			</SidebarProvider>,
+		);
+		const button = screen.getByRole("button", { name: "X" });
+
+		fireEvent.focus(button);
+		fireEvent.blur(button);
+
+		expect(seen).toEqual(["focus", "blur"]);
+	});
+
 	it("renders without a tooltip when none is given", () => {
 		render(
 			<SidebarProvider>

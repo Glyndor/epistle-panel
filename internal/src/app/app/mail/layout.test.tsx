@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { cleanup, render, screen } from "@testing-library/react";
+import { renderToStaticMarkup } from "react-dom/server";
 
 import {
 	mockRequestCookies,
@@ -41,21 +42,38 @@ describe("MailLayout", () => {
 		const first = document.querySelector("a, button, select");
 		expect(first).toHaveAttribute("href", "#main-content");
 		expect(screen.queryByRole("complementary")).toBeNull();
-		expect(screen.queryByRole("link", { name: "admin" })).toBeNull();
+		expect(
+			screen.getByRole("button", { name: "account" }),
+		).toHaveTextContent("ana");
 	});
 
-	it("offers an admin session the way into the administration, built on the server", async () => {
-		await cookies.signIn("ops", "admin");
-		render(
+	it("gives a session that is not an admin's no way into the administration, in the markup or in what the menu is handed", async () => {
+		await cookies.signIn("ana", "user");
+
+		const html = renderToStaticMarkup(
 			withQuery(
 				await resolveServerTree(
 					await MailLayout({ children: <p>page</p> }),
 				),
 			),
 		);
-		expect(screen.getByRole("link", { name: "admin" })).toHaveAttribute(
-			"href",
-			`/app/${TEST_ADMIN_ID}`,
+
+		expect(html).not.toContain(TEST_ADMIN_ID);
+		expect(html).not.toContain("administration");
+	});
+
+	it("offers an admin session the way into the administration, built on the server", async () => {
+		await cookies.signIn("ops", "admin");
+
+		const html = renderToStaticMarkup(
+			withQuery(
+				await resolveServerTree(
+					await MailLayout({ children: <p>page</p> }),
+				),
+			),
 		);
+
+		// In the markup itself, where it works without script.
+		expect(html).toContain(`href="/app/${TEST_ADMIN_ID}"`);
 	});
 });

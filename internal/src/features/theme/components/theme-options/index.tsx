@@ -18,9 +18,12 @@ import {
 export function ThemeOptions({
 	choice,
 	onChoose,
+	disabled = false,
 }: {
 	choice: ThemeChoice;
 	onChoose: (value: string) => void;
+	/** A choice is being stored: the items wait for it. */
+	disabled?: boolean;
 }) {
 	const t = useTranslations("nav");
 
@@ -33,7 +36,11 @@ export function ThemeOptions({
 				onValueChange={onChoose}
 			>
 				{THEME_CHOICES.map((value) => (
-					<DropdownMenuRadioItem key={value} value={value}>
+					<DropdownMenuRadioItem
+						key={value}
+						value={value}
+						disabled={disabled}
+					>
 						{t(`theme_${value}`)}
 					</DropdownMenuRadioItem>
 				))}

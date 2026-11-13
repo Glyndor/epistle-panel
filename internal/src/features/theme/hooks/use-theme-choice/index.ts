@@ -53,7 +53,9 @@ export function useThemeChoice(): {
 
 	const choose = (value: string) => {
 		const next = themeChoiceSchema.safeParse(value);
-		if (!next.success || next.data === choice) {
+		// One at a time: a pick made while another is being stored is dropped,
+		// so two answers cannot land in the wrong order.
+		if (pending || !next.success || next.data === choice) {
 			return;
 		}
 		const previous = choice;

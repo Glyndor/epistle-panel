@@ -16,7 +16,9 @@
 	"sheetTitle": "Navegação",
 	"sheetDescription": "Páginas do painel de administração.",
 	"close": "Fechar",
-	"signedInAs": "Conectado como {name}",
+	"account": "Conta: {name}",
+	"role_admin": "Administrador",
+	"role_user": "Utilizador",
 	"language": "Idioma",
 	"theme": "Tema",
 	"themeCurrent": "Tema: {theme}",
@@ -24,6 +26,7 @@
 	"theme_light": "Claro",
 	"theme_dark": "Escuro",
 	"themeFailed": "Não foi possível guardar o tema.",
+	"menuFailed": "Não foi possível carregar o menu. Tente novamente.",
 	"notifications": "Notificações",
 	"dismiss": "Dispensar"
 }

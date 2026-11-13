@@ -17,7 +17,8 @@ async function renderShell(defaultOpen = true) {
 			AppShell({
 				groups: adminNav(),
 				homeHref: TEST_ROUTES.home,
-				userName: "ops",
+				user: { name: "ops", role: "admin" },
+				adminHref: TEST_ROUTES.home,
 				defaultOpen,
 				children: <p>page</p>,
 			}),
@@ -47,7 +48,7 @@ describe("AppShell", () => {
 				AppShell({
 					groups: [],
 					homeHref: TEST_ROUTES.home,
-					userName: "u",
+					user: { name: "u", role: "admin" },
 					defaultOpen: true,
 					children: <p>page</p>,
 				}),
@@ -64,5 +65,14 @@ describe("AppShell", () => {
 			"data-state",
 			"collapsed",
 		);
+	});
+
+	it("puts the profile menu of the account in the header, not in the sidebar", async () => {
+		await renderShell();
+
+		const account = screen.getByRole("button", { name: "account" });
+		expect(screen.getByRole("banner")).toContainElement(account);
+		expect(screen.getByRole("complementary")).not.toContainElement(account);
+		expect(account).toHaveTextContent("ops");
 	});
 });

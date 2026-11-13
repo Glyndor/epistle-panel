@@ -103,4 +103,18 @@ describe("ThemeSwitcher", () => {
 			expect(document.activeElement).toBe(items[0] as HTMLElement),
 		);
 	});
+
+	it("opens it on the down arrow too, before it was ever opened, with the focus on the first item", async () => {
+		render(<ThemeSwitcher />);
+
+		fireEvent.keyDown(
+			screen.getByRole("button", { name: "themeCurrent" }),
+			{ key: "ArrowDown" },
+		);
+
+		const items = await screen.findAllByRole("menuitemradio");
+		await waitFor(() =>
+			expect(document.activeElement).toBe(items[0] as HTMLElement),
+		);
+	});
 });

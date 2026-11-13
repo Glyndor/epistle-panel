@@ -29,10 +29,7 @@ const HAND_MADE: ReadonlyArray<readonly [RegExp, string]> = [
  * Files still on a hand-made control, each with the reason. An entry leaves
  * this list when the file is changed; nothing is added to it.
  */
-const KNOWN: Readonly<Record<string, string>> = {
-	"features/mail/components/language-select/index.tsx":
-		"the mail header's language select, replaced by the profile menu",
-};
+const KNOWN: Readonly<Record<string, string>> = {};
 
 /** Production components outside `components/ui`: the files that compose, not the ones that define a control. */
 function composingFiles(): string[] {

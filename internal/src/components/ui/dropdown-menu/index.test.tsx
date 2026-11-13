@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
+	DropdownMenuItem,
 	DropdownMenuLabel,
 	DropdownMenuRadioGroup,
 	DropdownMenuRadioItem,
@@ -126,5 +127,43 @@ describe("DropdownMenu", () => {
 		// The pointer focuses the item it is over; a press differs from that.
 		expect(item).toHaveClass("focus:bg-accent", "active:bg-accent/70");
 		expect(screen.getByRole("menu")).toBeInTheDocument();
+	});
+
+	it("gives an action a row of its own size, a pressed fill, and the destructive tone only when asked", async () => {
+		const onSelect = mock(() => {});
+		render(
+			<DropdownMenu defaultOpen>
+				<DropdownMenuTrigger>Actions</DropdownMenuTrigger>
+				<DropdownMenuContent>
+					<DropdownMenuItem onSelect={onSelect}>
+						Open
+					</DropdownMenuItem>
+					<DropdownMenuItem variant="destructive">
+						Delete
+					</DropdownMenuItem>
+					<DropdownMenuItem asChild>
+						<a href="/x">Go</a>
+					</DropdownMenuItem>
+				</DropdownMenuContent>
+			</DropdownMenu>,
+		);
+
+		const open = await screen.findByRole("menuitem", { name: "Open" });
+		expect(open).toHaveAttribute("data-variant", "default");
+		expect(open).toHaveClass(
+			"min-h-8",
+			"pointer-coarse:min-h-11",
+			"focus:bg-accent",
+			"data-[variant=default]:active:bg-accent/70",
+		);
+		expect(
+			screen.getByRole("menuitem", { name: "Delete" }),
+		).toHaveAttribute("data-variant", "destructive");
+		// With `asChild` the row is the link itself.
+		const go = screen.getByRole("menuitem", { name: "Go" });
+		expect(go.tagName).toBe("A");
+		expect(go).toHaveAttribute("href", "/x");
+		fireEvent.click(open);
+		expect(onSelect).toHaveBeenCalledTimes(1);
 	});
 });

@@ -16,7 +16,9 @@
 	"sheetTitle": "Navigation",
 	"sheetDescription": "Pages of the admin panel.",
 	"close": "Close",
-	"signedInAs": "Signed in as {name}",
+	"account": "Account: {name}",
+	"role_admin": "Administrator",
+	"role_user": "User",
 	"language": "Language",
 	"theme": "Theme",
 	"themeCurrent": "Theme: {theme}",
@@ -24,6 +26,7 @@
 	"theme_light": "Light",
 	"theme_dark": "Dark",
 	"themeFailed": "The theme could not be saved.",
+	"menuFailed": "The menu could not be loaded. Try again.",
 	"notifications": "Notifications",
 	"dismiss": "Dismiss"
 }

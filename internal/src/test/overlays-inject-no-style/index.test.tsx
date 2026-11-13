@@ -8,7 +8,6 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sheet } from "@/components/ui/sheet";
-import { SidebarProvider } from "@/components/ui/sidebar/provider";
 import { queueEntryIdSchema } from "@/features/queue/schemas/queue-input";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
 import { withAdminArea } from "@/test/admin-routes";
@@ -25,7 +24,7 @@ import { testQueryClient, withQuery } from "@/test/query-wrapper";
  * means something.
  */
 const cookies = mockRequestCookies();
-const { LanguageMenu } = await import("@/components/layout/language-menu");
+const { UserMenuPanel } = await import("@/components/layout/user-menu-panel");
 const { ThemeMenu } = await import("@/features/theme/components/theme-menu");
 const { RemoveEntryButton } = await import(
 	"@/features/queue/components/remove-entry-button"
@@ -45,14 +44,17 @@ afterEach(() => {
 const styleElements = () => document.head.querySelectorAll("style").length;
 
 describe("overlays and the CSP", () => {
-	it("the language menu adds no style element when opened", async () => {
+	it("the profile menu adds no style element when opened", async () => {
 		const before = styleElements();
 		render(
-			<SidebarProvider>
-				<LanguageMenu defaultOpen={false} />
-			</SidebarProvider>,
+			<UserMenuPanel
+				name="ana"
+				sessionRole="admin"
+				adminHref="/app/x"
+				defaultOpen={false}
+			/>,
 		);
-		fireEvent.keyDown(screen.getByRole("button", { name: /language/ }), {
+		fireEvent.keyDown(screen.getByRole("button", { name: /account/ }), {
 			key: "Enter",
 		});
 		await screen.findByRole("menu");

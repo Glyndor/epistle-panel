@@ -8,6 +8,7 @@ import { StyleNonce } from "@/components/layout/style-nonce";
 import { SidebarProvider } from "@/components/ui/sidebar/provider";
 import { SidebarInset } from "@/components/ui/sidebar/regions";
 import type { NavGroup } from "@/features/navigation/schemas/nav-item";
+import type { SessionRole } from "@/lib/auth/session";
 
 /**
  * The shell of a surface that has a sidebar: skip link, sidebar, header and the
@@ -23,13 +24,17 @@ import type { NavGroup } from "@/features/navigation/schemas/nav-item";
 export function AppShell({
 	groups,
 	homeHref,
-	userName,
+	user,
+	adminHref,
 	defaultOpen,
 	children,
 }: {
 	groups: readonly NavGroup[];
 	homeHref: Route;
-	userName: string;
+	/** The account of the session, shown in the profile menu of the header. */
+	user: { name: string; role: SessionRole };
+	/** The address of the administration, for an admin session only. */
+	adminHref?: string | undefined;
 	defaultOpen: boolean;
 	children: React.ReactNode;
 }) {
@@ -37,9 +42,9 @@ export function AppShell({
 		<SidebarProvider defaultOpen={defaultOpen}>
 			<StyleNonce />
 			<SkipLink />
-			<AppSidebar name={userName} groups={groups} homeHref={homeHref} />
+			<AppSidebar groups={groups} homeHref={homeHref} />
 			<SidebarInset>
-				<SiteHeader />
+				<SiteHeader user={user} adminHref={adminHref} />
 				<main
 					id="main-content"
 					className="flex min-w-0 flex-1 flex-col gap-3 p-4 md:px-6"
