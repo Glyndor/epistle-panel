@@ -1,90 +1,131 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { cleanup, render, screen } from "@testing-library/react";
-
+import { emailFixture, stubJmap } from "@/features/mail/test-support/jmap-stub";
 import {
 	mockRequestCookies,
 	RedirectSignal,
 } from "@/lib/auth/test-support/cookies";
-import { TEST_ADMIN_ID } from "@/lib/config/test-support/admin-id";
+import { clearSecretCache } from "@/lib/config/secret";
+import { withQuery } from "@/test/query-wrapper";
+import { resolveServerTree } from "@/test/server-tree";
 
+const originalFetch = globalThis.fetch;
+const savedEnv = { ...process.env };
 const cookies = mockRequestCookies();
 const { default: MailPage } = await import("./page");
-const { default: MailLayout } = await import("./layout");
 
-beforeEach(() => cookies.reset());
-afterEach(cleanup);
+const ID = "00000000-0000-4000-8000-0000000000c1";
+const mailboxes = {
+	"Mailbox/get": {
+		list: [
+			{
+				id: "Mail",
+				name: "Mail",
+				role: "inbox",
+				totalEmails: 1,
+				unreadEmails: 1,
+			},
+			{
+				id: "Sent",
+				name: "Sent",
+				role: "sent",
+				totalEmails: 0,
+				unreadEmails: 0,
+			},
+		],
+	},
+};
+const folder = {
+	"Email/query": { ids: [ID] },
+	"Email/get": { list: [emailFixture({ id: ID, subject: "Listed" })] },
+};
+
+beforeEach(async () => {
+	clearSecretCache();
+	cookies.reset();
+	process.env["EPISTLE_API_URL"] = "http://127.0.0.1:8025";
+	process.env["EPISTLE_API_TOKEN"] = "t";
+	await cookies.signIn("admin");
+});
+afterEach(() => {
+	process.env = { ...savedEnv };
+	cleanup();
+	globalThis.fetch = originalFetch;
+});
+
+async function renderPage(
+	params: Record<string, string | string[] | undefined> = {},
+) {
+	return render(
+		withQuery(
+			await resolveServerTree(
+				await MailPage({ searchParams: Promise.resolve(params) }),
+			),
+		),
+	);
+}
 
 describe("MailPage", () => {
-	it("says the mail client is not available yet and offers to sign out, for a user", async () => {
-		await cookies.signIn("ana", "user");
+	it("redirects to sign-in without a session", async () => {
+		cookies.reset();
+		const outcome = await MailPage({
+			searchParams: Promise.resolve({}),
+		}).catch((e) => e);
+		expect(outcome).toBeInstanceOf(RedirectSignal);
+	});
 
-		render(await MailPage());
-
+	it("opens the inbox by its role, prefetched, with the three named regions and no reader", async () => {
+		const seen = stubJmap({ ...mailboxes, ...folder });
+		await renderPage();
+		expect(screen.getByText("Listed")).toBeInTheDocument();
 		expect(
-			screen.getByRole("heading", { level: 1, name: "heading" }),
+			screen.getByRole("region", { name: "listLabel" }),
 		).toBeInTheDocument();
-		expect(screen.getByText("body")).toBeInTheDocument();
 		expect(
-			screen.getByRole("button", { name: "logout" }),
+			screen.getByRole("region", { name: "readerLabel" }),
 		).toBeInTheDocument();
+		expect(screen.getByText("readerEmpty")).toBeInTheDocument();
+		const filters = seen
+			.flatMap((r) => r.calls)
+			.filter((c) => c[0] === "Email/query")
+			.map((c) => c[1]["filter"]);
+		expect(filters).toContainEqual({ inMailbox: "Mail" });
 	});
 
-	it("never gives a user the way into the admin area, nor the id", async () => {
-		await cookies.signIn("ana", "user");
-
-		const { container } = render(await MailPage());
-
-		expect(screen.queryByRole("link", { name: "admin" })).toBeNull();
-		expect(container.innerHTML).not.toContain(TEST_ADMIN_ID);
+	it("keeps the folder, filter and search from the address, dropping a bad parameter on its own", async () => {
+		const seen = stubJmap({ ...mailboxes, ...folder });
+		await renderPage({ box: "Sent", filter: "bogus", q: "x" });
+		const filters = seen
+			.flatMap((r) => r.calls)
+			.filter((c) => c[0] === "Email/query")
+			.map((c) => c[1]["filter"]);
+		expect(filters).toContainEqual({ inMailbox: "Sent" });
+		expect(screen.getByRole("searchbox")).toHaveValue("x");
 	});
 
-	it("gives an admin the link to the admin panel, built on the server with the id", async () => {
-		await cookies.signIn("ops", "admin");
-
-		render(await MailPage());
-
-		expect(screen.getByRole("link", { name: "admin" })).toHaveAttribute(
-			"href",
-			`/app/${TEST_ADMIN_ID}`,
-		);
+	it("opens the reader for a message in the address", async () => {
+		stubJmap({ ...mailboxes, ...folder });
+		await renderPage({ msg: ID });
+		expect(
+			await screen.findByRole("heading", { level: 2, name: "Listed" }),
+		).toBeInTheDocument();
+		expect(screen.queryByText("readerEmpty")).toBeNull();
 	});
 
-	it("gives an admin no link when the installation has no admin id", async () => {
-		await cookies.signIn("ops", "admin");
-		const saved = process.env["EPISTLE_PANEL_ADMIN_ID"];
-		delete process.env["EPISTLE_PANEL_ADMIN_ID"];
-		try {
-			render(await MailPage());
-
-			expect(screen.queryByRole("link", { name: "admin" })).toBeNull();
-		} finally {
-			process.env["EPISTLE_PANEL_ADMIN_ID"] = saved;
-		}
+	it("still renders when the mail server is down, falling back to INBOX", async () => {
+		stubJmap({});
+		await renderPage();
+		expect(
+			screen.getByRole("region", { name: "listLabel" }),
+		).toBeInTheDocument();
+		expect(screen.getByRole("searchbox")).toBeInTheDocument();
 	});
 
-	it("redirects to the sign-in page without a session, in the page and in the layout", async () => {
-		for (const render of [
-			() => MailPage(),
-			() => MailLayout({ children: <p>x</p> }),
-		]) {
-			const outcome = await render().catch((e) => e);
-
-			expect(outcome).toBeInstanceOf(RedirectSignal);
-			expect(outcome.target).toBe("/");
-		}
-	});
-
-	it("frames the page for a session of any role, with the one main landmark", async () => {
-		for (const role of ["admin", "user"] as const) {
-			await cookies.signIn("someone", role);
-
-			render(await MailLayout({ children: <p>inside</p> }));
-
-			expect(screen.getAllByRole("main")).toHaveLength(1);
-			expect(screen.getByRole("main")).toContainElement(
-				screen.getByText("inside"),
-			);
-			cleanup();
-		}
+	it("still renders when there is no mail session at all", async () => {
+		process.env["EPISTLE_API_TOKEN_FILE"] = "/nonexistent";
+		delete process.env["EPISTLE_API_TOKEN"];
+		const seen = stubJmap({});
+		await renderPage();
+		expect(seen).toHaveLength(0);
 	});
 });

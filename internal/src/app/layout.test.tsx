@@ -106,6 +106,7 @@ describe("RootLayout", () => {
 			"deliveries",
 			"domains",
 			"error",
+			"mail",
 			"nav",
 			"queue",
 			"suppression",

@@ -48,6 +48,18 @@ export function constantTimeEqual(a: string, b: string): boolean {
 }
 
 /**
+ * Whether a request path is the framed body of a message, `/app/mail/body/<id>`
+ * spelled exactly. That route is the one response the panel lets its own pages
+ * embed, and it sends its own, stricter, security headers (see
+ * `features/mail/sanitize/body-document`). Any other spelling of the path, in
+ * another case or encoded, does not match and gets the panel's headers, which
+ * forbid framing: the failure is closed.
+ */
+export function isMailBodyPath(pathname: string): boolean {
+	return /^\/app\/mail\/body\/[^/]+$/.test(pathname);
+}
+
+/**
  * The paths of the admin area for one installation. The id must have the shape
  * of an admin id; anything else is a programming error, not a path to build.
  */

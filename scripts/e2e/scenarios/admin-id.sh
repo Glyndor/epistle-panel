@@ -91,7 +91,7 @@ scenario_admin_id() {
 	admin_cookie=$cookie
 	fetch /app/mail "$admin_cookie"
 	assert_eq "with no id the mail area still answers" "$status" 200
-	assert_absent "with no id the admin is offered no way in" "$(cat "$work/b")" 'href="/app/'
+	assert_eq "with no id the admin is offered no way in (no link to an id under /app, the mail links apart)" "$({ grep -o -E 'href="/app/[0-9a-f]{8}-' "$work/b" || true; } | wc -l | tr -d ' ')" 0
 	set_404_reference
 	reset_api
 	login admin correct-horse

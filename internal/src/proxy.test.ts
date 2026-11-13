@@ -131,6 +131,31 @@ describe("proxy", () => {
 		expectSecurityHeaders(response);
 	});
 
+	it("leaves the framed message body's headers to its route, only with a session", async () => {
+		const id = "01890a5d-ac96-774b-b9aa-9be4c3bd6b0e";
+		const framed = await proxy(
+			request(await user(), `/app/mail/body/${id}?images=1`),
+		);
+		expect(framed.status).toBe(200);
+		expect(framed.headers.get("content-security-policy")).toBeNull();
+		expect(framed.headers.get("x-frame-options")).toBeNull();
+
+		// Without a session it is the redirect to the sign-in page, with the panel's headers.
+		const denied = await proxy(request(undefined, `/app/mail/body/${id}`));
+		expect(denied.status).toBe(307);
+		expectSecurityHeaders(denied);
+
+		// A different spelling is not that route and keeps the panel's headers, which forbid framing.
+		for (const path of [
+			`/APP/mail/body/${id}`,
+			`/app/mail/body/${id}/x`,
+			"/app/mail/body/",
+			"/app/mail",
+		]) {
+			expectSecurityHeaders(await proxy(request(await user(), path)));
+		}
+	});
+
 	it("hands the nonce to Next through the forwarded request headers", async () => {
 		const response = await proxy(request(await admin()));
 

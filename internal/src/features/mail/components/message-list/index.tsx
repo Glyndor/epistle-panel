@@ -1,0 +1,113 @@
+"use client";
+
+import { useQuery } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
+
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { getMessageListAction } from "@/features/mail/actions/get-message-list";
+import { ListPager } from "@/features/mail/components/list-pager";
+import { MailNotice } from "@/features/mail/components/mail-notice";
+import { useMailShortcuts } from "@/features/mail/components/message-list/use-mail-shortcuts";
+import { MessageRow } from "@/features/mail/components/message-row";
+import { messageListQueryOptions } from "@/features/mail/queries/mail-query-options";
+import type { ListFilter } from "@/features/mail/schemas/mail-input";
+import { unwrap } from "@/lib/query/action-result";
+
+const fetchList = async (input: Parameters<typeof getMessageListAction>[0]) =>
+	unwrap(await getMessageListAction(input));
+
+/** What selects the list on screen. */
+export interface ListView {
+	readonly box: string;
+	readonly page: number;
+	readonly filter: ListFilter;
+	readonly q: string;
+}
+
+/**
+ * The messages of the folder, one page. The page is prefetched on the server
+ * and then owned by Query, which refreshes it while the tab is in view and
+ * keeps the previous page on screen while the next one loads. It shows what
+ * there is to show in every state: waiting, unreachable (with a retry), an
+ * empty folder and a search or filter that matches nothing.
+ */
+export function MessageList({
+	view,
+	selectedId,
+}: {
+	view: ListView;
+	selectedId: string | undefined;
+}) {
+	const t = useTranslations("mail");
+	const { data, isPending, isError, refetch, isFetching } = useQuery(
+		messageListQueryOptions(view, fetchList),
+	);
+	useMailShortcuts({
+		ids: data?.items.map((item) => item.id) ?? [],
+		selectedId,
+	});
+
+	if (isPending) {
+		return (
+			<div className="flex flex-col gap-2 p-3" aria-busy="true">
+				<span className="sr-only" role="status">
+					{t("loading")}
+				</span>
+				<Skeleton className="h-14" />
+				<Skeleton className="h-14" />
+				<Skeleton className="h-14" />
+			</div>
+		);
+	}
+	if (data === undefined || isError) {
+		return (
+			<MailNotice
+				tone="error"
+				action={
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						disabled={isFetching}
+						onClick={() => void refetch()}
+					>
+						{t("retry")}
+					</Button>
+				}
+			>
+				{t("unavailable")}
+			</MailNotice>
+		);
+	}
+	if (data.items.length === 0) {
+		const filtered = view.q !== "" || view.filter !== "all";
+		return (
+			<MailNotice tone="empty">
+				{filtered
+					? `${t("emptyMatches")} ${t("emptyHint")}`
+					: t("emptyFolder")}
+			</MailNotice>
+		);
+	}
+	return (
+		<>
+			<ul aria-label={t("listLabel")} className="flex flex-col">
+				{data.items.map((message) => (
+					<MessageRow
+						key={message.id}
+						message={message}
+						selected={message.id === selectedId}
+						view={view}
+					/>
+				))}
+			</ul>
+			<ListPager
+				view={view}
+				page={data.page}
+				hasNext={data.hasNext}
+				total={data.total}
+			/>
+		</>
+	);
+}
