@@ -8,6 +8,24 @@ export const MAIL_ACCOUNT = "admin";
 
 type Call = [string, Record<string, unknown>, string];
 
+/** Size of the blob the stand-in sends in its oversize mode, in MiB: over the 25 the panel relays. */
+export const OVERSIZE_MEGABYTES = 27;
+
+/** A stream of `count` chunks of 1 MiB, sent as they are asked for, with no total declared. */
+function megabytes(count: number): ReadableStream<Uint8Array> {
+	let sent = 0;
+	return new ReadableStream<Uint8Array>({
+		pull(controller) {
+			if (sent === count) {
+				controller.close();
+				return;
+			}
+			sent += 1;
+			controller.enqueue(new Uint8Array(1_048_576));
+		},
+	});
+}
+
 /**
  * The JMAP part of the stand-in: `Mailbox/get`, `Email/query` (a mailbox filter
  * only, every id, newest first, as epistle answers it), `Email/get` and the blob
@@ -17,6 +35,7 @@ type Call = [string, Record<string, unknown>, string];
 export function createJmapStore() {
 	let messages: SeedMessage[] = seedMessages();
 	let fresh = 0;
+	let oversize = false;
 	const freshId = () => `00000000-0000-4000-9000-${(++fresh).toString(16).padStart(12, "0")}`;
 
 	const byMailbox = (box: string) =>
@@ -129,6 +148,9 @@ export function createJmapStore() {
 			const message = messages.find((m) => m.id === blobId.split(".")[0]);
 			const uploaded = account === MAIL_ACCOUNT ? compose.blob(blobId) : null;
 			const blob = uploaded ?? (account === MAIL_ACCOUNT && message ? partBlob(message, blobId) : null);
+			if (blob && oversize) {
+				return new Response(megabytes(OVERSIZE_MEGABYTES), { headers: { "Content-Type": blob.type } });
+			}
 			return blob
 				? new Response(blob.content, { headers: { "Content-Type": blob.type } })
 				: json({ type: "urn:ietf:params:jmap:error:notFound" }, 404);
@@ -139,9 +161,14 @@ export function createJmapStore() {
 	return {
 		handle,
 		sent: () => compose.sent(),
+		/** Answer every blob with 27 MiB and no declared size, past what the panel relays, or put the real blobs back. */
+		oversizeBlobs(on: boolean) {
+			oversize = on;
+		},
 		reset() {
 			messages = seedMessages();
 			fresh = 0;
+			oversize = false;
 			compose.reset();
 		},
 		snapshot: () => messages.map((m) => ({ id: m.id, mailbox: m.mailbox, keywords: m.keywords, subject: m.subject })),

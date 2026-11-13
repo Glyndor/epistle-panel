@@ -165,63 +165,134 @@ export function methodResult<S extends z.ZodType>(
 	return parsed.data;
 }
 
-/** A downloaded blob: its octets and the type the server recorded for it. */
-export interface BlobData {
-	readonly bytes: Uint8Array;
+/** A blob being downloaded: its octets as they arrive, the type the server recorded, and its size when the server declared one. */
+export interface BlobStream {
+	readonly body: ReadableStream<Uint8Array>;
 	readonly type: string;
+	/** `null` when the server sent no `Content-Length`. */
+	readonly length: number | null;
 }
 
-/** Read a body through a byte cap, cancelling the stream the moment it is crossed. */
-async function readCapped(
-	response: Response,
-	maxBytes: number,
-): Promise<Uint8Array> {
-	const declared = Number(response.headers.get("content-length"));
-	if (Number.isFinite(declared) && declared > maxBytes) {
-		await response.body?.cancel();
-		throw new JmapError("shape", "blob too large");
+/** Longest a blob download may stand still, in milliseconds: no octet from the server, or none asked for by the reader. */
+export const BLOB_IDLE_MS = 30_000;
+
+/** The declared size of an answer, or `null` when it declared none it can be held to. */
+function declaredLength(response: Response): number | null {
+	const header = response.headers.get("content-length");
+	if (header === null || !/^\d{1,15}$/.test(header)) {
+		return null;
 	}
-	const chunks: Uint8Array[] = [];
-	let total = 0;
-	const reader = response.body?.getReader();
-	while (reader) {
-		const { done, value } = await reader.read();
-		if (done) {
-			break;
-		}
-		total += value.byteLength;
-		if (total > maxBytes) {
-			await reader.cancel();
-			throw new JmapError("shape", "blob too large");
-		}
-		chunks.push(value);
-	}
-	const bytes = new Uint8Array(total);
-	let offset = 0;
-	for (const chunk of chunks) {
-		bytes.set(chunk, offset);
-		offset += chunk.byteLength;
-	}
-	return bytes;
+	return Number(header);
 }
 
 /**
- * Download one blob of the account, stopping at `maxBytes`. The name in the
- * URL is only a label to JMAP (the blob id decides), so a fixed one is sent.
- * Answers `notFound` for a 404 and `http` for any other refusal.
+ * Open one blob of the account as a stream, capped at `maxBytes`. Nothing of it
+ * is kept here: an octet is read from the mail server when the reader asks for
+ * one, so a file of any size costs one chunk of memory.
+ *
+ * The answer's headers have `timeoutMs` to arrive. From then on the download has
+ * no total budget (the reader may be on a slow line) but may not stand still for
+ * `idleMs`. A blob that declares more than the cap is refused before a byte is
+ * passed on; one that carries more than the cap without saying so fails the
+ * stream at that byte, so the reader sees a broken download and never a short
+ * file that looks whole. A blob that declared a size is held to it, to the
+ * byte: the size goes out as the `Content-Length` of the panel's own answer, so
+ * a stream that carried more or fewer octets would put that answer out of step
+ * with what follows it on the connection.
+ *
+ * The name in the URL is only a label to JMAP (the blob id decides), so a fixed
+ * one is sent. Answers `notFound` for a 404 and `http` for any other refusal.
  */
-export function downloadBlob(
+export async function openBlob(
 	session: MailSession,
 	blobId: string,
 	maxBytes: number,
 	timeoutMs: number = BLOB_TIMEOUT_MS,
-): Promise<BlobData> {
+	idleMs: number = BLOB_IDLE_MS,
+): Promise<BlobStream> {
 	const path = `/jmap/download/${encodeURIComponent(session.accountId)}/${encodeURIComponent(blobId)}/blob`;
-	return exchange(session, path, {}, timeoutMs, async (response) => {
+	const abort = new AbortController();
+	let late = false;
+	let timer = setTimeout(() => {
+		late = true;
+		abort.abort();
+	}, timeoutMs);
+	const allow = (ms: number) => {
+		clearTimeout(timer);
+		timer = setTimeout(() => abort.abort(), ms);
+	};
+	try {
+		const response = await fetch(`${apiBaseUrl()}${path}`, {
+			headers: { Authorization: `Bearer ${session.bearer}` },
+			cache: "no-store",
+			redirect: "error",
+			signal: abort.signal,
+		});
 		await requireOk(response);
-		return {
-			bytes: await readCapped(response, maxBytes),
-			type: response.headers.get("content-type") ?? "",
-		};
-	});
+		const length = declaredLength(response);
+		if (length !== null && length > maxBytes) {
+			await response.body?.cancel();
+			throw new JmapError("shape", "blob too large");
+		}
+		const type = response.headers.get("content-type") ?? "";
+		const reader = response.body?.getReader();
+		let total = 0;
+		allow(idleMs);
+		const body = new ReadableStream<Uint8Array>({
+			async pull(controller) {
+				try {
+					const next = await reader?.read();
+					if (next === undefined || next.done) {
+						clearTimeout(timer);
+						if (length !== null && total !== length) {
+							controller.error(
+								new JmapError(
+									"shape",
+									"blob shorter than declared",
+								),
+							);
+							return;
+						}
+						controller.close();
+						return;
+					}
+					total += next.value.byteLength;
+					if (total > maxBytes) {
+						clearTimeout(timer);
+						await reader?.cancel();
+						controller.error(
+							new JmapError("shape", "blob too large"),
+						);
+						return;
+					}
+					// The declared size goes out as this answer's `Content-Length`,
+					// so the stream is held to it: not a byte more is passed on.
+					if (length !== null && total > length) {
+						clearTimeout(timer);
+						await reader?.cancel();
+						controller.error(
+							new JmapError("shape", "blob longer than declared"),
+						);
+						return;
+					}
+					allow(idleMs);
+					controller.enqueue(next.value);
+				} catch (error) {
+					clearTimeout(timer);
+					controller.error(error);
+				}
+			},
+			cancel(reason) {
+				clearTimeout(timer);
+				return reader?.cancel(reason);
+			},
+		});
+		return { body, type, length };
+	} catch (error) {
+		clearTimeout(timer);
+		if (late) {
+			throw new EpistleApiTimeoutError();
+		}
+		throw error;
+	}
 }

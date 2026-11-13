@@ -75,6 +75,12 @@ set_delay() {
 	curl -s -o /dev/null -X POST "$api/__control/delay" -d "{\"ms\":$1}"
 }
 
+# set_oversize_blobs true|false: every attachment the stand-in sends is 27 MiB
+# with no declared size, or the real ones again.
+set_oversize_blobs() {
+	curl -s -o /dev/null -X POST "$api/__control/blobs" -d "{\"oversize\":$1}"
+}
+
 reset_api() {
 	curl -s -o /dev/null -X POST "$api/__control/reset"
 }
