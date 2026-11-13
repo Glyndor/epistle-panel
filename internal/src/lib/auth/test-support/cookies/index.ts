@@ -83,6 +83,11 @@ export function mockRequestCookies() {
 			throw new NotFoundSignal();
 		},
 		usePathname: () => "/",
+		useRouter: () => ({
+			push: () => {},
+			replace: () => {},
+			refresh: () => {},
+		}),
 	}));
 
 	return {

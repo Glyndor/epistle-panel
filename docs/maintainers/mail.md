@@ -119,14 +119,31 @@ the namespace check, the link policy, the image policy, the `rel` or the attribu
 check each fails between 1 and 13 of those tests (measured). The e2e scenario
 `mail` reads the same on the built server.
 
+## Actions on messages
+
+The reader has a toolbar: star, read or unread, archive, spam, move (a menu of the
+folders) and delete, with the keys `s`, `e`, `!` and `#` or Delete. Opening an
+unread message marks it read, quietly and once. They all go through
+`changeMessageAction` (strict input: a message id and one operation, or a move to a
+named folder), which asks JMAP for the message, writes the **whole** keyword set
+(epistle's `Email/set` replaces it) and, for a move, names the one target folder
+(`archive`, `spam` and `trash` find theirs by role; an account without one gets a
+"no such folder" answer, not an error). epistle moves a message by appending a copy
+and removing the original, so a moved message gets a **new id**: the reader goes
+back to the list and the list and counters reload. A flag change shows at once on
+the message, its row and the folder counter, and is put back if the server refuses.
+Deleting from the trash destroys the message and asks first with the browser's own
+`confirm` (a modal dialog from the component library would inject a style element
+the policy refuses). Moving a message to Junk does not set `$junk`: epistle trains
+on the move itself (`src/api/jmap/email/mod.rs`).
+
 ## Not done yet
 
-- Actions on messages (mark read, star, move, archive, delete, spam): PR 2.
 - The composer (to, cc, bcc, subject, body, attachments, drafts, reply, forward,
   send): PR 3.
 - Inline `cid:` images (shown as attachments for now), conversation threads
   (epistle has none), push updates (the list polls every 30 s while visible).
-- Native `<select>`, `<details>` and `<kbd>` stand in for shadcn components that
+- Native `<select>`, `<details>` and `<kbd>`, and `window.confirm`, stand in for shadcn components that
   are not installed yet (`language-select`, `headers-disclosure`,
   `shortcuts-help`). They sit behind their own components so they can be replaced
   by `select`, `collapsible` and `kbd` when those land.

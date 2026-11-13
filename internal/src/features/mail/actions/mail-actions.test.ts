@@ -163,3 +163,75 @@ describe("getMessageAction", () => {
 		expect(sentRequests()).toHaveLength(0);
 	});
 });
+
+const { changeMessageAction } = await import("./change-message");
+
+describe("changeMessageAction", () => {
+	it("needs a session and a provider session, and refuses bad input before JMAP", async () => {
+		cookies.reset();
+		stubJmap({});
+		expect(await changeMessageAction({ id: ID, op: "read" })).toEqual({
+			ok: false,
+			reason: "unauthenticated",
+		});
+		await cookies.signIn("admin");
+		setMailCredentialProvider({ current: async () => null });
+		expect(await changeMessageAction({ id: ID, op: "read" })).toEqual({
+			ok: false,
+			reason: "unavailable",
+		});
+		setMailCredentialProvider(interimProvider);
+		for (const input of [
+			{ id: "x", op: "read" },
+			{ id: ID, op: "delete" },
+			{ id: ID, op: "move" },
+			{ id: ID, op: "move", box: "" },
+			{ id: ID, op: "read", box: "X" },
+			{ id: ID, op: "read", extra: 1 },
+			null,
+		]) {
+			expect(await changeMessageAction(input)).toEqual({
+				ok: false,
+				reason: "invalid",
+			});
+		}
+		expect(sentRequests()).toHaveLength(0);
+	});
+
+	it("reports what happened, a missing folder as a category, and a failure as unavailable", async () => {
+		stubJmap({
+			"Email/get": {
+				list: [
+					emailFixture({
+						id: ID,
+						keywords: {},
+						mailboxIds: { INBOX: true },
+					}),
+				],
+			},
+			"Mailbox/get": {
+				list: [
+					{ id: "INBOX", role: "inbox" },
+					{ id: "Archive", role: "archive" },
+				],
+			},
+			"Email/set": { updated: { [ID]: null } },
+		});
+		expect(await changeMessageAction({ id: ID, op: "archive" })).toEqual({
+			ok: true,
+			data: {
+				kind: "done",
+				outcome: { left: true, movedTo: "Archive", destroyed: false },
+			},
+		});
+		expect(await changeMessageAction({ id: ID, op: "trash" })).toEqual({
+			ok: true,
+			data: { kind: "noFolder" },
+		});
+		stubJmap({});
+		expect(await changeMessageAction({ id: ID, op: "read" })).toEqual({
+			ok: false,
+			reason: "unavailable",
+		});
+	});
+});

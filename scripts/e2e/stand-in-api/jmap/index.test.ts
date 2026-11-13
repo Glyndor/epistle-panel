@@ -64,6 +64,23 @@ describe("the stand-in JMAP", () => {
 		expect(await get("/other")).toBeNull();
 	});
 
+	it("sets keywords whole, moves a message to a new id and destroys on request", async () => {
+		const set = async (args: Record<string, unknown>) =>
+			(await call([["Email/set", { accountId: MAIL_ACCOUNT, ...args }, "s"]])).methodResponses[0]?.[1] as Record<string, any>;
+		const kept = await set({ update: { [IDS.welcome]: { keywords: { $seen: true, $flagged: true, $junk: false } } } });
+		expect(kept["updated"]).toEqual({ [IDS.welcome]: null });
+		expect(store.snapshot().find((m) => m.id === IDS.welcome)?.keywords).toEqual({ $seen: true, $flagged: true });
+		await set({ update: { [IDS.welcome]: { mailboxIds: { Trash: true } } } });
+		const moved = store.snapshot().find((m) => m.subject === "Welcome to your mailbox");
+		expect(moved?.mailbox).toBe("Trash");
+		expect(moved?.id).not.toBe(IDS.welcome);
+		const gone = await set({ update: { [IDS.welcome]: { keywords: {} } }, destroy: [moved?.id, "nope"] });
+		expect(gone["notUpdated"]).toEqual({ [IDS.welcome]: { type: "notFound" } });
+		expect(gone["destroyed"]).toEqual([moved?.id]);
+		expect(gone["notDestroyed"]).toEqual({ nope: { type: "notFound" } });
+		store.reset();
+	});
+
 	it("keeps a snapshot and goes back to the seed on reset", () => {
 		expect(store.snapshot()).toHaveLength(69);
 		store.reset();

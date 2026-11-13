@@ -31,6 +31,7 @@ mock.module("next/navigation", () => ({
 		throw new Error("NEXT_NOT_FOUND");
 	},
 	usePathname: () => "/",
+	useRouter: () => ({ push: () => {}, replace: () => {}, refresh: () => {} }),
 }));
 mock.module("next/headers", () => ({
 	cookies: async () => ({

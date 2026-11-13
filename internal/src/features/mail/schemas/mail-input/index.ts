@@ -109,3 +109,30 @@ export function parseMailParams(
 		msg: msg.success ? msg.data : undefined,
 	};
 }
+
+/** What can be done to one message. `archive`, `trash`, `spam` and `inbox` name a folder by its role. */
+export const MESSAGE_OPS = [
+	"read",
+	"unread",
+	"star",
+	"unstar",
+	"archive",
+	"trash",
+	"spam",
+	"inbox",
+] as const;
+export type MessageOp = (typeof MESSAGE_OPS)[number];
+
+/**
+ * Input of the change-message action: one message and one operation, or a move
+ * to a named folder. Strict, so nothing the client adds reaches JMAP.
+ */
+export const changeMessageInputSchema = z.union([
+	z.strictObject({ id: messageIdSchema, op: z.enum(MESSAGE_OPS) }),
+	z.strictObject({
+		id: messageIdSchema,
+		op: z.literal("move"),
+		box: mailboxIdSchema,
+	}),
+]);
+export type ChangeMessageInput = z.output<typeof changeMessageInputSchema>;

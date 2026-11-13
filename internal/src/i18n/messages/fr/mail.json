@@ -70,5 +70,22 @@
 	"language": "Langue",
 	"signOut": "Se déconnecter",
 	"signedInAs": "Connecté en tant que {name}",
-	"skipList": "Aller aux messages"
+	"skipList": "Aller aux messages",
+	"toolbarLabel": "Actions sur le message",
+	"star": "Suivre",
+	"unstar": "Ne plus suivre",
+	"markRead": "Marquer comme lu",
+	"markUnread": "Marquer comme non lu",
+	"archive": "Archiver",
+	"spam": "Indésirable",
+	"trash": "Supprimer",
+	"deleteForever": "Supprimer définitivement",
+	"moveMenu": "Déplacer",
+	"moveTo": "Déplacer vers",
+	"confirmDeleteForever": "Supprimer ce message définitivement ? Cette action est irréversible.",
+	"actionFailed": "Le changement n’a pas pu être fait. Réessayez.",
+	"noFolder": "Ce compte n’a pas de dossier pour cela.",
+	"moved": "Message déplacé.",
+	"deletedForever": "Message supprimé.",
+	"changed": "C’est fait."
 }

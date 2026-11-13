@@ -22,6 +22,13 @@ export const mailboxGetSchema = z.object({
 	),
 });
 
+/** `Mailbox/get` asked for the roles only, to find a system folder by its role. */
+export const mailboxRolesSchema = z.object({
+	list: z.array(
+		z.object({ id: z.string(), role: z.string().nullable().optional() }),
+	),
+});
+
 /** `Email/query`: the ids of a mailbox, newest first. epistle returns every id, with no paging. */
 export const emailQuerySchema = z.object({
 	ids: z.array(z.string()),

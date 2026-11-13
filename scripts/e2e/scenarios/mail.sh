@@ -10,6 +10,19 @@ MAIL_MXSS=00000000-0000-4000-8000-000000000006
 MAIL_NEWSLETTER=00000000-0000-4000-8000-000000000002
 MAIL_TEXT_ONLY=00000000-0000-4000-8000-000000000007
 
+# mail_change ARGS_JSON [COOKIE]: post the change-message action the way the browser's client does.
+mail_change() {
+	local saved=${action_page:-}
+	action_page=/app/mail
+	post_action features/mail/actions/change-message/index.ts "$1" "${2:-}"
+	action_page=$saved
+}
+
+# mail_state: the stand-in's view of every message.
+mail_state() {
+	curl -s "$api/__control/mail"
+}
+
 scenario_mail() {
 	echo "# mail: three-pane webmail, sanitised bodies, attachments, hostile messages"
 	fresh
@@ -118,6 +131,40 @@ scenario_mail() {
 		fetch "$path" "$good"
 		assert_eq "GET $path is not a listed attachment" "$status" 404
 	done
+
+	# Actions on messages.
+	local welcome=00000000-0000-4000-8000-000000000001 flagged=00000000-0000-4000-8000-000000000008
+	assert_eq "no cookie: change-message is redirected" "$(mail_change "[{\"id\":\"$welcome\",\"op\":\"read\"}]")" 307
+	before=$(api_count '"method"')
+	for hostile in '[{"id":"x","op":"read"}]' "[{\"id\":\"$welcome\",\"op\":\"delete\"}]" "[{\"id\":\"$welcome\",\"op\":\"move\"}]" "[{\"id\":\"$welcome\",\"op\":\"read\",\"extra\":1}]" "[{\"id\":\"$welcome\",\"op\":\"move\",\"box\":\"a\\nb\"}]" '[null]' '[]'; do
+		mail_change "$hostile" "$good" >/dev/null
+		assert_contains "hostile change '${hostile:0:40}' is refused" "$(cat "$work/b")" "invalid"
+	done
+	assert_eq "hostile changes reached no JMAP call" "$(api_count '"method"')" "$before"
+	assert_contains "the welcome message starts unread" "$(mail_state)" "\"id\":\"$welcome\",\"mailbox\":\"INBOX\",\"keywords\":{}"
+	assert_eq "mark read" "$(mail_change "[{\"id\":\"$welcome\",\"op\":\"read\"}]" "$good")" 200
+	assert_contains "the answer says it was done" "$(cat "$work/b")" "done"
+	assert_contains "the message is read on the server" "$(mail_state)" "\"id\":\"$welcome\",\"mailbox\":\"INBOX\",\"keywords\":{\"\$seen\":true}"
+	mail_change "[{\"id\":\"$welcome\",\"op\":\"star\"}]" "$good" >/dev/null
+	assert_contains "star keeps the read flag and adds the star" "$(mail_state)" "\"keywords\":{\"\$seen\":true,\"\$flagged\":true}"
+	mail_change "[{\"id\":\"$flagged\",\"op\":\"unstar\"}]" "$good" >/dev/null
+	assert_contains "unstar drops only the star" "$(mail_state)" "\"id\":\"$flagged\",\"mailbox\":\"INBOX\",\"keywords\":{\"\$answered\":true,\"\$seen\":true}"
+	mail_change "[{\"id\":\"$welcome\",\"op\":\"archive\"}]" "$good" >/dev/null
+	assert_contains "archive moves it, with a new id" "$(mail_state)" "\"mailbox\":\"Archive\",\"keywords\":{\"\$seen\":true,\"\$flagged\":true},\"subject\":\"Welcome to your mailbox\""
+	assert_absent "the old id is gone" "$(mail_state)" "\"id\":\"$welcome\""
+	fetch /app/mail "$good"
+	assert_absent "the inbox no longer lists it" "$(cat "$work/b")" "Welcome to your mailbox"
+	mail_change "[{\"id\":\"$flagged\",\"op\":\"trash\"}]" "$good" >/dev/null
+	assert_contains "trash moves it to the trash" "$(mail_state)" "\"mailbox\":\"Trash\""
+	local trashed
+	trashed=$(mail_state | grep -o '"id":"[^"]*","mailbox":"Trash"' | head -1 | sed 's/"id":"//; s/".*//')
+	mail_change "[{\"id\":\"$trashed\",\"op\":\"trash\"}]" "$good" >/dev/null
+	assert_absent "deleting from the trash destroys it" "$(mail_state)" "\"id\":\"$trashed\""
+	mail_change "[{\"id\":\"$MAIL_NEWSLETTER\",\"op\":\"move\",\"box\":\"Work/Q4\"}]" "$good" >/dev/null
+	assert_contains "a move to a named folder" "$(mail_state)" "\"mailbox\":\"Work/Q4\""
+	mail_change "[{\"id\":\"$MAIL_TEXT_ONLY\",\"op\":\"spam\"}]" "$good" >/dev/null
+	assert_contains "spam moves it to Junk" "$(mail_state)" "\"mailbox\":\"Junk\""
+	assert_eq "no DELETE reached the API: a destroy is an Email/set" "$(api_count '"method":"DELETE"')" 0
 
 	assert_eq "the webmail only reads: no DELETE reached the API" "$(api_count '"method":"DELETE"')" 0
 	assert_eq "every call carried the valid bearer" "$(api_count '"bearer":"valid"')" "$(api_count '"method"')"

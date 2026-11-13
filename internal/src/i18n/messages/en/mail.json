@@ -70,5 +70,22 @@
 	"language": "Language",
 	"signOut": "Sign out",
 	"signedInAs": "Signed in as {name}",
-	"skipList": "Skip to the messages"
+	"skipList": "Skip to the messages",
+	"toolbarLabel": "Message actions",
+	"star": "Star",
+	"unstar": "Remove star",
+	"markRead": "Mark as read",
+	"markUnread": "Mark as unread",
+	"archive": "Archive",
+	"spam": "Spam",
+	"trash": "Delete",
+	"deleteForever": "Delete forever",
+	"moveMenu": "Move",
+	"moveTo": "Move to",
+	"confirmDeleteForever": "Delete this message forever? This cannot be undone.",
+	"actionFailed": "The change could not be made. Try again.",
+	"noFolder": "This account has no folder for that.",
+	"moved": "Message moved.",
+	"deletedForever": "Message deleted.",
+	"changed": "Done."
 }

@@ -70,5 +70,22 @@
 	"language": "Idioma",
 	"signOut": "Terminar sessão",
 	"signedInAs": "Sessão iniciada como {name}",
-	"skipList": "Saltar para as mensagens"
+	"skipList": "Saltar para as mensagens",
+	"toolbarLabel": "Ações da mensagem",
+	"star": "Marcar com estrela",
+	"unstar": "Remover estrela",
+	"markRead": "Marcar como lida",
+	"markUnread": "Marcar como não lida",
+	"archive": "Arquivar",
+	"spam": "Spam",
+	"trash": "Eliminar",
+	"deleteForever": "Eliminar para sempre",
+	"moveMenu": "Mover",
+	"moveTo": "Mover para",
+	"confirmDeleteForever": "Eliminar esta mensagem para sempre? Não pode ser desfeito.",
+	"actionFailed": "Não foi possível fazer a alteração. Tente novamente.",
+	"noFolder": "Esta conta não tem uma pasta para isso.",
+	"moved": "Mensagem movida.",
+	"deletedForever": "Mensagem eliminada.",
+	"changed": "Feito."
 }
