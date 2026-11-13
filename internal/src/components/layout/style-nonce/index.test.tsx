@@ -1,12 +1,13 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { cleanup, render } from "@testing-library/react";
-import { getNonce } from "get-nonce";
+import { getNonce, setNonce } from "get-nonce";
 
 import { StyleNonce } from ".";
 
 afterEach(() => {
 	cleanup();
-	document.head.innerHTML = "";
+	document.head.querySelector("script[nonce]")?.remove();
+	setNonce("");
 });
 
 describe("StyleNonce", () => {
