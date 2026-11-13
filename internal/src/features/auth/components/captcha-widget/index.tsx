@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-
 import {
 	CAPTCHA_ACTION,
 	type PublicCaptcha,
@@ -8,6 +7,7 @@ import {
 	mountWidget,
 	type WidgetHandle,
 } from "@/features/auth/captcha/widget-adapters";
+import { activeColorScheme } from "@/features/theme/document-theme";
 
 /**
  * The CAPTCHA widget of the sign-in form. It draws the enabled provider's
@@ -42,9 +42,7 @@ export function CaptchaWidget({
 		let cancelled = false;
 		mountWidget(config, element, {
 			action: CAPTCHA_ACTION,
-			theme: window.matchMedia("(prefers-color-scheme: dark)").matches
-				? "dark"
-				: "light",
+			theme: activeColorScheme(),
 			onToken,
 			onError,
 		})

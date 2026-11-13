@@ -29,6 +29,7 @@ afterEach(() => {
 		script.remove();
 	}
 	delete win["turnstile"];
+	document.documentElement.removeAttribute("data-theme");
 });
 
 function stubTurnstile() {
@@ -62,6 +63,42 @@ describe("CaptchaWidget", () => {
 		);
 		expect(container.querySelector(".captcha-widget")).not.toBeNull();
 		expect(container.querySelector("[style]")).toBeNull();
+	});
+
+	it("draws the widget in the chosen theme, whatever the browser prefers", async () => {
+		for (const theme of ["dark", "light"] as const) {
+			stubTurnstile();
+			document.documentElement.setAttribute("data-theme", theme);
+			const handles: unknown[] = [];
+
+			render(
+				<CaptchaWidget
+					config={config}
+					label="V"
+					handle={(h) => handles.push(h)}
+					onToken={() => {}}
+					onError={() => {}}
+				/>,
+			);
+			await waitFor(() =>
+				expect(document.head.querySelector("script")).not.toBeNull(),
+			);
+			loaded();
+			await waitFor(() => expect(handles).toHaveLength(1));
+
+			const draw = (
+				win["turnstile"] as { render: ReturnType<typeof mock> }
+			).render;
+			expect(
+				(draw.mock.calls[0]?.[1] as { theme?: string } | undefined)
+					?.theme,
+			).toBe(theme);
+			cleanup();
+			resetScriptCache();
+			for (const script of document.head.querySelectorAll("script")) {
+				script.remove();
+			}
+		}
 	});
 
 	it("loads the provider's script and hands over the handle once it is drawn", async () => {

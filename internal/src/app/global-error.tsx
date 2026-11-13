@@ -3,6 +3,12 @@
 import { useEffect, useState } from "react";
 
 import { ErrorNotice } from "@/components/error-notice";
+import {
+	type ForcedTheme,
+	forcedTheme,
+	parseThemeChoice,
+	THEME_COOKIE,
+} from "@/features/theme/config/choices";
 import { DEFAULT_LOCALE, isSupportedLocale, type Locale } from "@/i18n/locales";
 import de from "@/i18n/messages/de/error.json";
 import en from "@/i18n/messages/en/error.json";
@@ -23,13 +29,25 @@ function cookieLocale(cookie: string): Locale {
 }
 
 /**
+ * The theme the visitor chose, from the same cookie the server reads; nothing
+ * for `system` or for a value that is not a choice.
+ */
+function cookieTheme(cookie: string): ForcedTheme | undefined {
+	const value = new RegExp(`(?:^|;\\s*)${THEME_COOKIE}=([^;]*)`).exec(
+		cookie,
+	)?.[1];
+	return forcedTheme(parseThemeChoice(value));
+}
+
+/**
  * Page for an error the root layout itself throws, which no `error.tsx` can
  * catch. It replaces the whole document, so it brings its own `<html>` and
  * `<body>` and cannot use the translation provider, which lives in the layout:
  * it loads the small `error` catalogs directly and starts in English, then
  * switches to the visitor's locale once it runs in the browser, so the server
- * render and the first client render agree. It uses classes only, since
- * `style-src 'self'` refuses inline styles.
+ * render and the first client render agree. The chosen theme arrives the same
+ * way, one frame late: until then the page follows `prefers-color-scheme`. It
+ * uses classes only, since `style-src 'self'` refuses inline styles.
  */
 export default function GlobalError({
 	reset,
@@ -38,12 +56,14 @@ export default function GlobalError({
 	reset: () => void;
 }) {
 	const [locale, setLocale] = useState<Locale>("en");
+	const [theme, setTheme] = useState<ForcedTheme>();
 	useEffect(() => {
 		setLocale(cookieLocale(document.cookie));
+		setTheme(cookieTheme(document.cookie));
 	}, []);
 
 	return (
-		<html lang={locale} className="h-full antialiased">
+		<html lang={locale} data-theme={theme} className="h-full antialiased">
 			<body className="flex min-h-full flex-col">
 				<ErrorNotice labels={CATALOGS[locale]} onRetry={reset} />
 			</body>

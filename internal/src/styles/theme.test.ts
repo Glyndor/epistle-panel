@@ -1,0 +1,119 @@
+import { describe, expect, it } from "bun:test";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
+/**
+ * The theme file is CSS, which no compiler checks for the three things the
+ * theme choice depends on: the dark values exist twice and must be the same
+ * list, every rule that reads the choice must weigh no more than a plain
+ * `:root` (or an operator's stylesheet stops overriding it), and the browser
+ * is told the scheme for each choice.
+ */
+const css = readFileSync(join(import.meta.dir, "theme.css"), "utf8").replace(
+	/\/\*[\s\S]*?\*\//g,
+	"",
+);
+
+/**
+ * The declarations of the first rule whose selector is exactly `selector`;
+ * none when the file has no such rule, so a test that reads them fails on its
+ * own assertion.
+ */
+function declarations(selector: string): Map<string, string> {
+	const start = css.indexOf(`${selector} {`);
+	if (start === -1) {
+		return new Map();
+	}
+	const open = css.indexOf("{", start);
+	const body = css.slice(open + 1, css.indexOf("}", open));
+	const out = new Map<string, string>();
+	for (const line of body.split(";")) {
+		const colon = line.indexOf(":");
+		if (colon !== -1) {
+			out.set(
+				line.slice(0, colon).trim(),
+				line
+					.slice(colon + 1)
+					.trim()
+					.replace(/\s+/g, " "),
+			);
+		}
+	}
+	return out;
+}
+
+const light = declarations(":root");
+const preferredDark = declarations(':root:where(:not([data-theme="light"]))');
+const chosenDark = declarations(':root:where([data-theme="dark"])');
+const chosenLight = declarations(':root:where([data-theme="light"])');
+
+describe("theme.css", () => {
+	it("holds the same dark values for a browser that prefers dark and for the chosen dark theme", () => {
+		const chosen = new Map(chosenDark);
+		chosen.delete("color-scheme");
+
+		expect(preferredDark.size).toBeGreaterThan(20);
+		expect([...chosen.entries()]).toEqual([...preferredDark.entries()]);
+	});
+
+	it("gives every dark value a light one to replace", () => {
+		for (const name of preferredDark.keys()) {
+			expect(light.has(name)).toBe(true);
+		}
+	});
+
+	it("applies the preferred dark values only inside the dark media query", () => {
+		const media = css.indexOf("@media (prefers-color-scheme: dark)");
+		const rule = css.indexOf(':root:where(:not([data-theme="light"]))');
+
+		expect(media).toBeGreaterThan(-1);
+		expect(rule).toBeGreaterThan(media);
+		// One media query, and the rule is the only thing in it.
+		expect(css.split("@media").length - 1).toBe(1);
+		expect(
+			css
+				.slice(media, rule)
+				.replace("@media (prefers-color-scheme: dark)", "")
+				.trim(),
+		).toBe("{");
+	});
+
+	it("tells the browser the scheme of each choice", () => {
+		expect(light.get("color-scheme")).toBe("light dark");
+		expect([...chosenLight.entries()]).toEqual([["color-scheme", "light"]]);
+		expect(chosenDark.get("color-scheme")).toBe("dark");
+	});
+
+	it("reads the theme attribute only inside :where(), so an operator's :root still wins", () => {
+		// Every selector of the file: what stands before a `{`, at-rules aside.
+		const selectors = [...css.matchAll(/(?:^|[{}])\s*([^{}@]+?)\s*\{/g)]
+			.map((match) => match[1] ?? "")
+			.filter((selector) => !selector.startsWith("--"));
+		const themed = selectors.filter((selector) =>
+			selector.includes("data-theme"),
+		);
+
+		expect(themed.sort()).toEqual([
+			':root:where(:not([data-theme="light"]))',
+			':root:where([data-theme="dark"])',
+			':root:where([data-theme="light"])',
+		]);
+		// `:where()` weighs nothing: with it removed, each is a plain `:root`.
+		for (const selector of selectors.filter((s) => s.startsWith(":root"))) {
+			expect(selector.replace(/:where\(.*\)$/, "")).toBe(":root");
+		}
+		// And the attribute appears nowhere else, in a selector or a value.
+		expect(css.split("data-theme").length - 1).toBe(3);
+	});
+
+	it("puts the chosen themes after the light values, so they replace them at equal weight", () => {
+		const root = css.indexOf(":root {");
+
+		expect(css.indexOf(':root:where([data-theme="dark"])')).toBeGreaterThan(
+			root,
+		);
+		expect(
+			css.indexOf(':root:where([data-theme="light"])'),
+		).toBeGreaterThan(root);
+	});
+});
