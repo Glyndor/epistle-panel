@@ -8,6 +8,16 @@
  */
 export const MAIL_ADDRESS_PATTERN = /^[^\s@\p{C}]+@[^\s@\p{C}]+$/u;
 
+/**
+ * The same rule as the value of an input's `pattern` attribute. A browser
+ * anchors it itself and compiles it with the `v` flag, so it is the source of
+ * the pattern above without its `^` and `$`.
+ */
+export const MAIL_ADDRESS_HTML_PATTERN = MAIL_ADDRESS_PATTERN.source.slice(
+	1,
+	-1,
+);
+
 /** Longest address the panel forwards: the SMTP forward-path limit (RFC 5321). */
 export const MAX_ADDRESS_LENGTH = 254;
 

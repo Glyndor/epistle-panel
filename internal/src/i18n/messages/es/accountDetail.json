@@ -18,6 +18,7 @@
 	"displayNameCleared": "Nombre visible quitado.",
 	"displayNameTooLong": "Usa 128 caracteres como máximo.",
 	"displayNameControl": "Quita los caracteres de control y los saltos de línea.",
+	"displayNameFormat": "Un nombre en una sola línea, sin caracteres de control.",
 	"displayNameRefused": "El servidor rechazó este nombre.",
 	"passwordTitle": "Contraseña",
 	"passwordHelp": "De 12 a 64 caracteres ASCII imprimibles. La nueva contraseña se aplica al instante y la anterior deja de funcionar.",

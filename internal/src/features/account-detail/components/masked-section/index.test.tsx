@@ -20,6 +20,9 @@ import { withQuery } from "@/test/query-wrapper";
 
 const cookies = mockRequestCookies();
 const { MaskedSection } = await import(".");
+const { maskedLabelFormSchema } = await import(
+	"@/features/account-detail/schemas/masked-label-form"
+);
 
 afterEach(() => {
 	cleanup();
@@ -44,6 +47,13 @@ const create = async () => {
 	const button = await screen.findByRole("button", { name: "maskedCreate" });
 	await act(async () => {
 		fireEvent.click(button);
+	});
+};
+/** What a script does when it submits without the browser's own validation. */
+const createPastTheBrowser = async () => {
+	const button = await screen.findByRole("button", { name: "maskedCreate" });
+	await act(async () => {
+		fireEvent.submit(button.closest("form") as HTMLFormElement);
 	});
 };
 const posts = () => sentRequests().filter((r) => r.method === "POST");
@@ -100,15 +110,73 @@ describe("MaskedSection", () => {
 		expect(label()).toBeInTheDocument();
 	});
 
-	it("names an empty label and one with no letter or digit, and sends nothing", async () => {
+	it("gives the browser the label's own rules: required, bounded, and at least one letter or digit", async () => {
 		stubRoutes([["GET", /masked$/, list()]]);
 		render(withQuery(<MaskedSection name="alice" />));
 		await screen.findByText("maskedEmpty");
 
+		expect(label()).toBeRequired();
+		// One over the schema's 64, so a label the browser cut is named, not kept short.
+		expect(label()).toHaveAttribute("maxlength", "65");
+		// A browser compiles the attribute with the `v` flag; it must be valid there.
+		const pattern = new RegExp(
+			`^(?:${label().getAttribute("pattern") ?? ""})$`,
+			"v",
+		);
+		for (const [value, accepted] of [
+			["shop", true],
+			["a", true],
+			["-- 7 --", true],
+			["---", false],
+			["", false],
+			["   ", false],
+		] as const) {
+			expect([value, pattern.test(value)]).toEqual([value, accepted]);
+			expect([
+				value,
+				maskedLabelFormSchema.safeParse({ label: value }).success,
+			]).toEqual([value, accepted]);
+		}
+	});
+
+	it("a label the browser cut to the field's length is named too long, and is not created", async () => {
+		stubRoutes([["GET", /masked$/, list()]]);
+		render(withQuery(<MaskedSection name="alice" />));
+		await screen.findByText("maskedEmpty");
+
+		await type("a".repeat(65));
+		expect(label().checkValidity()).toBe(true);
 		await create();
+
+		expect(await screen.findByText("labelTooLong")).toBeInTheDocument();
+		expect(posts()).toHaveLength(0);
+	});
+
+	it("the browser stops an empty label, and one with no letter or digit, before any script", async () => {
+		stubRoutes([["GET", /masked$/, list()]]);
+		render(withQuery(<MaskedSection name="alice" />));
+		await screen.findByText("maskedEmpty");
+
+		expect(label().validity.valueMissing).toBe(true);
+		await create();
+		await type("---");
+		expect(label().validity.patternMismatch).toBe(true);
+		await create();
+
+		expect(screen.queryByText("labelRequired")).toBeNull();
+		expect(screen.queryByText("labelNeedsLetter")).toBeNull();
+		expect(posts()).toHaveLength(0);
+	});
+
+	it("a form submitted past the browser's check is stopped by the schema, which names what is wrong", async () => {
+		stubRoutes([["GET", /masked$/, list()]]);
+		render(withQuery(<MaskedSection name="alice" />));
+		await screen.findByText("maskedEmpty");
+
+		await createPastTheBrowser();
 		expect(await screen.findByText("labelRequired")).toBeInTheDocument();
 		await type("---");
-		await create();
+		await createPastTheBrowser();
 
 		expect(await screen.findByText("labelNeedsLetter")).toBeInTheDocument();
 		expect(posts()).toHaveLength(0);

@@ -13,7 +13,10 @@ import {
 	SINCE_VALUES,
 } from "@/features/deliveries/schemas/deliveries-input";
 import { DELIVERY_OUTCOMES } from "@/lib/api/schemas";
-import { MAX_ADDRESS_LENGTH } from "@/lib/mail-address";
+import {
+	MAIL_ADDRESS_HTML_PATTERN,
+	MAX_ADDRESS_LENGTH,
+} from "@/lib/mail-address-pattern";
 
 /**
  * The filter form of the delivery log: outcome, window and recipient. A plain
@@ -83,6 +86,8 @@ export function DeliveriesFilters({
 						name="recipient"
 						type="text"
 						maxLength={MAX_ADDRESS_LENGTH}
+						pattern={MAIL_ADDRESS_HTML_PATTERN}
+						title={t("recipientFormat")}
 						defaultValue={filters.recipient ?? ""}
 						autoComplete="off"
 						spellCheck={false}

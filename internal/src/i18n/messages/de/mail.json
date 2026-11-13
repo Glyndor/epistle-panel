@@ -102,6 +102,7 @@
 	"recipientsHint": "Trennen Sie Adressen mit Kommas.",
 	"invalidRecipients": "Diese Adressen sind ungültig: {list}",
 	"needRecipient": "Fügen Sie mindestens einen Empfänger hinzu.",
+	"recipientsTooLong": "Diese Empfängerliste ist zu lang.",
 	"subjectTooLong": "Der Betreff ist zu lang.",
 	"bodyTooLong": "Die Nachricht ist zu lang.",
 	"attach": "Dateien anhängen",

@@ -9,6 +9,7 @@
 	"time": "Zeit (UTC)",
 	"outcome": "Ergebnis",
 	"recipient": "Empfänger",
+	"recipientFormat": "Eine Adresse, etwa name@example.org.",
 	"from": "Von",
 	"account": "Konto",
 	"remote": "Gegenstelle",

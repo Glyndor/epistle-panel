@@ -2,13 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
-import {
-	startTransition,
-	useActionState,
-	useEffect,
-	useRef,
-	useState,
-} from "react";
+import { startTransition, useActionState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -35,6 +29,7 @@ import {
 	loginSchema,
 } from "@/features/auth/schemas/login";
 import { INITIAL_LOGIN_STATE } from "@/features/auth/schemas/login-state";
+import { fieldLength } from "@/lib/field-length";
 
 /**
  * The admin sign-in form, on react-hook-form with the same schema the Server
@@ -44,9 +39,9 @@ import { INITIAL_LOGIN_STATE } from "@/features/auth/schemas/login-state";
  *
  * It is still a real `<form action>`: without script the browser posts the
  * fields and the action runs, so sign-in does not depend on hydration. With
- * script, the submit handler validates first and calls the same action only when
- * the schema accepts, and the browser's own validation bubbles are switched off
- * (`noValidate`, set after hydration) so the messages next to the fields show.
+ * script, three checks run in order: the browser's own, from the fields'
+ * attributes (`required`, the length caps), then the schema here, which names
+ * the field, and the action, which is the gate.
  *
  * Re-renders: each field subscribes to its own state only (`useFormState({ name
  * })` inside the field), mode is `onSubmit` with `onChange` revalidation, so a
@@ -66,10 +61,7 @@ export function LoginForm({ captcha }: { captcha: PublicCaptcha | null }) {
 	});
 	const formElement = useRef<HTMLFormElement>(null);
 	const widget = useRef<WidgetHandle | null>(null);
-	const [hydrated, setHydrated] = useState(false);
 	const rejected = state.outcome !== "idle";
-
-	useEffect(() => setHydrated(true), []);
 
 	// After a refusal, keep the name, clear the password and put the cursor there.
 	// `state` is a new object for every answer, so a second refusal runs this too.
@@ -115,7 +107,6 @@ export function LoginForm({ captcha }: { captcha: PublicCaptcha | null }) {
 				ref={formElement}
 				action={formAction}
 				onSubmit={onSubmit}
-				noValidate={hydrated}
 				className="flex flex-col gap-4"
 			>
 				<FormField
@@ -132,7 +123,7 @@ export function LoginForm({ captcha }: { captcha: PublicCaptcha | null }) {
 									autoCapitalize="none"
 									spellCheck={false}
 									required
-									maxLength={LOGIN_NAME_MAX}
+									maxLength={fieldLength(LOGIN_NAME_MAX)}
 								/>
 							</FormControl>
 							<FormMessage render={message} />
@@ -151,7 +142,7 @@ export function LoginForm({ captcha }: { captcha: PublicCaptcha | null }) {
 									type="password"
 									autoComplete="current-password"
 									required
-									maxLength={LOGIN_PASSWORD_MAX}
+									maxLength={fieldLength(LOGIN_PASSWORD_MAX)}
 								/>
 							</FormControl>
 							<FormMessage render={message} />

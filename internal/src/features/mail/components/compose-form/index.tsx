@@ -23,6 +23,7 @@ import {
 	type ComposeAttachment,
 	ComposeAttachments,
 } from "@/features/mail/components/compose-attachments";
+import { fieldMessage } from "@/features/mail/components/compose-form/field-message";
 import { useComposeSubmit } from "@/features/mail/components/compose-form/use-compose-submit";
 import { MailTextarea } from "@/features/mail/components/mail-textarea";
 import { mailHref } from "@/features/mail/links/mail-href";
@@ -30,7 +31,13 @@ import {
 	type ComposeFormValues,
 	composeFormSchema,
 } from "@/features/mail/schemas/compose-form";
+import {
+	MAX_COMPOSE_TEXT,
+	MAX_RECIPIENTS_TEXT,
+	MAX_SUBJECT,
+} from "@/features/mail/schemas/compose-input-limits";
 import { parseRecipients } from "@/features/mail/schemas/recipients";
+import { fieldLength } from "@/lib/field-length";
 
 /** What opens the composer: empty, or filled for a reply, a forward or a stored draft. */
 export interface ComposeInitial extends ComposeFormValues {
@@ -141,8 +148,8 @@ export function ComposeForm({ initial }: { initial: ComposeInitial }) {
 				: outcome.kind === "unavailable"
 					? t("unavailableCompose")
 					: null;
-	const translate = (key: string) =>
-		key === "subjectTooLong" || key === "bodyTooLong" ? t(key) : key;
+	// A size message arrives as its key; a recipient message is already a sentence.
+	const translate = (message: string) => fieldMessage(message, t);
 
 	return (
 		<Form {...form}>
@@ -169,6 +176,9 @@ export function ComposeForm({ initial }: { initial: ComposeInitial }) {
 								<Input
 									{...field}
 									type="text"
+									maxLength={fieldLength(MAX_RECIPIENTS_TEXT)}
+									inputMode="email"
+									autoCapitalize="none"
 									autoComplete="off"
 									spellCheck={false}
 								/>
@@ -196,6 +206,11 @@ export function ComposeForm({ initial }: { initial: ComposeInitial }) {
 										<Input
 											{...field}
 											type="text"
+											maxLength={fieldLength(
+												MAX_RECIPIENTS_TEXT,
+											)}
+											inputMode="email"
+											autoCapitalize="none"
 											autoComplete="off"
 											spellCheck={false}
 										/>
@@ -229,6 +244,7 @@ export function ComposeForm({ initial }: { initial: ComposeInitial }) {
 								<Input
 									{...field}
 									type="text"
+									maxLength={fieldLength(MAX_SUBJECT)}
 									autoComplete="off"
 								/>
 							</FormControl>
@@ -243,7 +259,11 @@ export function ComposeForm({ initial }: { initial: ComposeInitial }) {
 						<FormItem>
 							<FormLabel>{t("fieldBody")}</FormLabel>
 							<FormControl>
-								<MailTextarea {...field} rows={14} />
+								<MailTextarea
+									{...field}
+									rows={14}
+									maxLength={fieldLength(MAX_COMPOSE_TEXT)}
+								/>
 							</FormControl>
 							<FormMessage render={translate} />
 						</FormItem>

@@ -8,6 +8,7 @@ import {
 } from "@testing-library/react";
 
 import { clearToasts } from "@/components/ui/toaster";
+import { composeFormSchema } from "@/features/mail/schemas/compose-form";
 import { ComposeForm, type ComposeInitial } from ".";
 
 const originalFetch = globalThis.fetch;
@@ -188,12 +189,50 @@ describe("ComposeForm", () => {
 		expect(screen.getByLabelText("fieldBcc")).toHaveValue("z@x.org");
 	});
 
-	it("holds the subject and the body to their limits", async () => {
+	it("gives the browser each field's length, one character over the schema's", () => {
+		render(<ComposeForm initial={{ ...empty, cc: "c@x.org" }} />);
+
+		for (const label of ["fieldTo", "fieldCc", "fieldBcc"]) {
+			expect(screen.getByLabelText(label)).toHaveAttribute(
+				"maxlength",
+				"20001",
+			);
+		}
+		expect(screen.getByLabelText("fieldSubject")).toHaveAttribute(
+			"maxlength",
+			"999",
+		);
+		expect(screen.getByLabelText("fieldBody")).toHaveAttribute(
+			"maxlength",
+			"1000001",
+		);
+		const fits = {
+			to: "a".repeat(20_000),
+			cc: "",
+			bcc: "",
+			subject: "s".repeat(998),
+			text: "t".repeat(1_000_000),
+		};
+		expect(composeFormSchema.safeParse(fits).success).toBe(true);
+		for (const field of ["to", "subject", "text"] as const) {
+			expect([
+				field,
+				composeFormSchema.safeParse({
+					...fits,
+					[field]: `${fits[field]}x`,
+				}).success,
+			]).toEqual([field, false]);
+		}
+	});
+
+	it("a value the browser cut to a field's length is stopped by the schema, which names the field in words", async () => {
 		const sent = server({ ok: true, result: { kind: "draft", id: "d" } });
 		render(<ComposeForm initial={empty} />);
+		type("fieldTo", "a".repeat(20_001));
 		type("fieldSubject", "x".repeat(999));
 		fireEvent.click(screen.getByRole("button", { name: "saveDraft" }));
 		expect(await screen.findByText("subjectTooLong")).toBeInTheDocument();
+		expect(screen.getByText("recipientsTooLong")).toBeInTheDocument();
 		expect(sent).toHaveLength(0);
 	});
 

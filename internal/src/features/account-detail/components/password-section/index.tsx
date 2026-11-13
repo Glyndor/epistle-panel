@@ -19,9 +19,11 @@ import { reportFailure } from "@/features/account-detail/queries/action-feedback
 import {
 	PASSWORD_ERROR_KEYS,
 	PASSWORD_MAX,
+	PASSWORD_MIN,
 	type PasswordFormInput,
 	passwordFormSchema,
 } from "@/features/account-detail/schemas/password-form";
+import { fieldLength } from "@/lib/field-length";
 import { isOneOf } from "@/lib/is-one-of";
 import { ActionError } from "@/lib/query/action-result";
 
@@ -89,8 +91,10 @@ export function PasswordSection({ name }: { name: string }) {
 									<Input
 										{...field}
 										type="password"
+										required
+										minLength={PASSWORD_MIN}
+										maxLength={fieldLength(PASSWORD_MAX)}
 										autoComplete="new-password"
-										maxLength={PASSWORD_MAX}
 									/>
 								</FormControl>
 								<FormMessage render={message} />

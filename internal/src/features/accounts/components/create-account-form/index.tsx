@@ -21,7 +21,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toaster";
 import { reportFailure } from "@/features/account-detail/queries/action-feedback";
-import { DISPLAY_NAME_MAX } from "@/features/account-detail/schemas/display-name-form";
+import {
+	DISPLAY_NAME_HTML_MAX,
+	DISPLAY_NAME_HTML_PATTERN,
+} from "@/features/account-detail/schemas/display-name-form";
 import {
 	PASSWORD_MAX,
 	PASSWORD_MIN,
@@ -32,11 +35,13 @@ import {
 	ACCOUNT_NAME_HTML_PATTERN,
 	ACCOUNT_NAME_MAX,
 	ADDRESSES_MAX,
+	ADDRESSES_TEXT_MAX,
 	CREATE_ACCOUNT_ERROR_KEYS,
 	type CreateAccountFormInput,
 	createAccountFormSchema,
 	splitAddresses,
 } from "@/features/accounts/schemas/account-create-form";
+import { fieldLength } from "@/lib/field-length";
 import { isOneOf } from "@/lib/is-one-of";
 import { ActionError } from "@/lib/query/action-result";
 
@@ -119,7 +124,7 @@ export function CreateAccountForm({ onDone }: { onDone: () => void }) {
 								<Input
 									{...field}
 									required
-									maxLength={ACCOUNT_NAME_MAX}
+									maxLength={fieldLength(ACCOUNT_NAME_MAX)}
 									pattern={ACCOUNT_NAME_HTML_PATTERN}
 									title={t("nameInvalid")}
 									autoCapitalize="none"
@@ -142,7 +147,9 @@ export function CreateAccountForm({ onDone }: { onDone: () => void }) {
 							<FormControl>
 								<Input
 									{...field}
-									maxLength={DISPLAY_NAME_MAX}
+									maxLength={DISPLAY_NAME_HTML_MAX}
+									pattern={DISPLAY_NAME_HTML_PATTERN}
+									title={t("displayNameFormat")}
 									autoComplete="off"
 								/>
 							</FormControl>
@@ -160,6 +167,7 @@ export function CreateAccountForm({ onDone }: { onDone: () => void }) {
 								<Textarea
 									{...field}
 									required
+									maxLength={fieldLength(ADDRESSES_TEXT_MAX)}
 									rows={3}
 									autoCapitalize="none"
 									autoComplete="off"
@@ -187,7 +195,7 @@ export function CreateAccountForm({ onDone }: { onDone: () => void }) {
 									type="password"
 									required
 									minLength={PASSWORD_MIN}
-									maxLength={PASSWORD_MAX}
+									maxLength={fieldLength(PASSWORD_MAX)}
 									autoComplete="new-password"
 								/>
 							</FormControl>

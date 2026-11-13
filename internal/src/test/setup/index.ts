@@ -2,6 +2,7 @@ import { expect, mock } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
 
 import { TEST_ADMIN_ID } from "../../lib/config/test-support/admin-id";
+import { installBrowserPattern } from "../browser-pattern";
 import { installNextIntlMocks, registerStandIn } from "../next-intl";
 import { headersStandIn, navigationStandIn } from "../next-navigation";
 import { installShortNodePrint } from "../short-node-print";
@@ -15,6 +16,9 @@ GlobalRegistrator.register();
 // A failed assertion on a node must say so in a line, not in megabytes: see
 // `short-node-print` for what that cost before.
 installShortNodePrint();
+// An input's `pattern` must mean what it means in a browser: see
+// `browser-pattern` for what happy-dom does with it otherwise.
+installBrowserPattern();
 // The namespace also carries a `default` export that is not a matcher.
 const { default: _default, ...matchers } = await import(
 	"@testing-library/jest-dom/matchers"

@@ -102,6 +102,7 @@
 	"recipientsHint": "Separa gli indirizzi con virgole.",
 	"invalidRecipients": "Questi indirizzi non sono validi: {list}",
 	"needRecipient": "Aggiungi almeno un destinatario.",
+	"recipientsTooLong": "Questo elenco di destinatari è troppo lungo.",
 	"subjectTooLong": "L’oggetto è troppo lungo.",
 	"bodyTooLong": "Il messaggio è troppo lungo.",
 	"attach": "Allega file",

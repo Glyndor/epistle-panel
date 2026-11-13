@@ -3,13 +3,20 @@ import * as z from "zod/mini";
 import { displayNameSchema } from "@/features/account-detail/schemas/display-name-form";
 import { passwordSchema } from "@/features/account-detail/schemas/password-form";
 import { ACCOUNT_NAME_PATTERN } from "@/lib/api/account-name-pattern";
-import { isMailAddress } from "@/lib/mail-address-pattern";
+import { isMailAddress, MAX_ADDRESS_LENGTH } from "@/lib/mail-address-pattern";
 
 /** Longest account name the mail server stores, in characters. */
 export const ACCOUNT_NAME_MAX = 64;
 
 /** Most addresses the form gives a new account; more are added later. */
 export const ADDRESSES_MAX = 20;
+
+/**
+ * Longest text of the addresses field, in characters: the most addresses, each
+ * at its longest, with room for a separator of a few characters after each. It
+ * is the field's `maxlength`, and the schema holds it too.
+ */
+export const ADDRESSES_TEXT_MAX = ADDRESSES_MAX * (MAX_ADDRESS_LENGTH + 4);
 
 /**
  * The account-name rule as an HTML `pattern`, for the browser's own check. The
@@ -47,6 +54,7 @@ export const createAccountFormSchema = z.object({
 		),
 	displayName: displayNameSchema,
 	addresses: z.string().check(
+		z.maxLength(ADDRESSES_TEXT_MAX, "addressesTooMany"),
 		z.refine(
 			(value) => splitAddresses(value).length > 0,
 			"addressesRequired",

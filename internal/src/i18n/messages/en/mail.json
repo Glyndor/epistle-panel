@@ -102,6 +102,7 @@
 	"recipientsHint": "Separate addresses with commas.",
 	"invalidRecipients": "These are not valid addresses: {list}",
 	"needRecipient": "Add at least one recipient.",
+	"recipientsTooLong": "This list of recipients is too long.",
 	"subjectTooLong": "The subject is too long.",
 	"bodyTooLong": "The message is too long.",
 	"attach": "Attach files",

@@ -4,6 +4,20 @@ import * as z from "zod/mini";
 export const DISPLAY_NAME_MAX = 128;
 
 /**
+ * The `maxlength` of a display-name input. The server counts code points and
+ * the attribute counts UTF-16 units, where a character outside the basic plane
+ * is two: the input allows twice the limit, so no name the server takes is cut,
+ * and the schema does the exact count.
+ */
+export const DISPLAY_NAME_HTML_MAX = DISPLAY_NAME_MAX * 2;
+
+/**
+ * The no-control-character rule as an input's `pattern` attribute, which a
+ * browser anchors and compiles with the `v` flag.
+ */
+export const DISPLAY_NAME_HTML_PATTERN = "[^\\p{Cc}]*";
+
+/**
  * The person's name of an account: trimmed, at most 128 characters (counted as
  * the server counts them, by code point), no control character, so it cannot
  * break out of the `From` header it ends up in. Empty is allowed and clears it.

@@ -3,6 +3,7 @@ import { describe, expect, it } from "bun:test";
 import { PASSWORD_MAX } from "@/features/account-detail/schemas/password-form";
 import { createAccountInputSchema } from "@/features/accounts/schemas/account-input";
 import { ACCOUNT_NAME_PATTERN } from "@/lib/api/account-name-pattern";
+import { MAX_ADDRESS_LENGTH } from "@/lib/mail-address-pattern";
 import {
 	ACCOUNT_NAME_HTML_PATTERN,
 	ACCOUNT_NAME_MAX,
@@ -57,6 +58,19 @@ describe("createAccountFormSchema", () => {
 				).join("\n"),
 			}),
 		).toBe("addressesTooMany");
+		// The longest list the form means to take fits the field's length.
+		const longest = Array.from(
+			{ length: ADDRESSES_MAX },
+			(_, i) =>
+				`${String(i).padStart(2, "0")}${"a".repeat(MAX_ADDRESS_LENGTH - 9)}@x.test`,
+		)
+			.map((address) => `${address},\r\n `)
+			.join("");
+		expect(longest.length).toBe(5160);
+		expect(firstError({ ...ok, addresses: longest })).toBeUndefined();
+		expect(firstError({ ...ok, addresses: `${longest} ` })).toBe(
+			"addressesTooMany",
+		);
 		expect(firstError({ ...ok, password: "short" })).toBe(
 			"passwordTooShort",
 		);
