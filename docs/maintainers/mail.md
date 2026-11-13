@@ -137,10 +137,58 @@ Deleting from the trash destroys the message and asks first with the browser's o
 the policy refuses). Moving a message to Junk does not set `$junk`: epistle trains
 on the move itself (`src/api/jmap/email/mod.rs`).
 
+## The composer
+
+`/app/mail/compose` (`?mode=reply|replyAll|forward|draft&msg=<id>`): to, cc, bcc,
+subject, a text body, attachments, save draft, send, discard, and reply, reply all,
+forward and edit draft from the reader. A message is plain text; there is no rich
+editor and no signature.
+
+- **Route handlers, not Server Actions.** A message body is larger than the 16 KB a
+  Server Action may carry (`next.config.ts`), so saving and sending go through
+  `POST /app/mail/compose-message` (JSON) and attachments through `POST
+  /app/mail/upload` (the file as the body). Because they are plain POST endpoints
+  they check what an action gets from Next: the request must come from the panel's
+  own origin (`Origin` equal to the forwarded host, as for Server Actions; none or
+  `null` is refused), then the session, then the input. The compose body is parsed
+  with a strict schema (`compose-input`); the answer is a closed category and never
+  the server's words.
+- **Only a draft is replaced.** A save or send that names a `draftId` first reads that
+  message and requires `$draft` and the drafts folder, else it is refused as invalid
+  before anything is written or destroyed; an id the account does not have (another
+  account's message looks like that) is refused the same way, and the composer page
+  ignores `mode=draft` on a message that is not a draft.
+- **The request is bounded as it streams.** A valid `Content-Length` is required (411),
+  and the body is read as it arrives and cut at the first byte past the cap or past what
+  it declared, counting bytes.
+- **The sender is never chosen by the browser.** It is the account's first sending
+  identity (`Identity/get`); epistle refuses a `From` the account does not own.
+- **Saving a draft** creates the new message in the drafts folder and then removes
+  the previous draft (epistle cannot edit a stored message), so what is open is
+  always the latest copy. **Sending** stores the message the same way, queues it
+  with `EmailSubmission/set` (recipients from To, Cc and Bcc, Bcc removed by the
+  server; epistle keeps its own copy in Sent), then removes the working copy and
+  the previous draft. When the server refuses, the work stays as a draft and the
+  form says why with one of: no recipient, too many, from-address not owned,
+  invalid address, mailbox full, rate limited, refused to send, too large, other.
+- **Attachments** are uploaded as soon as they are chosen, up to 20 files of 25 MiB,
+  and sent by blob id. The type is the declared one when it is a plain
+  `type/subtype` (parameters dropped), else `application/octet-stream`; the name is
+  cleaned like a download's. Next's proxy buffers a request body and cuts it at 10 MB
+  by default (its documentation; not measured here), so `proxyClientMaxBodySize` is
+  set to 26 MB; Server Actions keep their 16 KB limit. The e2e scenario uploads a
+  12 MB file whole and refuses 27 MB.
+- **Reply and forward** prefill on the server from cleaned text: the quoted original
+  is the text part, or the sanitised HTML reduced to text, cut at 20 000 characters,
+  put in a text area and never inserted as markup. A reply goes to the reply-to
+  address (else the sender), reply all adds the other recipients minus the account,
+  and `In-Reply-To` and `References` carry the original's id. A forward carries the
+  original as text under its header lines. **Attachments are not forwarded.**
+
 ## Not done yet
 
-- The composer (to, cc, bcc, subject, body, attachments, drafts, reply, forward,
-  send): PR 3.
+- No autosave of the draft, no warning on leaving with unsaved text, no signature, no
+  rich text, no address book or completion, no forwarding of attachments.
 - Inline `cid:` images (shown as attachments for now), conversation threads
   (epistle has none), push updates (the list polls every 30 s while visible).
 - Native `<select>`, `<details>` and `<kbd>`, and `window.confirm`, stand in for shadcn components that

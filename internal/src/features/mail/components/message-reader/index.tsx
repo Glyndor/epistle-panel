@@ -55,6 +55,8 @@ export function MessageReader({
 	);
 
 	const mailboxes = useQuery(mailboxesQueryOptions(fetchMailboxes)).data;
+	const roleOf = (boxId: string | null) =>
+		mailboxes?.find((box) => box.id === boxId)?.role;
 
 	useEffect(() => {
 		if (data && readerIsAlone()) {
@@ -130,10 +132,8 @@ export function MessageReader({
 			<ReaderToolbar
 				message={data}
 				onLeft={() => backLink.current?.click()}
-				inTrash={
-					mailboxes?.find((box) => box.id === data.mailboxId)
-						?.role === "trash"
-				}
+				inTrash={roleOf(data.mailboxId) === "trash"}
+				inDrafts={roleOf(data.mailboxId) === "drafts"}
 			/>
 			<ReaderHeader message={data} headingId={headingId} />
 			<AttachmentList

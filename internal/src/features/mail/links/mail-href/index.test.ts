@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import { attachmentHref, bodyHref, mailHref } from ".";
+import { attachmentHref, bodyHref, composeHref, mailHref } from ".";
 
 const ID = "01890a5d-ac96-774b-b9aa-9be4c3bd6b0e";
 
@@ -40,5 +40,18 @@ describe("attachmentHref and bodyHref", () => {
 			`/app/mail/body/${ID}?images=1`,
 		);
 		expect<string>(bodyHref("a/b", false)).toBe("/app/mail/body/a%2Fb");
+	});
+});
+
+describe("composeHref", () => {
+	it("is the bare composer, or one opened from a message with the mode and the id encoded", () => {
+		expect<string>(composeHref()).toBe("/app/mail/compose");
+		expect<string>(composeHref("reply")).toBe("/app/mail/compose");
+		expect<string>(composeHref("replyAll", ID)).toBe(
+			`/app/mail/compose?mode=replyAll&msg=${ID}`,
+		);
+		expect<string>(composeHref("draft", "a/b")).toBe(
+			"/app/mail/compose?mode=draft&msg=a%2Fb",
+		);
 	});
 });

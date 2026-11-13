@@ -57,6 +57,7 @@ const emailSchema = z.object({
 	from: addressesSchema,
 	to: addressesSchema,
 	cc: addressesSchema,
+	bcc: addressesSchema,
 	replyTo: addressesSchema,
 	keywords: z.record(z.string(), z.boolean()).optional(),
 	preview: z.string().optional(),
@@ -94,4 +95,32 @@ export const emailSetSchema = z.object({
 	notDestroyed: z.record(z.string(), z.unknown()).nullable().optional(),
 	created: z.record(z.string(), z.unknown()).nullable().optional(),
 	notCreated: z.record(z.string(), z.unknown()).nullable().optional(),
+});
+
+/** `EmailSubmission/set`: what was queued and what was refused, with the SetError type. */
+export const submissionSetSchema = z.object({
+	created: z.record(z.string(), z.unknown()).nullable().optional(),
+	notCreated: z
+		.record(
+			z.string(),
+			z.object({
+				type: z.string(),
+				description: z.string().nullable().optional(),
+			}),
+		)
+		.nullable()
+		.optional(),
+});
+
+/** `Email/set` as a create sees it: the id issued, or the SetError type. */
+export const emailCreateSchema = z.object({
+	created: z
+		.record(z.string(), z.object({ id: z.string() }))
+		.nullable()
+		.optional(),
+	notCreated: z
+		.record(z.string(), z.object({ type: z.string() }))
+		.nullable()
+		.optional(),
+	destroyed: z.array(z.string()).nullable().optional(),
 });

@@ -1,6 +1,7 @@
 import { json } from "../responses";
 import { MAILBOXES, type SeedMessage, seedMessages } from "./messages";
 import { partBlob, toEmail } from "./render";
+import { createCompose } from "./compose";
 
 /** The account the stand-in keeps a mailbox for; the others answer `accountNotFound`. */
 export const MAIL_ACCOUNT = "admin";
@@ -94,12 +95,16 @@ export function createJmapStore() {
 		return { accountId: MAIL_ACCOUNT, oldState: "0", newState: "1", created: {}, notCreated: {}, updated, notUpdated, destroyed, notDestroyed };
 	}
 
+	const compose = createCompose(() => messages, (next) => {
+		messages = next;
+	}, () => freshId());
+
 	function method([name, args, id]: Call) {
 		if (args["accountId"] !== MAIL_ACCOUNT) {
 			return ["error", { type: "accountNotFound" }, id];
 		}
 		const result =
-			name === "Mailbox/get" ? mailboxGet(args) : name === "Email/query" ? emailQuery(args) : name === "Email/get" ? emailGet(args) : name === "Email/set" ? emailSet(args) : undefined;
+			name === "Mailbox/get" ? mailboxGet(args) : name === "Email/query" ? emailQuery(args) : name === "Email/get" ? emailGet(args) : name === "Email/set" ? (args["create"] ? compose.emailCreate(args, emailSet) : emailSet(args)) : name === "Identity/get" ? compose.identities() : name === "EmailSubmission/set" ? compose.submit(args) : undefined;
 		if (result === undefined) {
 			return ["error", { type: "unknownMethod" }, id];
 		}
@@ -111,11 +116,18 @@ export function createJmapStore() {
 			const body = (await request.json()) as { methodCalls?: Call[] };
 			return json({ methodResponses: (body.methodCalls ?? []).map(method), sessionState: "0" });
 		}
+		const upload = /^\/jmap\/upload\/([^/]+)$/.exec(url.pathname);
+		if (upload && request.method === "POST") {
+			return decodeURIComponent(upload[1] ?? "") === MAIL_ACCOUNT
+				? json(compose.upload(new Uint8Array(await request.arrayBuffer()), request.headers.get("content-type") ?? ""))
+				: json({ type: "urn:ietf:params:jmap:error:notFound" }, 404);
+		}
 		const download = /^\/jmap\/download\/([^/]+)\/([^/]+)\/[^/]*$/.exec(url.pathname);
 		if (download && request.method === "GET") {
 			const [account, blobId] = [decodeURIComponent(download[1] ?? ""), decodeURIComponent(download[2] ?? "")];
 			const message = messages.find((m) => m.id === blobId.split(".")[0]);
-			const blob = account === MAIL_ACCOUNT && message ? partBlob(message, blobId) : null;
+			const uploaded = account === MAIL_ACCOUNT ? compose.blob(blobId) : null;
+			const blob = uploaded ?? (account === MAIL_ACCOUNT && message ? partBlob(message, blobId) : null);
 			return blob
 				? new Response(blob.content, { headers: { "Content-Type": blob.type } })
 				: json({ type: "urn:ietf:params:jmap:error:notFound" }, 404);
@@ -125,9 +137,11 @@ export function createJmapStore() {
 
 	return {
 		handle,
+		sent: () => compose.sent(),
 		reset() {
 			messages = seedMessages();
 			fresh = 0;
+			compose.reset();
 		},
 		snapshot: () => messages.map((m) => ({ id: m.id, mailbox: m.mailbox, keywords: m.keywords, subject: m.subject })),
 	};

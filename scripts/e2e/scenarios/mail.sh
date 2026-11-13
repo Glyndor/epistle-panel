@@ -23,6 +23,19 @@ mail_state() {
 	curl -s "$api/__control/mail"
 }
 
+# mail_post PATH BODY COOKIE [ORIGIN] [TYPE]: post to a mail route the way the browser's client does,
+# from the panel's own origin unless another is given ("-" sends none). Status printed, body in $work/b.
+mail_post() {
+	local origin=${4:-$panel} type=${5:-application/json} extra=()
+	[[ "$origin" != "-" ]] && extra=(-H "Origin: $origin")
+	curl -s -o "$work/b" -w '%{http_code}' -X POST -b "$3" "${extra[@]}" -H "Content-Type: $type" --data-binary "$2" "$panel$1"
+}
+
+# mail_sent: what the stand-in was asked to send.
+mail_sent() {
+	curl -s "$api/__control/sent"
+}
+
 scenario_mail() {
 	echo "# mail: three-pane webmail, sanitised bodies, attachments, hostile messages"
 	fresh
@@ -165,6 +178,84 @@ scenario_mail() {
 	mail_change "[{\"id\":\"$MAIL_TEXT_ONLY\",\"op\":\"spam\"}]" "$good" >/dev/null
 	assert_contains "spam moves it to Junk" "$(mail_state)" "\"mailbox\":\"Junk\""
 	assert_eq "no DELETE reached the API: a destroy is an Email/set" "$(api_count '"method":"DELETE"')" 0
+
+	# The composer.
+	reset_api
+	fetch /app/mail/compose "$good"
+	assert_eq "GET the composer" "$status" 200
+	assert_contains "it is a form with a message field" "$(cat "$work/b")" "<textarea"
+	assert_eq "no inline style attribute or element in the composer" "$({ grep -o -E ' style="|<style' "$work/b" || true; } | wc -l | tr -d ' ')" 0
+	fetch "/app/mail/compose?mode=reply&msg=$MAIL_NEWSLETTER" "$good"
+	assert_contains "a reply is addressed to the sender" "$(cat "$work/b")" "News Bot &lt;news@example.org&gt;"
+	assert_contains "with the subject marked" "$(cat "$work/b")" "Re: Weekly newsletter"
+	assert_contains "and the original quoted" "$(cat "$work/b")" "&gt; Newsletter, plain version."
+	fetch "/app/mail/compose?mode=reply&msg=$MAIL_HOSTILE_HTML" "$good"
+	assert_eq "a reply to a hostile message renders" "$status" 200
+	assert_absent "its quoted text carries no markup from the sender" "$(cat "$work/b")" "<script>document"
+	assert_absent "nor the code that was in it" "$(cat "$work/b")" "pwned"
+	fetch "/app/mail/compose?mode=forward&msg=$MAIL_NEWSLETTER" "$good"
+	assert_contains "a forward is marked" "$(cat "$work/b")" "Fwd: Weekly newsletter"
+	fetch "/app/mail/compose?mode=reply&msg=../x" "$good"
+	assert_eq "a hostile id opens an empty composer" "$status" 200
+
+	local draft='{"op":"draft","to":[{"email":"to@example.org"}],"cc":[],"bcc":[{"email":"hidden@example.org"}],"subject":"Draft subject","text":"draft body","attachments":[]}'
+	assert_eq "no cookie: compose route is redirected" "$(mail_post /app/mail/compose-message "$draft" "")" 307
+	assert_eq "no cookie: upload route is redirected" "$(mail_post /app/mail/upload "x" "")" 307
+	before=$(api_count '"method"')
+	assert_eq "a foreign origin is refused" "$(mail_post /app/mail/compose-message "$draft" "$good" https://evil.test)" 403
+	assert_eq "no origin is refused" "$(mail_post /app/mail/compose-message "$draft" "$good" -)" 403
+	assert_eq "a null origin is refused" "$(mail_post /app/mail/compose-message "$draft" "$good" null)" 403
+	assert_eq "a foreign origin cannot upload" "$(mail_post /app/mail/upload "x" "$good" https://evil.test application/pdf)" 403
+	assert_eq "a body that is not JSON is refused" "$(mail_post /app/mail/compose-message "$draft" "$good" "$panel" text/plain)" 415
+	for hostile in '{"op":"send"}' '{"op":"send","to":[{"email":"nope"}],"cc":[],"bcc":[],"subject":"s","text":"t","attachments":[]}' '{"op":"draft","to":[],"cc":[],"bcc":[],"subject":"a\r\nBcc: x@y.org","text":"t","attachments":[]}' '{"op":"draft","to":[],"cc":[],"bcc":[],"subject":"s","text":"t","attachments":[{"blobId":"../../etc/passwd","name":"x","type":"text/plain"}]}' '{"op":"draft","extra":1,"to":[],"cc":[],"bcc":[],"subject":"s","text":"t","attachments":[]}' '{broken'; do
+		assert_eq "hostile compose request '${hostile:0:40}' is a 400" "$(mail_post /app/mail/compose-message "$hostile" "$good")" 400
+	done
+	assert_eq "none of them reached the mail server" "$(api_count '"method"')" "$before"
+
+	assert_eq "saving a draft" "$(mail_post /app/mail/compose-message "$draft" "$good")" 200
+	assert_contains "the answer is a closed result" "$(cat "$work/b")" '"kind":"draft"'
+	assert_contains "the draft is in the drafts folder, from the account's own address" "$(mail_state)" '"mailbox":"Drafts"'
+	assert_absent "the answer carries nothing of the server" "$(cat "$work/b")" "example.test"
+	local draft_id
+	draft_id=$(grep -o '"id":"[^"]*"' "$work/b" | head -1 | sed 's/"id":"//; s/"//')
+	assert_eq "saving it again replaces it" "$(mail_post /app/mail/compose-message "${draft/\"op\":\"draft\"/\"op\":\"draft\",\"draftId\":\"$draft_id\"}" "$good")" 200
+	draft_id=$(grep -o '"id":"[^"]*"' "$work/b" | head -1 | sed 's/"id":"//; s/"//')
+	assert_eq "there is still one draft" "$({ mail_state | grep -o '"mailbox":"Drafts"' || true; } | wc -l | tr -d ' ')" 1
+	fetch "/app/mail?box=Drafts" "$good"
+	assert_contains "the drafts folder lists it" "$(cat "$work/b")" "Draft subject"
+
+	assert_eq "a draft id that names an ordinary message is refused" "$(mail_post /app/mail/compose-message "${draft/\"op\":\"draft\"/\"op\":\"draft\",\"draftId\":\"$MAIL_NEWSLETTER\"}" "$good")" 200
+	assert_contains "as invalid" "$(cat "$work/b")" '"reason":"invalid"'
+	assert_contains "and that message is still there" "$(mail_state)" "\"id\":\"$MAIL_NEWSLETTER\""
+	assert_eq "a chunked body, with no Content-Length, is a 411" "$(curl -s -o /dev/null -w '%{http_code}' -X POST -b "$good" -H "Origin: $panel" -H 'Content-Type: application/json' -H 'Transfer-Encoding: chunked' --data-binary "$draft" "$panel/app/mail/compose-message")" 411
+
+	local file_status blob
+	file_status=$(mail_post "/app/mail/upload?name=..%2F..%2Freport%22.pdf" "%PDF-1.4 attachment" "$good" "$panel" application/pdf)
+	assert_eq "uploading a file" "$file_status" 200
+	assert_contains "the answer names a blob and a clean name" "$(cat "$work/b")" '"name":"report_.pdf"'
+	blob=$(grep -o '"blobId":"[^"]*"' "$work/b" | sed 's/"blobId":"//; s/"//')
+	head -c 12000000 /dev/zero >"$work/big.bin"
+	file_status=$(curl -s -o "$work/b" -w '%{http_code}' -X POST -b "$good" -H "Origin: $panel" -H 'Content-Type: application/octet-stream' --data-binary "@$work/big.bin" "$panel/app/mail/upload?name=big.bin")
+	assert_eq "a 12 MB file is uploaded whole: the proxy does not cut it at its own 10 MB buffer" "$file_status" 200
+	assert_contains "and its size is the whole file" "$(cat "$work/b")" '"size":12000000'
+	head -c 27000000 /dev/zero >"$work/huge.bin"
+	file_status=$(curl -s -o "$work/b" -w '%{http_code}' -X POST -b "$good" -H "Origin: $panel" -H 'Content-Type: application/octet-stream' --data-binary "@$work/huge.bin" "$panel/app/mail/upload?name=huge.bin" || true)
+	assert_eq "a file over 25 MiB is refused" "$file_status" 413
+	rm -f "$work/big.bin" "$work/huge.bin"
+
+	local send="{\"op\":\"send\",\"to\":[{\"name\":\"Zed\",\"email\":\"zed@example.org\"}],\"cc\":[],\"bcc\":[{\"email\":\"hidden@example.org\"}],\"subject\":\"Sent subject\",\"text\":\"sent body\",\"attachments\":[{\"blobId\":\"$blob\",\"name\":\"report_.pdf\",\"type\":\"application/pdf\"}],\"draftId\":\"$draft_id\"}"
+	assert_eq "sending" "$(mail_post /app/mail/compose-message "$send" "$good")" 200
+	assert_contains "it was sent" "$(cat "$work/b")" '"kind":"sent"'
+	assert_contains "to the recipient and the hidden one" "$(mail_sent)" '"to":["zed@example.org"],"cc":[],"bcc":["hidden@example.org"]'
+	assert_contains "with its attachment" "$(mail_sent)" '"attachments":["report_.pdf"]'
+	assert_contains "a copy is in Sent" "$(mail_state)" '"mailbox":"Sent"'
+	assert_eq "the draft it came from is gone" "$({ mail_state | grep -o '"mailbox":"Drafts"' || true; } | wc -l | tr -d ' ')" 0
+	local blocked='{"op":"send","to":[{"email":"x@blocked.test"}],"cc":[],"bcc":[],"subject":"Refused","text":"t","attachments":[]}'
+	assert_eq "a send the server refuses" "$(mail_post /app/mail/compose-message "$blocked" "$good")" 200
+	assert_contains "says why, as a category" "$(cat "$work/b")" '"reason":"forbiddenToSend"'
+	assert_absent "without the server's words" "$(cat "$work/b")" "suppression"
+	assert_contains "and keeps the work as a draft" "$(mail_state)" '"mailbox":"Drafts"'
+	assert_eq "no DELETE reached the API from the composer" "$(api_count '"method":"DELETE"')" 0
 
 	assert_eq "the webmail only reads: no DELETE reached the API" "$(api_count '"method":"DELETE"')" 0
 	assert_eq "every call carried the valid bearer" "$(api_count '"bearer":"valid"')" "$(api_count '"method"')"
