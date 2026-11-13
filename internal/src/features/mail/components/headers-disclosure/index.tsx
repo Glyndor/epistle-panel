@@ -1,4 +1,11 @@
+import { ChevronDownIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
+
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 import type { HeaderView } from "@/features/mail/schemas/mail-view";
 
@@ -18,21 +25,32 @@ export function HeadersDisclosure({
 		return null;
 	}
 	return (
-		<details className="m-4 rounded-xl bg-muted p-4 text-sm">
-			<summary className="min-h-8 cursor-pointer font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring pointer-coarse:min-h-11">
+		<Collapsible className="group m-4 rounded-xl bg-muted p-4 text-sm">
+			<CollapsibleTrigger className="flex min-h-8 w-full items-center justify-between gap-2 rounded-lg font-medium hover:cursor-pointer focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 pointer-coarse:min-h-11">
 				{t("allHeaders")}
-			</summary>
-			<dl className="mt-2 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 font-mono text-xs">
-				{headers.map((header, index) => (
-					// biome-ignore lint/suspicious/noArrayIndexKey: headers repeat (Received) and the list never reorders
-					<div key={`${header.name}-${index}`} className="contents">
-						<dt className="text-muted-foreground">{header.name}</dt>
-						<dd className="break-all">
-							<bdi>{header.value}</bdi>
-						</dd>
-					</div>
-				))}
-			</dl>
-		</details>
+				<ChevronDownIcon
+					aria-hidden="true"
+					className="size-4 text-muted-foreground group-data-[state=open]:rotate-180"
+				/>
+			</CollapsibleTrigger>
+			<CollapsibleContent>
+				<dl className="mt-2 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 font-mono text-xs">
+					{headers.map((header, index) => (
+						<div
+							// biome-ignore lint/suspicious/noArrayIndexKey: headers repeat (Received) and the list never reorders
+							key={`${header.name}-${index}`}
+							className="contents"
+						>
+							<dt className="text-muted-foreground">
+								{header.name}
+							</dt>
+							<dd className="break-all">
+								<bdi>{header.value}</bdi>
+							</dd>
+						</div>
+					))}
+				</dl>
+			</CollapsibleContent>
+		</Collapsible>
 	);
 }

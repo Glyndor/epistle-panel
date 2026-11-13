@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
 import { HeadersDisclosure } from ".";
 
@@ -20,7 +20,14 @@ describe("HeadersDisclosure", () => {
 				]}
 			/>,
 		);
-		expect(screen.getByText("allHeaders")).toBeInTheDocument();
+		const button = screen.getByRole("button", { name: "allHeaders" });
+		// Closed to start with: the headers are not in the page until asked for.
+		expect(button).toHaveAttribute("aria-expanded", "false");
+		expect(screen.queryAllByText("Received")).toHaveLength(0);
+
+		fireEvent.click(button);
+
+		expect(button).toHaveAttribute("aria-expanded", "true");
 		expect(screen.getAllByText("Received")).toHaveLength(2);
 		expect(screen.getByText("<script>x</script>")).toBeInTheDocument();
 		expect(container.querySelector("script")).toBeNull();

@@ -69,7 +69,7 @@ describe("DeleteAccountDialog", () => {
 			screen.getByRole("alertdialog", { name: "deleteTitle" }),
 		).toHaveAccessibleDescription("deleteHelp");
 		expect(
-			screen.getByRole("group", { name: "queueLegend" }),
+			screen.getByRole("radiogroup", { name: "queueLegend" }),
 		).toBeInTheDocument();
 		expect(screen.getByRole("radio", { name: "queueDrain" })).toBeChecked();
 		expect(
