@@ -97,6 +97,7 @@ beforeEach(async () => {
 	process.env["EPISTLE_API_TOKEN"] = "t";
 	await cookies.signIn("admin");
 });
+afterEach(clearToasts);
 afterEach(async () => {
 	// Let a change still in flight finish against this test's stub, not the next one's.
 	await new Promise((r) => setTimeout(r, 80));

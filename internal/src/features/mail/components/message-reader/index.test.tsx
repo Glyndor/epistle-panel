@@ -6,6 +6,7 @@ import {
 	screen,
 	waitFor,
 } from "@testing-library/react";
+import { clearToasts } from "@/components/ui/toaster";
 
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
 import { clearSecretCache } from "@/lib/config/secret";
@@ -32,6 +33,7 @@ beforeEach(async () => {
 		media: query,
 	})) as typeof window.matchMedia;
 });
+afterEach(clearToasts);
 afterEach(() => {
 	window.matchMedia = originalMatchMedia;
 	process.env = { ...savedEnv };

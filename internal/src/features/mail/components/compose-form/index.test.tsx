@@ -13,6 +13,7 @@ import { ComposeForm, type ComposeInitial } from ".";
 const originalFetch = globalThis.fetch;
 const originalAssign = window.location.assign;
 beforeEach(() => clearToasts());
+afterEach(clearToasts);
 afterEach(() => {
 	cleanup();
 	globalThis.fetch = originalFetch;

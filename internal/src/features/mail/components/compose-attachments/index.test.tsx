@@ -16,6 +16,7 @@ import { type ComposeAttachment, ComposeAttachments } from ".";
 
 const originalFetch = globalThis.fetch;
 beforeEach(() => clearToasts());
+afterEach(clearToasts);
 afterEach(() => {
 	cleanup();
 	globalThis.fetch = originalFetch;
