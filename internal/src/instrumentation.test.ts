@@ -33,4 +33,24 @@ describe("register", () => {
 		expect(warn).not.toHaveBeenCalled();
 		warn.mockRestore();
 	});
+
+	it("warns once that the admin area is off when no id is set, and does not stop the start", async () => {
+		process.env["NEXT_RUNTIME"] = "nodejs";
+		delete process.env["EPISTLE_PANEL_ADMIN_ID"];
+		const warn = spyOn(console, "warn").mockImplementation(() => {});
+		await register();
+		expect(warn).toHaveBeenCalledTimes(1);
+		expect(String(warn.mock.calls[0]?.[0])).toContain(
+			"EPISTLE_PANEL_ADMIN_ID is not set",
+		);
+		warn.mockRestore();
+	});
+
+	it("says nothing about the admin area when the id is valid", async () => {
+		process.env["NEXT_RUNTIME"] = "nodejs";
+		const warn = spyOn(console, "warn").mockImplementation(() => {});
+		await register();
+		expect(warn).not.toHaveBeenCalled();
+		warn.mockRestore();
+	});
 });

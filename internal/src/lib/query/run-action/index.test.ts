@@ -21,6 +21,32 @@ describe("runAction", () => {
 		});
 	});
 
+	it("does not run the body for a session of a role other than admin", async () => {
+		await cookies.signIn("ana", "user");
+		let ran = 0;
+
+		expect(
+			await runAction("x", async () => {
+				ran++;
+			}),
+		).toEqual({ ok: false, reason: "unauthenticated" });
+		expect(ran).toBe(0);
+	});
+
+	it("does not run the body for an admin when the installation has no admin id", async () => {
+		await cookies.signIn();
+		const saved = process.env["EPISTLE_PANEL_ADMIN_ID"];
+		delete process.env["EPISTLE_PANEL_ADMIN_ID"];
+		try {
+			expect(await runAction("x", async () => 1)).toEqual({
+				ok: false,
+				reason: "unauthenticated",
+			});
+		} finally {
+			process.env["EPISTLE_PANEL_ADMIN_ID"] = saved;
+		}
+	});
+
 	it("does not run the body without a session, or with a forged one", async () => {
 		let ran = 0;
 		const body = async () => {
@@ -32,7 +58,7 @@ describe("runAction", () => {
 			ok: false,
 			reason: "unauthenticated",
 		});
-		cookies.jar.set("__Host-epistle_admin_session", "forged.token");
+		cookies.jar.set("__Host-epistle_session", "forged.token");
 		expect(await runAction("x", body)).toEqual({
 			ok: false,
 			reason: "unauthenticated",

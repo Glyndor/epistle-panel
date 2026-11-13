@@ -15,7 +15,7 @@ scenario_unknown_variable() {
 	assert_absent "the warning never prints the value" "$log" "hunter2-value"
 	assert_absent "a name the panel reads is not warned about" "$log" "unknown configuration variable EPISTLE_PANEL_BRAND_NAME"
 	assert_absent "the secret _FILE form is not warned about" "$log" "EPISTLE_PANEL_SESSION_SECRET_FILE"
-	fetch /login
+	fetch /
 	assert_eq "the panel still serves with the unknown name set" "$status" 200
 	panel_env=()
 }

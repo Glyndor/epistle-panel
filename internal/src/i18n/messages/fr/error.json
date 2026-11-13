@@ -1,6 +1,6 @@
 {
 	"heading": "Une erreur s’est produite",
-	"body": "La page n’a pas pu être affichée. Réessayez, ou retournez à la page d’état.",
+	"body": "La page n’a pas pu être affichée. Réessayez, ou retournez à l’accueil.",
 	"retry": "Réessayer",
-	"home": "Retour à l’état"
+	"home": "Retour à l’accueil"
 }

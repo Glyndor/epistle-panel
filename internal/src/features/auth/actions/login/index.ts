@@ -19,11 +19,13 @@ import {
 	SESSION_COOKIE,
 	SESSION_COOKIE_OPTIONS,
 } from "@/lib/auth/session";
-import { ROUTES } from "@/lib/routes";
+import { PUBLIC_ROUTES } from "@/lib/routes";
 
 /**
  * Verify submitted credentials against the mail server and, if they belong to
- * a panel admin, establish the session cookie and redirect into the panel.
+ * an account, establish the session cookie and redirect to the mail area. The role
+ * comes from the API's answer, never from the browser, and is signed into the
+ * token.
  * Every outcome, success included, takes the same minimum time (see
  * `response-floor`), and a failure returns the same outcome whatever its cause,
  * so the response does not reveal which accounts exist. When a CAPTCHA is on it
@@ -88,7 +90,7 @@ export async function login(
 		admission.settle("error");
 		return fail();
 	}
-	if (!result.valid || !result.admin) {
+	if (!result.valid) {
 		admission.settle("failure");
 		return fail();
 	}
@@ -98,8 +100,8 @@ export async function login(
 	const store = await cookies();
 	store.set(
 		SESSION_COOKIE,
-		await createSession(name),
+		await createSession(name, result.admin ? "admin" : "user"),
 		SESSION_COOKIE_OPTIONS,
 	);
-	redirect(ROUTES.home);
+	redirect(PUBLIC_ROUTES.mail);
 }

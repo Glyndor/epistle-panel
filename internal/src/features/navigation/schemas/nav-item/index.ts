@@ -3,7 +3,7 @@ import { z } from "zod";
 
 /**
  * Who a navigation entry is for. `admin` is the administration panel; `user`
- * is the end-user webmail, which the panel will host under `/m`. A user session
+ * is the end-user webmail, which the panel hosts under `/app/mail`. A user session
  * never reaches an admin entry: the role decides what is listed, and the
  * routes still check the session themselves.
  */
@@ -44,6 +44,8 @@ export type NavGroupKey = z.infer<typeof navGroupKeySchema>;
  */
 export const navItemSchema = z.object({
 	href: z.string().regex(/^\/[a-z0-9/_-]*$/),
+	/** Whether the entry is current on its own path only, not on the paths below it. */
+	exact: z.boolean().optional(),
 	label: navLabelKeySchema,
 	icon: navIconSchema,
 	group: navGroupKeySchema,

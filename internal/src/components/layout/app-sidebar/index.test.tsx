@@ -6,7 +6,10 @@ import {
 	BRAND_LOGO_VARIABLE,
 	BRAND_NAME_VARIABLE,
 } from "@/features/branding/queries/brand";
-import { navForRole } from "@/features/navigation/queries/nav-for-role";
+import {
+	adminNav,
+	TEST_ROUTES,
+} from "@/features/navigation/test-support/admin-nav";
 
 const { AppSidebar } = await import(".");
 
@@ -23,7 +26,8 @@ describe("AppSidebar", () => {
 				{
 					await AppSidebar({
 						name: "admin",
-						groups: navForRole("admin"),
+						groups: adminNav(),
+						homeHref: TEST_ROUTES.home,
 					})
 				}
 			</SidebarProvider>,
@@ -31,7 +35,7 @@ describe("AppSidebar", () => {
 
 		expect(screen.getByRole("link", { name: /Epistle/ })).toHaveAttribute(
 			"href",
-			"/app",
+			TEST_ROUTES.home,
 		);
 		const nav = screen.getByRole("navigation", { name: "label" });
 		expect(nav.querySelectorAll("a")).toHaveLength(6);
@@ -47,14 +51,17 @@ describe("AppSidebar", () => {
 				{
 					await AppSidebar({
 						name: "admin",
-						groups: navForRole("admin"),
+						groups: adminNav(),
+						homeHref: TEST_ROUTES.home,
 					})
 				}
 			</SidebarProvider>,
 		);
 
 		expect(
-			container.querySelector("a[href='/app'] svg[aria-hidden='true']"),
+			container.querySelector(
+				`a[href='${TEST_ROUTES.home}'] svg[aria-hidden='true']`,
+			),
 		).not.toBeNull();
 	});
 
@@ -66,7 +73,8 @@ describe("AppSidebar", () => {
 				{
 					await AppSidebar({
 						name: "admin",
-						groups: navForRole("admin"),
+						groups: adminNav(),
+						homeHref: TEST_ROUTES.home,
 					})
 				}
 			</SidebarProvider>,
@@ -75,10 +83,9 @@ describe("AppSidebar", () => {
 		expect(
 			screen.getByRole("link", { name: /Acme Mail/ }),
 		).toBeInTheDocument();
-		expect(container.querySelector("a[href='/app'] img")).toHaveAttribute(
-			"src",
-			"/brand/logo",
-		);
+		expect(
+			container.querySelector(`a[href='${TEST_ROUTES.home}'] img`),
+		).toHaveAttribute("src", "/brand/logo");
 		expect(screen.getByText(COPYRIGHT_NOTICE)).toBeInTheDocument();
 	});
 
@@ -88,7 +95,8 @@ describe("AppSidebar", () => {
 				{
 					await AppSidebar({
 						name: "admin",
-						groups: navForRole("admin"),
+						groups: adminNav(),
+						homeHref: TEST_ROUTES.home,
 					})
 				}
 			</SidebarProvider>,

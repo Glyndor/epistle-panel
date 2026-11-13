@@ -3,7 +3,8 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
 import { stubFetchJson, stubFetchReject } from "@/lib/api/test-support/fetch";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
-import { withQuery } from "@/test/query-wrapper";
+import { TEST_ADMIN_ID } from "@/lib/config/test-support/admin-id";
+import { withAdminArea } from "@/test/admin-routes";
 
 const originalFetch = globalThis.fetch;
 const cookies = mockRequestCookies();
@@ -33,7 +34,7 @@ describe("SuppressionTable", () => {
 	it("lists the addresses with a remove control each", async () => {
 		stubFetchJson(body);
 
-		render(withQuery(<SuppressionTable after={undefined} />));
+		render(withAdminArea(<SuppressionTable after={undefined} />));
 
 		expect(await screen.findByText("zed@example.org")).toBeInTheDocument();
 		expect(screen.getByText("amy@example.net")).toBeInTheDocument();
@@ -44,7 +45,7 @@ describe("SuppressionTable", () => {
 
 	it("sorts by address and filters the page on screen", async () => {
 		stubFetchJson(body);
-		render(withQuery(<SuppressionTable after={undefined} />));
+		render(withAdminArea(<SuppressionTable after={undefined} />));
 		await screen.findByText("zed@example.org");
 
 		fireEvent.click(screen.getByRole("button", { name: /address/ }));
@@ -59,21 +60,24 @@ describe("SuppressionTable", () => {
 
 	it("links to the next page through the API's cursor, encoded, and to the first page when on a later one", async () => {
 		stubFetchJson({ addresses: ["a+b@x.org"], next_cursor: "a+b@x.org" });
-		render(withQuery(<SuppressionTable after="z@x.org" />));
+		render(withAdminArea(<SuppressionTable after="z@x.org" />));
 
 		expect(
 			await screen.findByRole("link", { name: "next" }),
-		).toHaveAttribute("href", "/app/suppression?after=a%2Bb%40x.org");
+		).toHaveAttribute(
+			"href",
+			`/app/${TEST_ADMIN_ID}/suppression?after=a%2Bb%40x.org`,
+		);
 		expect(screen.getByRole("link", { name: "first" })).toHaveAttribute(
 			"href",
-			"/app/suppression",
+			`/app/${TEST_ADMIN_ID}/suppression`,
 		);
 	});
 
 	it("shows neither link on a single first page", async () => {
 		stubFetchJson({ addresses: ["a@b.org"] });
 
-		render(withQuery(<SuppressionTable after={undefined} />));
+		render(withAdminArea(<SuppressionTable after={undefined} />));
 
 		expect(await screen.findByText("a@b.org")).toBeInTheDocument();
 		expect(screen.queryByRole("link")).toBeNull();
@@ -81,12 +85,12 @@ describe("SuppressionTable", () => {
 
 	it("shows the empty text for an empty list and the warning when unreachable", async () => {
 		stubFetchJson({ addresses: [] });
-		render(withQuery(<SuppressionTable after={undefined} />));
+		render(withAdminArea(<SuppressionTable after={undefined} />));
 		expect(await screen.findByText("empty")).toBeInTheDocument();
 		cleanup();
 
 		stubFetchReject();
-		render(withQuery(<SuppressionTable after={undefined} />));
+		render(withAdminArea(<SuppressionTable after={undefined} />));
 		expect(await screen.findByRole("alert")).toHaveClass("bg-warning");
 	});
 });

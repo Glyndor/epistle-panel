@@ -1,3 +1,4 @@
+import type { Route } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { NavMain } from "@/components/layout/nav-main";
@@ -18,7 +19,6 @@ import { BrandMark } from "@/features/branding/components/brand-mark";
 import { CopyrightNotice } from "@/features/branding/components/copyright-notice";
 import { getBrand } from "@/features/branding/queries/brand";
 import type { NavGroup } from "@/features/navigation/schemas/nav-item";
-import { ROUTES } from "@/lib/routes";
 
 /**
  * The application sidebar: brand, primary navigation and the signed-in user.
@@ -28,9 +28,11 @@ import { ROUTES } from "@/lib/routes";
 export async function AppSidebar({
 	name,
 	groups,
+	homeHref,
 }: {
 	name: string;
 	groups: readonly NavGroup[];
+	homeHref: Route;
 }) {
 	const t = await getTranslations("nav");
 	const brand = getBrand();
@@ -49,7 +51,7 @@ export async function AppSidebar({
 							tooltip={brand.name}
 							className="min-h-10"
 						>
-							<Link href={ROUTES.home}>
+							<Link href={homeHref}>
 								<BrandMark hasLogo={brand.hasLogo} />
 								<span className="grid flex-1 text-left leading-tight">
 									<span className="truncate font-semibold">

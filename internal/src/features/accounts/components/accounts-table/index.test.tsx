@@ -3,7 +3,8 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
 import { stubFetchJson, stubFetchReject } from "@/lib/api/test-support/fetch";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
-import { withQuery } from "@/test/query-wrapper";
+import { TEST_ADMIN_ID } from "@/lib/config/test-support/admin-id";
+import { withAdminArea } from "@/test/admin-routes";
 
 const originalFetch = globalThis.fetch;
 const cookies = mockRequestCookies();
@@ -37,7 +38,7 @@ describe("AccountsTable", () => {
 			],
 		});
 
-		render(withQuery(<AccountsTable />));
+		render(withAdminArea(<AccountsTable />));
 
 		expect(await screen.findByText("alice")).toBeInTheDocument();
 		expect(
@@ -66,7 +67,7 @@ describe("AccountsTable", () => {
 				},
 			],
 		});
-		render(withQuery(<AccountsTable />));
+		render(withAdminArea(<AccountsTable />));
 		await screen.findByText("alice");
 
 		fireEvent.change(screen.getByRole("searchbox", { name: "filter" }), {
@@ -80,7 +81,7 @@ describe("AccountsTable", () => {
 	it("shows the unreachable warning when the API cannot be read", async () => {
 		stubFetchReject();
 
-		render(withQuery(<AccountsTable />));
+		render(withAdminArea(<AccountsTable />));
 
 		expect(await screen.findByRole("alert")).toHaveClass("bg-warning");
 	});
@@ -103,11 +104,11 @@ describe("AccountsTable", () => {
 			],
 		});
 
-		render(withQuery(<AccountsTable />));
+		render(withAdminArea(<AccountsTable />));
 
 		expect(
 			await screen.findByRole("link", { name: "alice" }),
-		).toHaveAttribute("href", "/app/accounts/alice");
+		).toHaveAttribute("href", `/app/${TEST_ADMIN_ID}/accounts/alice`);
 		expect(screen.getByText("../odd")).toBeInTheDocument();
 		expect(screen.queryByRole("link", { name: "../odd" })).toBeNull();
 	});

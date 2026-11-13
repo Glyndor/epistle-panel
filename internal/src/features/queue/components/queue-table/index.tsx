@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 
 import { columnHelper, DataTable } from "@/components/data-table";
+import { useAdminRoutes } from "@/components/layout/admin-routes";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,7 +14,6 @@ import { RemoveEntryButton } from "@/features/queue/components/remove-entry-butt
 import { queueQueryOptions } from "@/features/queue/queries/queue-query";
 import type { QueueRow } from "@/features/queue/schemas/queue-view";
 import { unwrap } from "@/lib/query/action-result";
-import { ROUTES } from "@/lib/routes";
 
 const fetchPage = async (cursor: string | undefined) =>
 	unwrap(await getQueuePageAction(cursor === undefined ? {} : { cursor }));
@@ -27,6 +27,7 @@ const helper = columnHelper<QueueRow>();
  */
 export function QueueTable({ cursor }: { cursor: string | undefined }) {
 	const t = useTranslations("queue");
+	const routes = useAdminRoutes();
 	const { data, isPending } = useQuery(queueQueryOptions(cursor, fetchPage));
 	const columns = helper.columns([
 		helper.accessor("from", {
@@ -80,13 +81,13 @@ export function QueueTable({ cursor }: { cursor: string | undefined }) {
 				<>
 					{cursor !== undefined ? (
 						<Button asChild variant="link">
-							<Link href={ROUTES.queue}>{t("first")}</Link>
+							<Link href={routes.queue}>{t("first")}</Link>
 						</Button>
 					) : null}
 					{data.nextCursor !== null ? (
 						<Button asChild variant="link">
 							<Link
-								href={`${ROUTES.queue}?cursor=${encodeURIComponent(data.nextCursor)}`}
+								href={`${routes.queue}?cursor=${encodeURIComponent(data.nextCursor)}`}
 							>
 								{t("next")}
 							</Link>

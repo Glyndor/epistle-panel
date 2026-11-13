@@ -1,6 +1,7 @@
 import { expect, mock } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
 
+import { TEST_ADMIN_ID } from "../../lib/config/test-support/admin-id";
 import { installNextIntlMocks } from "../next-intl";
 
 // Provide `document`/`window` for component tests, then extend `expect` with
@@ -26,6 +27,9 @@ mock.module("next/navigation", () => ({
 	redirect: () => {
 		throw new Error("NEXT_REDIRECT");
 	},
+	notFound: () => {
+		throw new Error("NEXT_NOT_FOUND");
+	},
 	usePathname: () => "/",
 }));
 mock.module("next/headers", () => ({
@@ -46,3 +50,4 @@ process.env["EPISTLE_API_URL"] ??= "http://127.0.0.1:8025";
 process.env["EPISTLE_API_TOKEN"] ??= "test-token";
 process.env["EPISTLE_PANEL_SESSION_SECRET"] ??=
 	"test-session-secret-at-least-32-bytes-long";
+process.env["EPISTLE_PANEL_ADMIN_ID"] ??= TEST_ADMIN_ID;

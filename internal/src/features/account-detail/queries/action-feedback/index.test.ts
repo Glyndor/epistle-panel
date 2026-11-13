@@ -18,7 +18,7 @@ describe("reportFailure", () => {
 		reportFailure(new ActionError("unauthenticated"), "message");
 
 		window.location.assign = original;
-		expect(targets).toEqual(["/login"]);
+		expect(targets).toEqual(["/"]);
 	});
 
 	it("does not leave the page for any other failure", () => {

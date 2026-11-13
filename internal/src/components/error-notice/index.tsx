@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { ROUTES } from "@/lib/routes";
+import { PUBLIC_ROUTES } from "@/lib/routes";
 
 /** Text of an {@link ErrorNotice}, already translated by the caller. */
 export interface ErrorNoticeLabels {
@@ -13,7 +13,7 @@ export interface ErrorNoticeLabels {
 
 /**
  * Body of the error pages: what failed in plain words, a button that asks Next
- * to render the segment again and a link back to the status page. It styles
+ * to render the segment again and a link back to the start. It styles
  * itself with classes only, because `style-src 'self'` refuses inline styles,
  * and it never shows the error's message or digest, which can carry internals.
  */
@@ -38,7 +38,7 @@ export function ErrorNotice({
 					{labels.retry}
 				</Button>
 				<Button asChild variant="link">
-					<a href={ROUTES.home}>{labels.home}</a>
+					<a href={PUBLIC_ROUTES.root}>{labels.home}</a>
 				</Button>
 			</div>
 		</main>

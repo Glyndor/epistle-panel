@@ -14,8 +14,7 @@ A form is react-hook-form with a zod schema that the Server Action enforces too.
   does not re-render the others. `FormControl` sets the id, `aria-invalid` and
   an `aria-describedby` that names the message only while there is one.
 - **The action's answer is generic where a specific one would leak.** Sign-in
-  refuses an empty or over-long value, a bad credential and a non-admin with the
-  same outcome, after the same minimum time, and the limiter runs after the
+  refuses an empty or over-long value and a bad credential with the same outcome, after the same minimum time, and the limiter runs after the
   schema, so refused input never reaches the API.
 - **It stays a real `<form action>`.** Without script the browser posts the
   fields and the action runs; with script the submit handler validates first and

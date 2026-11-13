@@ -19,12 +19,15 @@ beforeEach(() => {
 describe("logout", () => {
 	it("makes the token unusable, so a copy of the cookie stops working", async () => {
 		const token = await cookies.signIn("ops");
-		expect(await verifySession(token)).toEqual({ sub: "ops" });
+		expect(await verifySession(token)).toEqual({
+			sub: "ops",
+			role: "admin",
+		});
 
 		const outcome = await logout().catch((error) => error);
 
 		expect(outcome).toBeInstanceOf(RedirectSignal);
-		expect(outcome.target).toBe("/login");
+		expect(outcome.target).toBe("/");
 		expect(await verifySession(token)).toBeNull();
 	});
 
