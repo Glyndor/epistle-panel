@@ -35,6 +35,19 @@ const STAND_INS: Record<string, () => object> = {
 };
 
 /**
+ * Put another module under the same protection: from now on a file that mocks
+ * `specifier` keeps its own exports and gets every other one from `standIn`.
+ * The module is mocked with the stand-in at once.
+ */
+export function registerStandIn(
+	specifier: string,
+	standIn: () => object,
+): void {
+	STAND_INS[specifier] = standIn;
+	mock.module(specifier, standIn);
+}
+
+/**
  * Wrap a per-file mock factory so what it leaves out comes from the shared
  * stand-in. The file's own exports win; nothing is ever removed.
  */

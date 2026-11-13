@@ -31,6 +31,12 @@ different exports pass in one order and fail in another. So:
   those two modules keeps its own exports and loses none of the others. Prefer
   the stand-ins: a test in that folder fails when one lacks a name the panel
   imports.
+- `next/navigation` and `next/headers` are under the same wrapper
+  (`src/test/next-navigation/`, registered by the preload with
+  `registerStandIn`). A file that mocked `next/navigation` with the two exports
+  it used left every file after it without `notFound`; now its own exports win
+  and the rest come from the stand-in. A module that several files mock goes
+  through `registerStandIn` too.
 - Stores kept on `globalThis` (revocations, the login limiter) are emptied
   before each case that counts their entries.
 
@@ -68,6 +74,27 @@ GENERATED_SEED=$RANDOM bun test src/lib src/proxy-generated-inputs.test.ts
 Every failure prints `seed=<n> case=<i>`; run again with `GENERATED_SEED=<n>`
 to replay the whole run, or call `replayCase` for that one case. A value that is
 not a non-negative integer stops the run instead of falling back to the default.
+
+## A failed assertion must be cheap
+
+`waitFor` polls an assertion for one second. That only works if a failed poll
+costs almost nothing, and on a DOM node it did not: Bun printed the whole
+happy-dom object behind the node into the message. A failed
+`expect(node).toBeNull()` built 248 MB of text in about four seconds, and a
+failed jest-dom matcher took about seven (measured on a Radix dialog). One
+failed poll was longer than the whole wait, so a test whose first poll came a
+moment too early failed instead of polling again. Fifty-seven assertions in
+eighteen files were of that shape, and the tests that failed "at random" were
+among them.
+
+The preload installs a one-line print for every node
+(`src/test/short-node-print/`): tag, id, role, accessible name, the start of
+its text. A failed assertion on a node now takes about a millisecond and says
+which node. Its test fails, in seconds, if the print is not installed.
+
+Do not raise a timeout to cure a test that fails now and then. Look for what a
+failed poll costs, or for a test that ends while its action is still on its way
+to the stubbed `fetch`: the request then lands in the next test's stub.
 
 ## Pinning limits
 
