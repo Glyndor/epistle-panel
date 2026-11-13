@@ -1,0 +1,17 @@
+{
+	"heading": "Liste de suppression",
+	"description": "Adresses auxquelles le serveur n’envoie pas, par exemple après un rebond permanent. Retirer une adresse lui permet de recevoir de nouveau des messages.",
+	"unreachable": "L’API de gestion du serveur de messagerie est injoignable. Vérifiez que le serveur est en marche et que le panneau est configuré.",
+	"empty": "Aucune adresse n’est supprimée.",
+	"address": "Adresse",
+	"remove": "Retirer",
+	"removing": "Retrait…",
+	"removeLabel": "Retirer {address} de la liste de suppression",
+	"removeError": "L’adresse n’a pas pu être retirée. Veuillez réessayer.",
+	"confirm": "Retirer {address} de la liste de suppression ? Le serveur lui enverra de nouveau des messages.",
+	"next": "Page suivante",
+	"actions": "Actions",
+	"filter": "Filtrer cette page",
+	"first": "Première page",
+	"removed": "Adresse retirée de la liste de suppression."
+}

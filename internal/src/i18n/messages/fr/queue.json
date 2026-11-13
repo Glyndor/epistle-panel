@@ -1,0 +1,17 @@
+{
+	"heading": "File d’attente sortante",
+	"unreachable": "L’API de gestion du serveur de messagerie est injoignable. Vérifiez que le serveur est en marche et que le panneau est configuré.",
+	"empty": "La file d’attente sortante est vide.",
+	"from": "De",
+	"to": "À",
+	"remove": "Supprimer",
+	"removing": "Suppression…",
+	"removeLabel": "Supprimer de la file d’attente le message pour {recipients}",
+	"removeError": "Le message n’a pas pu être supprimé. Veuillez réessayer.",
+	"confirm": "Supprimer de la file d’attente le message pour {recipients} ? Cette action est irréversible.",
+	"next": "Page suivante",
+	"actions": "Actions",
+	"filter": "Filtrer cette page",
+	"first": "Première page",
+	"removed": "Message supprimé de la file d’attente."
+}

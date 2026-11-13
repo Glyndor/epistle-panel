@@ -1,0 +1,17 @@
+{
+	"heading": "Coda in uscita",
+	"unreachable": "L’API di gestione del server di posta non è raggiungibile. Verifica che il server sia in esecuzione e che il pannello sia configurato.",
+	"empty": "La coda in uscita è vuota.",
+	"from": "Da",
+	"to": "A",
+	"remove": "Rimuovi",
+	"removing": "Rimozione…",
+	"removeLabel": "Rimuovi dalla coda il messaggio per {recipients}",
+	"removeError": "Non è stato possibile rimuovere il messaggio. Riprova.",
+	"confirm": "Rimuovere dalla coda il messaggio per {recipients}? L’operazione non può essere annullata.",
+	"next": "Pagina successiva",
+	"actions": "Azioni",
+	"filter": "Filtra questa pagina",
+	"first": "Prima pagina",
+	"removed": "Messaggio rimosso dalla coda."
+}

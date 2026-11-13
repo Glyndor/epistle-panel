@@ -1,0 +1,21 @@
+{
+	"label": "Principale",
+	"skip": "Aller au contenu",
+	"status": "État",
+	"domains": "Domaines",
+	"accounts": "Comptes",
+	"queue": "File d’attente",
+	"suppression": "Suppression",
+	"deliveries": "Livraisons",
+	"logout": "Se déconnecter",
+	"brandSubtitle": "Panneau d’administration",
+	"manage": "Gérer",
+	"toggle": "Afficher ou masquer la barre latérale",
+	"sheetTitle": "Navigation",
+	"sheetDescription": "Pages du panneau d’administration.",
+	"close": "Fermer",
+	"signedInAs": "Connecté en tant que {name}",
+	"language": "Langue",
+	"notifications": "Notifications",
+	"dismiss": "Fermer"
+}

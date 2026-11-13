@@ -1,0 +1,37 @@
+{
+	"heading": "Livraisons",
+	"description": "Ce qui est arrivé à chaque message pour chaque destinataire, du plus récent au plus ancien. Les heures sont en UTC.",
+	"unreachable": "L’API de gestion du serveur de messagerie est injoignable. Vérifiez que le serveur est en marche et que le panneau est configuré.",
+	"disabled": "Le journal des livraisons est désactivé sur le serveur. Définissez une rétention supérieure à 0 jour dans les paramètres de stockage du serveur pour enregistrer les livraisons.",
+	"empty": "Aucune livraison ne correspond.",
+	"full": "L’API renvoie au plus 100 enregistrements et n’a pas de page suivante. Affinez la liste avec les filtres pour voir les autres.",
+	"filter": "Filtrer ces enregistrements",
+	"time": "Heure (UTC)",
+	"outcome": "Résultat",
+	"recipient": "Destinataire",
+	"from": "De",
+	"account": "Compte",
+	"remote": "Serveur distant",
+	"reply": "Réponse",
+	"attempt": "Tentative",
+	"none": "-",
+	"any": "Tout résultat",
+	"anyTime": "Toute période",
+	"since": "Depuis",
+	"apply": "Appliquer",
+	"clear": "Effacer",
+	"outcomes": {
+		"delivered": "Livré",
+		"deferred": "Différé",
+		"failed": "Échoué",
+		"suppressed": "Supprimé",
+		"canceled": "Annulé"
+	},
+	"windows": {
+		"15m": "15 dernières minutes",
+		"1h": "Dernière heure",
+		"24h": "24 dernières heures",
+		"7d": "7 derniers jours",
+		"30d": "30 derniers jours"
+	}
+}

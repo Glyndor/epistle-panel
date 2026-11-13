@@ -1,0 +1,7 @@
+{
+	"heading": "Domains",
+	"unreachable": "Die Verwaltungs-API des Mailservers ist nicht erreichbar. Prüfen Sie, ob der Server läuft und das Panel konfiguriert ist.",
+	"empty": "Es sind noch keine Domains konfiguriert.",
+	"name": "Domain",
+	"filter": "Domains filtern"
+}

@@ -1,0 +1,17 @@
+{
+	"heading": "Elenco di soppressione",
+	"description": "Indirizzi a cui il server non invia, ad esempio dopo un rimbalzo permanente. Rimuoverne uno gli permette di ricevere di nuovo posta.",
+	"unreachable": "L’API di gestione del server di posta non è raggiungibile. Verifica che il server sia in esecuzione e che il pannello sia configurato.",
+	"empty": "Nessun indirizzo è soppresso.",
+	"address": "Indirizzo",
+	"remove": "Rimuovi",
+	"removing": "Rimozione…",
+	"removeLabel": "Rimuovi {address} dall’elenco di soppressione",
+	"removeError": "Non è stato possibile rimuovere l’indirizzo. Riprova.",
+	"confirm": "Rimuovere {address} dall’elenco di soppressione? Il server tornerà a inviargli posta.",
+	"next": "Pagina successiva",
+	"actions": "Azioni",
+	"filter": "Filtra questa pagina",
+	"first": "Prima pagina",
+	"removed": "Indirizzo rimosso dall’elenco di soppressione."
+}

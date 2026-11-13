@@ -1,0 +1,8 @@
+{
+	"heading": "État",
+	"unreachable": "L’API de gestion du serveur de messagerie est injoignable. Vérifiez que le serveur est en marche et que le panneau est configuré.",
+	"version": "Version",
+	"domains": "Domaines",
+	"accounts": "Comptes",
+	"queue": "File d’attente"
+}

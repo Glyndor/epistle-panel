@@ -1,0 +1,17 @@
+{
+	"heading": "Unterdrückungsliste",
+	"description": "Adressen, an die der Server nicht sendet, zum Beispiel nach einem dauerhaften Bounce. Wird eine Adresse entfernt, kann sie wieder Nachrichten empfangen.",
+	"unreachable": "Die Verwaltungs-API des Mailservers ist nicht erreichbar. Prüfen Sie, ob der Server läuft und das Panel konfiguriert ist.",
+	"empty": "Keine Adresse ist unterdrückt.",
+	"address": "Adresse",
+	"remove": "Entfernen",
+	"removing": "Wird entfernt…",
+	"removeLabel": "{address} aus der Unterdrückungsliste entfernen",
+	"removeError": "Die Adresse konnte nicht entfernt werden. Bitte versuchen Sie es erneut.",
+	"confirm": "{address} aus der Unterdrückungsliste entfernen? Der Server sendet dann wieder Nachrichten an diese Adresse.",
+	"next": "Nächste Seite",
+	"actions": "Aktionen",
+	"filter": "Diese Seite filtern",
+	"first": "Erste Seite",
+	"removed": "Adresse aus der Unterdrückungsliste entfernt."
+}

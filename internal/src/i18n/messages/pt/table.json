@@ -1,0 +1,7 @@
+{
+	"rows": "{total, plural, =0 {Nenhuma linha} one {# linha} other {{shown} de # linhas}}",
+	"noMatches": "Nenhuma linha corresponde ao filtro.",
+	"sortable": "ordenável",
+	"sortedAscending": "ordem crescente",
+	"sortedDescending": "ordem decrescente"
+}

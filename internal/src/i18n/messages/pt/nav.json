@@ -1,0 +1,21 @@
+{
+	"label": "Principal",
+	"skip": "Ir para o conteúdo",
+	"status": "Status",
+	"domains": "Domínios",
+	"accounts": "Contas",
+	"queue": "Fila",
+	"suppression": "Supressão",
+	"deliveries": "Entregas",
+	"logout": "Sair",
+	"brandSubtitle": "Painel de administração",
+	"manage": "Gerenciar",
+	"toggle": "Alternar barra lateral",
+	"sheetTitle": "Navegação",
+	"sheetDescription": "Páginas do painel de administração.",
+	"close": "Fechar",
+	"signedInAs": "Conectado como {name}",
+	"language": "Idioma",
+	"notifications": "Notificações",
+	"dismiss": "Dispensar"
+}

@@ -82,7 +82,7 @@ secret: a password is only counted.
 | `body-limit` | a Server Action body over the 16 KB `experimental.serverActions.bodySizeLimit` in `next.config.ts` is refused before the action runs (the API sees no call), while the widest sign-in the form can send (about 4.1 KB, also with a 4 KB CAPTCHA-sized token) and a normal action are accepted |
 | `captcha` | with the stand-in CAPTCHA provider on (the `custom` provider): off by default; the page carries the widget box and the public site key, never the secret or the verification URL; the sign-in page's CSP gains exactly the provider's origin in `script-src`, `frame-src` and `connect-src` and nothing else, no other response does; no token and an unsolved token are refused and the API is never asked, a solved one signs in; the provider is asked before the API; a missing site key, an unreadable secret file or an unknown provider refuse every sign-in, name the variable in the log and widen nothing; no log holds a token or a secret |
 | `csrf` | a Server Action post with a valid session and a foreign `Origin` (or `Origin: null`) is refused by Next and the API sees no `DELETE`; the panel's own `Origin` is accepted. It also pins a measured dependency: a foreign `Origin` together with the same foreign `X-Forwarded-Host` passes Next's check and the action runs (see below) |
-| `set-locale` | the `set-locale` action with an unknown or path-like language answers `false` and writes no `locale` cookie; a supported language writes it; without a session the proxy redirects and nothing is written |
+| `set-locale` | the `set-locale` action with an unknown, path-like, wrong-case or very long language answers `false` and writes no `locale` cookie; each supported language (read from `internal/src/i18n/locales`) writes it, and the queue page then renders with `<html lang>` and the heading of that locale; without a session the proxy redirects and nothing is written |
 | `unknown-variable` | a misspelt `EPISTLE_PANEL_` name is warned about in the startup log by name, the value is never printed, a name the panel reads (and the `_FILE` form of a secret) is not warned about, and the panel still serves |
 | `suppression` | `/app/suppression` and its Server Action are denied without a session and the stand-in sees nothing; the first page, the encoded `after` cursor and the next link; a hostile `?after=` (`../`, `%2e%2e%2f`, line breaks, a bidi override, 300 characters, an injected parameter) is dropped and the first page is fetched; hostile action arguments (the same, an extra field, an empty or non-object argument) reach no `DELETE`; a valid removal sends the address as one percent-encoded path segment (the stand-in's seed holds a `/` and a `+`) and the address leaves the page |
 | `deliveries` | `/app/deliveries` is denied without a session and the stand-in sees nothing; the unfiltered page asks the API once for 100 records; a reply with markup is printed as text; filters (`outcome`, `since`, `recipient`) reach the API encoded and narrow the page; hostile parameters (an unknown outcome, `../`, `1e9d`, a line break, an injected parameter, a bidi override, 300 characters, `limit`, `account`) are dropped and the unfiltered log is fetched; nothing but `GET` reaches the API |
@@ -160,14 +160,14 @@ the console open.
    sign-in shows the alert without a page reload).
 3. On `/app/queue` press Remove and accept the confirmation: the entry disappears
    and the stand-in log shows one `DELETE`.
-4. Set the cookie `locale=es` and reload: the headings are Spanish and
-   `<html lang="es">`.
+4. Set the cookie `locale` to each language in turn (`es`, `pt`, `fr`, `de`, `it`) and
+   reload: the headings are in that language and `<html lang>` matches.
 5. Visit an unknown path while signed in: the panel's own 404 page, with no
    inline-style violation.
 6. Press Sign out: the page goes to `/login` and the session cookie is gone.
 7. Sidebar: collapse it with the toggle or Ctrl+B and hover an icon (a tooltip
-   names it); open the Language menu and pick Español (the page re-renders in
-   Spanish); narrow the window below 768 px, open the sheet with the toggle,
+   names it); open the Language menu and pick another language (the page re-renders in
+   it); narrow the window below 768 px, open the sheet with the toggle,
    press Escape (focus returns to the toggle) and follow a link (the sheet
    closes). In every step the console must show no CSP violation. A violation
    listener (`document.addEventListener("securitypolicyviolation", ...)`

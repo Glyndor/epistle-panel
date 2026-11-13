@@ -1,0 +1,21 @@
+{
+	"label": "Principale",
+	"skip": "Vai al contenuto",
+	"status": "Stato",
+	"domains": "Domini",
+	"accounts": "Account",
+	"queue": "Coda",
+	"suppression": "Soppressione",
+	"deliveries": "Consegne",
+	"logout": "Esci",
+	"brandSubtitle": "Pannello di amministrazione",
+	"manage": "Gestisci",
+	"toggle": "Mostra o nascondi la barra laterale",
+	"sheetTitle": "Navigazione",
+	"sheetDescription": "Pagine del pannello di amministrazione.",
+	"close": "Chiudi",
+	"signedInAs": "Accesso come {name}",
+	"language": "Lingua",
+	"notifications": "Notifiche",
+	"dismiss": "Ignora"
+}

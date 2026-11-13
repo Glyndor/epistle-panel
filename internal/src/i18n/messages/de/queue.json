@@ -1,0 +1,17 @@
+{
+	"heading": "Ausgehende Warteschlange",
+	"unreachable": "Die Verwaltungs-API des Mailservers ist nicht erreichbar. Prüfen Sie, ob der Server läuft und das Panel konfiguriert ist.",
+	"empty": "Die ausgehende Warteschlange ist leer.",
+	"from": "Von",
+	"to": "An",
+	"remove": "Entfernen",
+	"removing": "Wird entfernt…",
+	"removeLabel": "Die Nachricht an {recipients} aus der Warteschlange entfernen",
+	"removeError": "Die Nachricht konnte nicht entfernt werden. Bitte versuchen Sie es erneut.",
+	"confirm": "Die Nachricht an {recipients} aus der Warteschlange entfernen? Das lässt sich nicht rückgängig machen.",
+	"next": "Nächste Seite",
+	"actions": "Aktionen",
+	"filter": "Diese Seite filtern",
+	"first": "Erste Seite",
+	"removed": "Nachricht aus der Warteschlange entfernt."
+}

@@ -33,10 +33,6 @@ async function resolve(locale?: string): Promise<Config> {
 beforeEach(() => cookies.reset());
 
 describe("locale resolution", () => {
-	it("supports English and Spanish", () => {
-		expect([...SUPPORTED_LOCALES]).toEqual(["en", "es"]);
-	});
-
 	it("defaults to English without a locale cookie", async () => {
 		const config = await resolve();
 
@@ -44,16 +40,30 @@ describe("locale resolution", () => {
 		expect(config.messages).toEqual(await loadMessages("en"));
 	});
 
-	it("serves the Spanish catalog for the es cookie", async () => {
-		const config = await resolve("es");
+	it("serves each shipped locale's own catalog for its cookie", async () => {
+		const english = await loadMessages("en");
+		for (const locale of SUPPORTED_LOCALES) {
+			const config = await resolve(locale);
 
-		expect(config.locale).toBe("es");
-		expect(config.messages).toEqual(await loadMessages("es"));
-		expect(config.messages).not.toEqual(await loadMessages("en"));
+			expect(config.locale).toBe(locale);
+			expect(config.messages).toEqual(await loadMessages(locale));
+			if (locale !== "en") {
+				expect(config.messages).not.toEqual(english);
+			}
+		}
 	});
 
 	it("falls back to English for a locale it does not ship", async () => {
-		for (const value of ["fr", "EN", "es-CO", "", "../en"]) {
+		for (const value of [
+			"ja",
+			"EN",
+			"ES",
+			"es-CO",
+			"pt-BR",
+			"",
+			"../en",
+			"__proto__",
+		]) {
 			const config = await resolve(value);
 
 			expect(config.locale).toBe("en");

@@ -1,0 +1,7 @@
+{
+	"rows": "{total, plural, =0 {Keine Zeilen} one {# Zeile} other {{shown} von # Zeilen}}",
+	"noMatches": "Keine Zeile passt zum Filter.",
+	"sortable": "sortierbar",
+	"sortedAscending": "aufsteigend sortiert",
+	"sortedDescending": "absteigend sortiert"
+}
