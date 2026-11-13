@@ -19,6 +19,7 @@ afterEach(() => {
 	Object.defineProperty(window.location, "assign", {
 		value: originalAssign,
 		configurable: true,
+		writable: true,
 	});
 });
 
@@ -49,6 +50,7 @@ describe("ComposeForm", () => {
 		Object.defineProperty(window.location, "assign", {
 			value: (url: string) => assigned.push(url),
 			configurable: true,
+			writable: true,
 		});
 		render(
 			<ComposeForm
