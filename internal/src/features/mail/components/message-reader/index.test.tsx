@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+	cleanup,
+	fireEvent,
+	render,
+	screen,
+	waitFor,
+} from "@testing-library/react";
 
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
 import { clearSecretCache } from "@/lib/config/secret";
@@ -83,6 +89,44 @@ describe("MessageReader", () => {
 			"href",
 			"/app/mail?box=INBOX&page=2&filter=unread&q=x",
 		);
+	});
+
+	it("goes back to the list, through its own link, when the message leaves its folder", async () => {
+		stubJmap({
+			"Email/get": {
+				list: [emailFixture({ id: ID, keywords: { $seen: true } })],
+			},
+			"Mailbox/get": {
+				list: [
+					{
+						id: "INBOX",
+						role: "inbox",
+						name: "INBOX",
+						totalEmails: 1,
+						unreadEmails: 0,
+					},
+					{
+						id: "Archive",
+						role: "archive",
+						name: "Archive",
+						totalEmails: 0,
+						unreadEmails: 0,
+					},
+				],
+			},
+			"Email/set": { updated: { [ID]: null } },
+		});
+		render(withQuery(<MessageReader id={ID} view={view} />));
+		await screen.findByRole("heading", { level: 2 });
+		let followed = 0;
+		screen
+			.getByRole("link", { name: "back" })
+			.addEventListener("click", (event) => {
+				event.preventDefault();
+				followed += 1;
+			});
+		fireEvent.click(screen.getByRole("button", { name: "archive" }));
+		await waitFor(() => expect(followed).toBe(1));
 	});
 
 	it("waits, then says the message no longer exists", async () => {

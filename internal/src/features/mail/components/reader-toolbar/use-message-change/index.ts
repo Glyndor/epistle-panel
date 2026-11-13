@@ -45,13 +45,13 @@ export function useMessageChange({
 			),
 		onMutate: async ({ change }) => {
 			if (typeof change !== "string" || !isKeywordOp(change)) {
-				return { undo: () => {} };
+				return { undo: undefined };
 			}
 			await client.cancelQueries({ queryKey: mailKeys.all });
 			return { undo: patchFlags(client, id, change, mailboxId) };
 		},
 		onError: (_error, { quiet }, context) => {
-			context?.undo();
+			context?.undo?.();
 			if (!quiet) {
 				toast.error(t("actionFailed"));
 			}
