@@ -82,7 +82,7 @@ describe("login success", () => {
 		const outcome = await login(INITIAL, form("ops", "pw")).catch((e) => e);
 
 		expect(outcome).toBeInstanceOf(RedirectSignal);
-		expect(outcome.target).toBe("/");
+		expect(outcome.target).toBe("/app");
 		const [write] = cookies.writes;
 		expect(write?.name).toBe(SESSION_COOKIE);
 		expect(write?.name.startsWith("__Host-")).toBe(true);

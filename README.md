@@ -80,7 +80,7 @@ export EPISTLE_PANEL_SESSION_SECRET="<random 32+ byte secret>"
 
 Admins sign in with a mail account that the Epistle server reports as an admin.
 The panel verifies the credentials against Epistle and signs the session cookie
-with `EPISTLE_PANEL_SESSION_SECRET`. Without that secret set, every route stays locked
+with `EPISTLE_PANEL_SESSION_SECRET`. Without that secret set, every page under `/app` stays locked
 (fail-closed).
 
 ### Secrets from files
@@ -98,7 +98,7 @@ export EPISTLE_PANEL_SESSION_SECRET_FILE="/run/secrets/epistle_panel_session_sec
 - Trailing whitespace, such as the final newline, is stripped from the file content.
 - A `_FILE` variable that is set but points at a missing, unreadable or empty
   file is an error. The panel never falls back to the plain variable in that
-  case: a missing session secret locks every route and a missing API token
+  case: a missing session secret locks every page under `/app` and a missing API token
   fails every API call.
 - Error messages name the variable, never the path or the content.
 - The path must be absolute and name a regular file of at most 64 KiB; a symlink

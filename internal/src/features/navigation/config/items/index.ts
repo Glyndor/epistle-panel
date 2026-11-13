@@ -9,28 +9,28 @@ import { ROUTES } from "@/lib/routes";
  */
 export const NAV_ITEMS: readonly NavItem[] = [
 	{
-		href: "/",
+		href: ROUTES.home,
 		label: "status",
 		icon: "dashboard",
 		group: "manage",
 		roles: ["admin"],
 	},
 	{
-		href: "/domains",
+		href: ROUTES.domains,
 		label: "domains",
 		icon: "globe",
 		group: "manage",
 		roles: ["admin"],
 	},
 	{
-		href: "/accounts",
+		href: ROUTES.accounts,
 		label: "accounts",
 		icon: "users",
 		group: "manage",
 		roles: ["admin"],
 	},
 	{
-		href: "/queue",
+		href: ROUTES.queue,
 		label: "queue",
 		icon: "inbox",
 		group: "manage",

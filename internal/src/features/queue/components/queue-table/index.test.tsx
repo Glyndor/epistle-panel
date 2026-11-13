@@ -79,10 +79,10 @@ describe("QueueTable", () => {
 
 		expect(
 			await screen.findByRole("link", { name: "next" }),
-		).toHaveAttribute("href", `/queue?cursor=${NEXT}`);
+		).toHaveAttribute("href", `/app/queue?cursor=${NEXT}`);
 		expect(screen.getByRole("link", { name: "first" })).toHaveAttribute(
 			"href",
-			"/queue",
+			"/app/queue",
 		);
 	});
 

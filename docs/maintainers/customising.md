@@ -45,7 +45,7 @@ the panel's own stylesheet. It is a same-origin link, so it works under
 `style-src 'self'` with no inline style, and the CSP does not change. The route
 is public (the sign-in page needs it) through an exact exception in the proxy
 matcher, as are `/brand/logo` and `/brand/favicon`; each opens only itself, and
-the look-alikes stay behind the gate (the unit tests and the `theme` e2e
+the look-alikes are plain 404s (the unit tests and the `theme` e2e
 scenario assert it). The file is read on every request, so an edit shows within
 a minute.
 

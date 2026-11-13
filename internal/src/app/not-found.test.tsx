@@ -14,7 +14,7 @@ describe("NotFound", () => {
 		).toBeInTheDocument();
 		expect(screen.getByRole("link", { name: "home" })).toHaveAttribute(
 			"href",
-			"/",
+			"/app",
 		);
 	});
 

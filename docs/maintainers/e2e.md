@@ -75,7 +75,7 @@ secret: a password is only counted.
 | `logout` | a replayed cookie is refused by the proxy and by an action after logout, and reaches no API endpoint; another session survives |
 | `limiter` | three free tries, then the lock; locked attempts never reach the API; another name signs in; the lock ends; a failure and a success each take at least 1 s |
 | `limiter-global` | 60 failing names fill the global window and the 61st unknown name is refused; the admin, who signed in before, is still admitted. The cap of 8 concurrent API calls is covered by the unit tests, since parallel curl processes cannot make the count deterministic |
-| `noauth` | every route and Server Action is redirected without a session, with a garbage or altered cookie, and the stand-in sees nothing; `/robots.txt` answers `Disallow: /` without a session and its look-alikes (`/robots.txtx`, `/robots.txt/queue`, `/x/robots.txt`, `/ROBOTS.TXT`) and `/sitemap.xml` stay behind the gate |
+| `noauth` | every page under `/app`, known or not (also `/APP/queue`, `/%61pp/queue`, `//app/queue`), and every Server Action is redirected without a session, with a garbage or altered cookie, and the stand-in sees nothing; `/` forwards to `/app` and never asks for a session itself; the old `/accounts`, `/domains` and `/queue` answer 404 with and without a session; `/login` and `/robots.txt` answer 200 without one, `/robots.txt` says `Disallow: /`, and its look-alikes (`/robots.txtx`, `/robots.txt/queue`, `/x/robots.txt`, `/ROBOTS.TXT`) and `/sitemap.xml` are 404s |
 | `degraded` | a hanging API degrades the page within the 10 s budget and the server keeps answering; a body over the cap degrades quickly with bounded memory |
 | `rotation` | replacing a `_FILE` secret does not change a running process, in any bundle; a restart picks it up |
 | `idle` | idle CPU, and a memory ceiling after 400 requests |
@@ -155,10 +155,10 @@ the console open.
    SameSite=Lax, no Domain). Over plain HTTP on any other host name the browser
    drops it and sign-in does not stick. Firefox and Safari were not checked here; Firefox is documented as accepting
    the cookie on `http://localhost` (see the README).
-2. Visit `/`, `/accounts`, `/domains`, `/queue`, `/app/suppression`, `/app/deliveries`: the console must show no CSP
+2. Visit `/` (it must land on `/app`), `/app/accounts`, `/app/domains`, `/app/queue`, `/app/suppression`, `/app/deliveries`: the console must show no CSP
    violation and no error, and the login form must be hydrated (a failed
    sign-in shows the alert without a page reload).
-3. On `/queue` press Remove and accept the confirmation: the entry disappears
+3. On `/app/queue` press Remove and accept the confirmation: the entry disappears
    and the stand-in log shows one `DELETE`.
 4. Set the cookie `locale=es` and reload: the headings are Spanish and
    `<html lang="es">`.

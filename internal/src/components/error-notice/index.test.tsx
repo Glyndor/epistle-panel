@@ -22,7 +22,7 @@ describe("ErrorNotice", () => {
 		).toBeInTheDocument();
 		expect(screen.getByRole("link", { name: "home" })).toHaveAttribute(
 			"href",
-			"/",
+			"/app",
 		);
 		fireEvent.click(screen.getByRole("button", { name: "retry" }));
 		expect(onRetry).toHaveBeenCalledTimes(1);

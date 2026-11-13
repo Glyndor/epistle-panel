@@ -56,9 +56,9 @@ scenario_theme() {
 	assert_eq "brand: the favicon's type" "$(header content-type)" "image/x-icon"
 
 	local path
-	for path in /theme.cssx /theme.css/queue /x/theme.css /THEME.CSS /brand /brand/logox /brand/logo/x /brand/favicon.ico; do
+	for path in /theme.cssx /theme.css/app/queue /x/theme.css /THEME.CSS /brand /brand/logox /brand/logo/x /brand/favicon.ico; do
 		fetch "$path"
-		assert_eq "theme: $path stays behind the gate" "$status" 307
+		assert_eq "theme: $path is not the asset, and no session is asked for" "$status" 404
 	done
 
 	# An unusable file is a 404 and a log line that names the variable, not the path.

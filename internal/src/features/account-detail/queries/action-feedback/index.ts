@@ -1,9 +1,10 @@
 import { toast } from "@/components/ui/toaster";
 import { ActionError } from "@/lib/query/action-result";
+import { PUBLIC_ROUTES } from "@/lib/routes";
 
 /** Where the browser goes when an action finds the session ended. */
 function goToLogin(): void {
-	window.location.assign("/login");
+	window.location.assign(PUBLIC_ROUTES.login);
 }
 
 /**

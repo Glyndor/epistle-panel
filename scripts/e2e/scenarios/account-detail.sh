@@ -73,7 +73,7 @@ scenario_account_detail() {
 	assert_eq "the page asked for the archive of admin" "$(api_calls GET '/api/v1/accounts/admin/archive')" 1
 	assert_eq "the page asked about no other account" "$(api_calls GET '/api/v1/accounts/ops')" 0
 	assert_contains "the account list links to this page" \
-		"$(curl -s -b "$good" "$panel/accounts")" 'href="/app/accounts/admin"'
+		"$(curl -s -b "$good" "$panel/app/accounts")" 'href="/app/accounts/admin"'
 
 	# --- an archive the server does not keep is a plain state, not a failure
 	fetch /app/accounts/ops "$good"

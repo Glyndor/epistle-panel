@@ -54,7 +54,7 @@ describe("AccountDetail", () => {
 		}
 		expect(screen.getByRole("link", { name: "back" })).toHaveAttribute(
 			"href",
-			"/accounts",
+			"/app/accounts",
 		);
 		expect(screen.queryByText("configManaged")).toBeNull();
 	});

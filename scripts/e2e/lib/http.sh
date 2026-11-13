@@ -57,7 +57,7 @@ login() {
 
 # logout_id COOKIE: name of the logout form field in the navigation.
 logout_field() {
-	curl -s -b "$1" "$panel/" |
+	curl -s -b "$1" "$panel/app" |
 		{ grep -o 'name="\$ACTION_ID_[0-9a-f]*"' || true; } | head -1 | sed 's/name="//; s/"$//'
 }
 
@@ -80,7 +80,7 @@ action_id() {
 # source file that ends with FILE, with ARGS_JSON as its arguments, the way the
 # browser's client does. Body to $work/b, headers to $work/h, status printed.
 # Extra request headers ("Name: value") go in the array action_headers, and
-# action_page (default /queue) is the page the post is addressed to.
+# action_page (default /app/queue) is the page the post is addressed to.
 post_action() {
 	local cookie=()
 	[[ -n "${3:-}" ]] && cookie=(-b "$3")
@@ -88,7 +88,7 @@ post_action() {
 		-H "Next-Action: $(action_id "$1")" \
 		-H 'Content-Type: text/plain;charset=UTF-8' \
 		${action_headers[@]+"${action_headers[@]/#/-H}"} \
-		"${cookie[@]}" -d "$2" "$panel${action_page:-/queue}"
+		"${cookie[@]}" -d "$2" "$panel${action_page:-/app/queue}"
 }
 
 # post_remove [COOKIE]: post the remove-entry action for $REMOVE_ID, with the

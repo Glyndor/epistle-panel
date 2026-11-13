@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-
+import { PUBLIC_ROUTES } from "@/lib/routes";
 import { SESSION_COOKIE, verifySession } from "../session";
 
 /**
@@ -15,7 +15,7 @@ export async function requireSession(): Promise<{ sub: string }> {
 		(await cookies()).get(SESSION_COOKIE)?.value,
 	);
 	if (!session) {
-		redirect("/login");
+		redirect(PUBLIC_ROUTES.login);
 	}
 	return session;
 }

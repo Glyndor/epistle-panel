@@ -153,9 +153,10 @@ jobs:
             exit 1
           fi
 
-          # Without a session every other route must send the browser to the
-          # login page; anything else means the gate is open.
-          for path in / /queue /domains /accounts; do
+          # Without a session the signed-in area, /app and everything under it,
+          # must send the browser to the login page; anything else means the
+          # gate is open.
+          for path in /app /app/queue /app/domains /app/accounts; do
             result=$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' "http://127.0.0.1:17587${path}")
             if [ "$result" != "307 http://127.0.0.1:17587/login" ]; then
               echo "::error::${path} answered '${result}', expected a 307 to /login"
