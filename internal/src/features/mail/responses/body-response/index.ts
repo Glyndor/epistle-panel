@@ -29,12 +29,15 @@ function plain(status: number, text: string): Response {
  * request and served under its own Content-Security-Policy (see
  * `body-document`). The session is checked here as well as by the proxy, the id
  * is checked before anything is asked of JMAP, and remote images stay blocked
- * unless the reader asked for them. A message with no HTML body is a 404: the
+ * unless the reader asked for them. `theme` is what the frame's address says
+ * the page around it is pinned to; `bodyDocument` decides what it is worth.
+ * A message with no HTML body is a 404: the
  * reader shows its text instead.
  */
 export async function bodyResponse(
 	id: string,
 	remoteImages: boolean,
+	theme?: string | null,
 ): Promise<Response> {
 	if (!messageIdSchema.safeParse(id).success) {
 		return plain(404, "Not found");
@@ -50,7 +53,7 @@ export async function bodyResponse(
 			return plain(404, "Not found");
 		}
 		const { html: fragment } = sanitizeHtml(html, { remoteImages });
-		return new Response(bodyDocument(fragment), {
+		return new Response(bodyDocument(fragment, theme), {
 			status: 200,
 			headers: bodyHeaders(remoteImages),
 		});

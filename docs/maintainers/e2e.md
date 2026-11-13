@@ -40,7 +40,7 @@ the line limit:
 | `scripts/e2e/lib/reporting.sh` | the pass and fail counters and the `assert_*` helpers |
 | `scripts/e2e/lib/processes.sh` | secrets, start and restart of the stand-in and the panel, its control calls |
 | `scripts/e2e/lib/http.sh` | `fetch`, `login`, the form-field readers, memory and CPU counters |
-| `scripts/e2e/scenarios/<name>.sh` | one scenario each: `headers`, `logout`, `limiter`, `limiter-global`, `noauth`, `degraded`, `rotation`, `idle`, `theme`, `body-limit`, `captcha`, `csrf`, `set-locale`, `unknown-variable`, `suppression`, `deliveries`, `account-detail`, `accounts`, `admin-id`, `mail`, `streaming` |
+| `scripts/e2e/scenarios/<name>.sh` | one scenario each: `headers`, `logout`, `limiter`, `limiter-global`, `noauth`, `degraded`, `rotation`, `idle`, `theme`, `theme-choice`, `body-limit`, `captcha`, `csrf`, `set-locale`, `unknown-variable`, `suppression`, `deliveries`, `account-detail`, `accounts`, `admin-id`, `mail`, `streaming` |
 
 Every run generates its own admin id (a fresh UUID v4, `admin_id`, and `adm` for the
 admin path) and passes it as `EPISTLE_PANEL_ADMIN_ID`; nothing in the repository
@@ -89,6 +89,7 @@ secret: a password is only counted.
 | `captcha` | with the stand-in CAPTCHA provider on (the `custom` provider): off by default; the page carries the widget box and the public site key, never the secret or the verification URL; the sign-in page's CSP gains exactly the provider's origin in `script-src`, `frame-src` and `connect-src` and nothing else, no other response does; no token and an unsolved token are refused and the API is never asked, a solved one signs in; the provider is asked before the API; a missing site key, an unreadable secret file or an unknown provider refuse every sign-in, name the variable in the log and widen nothing; no log holds a token or a secret |
 | `csrf` | a Server Action post with a valid session and a foreign `Origin` (or `Origin: null`) is refused by Next and the API sees no `DELETE`; the panel's own `Origin` is accepted. It also pins a measured dependency: a foreign `Origin` together with the same foreign `X-Forwarded-Host` passes Next's check and the action runs (see below) |
 | `set-locale` | the `set-locale` action with an unknown, path-like, wrong-case or very long language answers `false` and writes no `locale` cookie; each supported language (read from `internal/src/i18n/locales`) writes it, and the queue page then renders with `<html lang>` and the heading of that locale; without a session the proxy redirects and nothing is written |
+| `theme-choice` | the `theme` cookie alone decides what the server paints: `light` and `dark` put `data-theme` on the `<html>` of the sign-in page, the admin pages and the mail page, with no inline style and the same CSP; `system`, no cookie and a tampered value (another case, a neighbour, markup, an attribute break-out, 3000 characters) put none, and the page with a tampered cookie is the page of no cookie byte for byte but the nonce; the framed body of a message takes its `color-scheme` from `?theme=` in its own address, only `light` or `dark`, never from the cookie, and is still denied without a session; the `set-theme` action answers `false` and writes nothing for anything that is not a choice, writes the cookie (Secure, SameSite=Lax, Path=/, a year) for each choice read from `features/theme/config/choices`, for an admin and for a user, and without a session is the answer of a missing path |
 | `unknown-variable` | a misspelt `EPISTLE_PANEL_` name is warned about in the startup log by name, the value is never printed, a name the panel reads (and the `_FILE` form of a secret) is not warned about, and the panel still serves |
 | `suppression` | `/app/{id}/suppression` and its Server Action are the 404 without a session and the stand-in sees nothing; the first page, the encoded `after` cursor and the next link; a hostile `?after=` (`../`, `%2e%2e%2f`, line breaks, a bidi override, 300 characters, an injected parameter) is dropped and the first page is fetched; hostile action arguments (the same, an extra field, an empty or non-object argument) reach no `DELETE`; a valid removal sends the address as one percent-encoded path segment (the stand-in's seed holds a `/` and a `+`) and the address leaves the page |
 | `deliveries` | `/app/{id}/deliveries` is the 404 without a session and the stand-in sees nothing; the unfiltered page asks the API once for 100 records; a reply with markup is printed as text; filters (`outcome`, `since`, `recipient`) reach the API encoded and narrow the page; hostile parameters (an unknown outcome, `../`, `1e9d`, a line break, an injected parameter, a bidi override, 300 characters, `limit`, `account`) are dropped and the unfiltered log is fetched; nothing but `GET` reaches the API |
@@ -175,7 +176,13 @@ the console open.
 5. Visit an unknown path while signed in, and `/app/<another UUID>/queue`: the
    panel's own 404 page, the same for both, with no inline-style violation.
 6. Press Sign out: the page goes to `/` and the session cookie is gone.
-7. Sidebar: collapse it with the toggle or Ctrl+B and hover an icon (a tooltip
+7. Theme: with the system on light, choose Dark from the theme button (the page
+   turns dark with no reload), reload (no light frame first), choose System
+   (it follows the browser again). Open a message with an HTML body: its frame
+   is in the chosen theme. Repeat from the keyboard: Enter on the button puts
+   the focus on the first item, the arrows move, Enter chooses, Escape closes
+   and the focus returns to the button.
+8. Sidebar: collapse it with the toggle or Ctrl+B and hover an icon (a tooltip
    names it); open the Language menu and pick another language (the page re-renders in
    it); narrow the window below 768 px, open the sheet with the toggle,
    press Escape (focus returns to the toggle) and follow a link (the sheet

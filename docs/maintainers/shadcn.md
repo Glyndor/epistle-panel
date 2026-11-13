@@ -38,8 +38,9 @@ helpers (`class-variance-authority`, `clsx`, `tailwind-merge`).
   `--sidebar-width` in a `style` attribute, which `style-src 'self'` blocks, so
   ours sets `[--sidebar-width:14rem]` as a class.
 - **Theme tokens, no `dark:`.** Components read `bg-primary`, `text-muted-foreground`
-  and the other roles. The values flip with `prefers-color-scheme` in
-  `internal/src/styles/theme.css`, so a component needs no `dark:` utility.
+  and the other roles. The values flip in `internal/src/styles/theme.css`, with
+  `prefers-color-scheme` or with the theme the person chose (`data-theme` on
+  `<html>`, see `layouts.md`), so a component needs no `dark:` utility.
 - **No lines between things.** Hierarchy is tone and space: `bg-background`
   (canvas), `bg-surface` / `bg-card` (a card or a table), `bg-surface-sunken` (a
   stripe, a quiet callout), `bg-surface-raised` plus `shadow-raised` (a menu, a
@@ -135,7 +136,7 @@ kept.
 | Sidebar (provider, rail, menu, trigger) | every signed-in page | none at first paint, after hydration, collapsed or expanded; width variables are classes |
 | Sidebar tooltip (own, no popper) | collapsed sidebar icons | none after hover or keyboard focus (placed through the CSSOM); Escape dismisses it |
 | DropdownMenu item, rendered in `main` | the actions of an account row (open, delete) | no violation. A table scrolls sideways, which clips what leaves it, so the list is rendered in the page's `main` (`container`), found when the menu opens: inside a landmark, never on `body`. Measured on the last row at 1280 and 360 px: whole, on top, focus on the first item, Escape returns it to the button |
-| DropdownMenu, non-modal, loaded on demand | language menu | none after opening; the modal default injects a style element and was replaced. Its code loads on hover, focus or press of a placeholder button |
+| DropdownMenu, non-modal, loaded on demand | language menu, theme menu of both headers | none after opening; the modal default injects a style element and was replaced. Its code loads on hover, focus or press of a placeholder button. Radix moves the focus to the first item only for a key press it saw itself, so a menu that the placeholder opens from the keyboard focuses its first item on its own |
 | Sheet, native `<dialog>` | sidebar below 768 px | none after opening; Radix Dialog violated and was replaced |
 | Form (react-hook-form) | sign-in, the account forms; `FormDescription` for a help text | no violation; classes only |
 | Toaster (own) | mutation outcomes, one region in the shell | none; classes only |

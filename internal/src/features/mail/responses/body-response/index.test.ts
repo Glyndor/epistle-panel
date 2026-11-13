@@ -110,4 +110,37 @@ describe("bodyResponse", () => {
 		expect(response.status).toBe(502);
 		expect(await response.text()).toBe("Unavailable");
 	});
+
+	it("gives the page the theme it is asked for, and the browser's scheme for anything else", async () => {
+		const schemeOf = async (theme?: string | null) => {
+			stubJmap({ "Email/get": { list: [html("<p>hi</p>")] } });
+			const page = await (await bodyResponse(ID, false, theme)).text();
+			expect(page).not.toContain("script");
+			return /name="color-scheme" content="([^"]*)"/.exec(page)?.[1];
+		};
+
+		expect(await schemeOf()).toBe("light dark");
+		expect(await schemeOf(null)).toBe("light dark");
+		expect(await schemeOf("light")).toBe("light");
+		expect(await schemeOf("dark")).toBe("dark");
+		for (const value of [
+			"system",
+			"DARK",
+			"dark ",
+			'dark"><script>alert(1)</script>',
+			"dark light",
+			"",
+		]) {
+			expect(await schemeOf(value)).toBe("light dark");
+		}
+	});
+
+	it("takes the theme from its argument, not from a cookie", async () => {
+		cookies.jar.set("theme", "dark");
+		stubJmap({ "Email/get": { list: [html("<p>hi</p>")] } });
+
+		expect(await (await bodyResponse(ID, false)).text()).toContain(
+			'name="color-scheme" content="light dark"',
+		);
+	});
 });

@@ -15,9 +15,17 @@ describe("MailHeader", () => {
 		);
 		expect(screen.getByText("signedInAs")).toBeInTheDocument();
 		expect(screen.getByRole("combobox")).toBeInTheDocument();
+		expect(
+			screen.getByRole("button", { name: "themeCurrent" }),
+		).toHaveAttribute("data-theme-choice", "system");
 		expect(screen.getByRole("button", { name: "signOut" })).toHaveAttribute(
 			"type",
 			"submit",
+		);
+		// On a narrow window only its icon shows; the name is still there.
+		expect(screen.getByText("signOut")).toHaveClass(
+			"sr-only",
+			"sm:not-sr-only",
 		);
 		expect(screen.getByRole("banner")).toBeInTheDocument();
 		expect(screen.queryByRole("link", { name: "admin" })).toBeNull();

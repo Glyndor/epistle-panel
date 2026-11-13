@@ -9,7 +9,7 @@ new image.
 
 | Want | How |
 |---|---|
-| Colours, light and dark | Redefine the semantic variables in a stylesheet and point `EPISTLE_PANEL_THEME_CSS_FILE` at it |
+| Colours, light and dark | Redefine the semantic variables in a stylesheet and point `EPISTLE_PANEL_THEME_CSS_FILE` at it; see "The theme a person chooses" for the dark values |
 | Corner radius | `--radius` (the small and medium radii derive from it) |
 | Fonts | `--font-sans`, `--font-mono`; a face must come from the panel's own origin because the CSP is `default-src 'self'`, and the panel serves no font files itself, so in practice a system stack |
 | Spacing density | `--spacing` (the unit every padding, gap and size multiplies; the default is `0.25rem`) |
@@ -37,13 +37,45 @@ Example override, mounted read-only and named in the environment:
 	--primary-foreground: #ffffff;
 	--radius: 0.25rem;
 }
+/* Dark, when the browser prefers it and the person did not choose light... */
 @media (prefers-color-scheme: dark) {
-	:root {
+	:root:not([data-theme="light"]) {
 		--primary: oklch(0.75 0.14 260);
 		--primary-foreground: oklch(0.2 0.03 260);
 	}
 }
+/* ...and when the person chose dark. */
+:root[data-theme="dark"] {
+	--primary: oklch(0.75 0.14 260);
+	--primary-foreground: oklch(0.2 0.03 260);
+}
 ```
+
+### The theme a person chooses
+
+The header of the admin area and of the webmail has a theme button: light, dark
+or the system's. A chosen theme is `data-theme="light"` or `data-theme="dark"`
+on `<html>`; with the system's there is no attribute and the tokens follow
+`prefers-color-scheme`. So a dark override names both ways of getting dark, as
+above. The panel's own rules weigh the same as a plain `:root` (the attribute
+sits inside `:where()`), and your stylesheet loads after them: any selector you
+write wins.
+
+Where every browser you serve has `light-dark()` (those of 2024 and later), one
+declaration does the same, because the panel sets `color-scheme` on `<html>`
+for each choice:
+
+```css
+:root {
+	--primary: light-dark(oklch(0.45 0.18 260), oklch(0.75 0.14 260));
+}
+```
+
+A stylesheet written before the theme button existed, with its dark values in
+`@media (prefers-color-scheme: dark) { :root { ... } }`, keeps working for
+everyone who leaves the theme on the system's. For someone who chooses a theme
+that the browser does not prefer, its dark values still follow the browser:
+add the two selectors above to make them follow the choice.
 
 How it is served: `GET /theme.css` returns the file with `Content-Type:
 text/css` and `Cache-Control: public, max-age=60`, linked in the page head after

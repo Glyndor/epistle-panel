@@ -16,6 +16,12 @@
 	"close": "Schließen",
 	"signedInAs": "Angemeldet als {name}",
 	"language": "Sprache",
+	"theme": "Farbschema",
+	"themeCurrent": "Farbschema: {theme}",
+	"theme_system": "System",
+	"theme_light": "Hell",
+	"theme_dark": "Dunkel",
+	"themeFailed": "Das Farbschema konnte nicht gespeichert werden.",
 	"notifications": "Benachrichtigungen",
 	"dismiss": "Verwerfen"
 }

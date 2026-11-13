@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { logout } from "@/features/auth/actions/logout";
 import { getBrand } from "@/features/branding/queries/brand";
 import { LanguageSelect } from "@/features/mail/components/language-select";
+import { ThemeSwitcher } from "@/features/theme/components/theme-switcher";
 
 /**
  * The bar above the webmail: the product name, the page's one `h1`, the
- * way into the administration (admin sessions only), the language and sign out (a plain form, so it works before any script has
- * loaded). The three panes below have their own named regions.
+ * way into the administration (admin sessions only), the theme, the language
+ * and sign out (a plain form, so it works before any script has loaded). The three panes below have their own named regions.
  */
 export async function MailHeader({
 	name,
@@ -34,11 +35,17 @@ export async function MailHeader({
 						<a href={adminHref}>{t("admin")}</a>
 					</Button>
 				)}
+				<ThemeSwitcher />
 				<LanguageSelect />
 				<form action={logout}>
 					<Button type="submit" variant="ghost" size="sm">
 						<LogOutIcon aria-hidden="true" />
-						{t("signOut")}
+						{/* The words leave on a narrow window so the theme
+						    button did not cost the bar a third line; the
+						    name stays. */}
+						<span className="sr-only sm:not-sr-only">
+							{t("signOut")}
+						</span>
 					</Button>
 				</form>
 			</div>

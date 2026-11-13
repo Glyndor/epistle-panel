@@ -54,7 +54,23 @@ export function attachmentHref(id: string, part: string): Route {
 	return `${PUBLIC_ROUTES.mail}/attachment/${encodeURIComponent(id)}/${encodeURIComponent(part)}` as Route;
 }
 
-/** The address of the framed, sanitised body of a message. */
-export function bodyHref(id: string, remoteImages: boolean): Route {
-	return `${PUBLIC_ROUTES.mail}/body/${encodeURIComponent(id)}${remoteImages ? "?images=1" : ""}` as Route;
+/**
+ * The address of the framed, sanitised body of a message. `theme` is the theme
+ * pinned on the page around the frame, if one is: the body is a document of
+ * its own and has to be told.
+ */
+export function bodyHref(
+	id: string,
+	remoteImages: boolean,
+	theme?: "light" | "dark" | undefined,
+): Route {
+	const query = new URLSearchParams();
+	if (remoteImages) {
+		query.set("images", "1");
+	}
+	if (theme !== undefined) {
+		query.set("theme", theme);
+	}
+	const suffix = query.size > 0 ? `?${query}` : "";
+	return `${PUBLIC_ROUTES.mail}/body/${encodeURIComponent(id)}${suffix}` as Route;
 }

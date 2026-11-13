@@ -16,6 +16,12 @@
 	"close": "Chiudi",
 	"signedInAs": "Accesso come {name}",
 	"language": "Lingua",
+	"theme": "Tema",
+	"themeCurrent": "Tema: {theme}",
+	"theme_system": "Sistema",
+	"theme_light": "Chiaro",
+	"theme_dark": "Scuro",
+	"themeFailed": "Non è stato possibile salvare il tema.",
 	"notifications": "Notifiche",
 	"dismiss": "Ignora"
 }

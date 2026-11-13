@@ -123,6 +123,8 @@ describe("DropdownMenu", () => {
 		// inside the item and `outline-none` would cancel it in Tailwind 4.
 		expect(item).toHaveClass("focus:outline-2", "focus:outline-ring");
 		expect(item).not.toHaveClass("outline-none");
+		// The pointer focuses the item it is over; a press differs from that.
+		expect(item).toHaveClass("focus:bg-accent", "active:bg-accent/70");
 		expect(screen.getByRole("menu")).toBeInTheDocument();
 	});
 });

@@ -38,7 +38,15 @@ export function bodyHeaders(remoteImages: boolean): Record<string, string> {
 	};
 }
 
-/** The page that holds a sanitised fragment. It carries no style and no script. */
-export function bodyDocument(fragment: string): string {
-	return `<!doctype html><html><head><meta charset="utf-8"><meta name="color-scheme" content="light dark"><meta name="referrer" content="no-referrer"></head><body>${fragment}</body></html>`;
+/**
+ * The page that holds a sanitised fragment. It carries no style and no script.
+ * Its `color-scheme` is the theme the reader chose, so the frame's canvas and
+ * default text match the panel around it; with no chosen theme it follows the
+ * browser, like the panel. `theme` comes from the frame's address, so it is
+ * not trusted: anything but the two themes is that default, and only one of
+ * three fixed strings is ever written into the markup.
+ */
+export function bodyDocument(fragment: string, theme?: string | null): string {
+	const scheme = theme === "light" || theme === "dark" ? theme : "light dark";
+	return `<!doctype html><html><head><meta charset="utf-8"><meta name="color-scheme" content="${scheme}"><meta name="referrer" content="no-referrer"></head><body>${fragment}</body></html>`;
 }

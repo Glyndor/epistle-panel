@@ -7,8 +7,8 @@ import { cn } from "@/lib/class-names";
 /**
  * Button styles. Compact on a fine pointer (32 px by default, the density of an
  * administration surface) and at least 44 px on a coarse one, the touch target
- * the panel adopted. Dark mode needs no `dark:` utilities: the tokens flip with
- * `prefers-color-scheme` in `globals.css`.
+ * the panel adopted. Dark mode needs no `dark:` utilities: the tokens flip in
+ * `styles/theme.css`.
  */
 const buttonVariants = cva(
 	"inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium text-sm transition-colors hover:cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",

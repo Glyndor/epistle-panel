@@ -121,7 +121,11 @@ function DropdownMenuRadioGroup(
 	);
 }
 
-/** A radio item; `aria-checked` marks the current value. */
+/**
+ * A radio item; `aria-checked` marks the current value. The pointer moves the
+ * focus to the item under it, so the focus fill is also its hover, and a press
+ * has a fill of its own.
+ */
 function DropdownMenuRadioItem({
 	className,
 	children,
@@ -131,7 +135,7 @@ function DropdownMenuRadioItem({
 		<DropdownMenuPrimitive.RadioItem
 			data-slot="dropdown-menu-radio-item"
 			className={cn(
-				"relative flex min-h-8 cursor-default select-none items-center gap-2 rounded-lg ps-7 pe-2 text-sm focus:bg-accent focus:text-accent-foreground focus:outline-2 focus:-outline-offset-2 focus:outline-ring data-[disabled]:pointer-events-none data-[disabled]:opacity-50 pointer-coarse:min-h-11",
+				"relative flex min-h-8 cursor-default select-none items-center gap-2 rounded-lg ps-7 pe-2 text-sm focus:bg-accent focus:text-accent-foreground focus:outline-2 focus:-outline-offset-2 focus:outline-ring active:bg-accent/70 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 pointer-coarse:min-h-11",
 				className,
 			)}
 			{...props}
