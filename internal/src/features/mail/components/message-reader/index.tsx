@@ -4,21 +4,27 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeftIcon } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { useEffect, useId } from "react";
+import { useEffect, useId, useRef } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getMailboxesAction } from "@/features/mail/actions/get-mailboxes";
 import { getMessageAction } from "@/features/mail/actions/get-message";
 import { AttachmentList } from "@/features/mail/components/attachment-list";
 import { BodyView } from "@/features/mail/components/body-view";
 import { HeadersDisclosure } from "@/features/mail/components/headers-disclosure";
 import { MailNotice } from "@/features/mail/components/mail-notice";
 import { ReaderHeader } from "@/features/mail/components/reader-header";
+import { ReaderToolbar } from "@/features/mail/components/reader-toolbar";
 import { mailHref } from "@/features/mail/links/mail-href";
-import { messageQueryOptions } from "@/features/mail/queries/mail-query-options";
+import {
+	mailboxesQueryOptions,
+	messageQueryOptions,
+} from "@/features/mail/queries/mail-query-options";
 import type { ListFilter } from "@/features/mail/schemas/mail-input";
 import { unwrap } from "@/lib/query/action-result";
 
+const fetchMailboxes = async () => unwrap(await getMailboxesAction());
 const fetchMessage = async (id: string) =>
 	unwrap(await getMessageAction({ id }));
 
@@ -43,9 +49,12 @@ export function MessageReader({
 }) {
 	const t = useTranslations("mail");
 	const headingId = useId();
+	const backLink = useRef<HTMLAnchorElement>(null);
 	const { data, isPending, isError, refetch, isFetching } = useQuery(
 		messageQueryOptions(id, fetchMessage),
 	);
+
+	const mailboxes = useQuery(mailboxesQueryOptions(fetchMailboxes)).data;
 
 	useEffect(() => {
 		if (data && readerIsAlone()) {
@@ -60,7 +69,12 @@ export function MessageReader({
 			size="sm"
 			className="m-2 self-start lg:hidden"
 		>
-			<Link href={mailHref(view)} scroll={false} data-mail-back="">
+			<Link
+				ref={backLink}
+				href={mailHref(view)}
+				scroll={false}
+				data-mail-back=""
+			>
 				<ArrowLeftIcon aria-hidden="true" />
 				{t("back")}
 			</Link>
@@ -113,6 +127,14 @@ export function MessageReader({
 	return (
 		<article aria-labelledby={headingId} className="flex flex-col">
 			{back}
+			<ReaderToolbar
+				message={data}
+				onLeft={() => backLink.current?.click()}
+				inTrash={
+					mailboxes?.find((box) => box.id === data.mailboxId)
+						?.role === "trash"
+				}
+			/>
 			<ReaderHeader message={data} headingId={headingId} />
 			<AttachmentList
 				messageId={data.id}

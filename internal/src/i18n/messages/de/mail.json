@@ -70,5 +70,22 @@
 	"language": "Sprache",
 	"signOut": "Abmelden",
 	"signedInAs": "Angemeldet als {name}",
-	"skipList": "Zu den Nachrichten springen"
+	"skipList": "Zu den Nachrichten springen",
+	"toolbarLabel": "Aktionen für die Nachricht",
+	"star": "Markieren",
+	"unstar": "Markierung entfernen",
+	"markRead": "Als gelesen markieren",
+	"markUnread": "Als ungelesen markieren",
+	"archive": "Archivieren",
+	"spam": "Spam",
+	"trash": "Löschen",
+	"deleteForever": "Endgültig löschen",
+	"moveMenu": "Verschieben",
+	"moveTo": "Verschieben nach",
+	"confirmDeleteForever": "Diese Nachricht endgültig löschen? Das lässt sich nicht rückgängig machen.",
+	"actionFailed": "Die Änderung war nicht möglich. Versuchen Sie es erneut.",
+	"noFolder": "Dieses Konto hat dafür keinen Ordner.",
+	"moved": "Nachricht verschoben.",
+	"deletedForever": "Nachricht gelöscht.",
+	"changed": "Erledigt."
 }
