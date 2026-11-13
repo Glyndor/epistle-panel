@@ -117,18 +117,19 @@ describe("RemoveAddressButton", () => {
 	});
 
 	it("shows the pending label and disables itself while the request is in flight", async () => {
+		// The promise is made here, not when `fetch` is called: the button is
+		// disabled before the action reaches `fetch` (it checks the session first),
+		// and a release in that gap must still answer the request.
 		let release: () => void = () => {};
-		globalThis.fetch = mock(
-			() =>
-				new Promise<Response>((resolve) => {
-					release = () =>
-						resolve(
-							new Response(JSON.stringify({ removed: A }), {
-								headers: { "content-type": "application/json" },
-							}),
-						);
-				}),
-		) as unknown as typeof fetch;
+		const held = new Promise<Response>((resolve) => {
+			release = () =>
+				resolve(
+					new Response(JSON.stringify({ removed: A }), {
+						headers: { "content-type": "application/json" },
+					}),
+				);
+		});
+		globalThis.fetch = mock(() => held) as unknown as typeof fetch;
 		setup();
 
 		click();

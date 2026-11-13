@@ -163,23 +163,22 @@ describe("LoginForm", () => {
 	});
 
 	it("disables the button and says so while the attempt is pending", async () => {
+		// The promise is made here, not when `fetch` is called: the button says
+		// pending before the action reaches `fetch`, and opening in that gap must
+		// still answer the request.
 		let open: () => void = () => {};
-		globalThis.fetch = mock(
-			() =>
-				new Promise<Response>((resolve) => {
-					open = () =>
-						resolve(
-							new Response(
-								JSON.stringify({ valid: false, admin: false }),
-								{
-									headers: {
-										"content-type": "application/json",
-									},
-								},
-							),
-						);
-				}),
-		) as unknown as typeof fetch;
+		const held = new Promise<Response>((resolve) => {
+			open = () =>
+				resolve(
+					new Response(
+						JSON.stringify({ valid: false, admin: false }),
+						{
+							headers: { "content-type": "application/json" },
+						},
+					),
+				);
+		});
+		globalThis.fetch = mock(() => held) as unknown as typeof fetch;
 		render(<LoginForm captcha={null} />);
 		await type(name(), "a");
 		await type(password(), "b");

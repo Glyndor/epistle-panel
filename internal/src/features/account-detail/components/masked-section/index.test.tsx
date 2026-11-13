@@ -329,14 +329,15 @@ describe("MaskedSection", () => {
 		stubRoutes([["GET", /masked$/, list()]]);
 		const base = globalThis.fetch;
 		// Held open until the case has looked, then answered: no case ends with a
-		// request on its way.
+		// request on its way. The promise is made here, not when `fetch` is called:
+		// the button is disabled before the action reaches `fetch` (it checks the
+		// session first), and an answer given in that gap must still be the answer.
 		let answer: (response: Response) => void = () => {};
+		const held = new Promise<Response>((resolve) => {
+			answer = resolve;
+		});
 		globalThis.fetch = mock((input: string | URL, init?: RequestInit) =>
-			init?.method === "POST"
-				? new Promise<Response>((resolve) => {
-						answer = resolve;
-					})
-				: base(input, init),
+			init?.method === "POST" ? held : base(input, init),
 		) as unknown as typeof fetch;
 		render(withQuery(<MaskedSection name="alice" />));
 		await screen.findByText("maskedEmpty");
