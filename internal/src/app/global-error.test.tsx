@@ -1,10 +1,30 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, waitFor } from "@testing-library/react";
+import { Window } from "happy-dom";
 
 import { SUPPORTED_LOCALES } from "@/i18n/locales";
 import en from "@/i18n/messages/en/error.json";
 
 import GlobalError from "./global-error";
+
+/**
+ * `GlobalError` renders `<html>` and `<body>`, and React claims those two from
+ * the document of the container it renders into. In the shared test document
+ * that would leave `document.body` owned by this tree, and the next test that
+ * portals into the body (a modal dialog does) then hangs inside React's event
+ * dispatch. A document of its own keeps the claim contained.
+ */
+function renderGlobalError(reset: () => void = () => {}) {
+	const win = new Window();
+	const body = win.document.body as unknown as HTMLElement;
+	const container = body.appendChild(
+		win.document.createElement("div") as unknown as HTMLElement,
+	);
+	return render(
+		<GlobalError error={new Error("secret detail")} reset={reset} />,
+		{ container, baseElement: body },
+	);
+}
 
 afterEach(() => {
 	cleanup();
@@ -15,14 +35,12 @@ afterEach(() => {
 describe("global error page", () => {
 	it("starts in English and retries through Next's reset", () => {
 		const reset = mock(() => {});
-		render(
-			<GlobalError error={new Error("secret detail")} reset={reset} />,
-		);
+		const view = renderGlobalError(reset);
 
 		expect(
-			screen.getByRole("heading", { level: 1, name: en.heading }),
+			view.getByRole("heading", { level: 1, name: en.heading }),
 		).toBeInTheDocument();
-		screen.getByRole("button", { name: en.retry }).click();
+		view.getByRole("button", { name: en.retry }).click();
 		expect(reset).toHaveBeenCalledTimes(1);
 	});
 
@@ -34,11 +52,11 @@ describe("global error page", () => {
 			// biome-ignore lint/suspicious/noDocumentCookie: the page reads this cookie, so the test sets it
 			document.cookie = `locale=${locale}`;
 
-			render(<GlobalError error={new Error("x")} reset={() => {}} />);
+			const view = renderGlobalError();
 
 			await waitFor(() =>
 				expect(
-					screen.getByRole("heading", {
+					view.getByRole("heading", {
 						level: 1,
 						name: catalog.heading,
 					}),
@@ -51,17 +69,15 @@ describe("global error page", () => {
 		// biome-ignore lint/suspicious/noDocumentCookie: the page reads this cookie, so the test sets it
 		document.cookie = "locale=xx";
 
-		render(<GlobalError error={new Error("x")} reset={() => {}} />);
+		const view = renderGlobalError();
 
 		expect(
-			screen.getByRole("heading", { name: en.heading }),
+			view.getByRole("heading", { name: en.heading }),
 		).toBeInTheDocument();
 	});
 
 	it("does not show the error message and uses no inline style", () => {
-		const { container } = render(
-			<GlobalError error={new Error("secret detail")} reset={() => {}} />,
-		);
+		const { container } = renderGlobalError();
 
 		expect(container).not.toHaveTextContent("secret detail");
 		expect(container.querySelector("style, [style]")).toBeNull();
