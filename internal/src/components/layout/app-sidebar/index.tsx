@@ -12,7 +12,6 @@ import {
 	SidebarContent,
 	SidebarFooter,
 	SidebarHeader,
-	SidebarSeparator,
 } from "@/components/ui/sidebar/regions";
 import { Sidebar } from "@/components/ui/sidebar/sidebar";
 import { BrandMark } from "@/features/branding/components/brand-mark";
@@ -69,7 +68,6 @@ export async function AppSidebar({
 			<SidebarContent>
 				<NavMain groups={groups} />
 			</SidebarContent>
-			<SidebarSeparator />
 			<SidebarFooter>
 				<NavUser name={name} />
 				<CopyrightNotice className="px-2 text-muted-foreground text-xs group-data-[collapsible=icon]:sr-only" />

@@ -1,6 +1,7 @@
 {
 	"heading": "Cuenta {name}",
 	"back": "Todas las cuentas",
+	"breadcrumb": "Ruta de navegación",
 	"unreachable": "No se puede contactar con la API de gestión del servidor de correo. Comprueba que el servidor está en marcha y que el panel está configurado.",
 	"gone": "Esta cuenta ya no existe.",
 	"unavailable": "No se pudo completar el cambio. Inténtalo de nuevo.",

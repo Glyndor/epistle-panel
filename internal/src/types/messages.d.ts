@@ -1,6 +1,7 @@
 import type accountDetail from "@/i18n/messages/en/accountDetail.json";
 import type accounts from "@/i18n/messages/en/accounts.json";
 import type auth from "@/i18n/messages/en/auth.json";
+import type confirm from "@/i18n/messages/en/confirm.json";
 import type dashboard from "@/i18n/messages/en/dashboard.json";
 import type deliveries from "@/i18n/messages/en/deliveries.json";
 import type domains from "@/i18n/messages/en/domains.json";
@@ -31,6 +32,7 @@ declare module "next-intl" {
 			error: typeof error;
 			table: typeof table;
 			mail: typeof mail;
+			confirm: typeof confirm;
 		};
 	}
 }

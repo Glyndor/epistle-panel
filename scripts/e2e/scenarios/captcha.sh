@@ -28,7 +28,7 @@ provider_calls() {
 
 # normalised_csp CSP: the policy with its nonce replaced, to compare two of them.
 normalised_csp() {
-	printf '%s' "$1" | sed "s/'nonce-[^']*'/'nonce-N'/"
+	printf '%s' "$1" | sed "s/'nonce-[^']*'/'nonce-N'/g"
 }
 
 scenario_captcha() {

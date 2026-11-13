@@ -99,7 +99,7 @@ export function SidebarMenuButton({
 			data-slot="sidebar-menu-button"
 			data-active={isActive}
 			className={cn(
-				"flex min-h-8 w-full items-center gap-2 overflow-hidden rounded-md px-2 text-left text-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-2 focus-visible:outline-sidebar-ring active:bg-sidebar-accent/70 disabled:pointer-events-none disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent pointer-coarse:min-h-11 group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:pointer-coarse:size-11 group-data-[collapsible=icon]:[&>span]:sr-only [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
+				"flex min-h-8 w-full items-center gap-2 overflow-hidden rounded-lg px-2 text-left text-sm hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground focus-visible:outline-2 focus-visible:outline-sidebar-ring active:bg-sidebar-accent/80 disabled:pointer-events-none disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-semibold data-[active=true]:text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent pointer-coarse:min-h-11 group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:pointer-coarse:size-11 group-data-[collapsible=icon]:[&>span]:sr-only [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
 				className,
 			)}
 			onPointerEnter={(event) => {
@@ -152,7 +152,7 @@ export function SidebarMenuButton({
 						height: place.height,
 					}}
 				>
-					<span className="rounded-md bg-foreground px-2 py-1 text-background text-xs">
+					<span className="rounded-lg bg-foreground px-2 py-1 text-background text-xs shadow-raised">
 						{tooltip}
 					</span>
 				</span>

@@ -67,4 +67,23 @@ describe("Table", () => {
 			expect(element).not.toHaveAttribute("style");
 		}
 	});
+
+	it("separates rows by tone, not by lines: striped body, tinted hover, no border", () => {
+		const { container } = render(<Sample />);
+
+		const wrapper = container.querySelector(
+			"[data-slot='table-container']",
+		);
+		expect(wrapper).toHaveClass("rounded-xl", "bg-card");
+		expect(wrapper).not.toHaveClass("border");
+		expect(container.querySelector("tbody")?.className).toContain(
+			"bg-surface-sunken",
+		);
+		expect(container.querySelector("tbody")?.className).toContain(
+			"bg-accent",
+		);
+		for (const row of container.querySelectorAll("tr")) {
+			expect(row.className).not.toContain("border");
+		}
+	});
 });

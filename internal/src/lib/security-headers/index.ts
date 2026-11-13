@@ -58,6 +58,10 @@ export function buildCsp(
 		"default-src 'self'",
 		`script-src ${scriptSrc.join(" ")}`,
 		"style-src 'self'",
+		// A modal Radix dialog locks page scroll with one `<style>` element; it is
+		// accepted with this request's nonce, never with 'unsafe-inline', and the
+		// style attributes stay refused by `style-src`.
+		`style-src-elem 'self' 'nonce-${nonce}'`,
 		"img-src 'self' data:",
 		"font-src 'self'",
 		`connect-src ${connectSrc.join(" ")}`,

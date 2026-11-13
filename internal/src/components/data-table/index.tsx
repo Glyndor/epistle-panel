@@ -15,10 +15,16 @@ import {
 	tableFeatures,
 	useTable,
 } from "@tanstack/react-table";
-import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon } from "lucide-react";
+import {
+	ArrowDownIcon,
+	ArrowUpDownIcon,
+	ArrowUpIcon,
+	InboxIcon,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useDeferredValue, useState } from "react";
 
+import { Empty, EmptyDescription, EmptyIcon } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import {
 	Table,
@@ -195,11 +201,17 @@ export function DataTable<TData extends RowData>({
 				<TableBody>
 					{rows.length === 0 ? (
 						<TableRow>
-							<TableCell
-								colSpan={columns.length}
-								className="text-muted-foreground"
-							>
-								{total === 0 ? emptyLabel : t("noMatches")}
+							<TableCell colSpan={columns.length}>
+								<Empty className="p-4">
+									<EmptyIcon>
+										<InboxIcon aria-hidden="true" />
+									</EmptyIcon>
+									<EmptyDescription>
+										{total === 0
+											? emptyLabel
+											: t("noMatches")}
+									</EmptyDescription>
+								</Empty>
 							</TableCell>
 						</TableRow>
 					) : (

@@ -54,6 +54,7 @@ describe("buildCsp", () => {
 				"default-src 'self'",
 				"script-src 'self' 'nonce-abc' 'strict-dynamic'",
 				"style-src 'self'",
+				"style-src-elem 'self' 'nonce-abc'",
 				"img-src 'self' data:",
 				"font-src 'self'",
 				"connect-src 'self'",
@@ -74,9 +75,19 @@ describe("buildCsp", () => {
 		);
 	});
 
-	it("does not allow inline styles", () => {
+	it("does not allow inline style attributes", () => {
 		expect(directive(buildCsp("abc"), "style-src")).toBe(
 			"style-src 'self'",
+		);
+		expect(buildCsp("abc")).not.toContain("unsafe-inline");
+	});
+
+	it("accepts a style element only with the request's nonce", () => {
+		expect(directive(buildCsp("abc"), "style-src-elem")).toBe(
+			"style-src-elem 'self' 'nonce-abc'",
+		);
+		expect(directive(buildCsp("xyz"), "style-src-elem")).toBe(
+			"style-src-elem 'self' 'nonce-xyz'",
 		);
 	});
 });

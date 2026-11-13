@@ -18,9 +18,15 @@ new image.
 
 All the variables live in one file, `internal/src/styles/theme.css`: the colour
 roles (`--background`, `--foreground`, `--primary`, `--muted`, `--accent`,
-`--destructive`, `--warning`, `--border`, `--input`, `--ring`, `--popover`,
-`--overlay`, and the `--sidebar-*` family), `--radius`, the fonts and
-`--spacing`. A component reads a role (`bg-primary`, `rounded-md`) and never a
+`--destructive`, `--destructive-soft`, `--warning`, `--field`, `--input` (the
+drawn edge of a field that has not moved to `--field`, the webmail's for now), `--ring`,
+`--overlay`, and the `--sidebar-*` family), the four surface roles
+(`--background` the canvas, `--surface` a card or table, `--surface-sunken` a
+stripe or quiet callout, `--surface-raised` a menu, toast or dialog, with its
+shadow `--elevation`; `--card` and `--popover` follow them), `--radius`, the
+fonts and `--spacing`. The panel draws no line between things, so there is no
+border token: the tone steps between surfaces and the field fill are what the
+operator tunes. A component reads a role (`bg-primary`, `rounded-md`) and never a
 palette value, which is what makes the override work.
 
 Example override, mounted read-only and named in the environment:
@@ -50,7 +56,7 @@ scenario assert it). The file is read on every request, so an edit shows within
 a minute.
 
 You own the contrast: the panel's own pairs were measured, an override is not.
-Check label, component, ring and border pairs in light and dark after a change.
+Check label, ring and field pairs in light and dark after a change. The field boundary is a tonal step, not a line: its contrast against the surface is low by design and the focus ring carries the state, so keep the ring at 3:1 or more against every surface.
 
 The original copyright notice stays in the sidebar and on the sign-in page. It is
 a constant in `features/branding/copyright`, not configuration.

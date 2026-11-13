@@ -1,6 +1,7 @@
 {
 	"heading": "Account {name}",
 	"back": "All accounts",
+	"breadcrumb": "Breadcrumb",
 	"unreachable": "The mail server's management API is unreachable. Check that the server is running and the panel is configured.",
 	"gone": "This account no longer exists.",
 	"unavailable": "Could not complete the change. Please try again.",

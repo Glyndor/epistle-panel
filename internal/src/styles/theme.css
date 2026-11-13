@@ -4,78 +4,102 @@
    restyle the whole interface from a mounted stylesheet (`/theme.css`, see
    docs/maintainers/customising.md) by redefining these variables, with no
    rebuild. The light and dark values follow `prefers-color-scheme`. Anything
-   that needs a different Tailwind config or different markup needs a rebuild. */
-/* Theme tokens in the names shadcn/ui components read. The light and dark
-   values follow `prefers-color-scheme`, so a component never needs a `dark:`
-   utility: it reads `bg-primary` and the token changes underneath it. The
-   values are the zinc steps the panel already used, expressed as the semantic
-   roles. `--input` and `--ring` are kept at 3:1 or more against `--background`
-   (a field border and a focus ring are non-text components). */
+   that needs a different Tailwind config or different markup needs a rebuild.
+
+   The look is soft: the panel draws no line to separate things. Hierarchy comes
+   from four surface roles and from white space:
+
+   - `--background`      the page canvas, the deepest light surface;
+   - `--surface`         a card or a table, one step above the canvas;
+   - `--surface-sunken`  a well inside a surface: striped rows, a field's fill,
+                         a quiet callout;
+   - `--surface-raised`  a menu, a toast or a sheet, the only surfaces that also
+                         carry the `--elevation` shadow.
+
+   A form field is a tonal well, `--field`, with no border at rest. It takes a
+   focus ring (`--ring`, 3:1 or more against every surface) when focused and a
+   soft destructive border only when its value is invalid. The panel sets no
+   default border colour: a component that wants a line names its colour. */
+/* Theme tokens in the names shadcn/ui components read, plus the surface roles
+   above. The light and dark values follow `prefers-color-scheme`, so a
+   component never needs a `dark:` utility: it reads `bg-surface` and the token
+   changes underneath it. `--card` and `--popover` follow the surface roles. */
 :root {
-	--background: #ffffff;
+	--background: oklch(0.958 0.005 286.3);
 	--foreground: #171717;
-	--card: #ffffff;
+	--surface: #ffffff;
+	--surface-raised: #ffffff;
+	--surface-sunken: oklch(0.972 0.003 286.3);
+	--card: var(--surface);
 	--card-foreground: #171717;
 	--primary: oklch(0.21 0.006 285.885);
 	--primary-foreground: #ffffff;
-	--secondary: oklch(0.967 0.001 286.375);
+	--secondary: oklch(0.94 0.005 286.3);
 	--secondary-foreground: oklch(0.21 0.006 285.885);
-	--muted: oklch(0.967 0.001 286.375);
-	--muted-foreground: oklch(0.5 0.016 285.938);
-	--accent: oklch(0.967 0.001 286.375);
+	--muted: oklch(0.935 0.005 286.3);
+	--muted-foreground: oklch(0.46 0.016 285.938);
+	--accent: oklch(0.925 0.006 286.3);
 	--accent-foreground: oklch(0.21 0.006 285.885);
 	--destructive: oklch(0.505 0.213 27.518);
 	--destructive-foreground: #ffffff;
+	/* A soft red fill for a failed outcome, with `--destructive` as its text. */
+	--destructive-soft: oklch(0.955 0.03 25);
 	/* Amber, the colours of the unreachable notice before the theme existed. */
-	--warning: oklch(0.987 0.022 95.277);
+	--warning: oklch(0.975 0.04 95.277);
 	--warning-foreground: oklch(0.414 0.112 45.904);
-	--border: oklch(0.92 0.004 286.32);
+	/* The fill of a form field: one step deeper than the surfaces it sits on. */
+	--field: oklch(0.94 0.005 286.3);
+	/* The drawn edge of a field, 3:1 against its surface. Only a field that has not
+	   moved to `bg-field` still reads it (the webmail's); the panel's own fields do not. */
 	--input: oklch(0.552 0.016 285.938);
 	--ring: oklch(0.552 0.016 285.938);
-	--radius: 0.5rem;
+	--radius: 0.75rem;
 	--overlay: rgb(0 0 0 / 0.5);
-	--popover: #ffffff;
+	--popover: var(--surface-raised);
 	--popover-foreground: #171717;
-	/* The rail is one step off the page so it reads as its own surface; its
-	   text, hover fill, border and focus ring are measured on that surface. */
-	--sidebar: oklch(0.985 0 0);
+	--elevation: 0 12px 32px -8px rgb(24 24 40 / 0.18), 0 2px 8px rgb(24 24 40 / 0.08);
+	/* The rail is one step deeper than the canvas so it reads as its own
+	   surface with no border; its text, hover fill and focus ring are measured
+	   on that surface. */
+	--sidebar: oklch(0.925 0.006 286.3);
 	--sidebar-foreground: oklch(0.21 0.006 285.885);
-	--sidebar-accent: oklch(0.94 0.002 286.32);
+	--sidebar-accent: oklch(0.875 0.008 286.3);
 	--sidebar-accent-foreground: oklch(0.21 0.006 285.885);
-	--sidebar-border: oklch(0.92 0.004 286.32);
 	--sidebar-ring: oklch(0.552 0.016 285.938);
 }
 
 @media (prefers-color-scheme: dark) {
 	:root {
-		--background: #0a0a0a;
+		--background: oklch(0.15 0.004 286);
 		--foreground: #ededed;
-		--card: #0a0a0a;
+		--surface: oklch(0.2 0.005 286);
+		--surface-raised: oklch(0.255 0.006 286);
+		--surface-sunken: oklch(0.175 0.005 286);
 		--card-foreground: #ededed;
 		--primary: oklch(0.967 0.001 286.375);
 		--primary-foreground: oklch(0.21 0.006 285.885);
-		--secondary: oklch(0.274 0.006 286.033);
+		--secondary: oklch(0.3 0.007 286);
 		--secondary-foreground: oklch(0.967 0.001 286.375);
-		--muted: oklch(0.274 0.006 286.033);
-		--muted-foreground: oklch(0.705 0.015 286.067);
-		--accent: oklch(0.274 0.006 286.033);
+		--muted: oklch(0.27 0.006 286);
+		--muted-foreground: oklch(0.72 0.015 286.067);
+		--accent: oklch(0.33 0.008 286);
 		--accent-foreground: oklch(0.967 0.001 286.375);
 		--destructive: oklch(0.808 0.114 19.571);
 		--destructive-foreground: oklch(0.141 0.005 285.823);
+		--destructive-soft: oklch(0.28 0.07 25);
 		--warning: oklch(0.279 0.077 45.635);
 		--warning-foreground: oklch(0.924 0.12 95.746);
-		--border: oklch(0.274 0.006 286.033);
-		--input: oklch(0.552 0.016 285.938);
-		--ring: oklch(0.705 0.015 286.067);
+		--field: oklch(0.26 0.006 286);
+		--input: oklch(0.62 0.016 286);
+		--ring: oklch(0.72 0.015 286.067);
 		--overlay: rgb(0 0 0 / 0.6);
-		--popover: #171717;
 		--popover-foreground: #ededed;
-		--sidebar: oklch(0.17 0.004 286);
+		--elevation: 0 12px 32px -8px rgb(0 0 0 / 0.6), 0 2px 8px rgb(0 0 0 / 0.35);
+		--sidebar: oklch(0.19 0.005 286);
 		--sidebar-foreground: oklch(0.967 0.001 286.375);
-		--sidebar-accent: oklch(0.274 0.006 286.033);
+		--sidebar-accent: oklch(0.29 0.007 286);
 		--sidebar-accent-foreground: oklch(0.967 0.001 286.375);
-		--sidebar-border: oklch(0.274 0.006 286.033);
-		--sidebar-ring: oklch(0.705 0.015 286.067);
+		--sidebar-ring: oklch(0.72 0.015 286.067);
 	}
 }
 
@@ -95,6 +119,9 @@
 @theme inline {
 	--color-background: var(--background);
 	--color-foreground: var(--foreground);
+	--color-surface: var(--surface);
+	--color-surface-raised: var(--surface-raised);
+	--color-surface-sunken: var(--surface-sunken);
 	--color-card: var(--card);
 	--color-card-foreground: var(--card-foreground);
 	--color-primary: var(--primary);
@@ -107,6 +134,7 @@
 	--color-accent-foreground: var(--accent-foreground);
 	--color-destructive: var(--destructive);
 	--color-destructive-foreground: var(--destructive-foreground);
+	--color-destructive-soft: var(--destructive-soft);
 	--color-warning: var(--warning);
 	--color-warning-foreground: var(--warning-foreground);
 	--color-overlay: var(--overlay);
@@ -116,12 +144,14 @@
 	--color-sidebar-foreground: var(--sidebar-foreground);
 	--color-sidebar-accent: var(--sidebar-accent);
 	--color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-	--color-sidebar-border: var(--sidebar-border);
 	--color-sidebar-ring: var(--sidebar-ring);
-	--color-border: var(--border);
+	--color-field: var(--field);
 	--color-input: var(--input);
 	--color-ring: var(--ring);
 	--radius-sm: calc(var(--radius) - 4px);
 	--radius-md: calc(var(--radius) - 2px);
 	--radius-lg: var(--radius);
+	--radius-xl: calc(var(--radius) + 4px);
+	--radius-2xl: calc(var(--radius) + 8px);
+	--shadow-raised: var(--elevation);
 }

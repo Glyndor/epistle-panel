@@ -41,7 +41,7 @@ scenario_theme() {
 	assert_contains "brand: the sign-in page shows the operator's logo" "$(cat "$work/b")" 'src="/brand/logo"'
 	assert_contains "brand: the original copyright notice stays" "$(cat "$work/b")" "© 2026 Glyndor"
 	csp_after=$(header content-security-policy)
-	assert_eq "theme: the CSP is the same as without a theme" "$(printf '%s' "$csp_after" | sed "s/'nonce-[^']*'/'nonce-N'/")" "$(printf '%s' "$csp_before" | sed "s/'nonce-[^']*'/'nonce-N'/")"
+	assert_eq "theme: the CSP is the same as without a theme" "$(printf '%s' "$csp_after" | sed "s/'nonce-[^']*'/'nonce-N'/g")" "$(printf '%s' "$csp_before" | sed "s/'nonce-[^']*'/'nonce-N'/g")"
 	assert_absent "theme: still no unsafe-inline" "$csp_after" "unsafe-inline"
 	assert_eq "theme: still no inline style on the page" \
 		"$({ grep -o -E ' style="|<style' "$work/b" || true; } | wc -l | tr -d ' ')" 0

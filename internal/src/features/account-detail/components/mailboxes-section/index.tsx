@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getMailboxesAction } from "@/features/account-detail/actions/get-mailboxes";
 import { SectionCard } from "@/features/account-detail/components/section-card";
@@ -31,9 +32,9 @@ export function MailboxesSection({ name }: { name: string }) {
 					<AlertDescription>{t("unreachable")}</AlertDescription>
 				</Alert>
 			) : data.length === 0 ? (
-				<p className="text-muted-foreground text-sm">
-					{t("mailboxesEmpty")}
-				</p>
+				<Empty className="p-3">
+					<EmptyDescription>{t("mailboxesEmpty")}</EmptyDescription>
+				</Empty>
 			) : (
 				<ul className="flex flex-col gap-1 font-mono text-sm">
 					{data.map((mailbox) => (

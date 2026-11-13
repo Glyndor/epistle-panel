@@ -14,6 +14,8 @@ scenario_headers() {
 	assert_contains "CSP has script-src with nonce and strict-dynamic" "$csp1" "'strict-dynamic'"
 	assert_contains "CSP forbids framing" "$csp1" "frame-ancestors 'none'"
 	assert_absent "CSP has no unsafe-inline" "$csp1" "unsafe-inline"
+	assert_contains "a style element is accepted only with the request's nonce" "$csp1" "style-src-elem 'self' 'nonce-$nonce1'"
+	assert_contains "style attributes stay refused: style-src is self alone" "$csp1" "style-src 'self';"
 	assert_absent "CSP has no unsafe-eval in production" "$csp1" "unsafe-eval"
 	assert_contains "the nonce in the CSP is the one on the scripts" "$html" "nonce=\"$nonce1\""
 	assert_eq "no script tag without the nonce, whatever its attributes" "$(unnonced_scripts "$work/b" "$nonce1")" 0

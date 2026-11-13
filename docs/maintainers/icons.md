@@ -28,7 +28,7 @@ another host would be blocked.
 | Icon | Where | Source | Licence |
 |---|---|---|---|
 | `EpistleMark` | sidebar header | drawn for this panel, `components/icons/epistle-mark` | the repository's own (MIT) |
-| Lucide: `LayoutDashboardIcon`, `GlobeIcon`, `UsersIcon`, `InboxIcon`, `BanIcon`, `HistoryIcon`, `LanguagesIcon`, `LogOutIcon`, `PanelLeftIcon`, `XIcon`, `ArrowLeftIcon` | navigation, language menu, sign out, sidebar toggle, sheet close, back link of the account page | `lucide-react` | ISC |
+| Lucide: `LayoutDashboardIcon`, `GlobeIcon`, `UsersIcon`, `InboxIcon`, `BanIcon`, `HistoryIcon`, `LanguagesIcon`, `LogOutIcon`, `PanelLeftIcon`, `XIcon`, `ChevronRightIcon`, `InboxIcon` | navigation, language menu, sign out, sidebar toggle, sheet close, breadcrumb mark, empty tables | `lucide-react` | ISC |
 
 The custom component's test asserts the properties above: decorative, 24 px
 `viewBox`, `currentColor`, and no script, style or external reference.

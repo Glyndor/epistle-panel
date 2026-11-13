@@ -114,6 +114,10 @@ grep -q '</html>' "$work/b" || fail "authenticated page: the HTML document is cu
 expect_secure_headers "authenticated page"
 nonce=$(header content-security-policy | sed -n "s/.*'nonce-\([^']*\)'.*/\1/p")
 [ -n "$nonce" ] || fail "authenticated page: no nonce in the CSP"
+case "$(header content-security-policy)" in
+	*"style-src 'self'; style-src-elem 'self' 'nonce-$nonce'"*) ;;
+	*) fail "authenticated page: style-src-elem is not self plus the request's nonce" ;;
+esac
 bare=$(unnonced_scripts "$work/b" "$nonce")
 [ "$bare" = 0 ] || fail "authenticated page: $bare script tags lack the nonce"
 grep -q ' style="\|<style' "$work/b" && fail "authenticated page: inline style, blocked by style-src"
