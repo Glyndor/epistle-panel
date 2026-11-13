@@ -8,6 +8,7 @@ import { DeliveriesTableSkeleton } from "@/features/deliveries/components/delive
 import { deliveriesQueryOptions } from "@/features/deliveries/queries/deliveries-query";
 import { loadDeliveries } from "@/features/deliveries/queries/load-deliveries";
 import { parseFilterParams } from "@/features/deliveries/schemas/deliveries-input";
+import { AdminBreadcrumbs } from "@/features/navigation/components/admin-breadcrumbs";
 import { requireAdmin } from "@/lib/auth/require-session";
 import { prefetchSpec } from "@/lib/query/prefetch";
 
@@ -31,6 +32,7 @@ export default async function DeliveriesPage({
 
 	return (
 		<>
+			<AdminBreadcrumbs routes={routes} page="deliveries" />
 			<h1 className="font-semibold text-lg">{t("heading")}</h1>
 			<p className="text-muted-foreground">{t("description")}</p>
 			<DeliveriesFilters filters={filters} path={routes.deliveries} />

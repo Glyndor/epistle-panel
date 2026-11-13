@@ -1,6 +1,8 @@
 {
 	"label": "Primary",
 	"skip": "Skip to content",
+	"breadcrumb": "Breadcrumb",
+	"administration": "Administration",
 	"status": "Status",
 	"domains": "Domains",
 	"accounts": "Accounts",

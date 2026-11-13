@@ -6,6 +6,7 @@ import { TableSkeleton } from "@/components/skeletons/table-skeleton";
 import { DomainsTable } from "@/features/domains/components/domains-table";
 import { domainsQueryOptions } from "@/features/domains/queries/domains-query";
 import { loadDomains } from "@/features/domains/queries/load-domains";
+import { AdminBreadcrumbs } from "@/features/navigation/components/admin-breadcrumbs";
 import { requireAdmin } from "@/lib/auth/require-session";
 import { prefetchSpec } from "@/lib/query/prefetch";
 
@@ -14,11 +15,12 @@ export const DOMAINS_COLUMNS = 1;
 
 /** The domains page: the heading at once, the list streamed in, then owned by Query. */
 export default async function DomainsPage() {
-	await requireAdmin();
+	const { routes } = await requireAdmin();
 	const t = await getTranslations("domains");
 
 	return (
 		<>
+			<AdminBreadcrumbs routes={routes} page="domains" />
 			<h1 className="font-semibold text-lg">{t("heading")}</h1>
 			<Suspense fallback={<TableSkeleton columns={DOMAINS_COLUMNS} />}>
 				<PrefetchBoundary

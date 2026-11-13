@@ -1,6 +1,8 @@
 {
 	"label": "Principale",
 	"skip": "Aller au contenu",
+	"breadcrumb": "Fil d’Ariane",
+	"administration": "Administration",
 	"status": "État",
 	"domains": "Domaines",
 	"accounts": "Comptes",

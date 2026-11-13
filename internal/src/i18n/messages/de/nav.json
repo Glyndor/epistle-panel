@@ -1,6 +1,8 @@
 {
 	"label": "Hauptnavigation",
 	"skip": "Zum Inhalt springen",
+	"breadcrumb": "Navigationspfad",
+	"administration": "Verwaltung",
 	"status": "Status",
 	"domains": "Domains",
 	"accounts": "Konten",

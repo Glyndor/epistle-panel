@@ -9,9 +9,9 @@ import {
 
 const cookies = mockRequestCookies();
 
-const { default: HomePage } = await import("./page");
+const { default: HomePage } = await import("./(status)/page");
 const { default: DomainsPage } = await import("./domains/page");
-const { default: AccountsPage } = await import("./accounts/page");
+const { default: AccountsPage } = await import("./accounts/(list)/page");
 const { default: AccountPage } = await import("./accounts/[name]/page");
 const { default: QueuePage } = await import("./queue/page");
 const { default: SuppressionPage } = await import("./suppression/page");
@@ -21,9 +21,9 @@ const search = { searchParams: Promise.resolve({}) };
 
 /** Each admin page by its file, relative to this folder, with a way to render it. */
 const PAGES: Array<[string, string, () => Promise<unknown>]> = [
-	["status", "page.tsx", () => HomePage()],
+	["status", "(status)/page.tsx", () => HomePage()],
 	["domains", "domains/page.tsx", () => DomainsPage()],
-	["accounts", "accounts/page.tsx", () => AccountsPage()],
+	["accounts", "accounts/(list)/page.tsx", () => AccountsPage()],
 	[
 		"account detail",
 		"accounts/[name]/page.tsx",

@@ -5,7 +5,6 @@ import { useActionEnvironment } from "@/features/account-detail/test-support/act
 import { stubRoutes } from "@/features/account-detail/test-support/stub-routes";
 import { stubFetchReject } from "@/lib/api/test-support/fetch";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
-import { TEST_ADMIN_ID } from "@/lib/config/test-support/admin-id";
 import { withAdminArea } from "@/test/admin-routes";
 
 const cookies = mockRequestCookies();
@@ -53,10 +52,8 @@ describe("AccountDetail", () => {
 				screen.getByRole("region", { name: title }),
 			).toBeInTheDocument();
 		}
-		expect(screen.getByRole("link", { name: "back" })).toHaveAttribute(
-			"href",
-			`/app/${TEST_ADMIN_ID}/accounts`,
-		);
+		// The way back is the page's trail, not a second one in here.
+		expect(screen.queryByRole("navigation")).toBeNull();
 		expect(screen.queryByText("configManaged")).toBeNull();
 	});
 
@@ -83,13 +80,12 @@ describe("AccountDetail", () => {
 		expect(await screen.findByText("noAddresses")).toBeInTheDocument();
 	});
 
-	it("says the account is gone when the list no longer has it, with a way back", async () => {
+	it("says the account is gone when the list no longer has it", async () => {
 		api([account({ name: "bob" })]);
 
 		render(withAdminArea(<AccountDetail name="alice" />));
 
 		expect(await screen.findByText("gone")).toBeInTheDocument();
-		expect(screen.getByRole("link", { name: "back" })).toBeInTheDocument();
 		expect(
 			screen.queryByRole("region", { name: "passwordTitle" }),
 		).toBeNull();

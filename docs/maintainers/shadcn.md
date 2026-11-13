@@ -132,7 +132,7 @@ kept.
 | Kbd | the keys in the shortcuts list | no violation; static |
 | Badge | delivery outcome | no violation; static, the label always says the outcome |
 | Empty | empty tables and the empty sections of the account page | no violation; static |
-| Breadcrumb | account page | no violation; static |
+| Breadcrumb | every admin page, above its heading (`features/navigation/components/admin-breadcrumbs`) | no violation; static, a server component with links |
 | Sidebar (provider, rail, menu, trigger) | every signed-in page | none at first paint, after hydration, collapsed or expanded; width variables are classes |
 | Sidebar tooltip (own, no popper) | collapsed sidebar icons | none after hover or keyboard focus (placed through the CSSOM); Escape dismisses it |
 | DropdownMenu item, rendered in `main` | the actions of an account row (open, delete) | no violation. A table scrolls sideways, which clips what leaves it, so the list is rendered in the page's `main` (`container`), found when the menu opens: inside a landmark, never on `body`. Measured on the last row at 1280 and 360 px: whole, on top, focus on the first item, Escape returns it to the button |

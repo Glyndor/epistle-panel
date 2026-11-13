@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
 import { PrefetchBoundary } from "@/components/prefetch-boundary";
+import { AdminBreadcrumbs } from "@/features/navigation/components/admin-breadcrumbs";
 import { StatusCards } from "@/features/status/components/status-cards";
 import { StatusCardsSkeleton } from "@/features/status/components/status-cards-skeleton";
 import { loadStatus } from "@/features/status/queries/load-status";
@@ -15,11 +16,12 @@ import { prefetchSpec } from "@/lib/query/prefetch";
  * in the browser.
  */
 export default async function HomePage() {
-	await requireAdmin();
+	const { routes } = await requireAdmin();
 	const t = await getTranslations("dashboard");
 
 	return (
 		<>
+			<AdminBreadcrumbs routes={routes} page="status" />
 			<h1 className="font-semibold text-lg">{t("heading")}</h1>
 			<Suspense fallback={<StatusCardsSkeleton />}>
 				<PrefetchBoundary

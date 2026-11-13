@@ -1,7 +1,5 @@
 {
 	"heading": "Compte {name}",
-	"back": "Tous les comptes",
-	"breadcrumb": "Fil d'Ariane",
 	"unreachable": "L’API de gestion du serveur de messagerie est injoignable. Vérifiez que le serveur est en marche et que le panneau est configuré.",
 	"gone": "Ce compte n’existe plus.",
 	"unavailable": "La modification n’a pas pu être effectuée. Veuillez réessayer.",

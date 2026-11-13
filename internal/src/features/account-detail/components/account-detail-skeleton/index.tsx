@@ -7,8 +7,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 const SECTIONS = ["addresses", "profile", "security"] as const;
 
 /**
- * The waiting state of the account page: the breadcrumb line and the first
- * section cards, at the width and gaps of the real ones. The route's
+ * The waiting state of the account page: the first section cards, at the
+ * width and gaps of the real ones. The route's
  * `loading.tsx`, the page's `Suspense` fallback and the account view's own
  * pending state all draw this.
  */
@@ -24,7 +24,6 @@ export function AccountDetailSkeleton() {
 				data-testid="account-skeleton"
 				className="flex flex-col gap-4"
 			>
-				<Skeleton className="h-5 w-48 rounded-md" />
 				{SECTIONS.map((section) => (
 					<Card key={section} aria-hidden="true">
 						<div className="flex flex-col gap-3">
