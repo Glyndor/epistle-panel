@@ -39,6 +39,23 @@ const folder = {
 	"Email/query": { ids: [ID] },
 	"Email/get": { list: [emailFixture({ id: ID, subject: "Listed" })] },
 };
+/**
+ * The same folder with its message already read. The reader marks an unread
+ * message as read when it opens; a case that opens the reader and ends would
+ * leave that call on its way, to land in the stub of the next case.
+ */
+const readFolder = {
+	...folder,
+	"Email/get": {
+		list: [
+			emailFixture({
+				id: ID,
+				subject: "Listed",
+				keywords: { $seen: true },
+			}),
+		],
+	},
+};
 
 beforeEach(async () => {
 	clearSecretCache();
@@ -104,7 +121,7 @@ describe("MailPage", () => {
 	});
 
 	it("opens the reader for a message in the address", async () => {
-		stubJmap({ ...mailboxes, ...folder });
+		stubJmap({ ...mailboxes, ...readFolder });
 		await renderPage({ msg: ID });
 		expect(
 			await screen.findByRole("heading", { level: 2, name: "Listed" }),
@@ -113,12 +130,18 @@ describe("MailPage", () => {
 	});
 
 	it("sends the frame of the three panes and a skeleton in each before the mail server is asked anything", async () => {
-		const seen = stubJmap({ ...mailboxes, ...folder });
+		// A token of its own: a call another case left on its way carries the
+		// usual one, so only what this page asks is counted.
+		process.env["EPISTLE_API_TOKEN"] = "frame-only-token";
+		clearSecretCache();
+		const seen = stubJmap({ ...mailboxes, ...readFolder });
+		const asked = () =>
+			seen.filter((r) => r.authorization === "Bearer frame-only-token");
 		const tree = await MailPage({
 			searchParams: Promise.resolve({ msg: ID }),
 		});
 
-		expect(seen).toHaveLength(0);
+		expect(asked()).toHaveLength(0);
 		// Every boundary gives way to its fallback and is not run; what is left of
 		// the frame (it has server components of its own) is then resolved.
 		const { container } = render(
@@ -137,7 +160,12 @@ describe("MailPage", () => {
 		expect(screen.getByText("loading")).toBeInTheDocument();
 		expect(screen.getByText("readerLoading")).toBeInTheDocument();
 		expect(screen.queryByText("Listed")).toBeNull();
-		expect(seen).toHaveLength(0);
+		expect(asked()).toHaveLength(0);
+
+		// The control: run the boundaries and the same counter sees their calls.
+		cleanup();
+		render(withQuery(await resolveServerTree(tree)));
+		expect(asked().length).toBeGreaterThan(0);
 	});
 
 	it("opens a folder named in the address without waiting for the folder tree", async () => {
