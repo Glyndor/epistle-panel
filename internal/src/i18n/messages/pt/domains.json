@@ -1,0 +1,7 @@
+{
+	"heading": "Domínios",
+	"unreachable": "Não foi possível acessar a API de gerenciamento do servidor de correio. Verifique se o servidor está em execução e se o painel está configurado.",
+	"empty": "Nenhum domínio configurado ainda.",
+	"name": "Domínio",
+	"filter": "Filtrar domínios"
+}

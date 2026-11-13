@@ -15,10 +15,7 @@ import {
 import { SidebarMenuButton } from "@/components/ui/sidebar/menu";
 import { setLocale } from "@/features/locale/actions/set-locale";
 import { localeSchema } from "@/features/locale/schemas/locale";
-import { SUPPORTED_LOCALES } from "@/i18n/locales";
-
-/** Message key of each locale's own name. */
-const LOCALE_LABELS = { en: "languageEn", es: "languageEs" } as const;
+import { LOCALE_NAMES, SUPPORTED_LOCALES } from "@/i18n/locales";
 
 /**
  * The language menu itself, with the Radix menu code it needs. It is loaded on
@@ -63,7 +60,7 @@ export function LanguageMenu({
 							value={code}
 							lang={code}
 						>
-							{t(LOCALE_LABELS[code])}
+							{LOCALE_NAMES[code]}
 						</DropdownMenuRadioItem>
 					))}
 				</DropdownMenuRadioGroup>

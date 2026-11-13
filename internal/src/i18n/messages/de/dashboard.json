@@ -1,0 +1,8 @@
+{
+	"heading": "Status",
+	"unreachable": "Die Verwaltungs-API des Mailservers ist nicht erreichbar. Prüfen Sie, ob der Server läuft und das Panel konfiguriert ist.",
+	"version": "Version",
+	"domains": "Domains",
+	"accounts": "Konten",
+	"queue": "Warteschlange"
+}

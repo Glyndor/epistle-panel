@@ -9,7 +9,7 @@ Admin panel for the [Epistle mail server](https://github.com/Glyndor/epistle): s
 ## 🧱 Stack
 
 - [Next.js](https://nextjs.org) (App Router, TypeScript) + Tailwind CSS
-- [next-intl](https://next-intl.dev): English and Spanish ship together
+- [next-intl](https://next-intl.dev): English, Spanish, Portuguese, French, German and Italian ship together; see [docs/maintainers/i18n.md](docs/maintainers/i18n.md) to add one
 - Typed [Epistle API](https://github.com/Glyndor/epistle) client with [zod](https://zod.dev)-validated responses; the bearer token stays server-side
 - Biome (lint + format), `bun test`
 

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 
+import { SUPPORTED_LOCALES } from "@/i18n/locales";
 import { loadMessages } from "@/i18n/messages";
 import { installNextIntlMocks, intl, resetIntl } from "@/test/next-intl";
 
@@ -66,12 +67,14 @@ describe("generateMetadata", () => {
 
 describe("RootLayout", () => {
 	it("renders the page inside an html element in the request's locale", async () => {
-		intl.locale = "es";
+		for (const locale of SUPPORTED_LOCALES) {
+			intl.locale = locale;
 
-		const html = await renderLayout();
+			const html = await renderLayout();
 
-		expect(html).toStartWith('<html lang="es"');
-		expect(html).toContain('<main id="main-content">content</main>');
+			expect(html).toStartWith(`<html lang="${locale}"`);
+			expect(html).toContain('<main id="main-content">content</main>');
+		}
 	});
 
 	it("links the operator's stylesheet only when one is configured", async () => {

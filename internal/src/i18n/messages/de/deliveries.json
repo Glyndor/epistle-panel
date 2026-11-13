@@ -1,0 +1,37 @@
+{
+	"heading": "Zustellungen",
+	"description": "Was mit jeder Nachricht für jeden Empfänger geschehen ist, neueste zuerst. Die Zeiten sind in UTC.",
+	"unreachable": "Die Verwaltungs-API des Mailservers ist nicht erreichbar. Prüfen Sie, ob der Server läuft und das Panel konfiguriert ist.",
+	"disabled": "Das Zustellungsprotokoll ist auf dem Server ausgeschaltet. Legen Sie in den Speichereinstellungen des Servers eine Aufbewahrung von mehr als 0 Tagen fest, um Zustellungen aufzuzeichnen.",
+	"empty": "Keine Zustellung passt.",
+	"full": "Die API liefert höchstens 100 Datensätze und hat keine nächste Seite. Grenzen Sie die Liste mit den Filtern ein, um andere zu sehen.",
+	"filter": "Diese Datensätze filtern",
+	"time": "Zeit (UTC)",
+	"outcome": "Ergebnis",
+	"recipient": "Empfänger",
+	"from": "Von",
+	"account": "Konto",
+	"remote": "Gegenstelle",
+	"reply": "Antwort",
+	"attempt": "Versuch",
+	"none": "-",
+	"any": "Beliebiges Ergebnis",
+	"anyTime": "Beliebiger Zeitraum",
+	"since": "Seit",
+	"apply": "Anwenden",
+	"clear": "Zurücksetzen",
+	"outcomes": {
+		"delivered": "Zugestellt",
+		"deferred": "Zurückgestellt",
+		"failed": "Fehlgeschlagen",
+		"suppressed": "Unterdrückt",
+		"canceled": "Abgebrochen"
+	},
+	"windows": {
+		"15m": "Letzte 15 Minuten",
+		"1h": "Letzte Stunde",
+		"24h": "Letzte 24 Stunden",
+		"7d": "Letzte 7 Tage",
+		"30d": "Letzte 30 Tage"
+	}
+}

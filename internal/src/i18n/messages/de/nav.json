@@ -1,0 +1,21 @@
+{
+	"label": "Hauptnavigation",
+	"skip": "Zum Inhalt springen",
+	"status": "Status",
+	"domains": "Domains",
+	"accounts": "Konten",
+	"queue": "Warteschlange",
+	"suppression": "Unterdrückung",
+	"deliveries": "Zustellungen",
+	"logout": "Abmelden",
+	"brandSubtitle": "Verwaltungspanel",
+	"manage": "Verwalten",
+	"toggle": "Seitenleiste umschalten",
+	"sheetTitle": "Navigation",
+	"sheetDescription": "Seiten des Verwaltungspanels.",
+	"close": "Schließen",
+	"signedInAs": "Angemeldet als {name}",
+	"language": "Sprache",
+	"notifications": "Benachrichtigungen",
+	"dismiss": "Verwerfen"
+}

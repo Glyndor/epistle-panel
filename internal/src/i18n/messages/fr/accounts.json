@@ -1,0 +1,8 @@
+{
+	"heading": "Comptes",
+	"unreachable": "L’API de gestion du serveur de messagerie est injoignable. Vérifiez que le serveur est en marche et que le panneau est configuré.",
+	"empty": "Aucun compte n’est encore configuré.",
+	"name": "Compte",
+	"addresses": "Adresses",
+	"filter": "Filtrer les comptes"
+}

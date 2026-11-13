@@ -1,0 +1,8 @@
+{
+	"heading": "Contas",
+	"unreachable": "Não foi possível acessar a API de gerenciamento do servidor de correio. Verifique se o servidor está em execução e se o painel está configurado.",
+	"empty": "Nenhuma conta configurada ainda.",
+	"name": "Conta",
+	"addresses": "Endereços",
+	"filter": "Filtrar contas"
+}
