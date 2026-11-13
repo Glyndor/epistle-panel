@@ -1,6 +1,7 @@
 {
 	"heading": "Status",
-	"unreachable": "Não foi possível acessar a API de gerenciamento do servidor de correio. Verifique se o servidor está em execução e se o painel está configurado.",
+	"unavailable": "Não foi possível ler os contadores.",
+	"none": "-",
 	"version": "Versão",
 	"domains": "Domínios",
 	"accounts": "Contas",

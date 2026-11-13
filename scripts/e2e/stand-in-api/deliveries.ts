@@ -1,4 +1,5 @@
 import { apiError, json } from "./responses";
+import { inApiOrder, type SampleDelivery } from "./sample";
 
 const OUTCOMES = ["delivered", "deferred", "failed", "suppressed", "canceled"];
 
@@ -51,12 +52,26 @@ export function createDeliveriesStore() {
 	const started = Math.floor(Date.now() / 1000);
 	const spoolId = (index: number) =>
 		`aaaaaaaa-aaaa-4aaa-8aaa-${String(index + 1).padStart(12, "0")}`;
+	/** The records of a sample, in place of the seed; `null` is a log switched off. */
+	let sample: SampleDelivery[] | null | undefined;
 
 	return {
+		/** The second the ages of the records count back from: the stand-in's start. */
+		started,
+		/** Answer from a sample's records, or with a 404 for `null`, until the next reset. */
+		use(records: SampleDelivery[] | null) {
+			sample = records;
+		},
+		reset() {
+			sample = undefined;
+		},
 		/** Answer a deliveries request, or `undefined` when the path is not one. */
 		handle(request: Request, url: URL): Response | undefined {
 			if (url.pathname !== "/api/v1/deliveries" || request.method !== "GET") {
 				return undefined;
+			}
+			if (sample === null) {
+				return apiError(404, "not_found", "the delivery log is disabled");
 			}
 			const params = url.searchParams;
 			const outcome = params.get("outcome")?.trim();
@@ -72,7 +87,23 @@ export function createDeliveriesStore() {
 			const limit = Math.min(Math.max(asked === null ? 50 : Number(asked) || 0, 1), MAX_LIMIT);
 			const recipient = params.get("recipient")?.trim();
 			const account = params.get("account")?.trim();
-			const entries = SEED.map((seed, index) => ({
+			// The seed is one day's worth and is listed as written, oldest first. A
+			// sample spans a month, so it is put in the order the real API reads
+			// its log before the page is cut.
+			const records: Seed[] =
+				sample === undefined
+					? SEED
+					: sample.map((record, index) => ({
+							ageSeconds: record.ageSeconds,
+							account: "ops",
+							from: "ops@example.test",
+							recipient: `sample${index}@example.net`,
+							outcome: record.outcome,
+							remote: null,
+							reply: null,
+							attempt: 1,
+						}));
+			const listed = records.map((seed, index) => ({
 				time: started - seed.ageSeconds,
 				spool_id: spoolId(index),
 				account: seed.account,
@@ -83,7 +114,8 @@ export function createDeliveriesStore() {
 				reply: seed.reply,
 				attempt: seed.attempt,
 				extra: {},
-			}))
+			}));
+			const entries = (sample === undefined ? listed : inApiOrder(listed))
 				.filter((entry) => !outcome || entry.outcome === outcome)
 				.filter((entry) => since === undefined || entry.time >= since)
 				.filter((entry) => !recipient || entry.recipient === recipient)

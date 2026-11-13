@@ -116,6 +116,16 @@ differences that matter:
 - The archive answers 404 when the server keeps no deleted mail; that is a
   state of the section, not an error, and it is not logged.
 
+## The overview's charts
+
+`/app/{id}` draws four charts under the counters, on the server, from the three
+lists above: they are not client queries and add no Server Action. Each card is
+an async Server Component in its own `Suspense` that reads the API, catches its
+own failure and says in a quiet line that it was not loaded. The page gives one
+warning for all of them, at the top, with a link that loads it again: the
+cards do not refresh until then. `charts.md` has where each number comes
+from, the limit of each list and how a chart is drawn.
+
 ## Tables
 
 `components/data-table` wraps TanStack Table v9 with the features the panel

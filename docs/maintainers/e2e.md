@@ -40,7 +40,7 @@ the line limit:
 | `scripts/e2e/lib/reporting.sh` | the pass and fail counters and the `assert_*` helpers |
 | `scripts/e2e/lib/processes.sh` | secrets, start and restart of the stand-in and the panel, its control calls |
 | `scripts/e2e/lib/http.sh` | `fetch`, `login`, the form-field readers, memory and CPU counters |
-| `scripts/e2e/scenarios/<name>.sh` | one scenario each: `headers`, `logout`, `limiter`, `limiter-global`, `noauth`, `degraded`, `rotation`, `idle`, `theme`, `theme-choice`, `profile-menu`, `body-limit`, `captcha`, `csrf`, `set-locale`, `unknown-variable`, `suppression`, `deliveries`, `account-detail`, `accounts`, `breadcrumbs`, `admin-id`, `mail`, `streaming`, `tables` |
+| `scripts/e2e/scenarios/<name>.sh` | one scenario each: `headers`, `logout`, `limiter`, `limiter-global`, `noauth`, `degraded`, `rotation`, `idle`, `theme`, `theme-choice`, `profile-menu`, `body-limit`, `captcha`, `csrf`, `set-locale`, `unknown-variable`, `suppression`, `deliveries`, `account-detail`, `accounts`, `breadcrumbs`, `admin-id`, `mail`, `streaming`, `tables`, `overview` |
 
 Every run generates its own admin id (a fresh UUID v4, `admin_id`, and `adm` for the
 admin path) and passes it as `EPISTLE_PANEL_ADMIN_ID`; nothing in the repository
@@ -61,7 +61,8 @@ body before it checks anything else.
 
 `scripts/e2e/stand-in-api/` answers the paths the panel calls, validated
 against the panel's own zod schemas in its test. It knows the accounts `admin`
-and `ops` (admins) and `user` (not an admin), keeps a suppression list
+and `ops` (admins) and `user` (not an admin), keeps a queue
+(`stand-in-api/queue.ts`, paged by `cursor`), a suppression list
 (`stand-in-api/suppression.ts`, paged by `after`, seeded with a `/` and a `+`
 address) and a delivery log (`stand-in-api/deliveries.ts`, filters and
 limit as the API takes them, no cursor), logs every request without any
@@ -76,6 +77,26 @@ masked addresses with a cap of three, the archive (only `admin` has one, the
 others answer `404` like a server with retention off) and mailboxes. It keeps
 its state in memory, `GET /__control/accounts` reports it, and it never keeps a
 secret: a password is only counted.
+
+The seeds are a handful of records, enough for a table and too few for a chart.
+`POST /__control/sample` with `{"name":"busy"}` switches the delivery log, the
+queue and the suppression list to a data set with a spread
+(`stand-in-api/sample.ts`): 67 delivery records in 24 hours, 87 in 7 days and
+127 in 30 days, which is more than one answer holds and is cut where the real
+API cuts it (the newest UTC day first, the oldest record first inside a day);
+ten queued messages with version 7 ids of several ages; fourteen suppressed
+addresses of seven domains. `quiet` empties the three, `edge` holds the cases a layout breaks on (one
+record, an id with no time in it, a domain far longer than a card) and `log-off` makes the
+delivery log answer `404`, as a server with a retention of 0 days does.
+Three more hold the cases a chart can lie on. `exact100` has exactly the 100
+records one answer of the log holds, and a queue and a suppression list of
+exactly the 500 the overview reads: nothing is missing, and the log cannot say
+so. `flood` has 300 records in 24 hours, 620 queued messages and 640
+addresses, more of each than is read. `skew` has hours of 60, 5 (one of each
+outcome), 12, 2 and 8 records, each group ten minutes into an hour of the UTC
+clock, to compare the heights of the columns.
+`POST /__control/reset` puts the seeds back, and `POST /__control/forget`
+empties the request log without touching the data.
 
 ## What the script proves
 
@@ -105,6 +126,7 @@ secret: a password is only counted.
 | `mail` | `/app/mail`, its framed body route and its attachment route are denied without a session (to the sign-in page) and reach no endpoint; with one the inbox, a folder, a page, the filters and the search render; hostile parameters fall back to the default view; a subject and addresses with line breaks and bidi controls are text; a text body keeps its markup as text; the framed body of a hostile message (script, svg onload, css `url()`, meta refresh, base, `javascript:`, handlers, iframe, form, mutation payloads) carries none of it, under a `default-src 'none'` policy that only the panel may frame; remote images are blocked and load only with `?images=1`; attachments are downloads with a forced type and a clean name, and only a part the message lists; hostile ids answer 404 and cost no JMAP call; the change action is redirected without a session, refuses a hostile id, operation or folder before JMAP, and read, star, unstar, archive (new id), trash, delete from the trash, move and spam change the stand-in's mailbox as epistle would; the composer page renders with no inline style, a reply and a forward are prefilled from cleaned text (a hostile message's code never reaches the quote), a hostile id opens it empty; the compose and upload routes are redirected without a session and refuse a foreign, missing or null origin, a body that is not JSON and every hostile body before any JMAP call; a draft is stored from the account's own address with its Bcc, saving again replaces it, a 12 MB attachment arrives whole and 27 MB is refused, sending delivers to To and Bcc with the attachment, keeps a copy in Sent and removes the draft, and a send the server refuses answers a category without the server's words and keeps the work as a draft |
 | `streaming` | with the stand-in API taking two seconds per answer (`POST /__control/delay`), every admin list page answers 200, sends its first byte at least a second before its data, carries a loading placeholder in that first part and still has a nonce in its policy; the data arrives later in the same response; with the delay off the page is quick again. A page with no `Suspense` around its data and no `loading.tsx` above it fails the first-byte check. The webmail sends its frame the same way; its folders are asked of the server once for the whole page, however many panes read them, and a view whose address names its folder does not wait for the folder tree (the stand-in logs the method names of a JMAP request, never its arguments) |
 | `tables` | with 132 accounts and 61 domains seeded: the page holds the 25 rows of the first page and not the 26th, the range ("1–25 of 132"), one empty live region and no other, a named filter field, a named landmark with one button per page, the current one marked, previous marked as having nowhere to go, the page in words for a narrow window, the size select on 25 with its four options, the Filters button, and the origin or the state of each row in words, with no inline style; the API was asked for the list once; the queue and the suppression list have the API's own page link and neither page controls nor a Filters menu; the delivery log, whose five records fit one page, has its range and page size, no page controls and no Filters menu; the seed leaves with the reset. Pressing the controls is not covered here: paging and the facets are state in the browser, which curl does not run |
+| `overview` | `/app/{id}` with a period is the 404 without a session and the stand-in sees nothing; with the busy sample the page carries four charts, each one image with a name and a description, drawn with `svg` marks sized by attributes that have no child, and no inline style; the counts and shares of the sample are in the HTML (67 records, 48 delivered at 71.6 %), the description says them in words, an outcome links to the log filtered by it and by the period; the two delivery cards read the log once between them and the queue and the suppression list once each, a page of 100; the status is read once between the counters and the notice of the page; `?since=7d` and `?since=30d` reach the API and the full answer of 30 days says the period may hold more, never that it does, and fills the days it may not have returned with a band of its own colour; with the `skew` sample the columns are as high as their totals on the scale (160, 32 and 21.33 px for 60, 12 and 8 records, and parts of 2.67 px with no gap for 5 and 2) and a column names its split by outcome; a queue and a list of exactly 500 are whole, longer ones count what was read in every sentence; with the API failing every read the page gives one warning with a plain link to the same address and each card says it was not loaded; hostile periods (`1e9d`, a line break, `../`, markup, upper case, a period the log takes but no chart draws, an injected parameter) render the default period and never reach the API; with the API answering in 300 ms, twelve answers carry no style attribute (a chart drawn with `svg` children failed this in about half the answers, see `charts.md`); a log switched off, an empty queue, an empty list and a period with no record each say so in place of a chart; nothing but `GET` reaches the API |
 | `theme` | `/theme.css`, `/brand/logo` and `/brand/favicon` answer without a session when configured and 404 when not; the sign-in page links the stylesheet and shows the name, the logo and the original copyright notice; the CSP is the same with and without a theme; look-alike paths stay behind the gate; a symlink, an oversized or a missing file is a 404 and a log line with no path, and a symlink or a FIFO as the logo is refused the same way; an SVG with script is refused, also when `javascript:` is written with numeric character references |
 
 ## Origin check of Server Actions, measured

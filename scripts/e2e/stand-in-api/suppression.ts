@@ -55,6 +55,10 @@ export function createSuppressionStore() {
 		reset() {
 			list = [...SEED_SUPPRESSED];
 		},
+		/** Replace the list with a sample's addresses, sorted as the API sorts them, until the next reset. */
+		use(addresses: string[]) {
+			list = [...addresses].sort();
+		},
 		/** Answer a suppression request, or `undefined` when the path is not one. */
 		handle(request: Request, url: URL): Response | undefined {
 			if (url.pathname === "/api/v1/suppression") {

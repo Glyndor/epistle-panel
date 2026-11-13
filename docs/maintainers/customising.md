@@ -20,7 +20,9 @@ All the variables live in one file, `internal/src/styles/theme.css`: the colour
 roles (`--background`, `--foreground`, `--primary`, `--muted`, `--accent`,
 `--destructive`, `--destructive-soft`, `--warning`, `--field`, `--field-edge` (the
 2px line under a field), `--ring`,
-`--overlay`, and the `--sidebar-*` family), the four surface roles
+`--overlay`, the `--sidebar-*` family, `--chart-1` to `--chart-5`, the series
+colours of the charts, checked pair by pair, and `--chart-missing`, the band of
+a column the server may not have returned (see `charts.md`)), the four surface roles
 (`--background` the canvas, `--surface` a card or table, `--surface-sunken` a
 stripe or quiet callout, `--surface-raised` a menu, toast or dialog, with its
 shadow `--elevation`; `--card` and `--popover` follow them), `--radius`, the

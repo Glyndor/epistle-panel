@@ -21,7 +21,7 @@ const search = { searchParams: Promise.resolve({}) };
 
 /** Each admin page by its file, relative to this folder, with a way to render it. */
 const PAGES: Array<[string, string, () => Promise<unknown>]> = [
-	["status", "(status)/page.tsx", () => HomePage()],
+	["status", "(status)/page.tsx", () => HomePage(search)],
 	["domains", "domains/page.tsx", () => DomainsPage()],
 	["accounts", "accounts/(list)/page.tsx", () => AccountsPage()],
 	[

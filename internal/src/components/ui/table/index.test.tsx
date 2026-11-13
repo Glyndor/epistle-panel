@@ -50,6 +50,34 @@ describe("Table", () => {
 		expect(container).toHaveClass("overflow-x-auto");
 	});
 
+	it("leaves the container out of the tab order when the table has no scroll label", () => {
+		render(<Sample />);
+
+		const container = screen.getByRole("table").parentElement;
+		expect(container).not.toHaveAttribute("tabindex");
+		expect(container).not.toHaveAttribute("role");
+	});
+
+	it("makes the container a named group that takes the focus when given a scroll label", () => {
+		render(
+			<Table scrollLabel="Deliveries per hour">
+				<TableBody>
+					<TableRow>
+						<TableCell>12</TableCell>
+					</TableRow>
+				</TableBody>
+			</Table>,
+		);
+
+		const group = screen.getByRole("group", {
+			name: "Deliveries per hour",
+		});
+		expect(group).toHaveAttribute("data-slot", "table-container");
+		expect(group).toHaveAttribute("tabindex", "0");
+		expect(group).toHaveClass("focus-visible:outline-2", "overflow-x-auto");
+		expect(group).toContainElement(screen.getByRole("table"));
+	});
+
 	it("passes a caller class to the table, not to the container", () => {
 		render(<Sample />);
 

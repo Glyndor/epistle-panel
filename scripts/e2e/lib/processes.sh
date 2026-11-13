@@ -84,3 +84,14 @@ set_oversize_blobs() {
 reset_api() {
 	curl -s -o /dev/null -X POST "$api/__control/reset"
 }
+
+# set_sample NAME: switch the stand-in's log, queue and suppression list to one
+# of its samples (busy, quiet, log-off); reset_api puts the seeds back.
+set_sample() {
+	curl -s -o /dev/null -X POST "$api/__control/sample" -d "{\"name\":\"$1\"}"
+}
+
+# reset_log: forget the requests the stand-in has seen and keep its data.
+reset_log() {
+	curl -s -o /dev/null -X POST "$api/__control/forget"
+}

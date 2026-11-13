@@ -14,7 +14,7 @@
 # exercises.
 #
 # Usage: scripts/e2e/run.sh [scenario...]
-#   scenarios: headers logout limiter limiter-global noauth degraded rotation idle theme theme-choice profile-menu body-limit captcha csrf set-locale unknown-variable suppression deliveries account-detail accounts breadcrumbs admin-id mail streaming tables
+#   scenarios: headers logout limiter limiter-global noauth degraded rotation idle theme theme-choice profile-menu body-limit captcha csrf set-locale unknown-variable suppression deliveries account-detail accounts breadcrumbs admin-id mail streaming tables overview
 # With no argument every scenario runs. Exit status is non-zero when any check
 # fails. Override the ports with PANEL_PORT and STAND_IN_PORT.
 set -euo pipefail
@@ -151,10 +151,12 @@ cp -R "$internal/.next/static" "$standalone/.next/static"
 . "$root/scripts/e2e/scenarios/streaming.sh"
 # shellcheck source=scripts/e2e/scenarios/tables.sh
 . "$root/scripts/e2e/scenarios/tables.sh"
+# shellcheck source=scripts/e2e/scenarios/overview.sh
+. "$root/scripts/e2e/scenarios/overview.sh"
 
 # ---------------------------------------------------------------- main
 
-all=(headers logout limiter limiter-global noauth degraded rotation idle theme theme-choice profile-menu body-limit captcha csrf set-locale unknown-variable suppression deliveries account-detail accounts breadcrumbs admin-id mail streaming tables)
+all=(headers logout limiter limiter-global noauth degraded rotation idle theme theme-choice profile-menu body-limit captcha csrf set-locale unknown-variable suppression deliveries account-detail accounts breadcrumbs admin-id mail streaming tables overview)
 selected=("$@")
 ((${#selected[@]})) || selected=("${all[@]}")
 
@@ -184,6 +186,7 @@ for name in "${selected[@]}"; do
 	breadcrumbs) scenario_breadcrumbs ;;
 	streaming) scenario_streaming ;;
 	tables) scenario_tables ;;
+	overview) scenario_overview ;;
 	admin-id) scenario_admin_id ;;
 	*)
 		echo "error: unknown scenario '$name'" >&2

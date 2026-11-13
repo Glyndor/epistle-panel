@@ -77,7 +77,7 @@ const cases: [
 	string,
 	string[],
 ][] = [
-	["status", () => HomePage(), "status-skeleton", []],
+	["status", () => HomePage(none), "status-skeleton", []],
 	["queue", () => QueuePage(none), "table-skeleton", []],
 	["accounts", () => AccountsPage(), "table-skeleton", []],
 	["domains", () => DomainsPage(), "table-skeleton", []],
