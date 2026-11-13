@@ -38,7 +38,9 @@ describe("composeInputSchema", () => {
 		const attach = (blobId: string) =>
 			composeInputSchema.safeParse({
 				...ok,
-				attachments: [{ blobId, name: "a.pdf", type: "application/pdf" }],
+				attachments: [
+					{ blobId, name: "a.pdf", type: "application/pdf" },
+				],
 			}).success;
 		expect(attach(`${ID}.2`)).toBe(true);
 		expect(attach(`${ID}.12`)).toBe(true);

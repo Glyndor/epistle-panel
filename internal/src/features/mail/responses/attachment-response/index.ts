@@ -95,11 +95,7 @@ export async function attachmentResponse(
 		if (!listed || !blobId) {
 			return plain(404, "Not found");
 		}
-		const blob = await downloadBlob(
-			session,
-			blobId,
-			MAX_ATTACHMENT_BYTES,
-		);
+		const blob = await downloadBlob(session, blobId, MAX_ATTACHMENT_BYTES);
 		return new Response(blob.bytes as BodyInit, {
 			status: 200,
 			headers: {

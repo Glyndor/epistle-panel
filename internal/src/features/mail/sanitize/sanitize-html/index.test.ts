@@ -276,7 +276,12 @@ describe("sanitizeHtml: structure and limits", () => {
 	});
 
 	it("survives deep nesting of elements it unwraps rather than writes", () => {
-		for (const open of ["<x>", "<font>", '<a href="javascript:x">', "<center>"]) {
+		for (const open of [
+			"<x>",
+			"<font>",
+			'<a href="javascript:x">',
+			"<center>",
+		]) {
 			const result = sanitizeHtml(`${open.repeat(100_000)}hi`, BLOCK);
 			expect(result.truncated).toBe(true);
 		}
