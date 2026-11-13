@@ -19,13 +19,14 @@ It needs bash, node, bun and curl, uses only 127.0.0.1 and picks free ports
 
 The `End-to-end` workflow (`.github/workflows/e2e.yml`) builds the panel and runs
 `bun test scripts/e2e`, `scripts/e2e/run.sh` and `scripts/headers/verify.sh` on
-pull requests and on pushes to `develop` that touch `internal/src/lib/auth/**`,
-`internal/src/lib/security-headers/**`, `internal/src/lib/api/**`,
-`internal/src/lib/config/**`, `internal/src/proxy.ts`, `internal/next.config.ts`,
-`internal/src/app/**`, `internal/src/components/**`, `internal/src/features/**`,
-`internal/src/i18n/**`, `internal/package.json`, `internal/bun.lock`,
-`scripts/e2e/**`, `scripts/headers/**` or the workflow itself, except for
-changes that touch only `internal/**/*.test.ts` or `*.test.tsx` files. Pull
+pull requests and on pushes to `develop` that touch anything the built server
+ships or the scripts read: `internal/src/**`, `internal/next.config.ts`,
+`internal/postcss.config.mjs`, `internal/tsconfig.json`, `internal/package.json`,
+`internal/bun.lock`, `scripts/e2e/**`, `scripts/headers/**` or the workflow
+itself. It does not run for a change that touches only test files
+(`*.test.ts`, `*.test.tsx`), the test preload (`internal/src/test/**`) or a
+`test-support` folder. The list was once the folders the first scenarios used,
+and a change to `src/styles` or `src/lib/routes` alone slipped past it. Pull
 requests are built only when they target `develop`. It is not a required check, so a docs-only change neither runs nor waits
 on it. Its `timeout-minutes: 15` is an estimate with a margin: runs on 2026-11-12
 finished between about 1 and 8 minutes. A red run means a real server behaved differently from the unit
