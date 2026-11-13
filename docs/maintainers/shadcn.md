@@ -61,6 +61,17 @@ helpers (`class-variance-authority`, `clsx`, `tailwind-merge`).
 - **Leaf folder, 300 code lines.** Each component has its own folder with
   `index.tsx` and `index.test.tsx` beside it.
 
+## A component, not an element
+
+A screen is composed from `components/ui`. It does not write by hand a control
+the panel has a component for: a `select`, a `textarea`, a `details`, a
+`dialog`, a `table`, a `kbd`, a radio input, the browser's `confirm`. The
+components are on the panel's tokens, sized for both pointers and measured
+against the policy; a hand-made control is none of that.
+`src/test/shadcn-over-html` reads every screen and fails with the file and the
+component to use. A file excused there says why, and leaves the list when it is
+changed.
+
 ## Adding a component
 
 ```sh
@@ -114,6 +125,10 @@ kept.
 | AlertDialog (`ConfirmAction`) | the six confirmations: remove queue entry, suppressed address, masked address, enrol and turn off two-factor, delete a message for good from the trash (the button, or the Delete and # keys through `open` and `onOpenChange`) | **needs the nonce**: one `style-src-elem` violation without `StyleNonce`, none with it (built server, light and dark). Focus lands on Cancel, Tab cycles inside, Escape closes, the focus returns to the control, page scroll is locked and released |
 | Dialog | the new-account form | **needs the nonce**, like AlertDialog, and is hosted by the shell that mounts `StyleNonce`. Measured in the built server at 1280 px light and 360 px dark: no console error, axe clean with it open, it fits a 360 px window and scrolls inside; Escape and the close button close it and the focus returns to the button. Its form is loaded when it first opens (`next/dynamic`) |
 | Textarea | addresses of a new account, the composer's body | no violation; the shared field look, taller |
+| RadioGroup | what to do with queued mail when an account is deleted | no violation, no style attribute. One tab stop; an arrow key moves the focus and takes the choice it lands on while the key is held (a script that releases the key in the same instant moves only the focus: press with a delay when testing in a browser), Space takes the focused choice, a click on the label takes it too. 16 px, 24 px on a coarse pointer |
+| Collapsible | all headers of a message, the keyboard shortcuts of the list | no violation; the served page has no style attribute (Radix sets the content's size from script once it opens). Closed to start with: the content is not in the page until the button is used, and the button says so (`aria-expanded`) |
+| NativeSelect | delivery log filters | no violation. A real `select` on the shared field look with the panel's arrow: it works before any script loads and in a plain `GET` form, which is where Radix Select cannot be used |
+| Kbd | the keys in the shortcuts list | no violation; static |
 | Badge | delivery outcome | no violation; static, the label always says the outcome |
 | Empty | empty tables and the empty sections of the account page | no violation; static |
 | Breadcrumb | account page | no violation; static |

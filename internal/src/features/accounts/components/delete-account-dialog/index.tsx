@@ -14,11 +14,14 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "@/components/ui/toaster";
 import { reportFailure } from "@/features/account-detail/queries/action-feedback";
 import { deleteAccountAction } from "@/features/accounts/actions/delete-account";
 import { accountsKeys } from "@/features/accounts/queries/accounts-query";
 import { QUEUE_CHOICES, type QueueChoice } from "@/lib/api/schemas";
+import { isOneOf } from "@/lib/is-one-of";
 import { ActionError } from "@/lib/query/action-result";
 
 /** Message keys of the two choices for queued mail. */
@@ -93,27 +96,38 @@ export function DeleteAccountDialog({
 						{t("deleteHelp")}
 					</AlertDialogDescription>
 				</AlertDialogHeader>
-				<fieldset className="flex flex-col gap-2">
-					<legend className="mb-2 font-medium text-sm">
+				<div className="flex flex-col gap-2">
+					<p id={`${group}-legend`} className="font-medium text-sm">
 						{t("queueLegend")}
-					</legend>
-					{QUEUE_CHOICES.map((choice) => (
-						<label
-							key={choice}
-							className="flex min-h-8 items-center gap-2 text-sm pointer-coarse:min-h-11"
-						>
-							<input
-								type="radio"
-								name={group}
-								value={choice}
-								checked={queue === choice}
-								onChange={() => setQueue(choice)}
-								className="size-4 accent-primary focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
-							/>
-							{t(CHOICE_LABELS[choice])}
-						</label>
-					))}
-				</fieldset>
+					</p>
+					<RadioGroup
+						aria-labelledby={`${group}-legend`}
+						value={queue}
+						onValueChange={(value) => {
+							if (isOneOf(QUEUE_CHOICES, value)) {
+								setQueue(value);
+							}
+						}}
+					>
+						{QUEUE_CHOICES.map((choice) => (
+							<div
+								key={choice}
+								className="flex min-h-8 items-center gap-2 pointer-coarse:min-h-11"
+							>
+								<RadioGroupItem
+									id={`${group}-${choice}`}
+									value={choice}
+								/>
+								<Label
+									htmlFor={`${group}-${choice}`}
+									className="font-normal"
+								>
+									{t(CHOICE_LABELS[choice])}
+								</Label>
+							</div>
+						))}
+					</RadioGroup>
+				</div>
 				<AlertDialogFooter>
 					<AlertDialogCancel>{t("deleteCancel")}</AlertDialogCancel>
 					<AlertDialogAction
