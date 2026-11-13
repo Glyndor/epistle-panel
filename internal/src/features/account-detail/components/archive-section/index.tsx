@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useFormatter, useTranslations } from "next-intl";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getArchiveAction } from "@/features/account-detail/actions/get-archive";
 import { RestoreArchiveButton } from "@/features/account-detail/components/restore-archive-button";
@@ -47,15 +48,15 @@ export function ArchiveSection({ name }: { name: string }) {
 					</AlertDescription>
 				</Alert>
 			) : data.entries.length === 0 ? (
-				<p className="text-muted-foreground text-sm">
-					{t("archiveEmpty")}
-				</p>
+				<Empty className="p-3">
+					<EmptyDescription>{t("archiveEmpty")}</EmptyDescription>
+				</Empty>
 			) : (
-				<ul className="flex flex-col divide-y">
+				<ul className="-mx-3 flex flex-col gap-1">
 					{data.entries.map((entry) => (
 						<li
 							key={entry.id}
-							className="flex flex-wrap items-center justify-between gap-2 py-2 first:pt-0 last:pb-0"
+							className="flex flex-wrap items-center justify-between gap-2 rounded-lg px-3 py-2 even:bg-surface-sunken"
 						>
 							<span className="break-all text-sm">
 								{t("archiveMeta", {

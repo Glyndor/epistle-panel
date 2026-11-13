@@ -27,12 +27,12 @@ import {
 	stubFetchReject,
 } from "@/lib/api/test-support/fetch";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
+import { answerConfirm } from "@/test/confirm-dialog";
 import { testQueryClient, withQuery } from "@/test/query-wrapper";
 
 const ID = queueEntryIdSchema.parse("01890a5d-ac96-774b-b9aa-9be4c3bd6b0e");
 const OTHER = queueEntryIdSchema.parse("01890a5d-ac96-774b-b9aa-9be4c3bd6b0f");
 const originalFetch = globalThis.fetch;
-const originalConfirm = window.confirm;
 const cookies = mockRequestCookies();
 const { RemoveEntryButton } = await import(".");
 
@@ -52,7 +52,6 @@ afterEach(() => {
 	cleanup();
 	clearToasts();
 	globalThis.fetch = originalFetch;
-	window.confirm = originalConfirm;
 });
 
 function setup(client: QueryClient = testQueryClient()) {
@@ -77,22 +76,22 @@ const click = () =>
 	fireEvent.click(screen.getByRole("button", { name: "removeLabel" }));
 
 describe("RemoveEntryButton", () => {
-	it("does nothing when the confirmation is declined", () => {
-		window.confirm = mock(() => false);
+	it("does nothing when the confirmation is declined", async () => {
 		stubFetchJson({ removed: ID });
 		setup();
 
 		click();
+		await answerConfirm(false);
 
 		expect(sentRequests()).toHaveLength(0);
 	});
 
 	it("deletes the entry once confirmed, takes the row out of the cache and reports success", async () => {
-		window.confirm = mock(() => true);
 		stubFetchJson({ removed: ID });
 		const client = setup();
 
 		click();
+		await answerConfirm(true);
 
 		await waitFor(() =>
 			expect(screen.getByRole("status")).toHaveTextContent("removed"),
@@ -108,12 +107,12 @@ describe("RemoveEntryButton", () => {
 	});
 
 	it("puts the row back and reports an error when the server cannot be reached", async () => {
-		window.confirm = mock(() => true);
 		const errors = spyOn(console, "error").mockImplementation(() => {});
 		stubFetchReject();
 		const client = setup();
 
 		click();
+		await answerConfirm(true);
 
 		await waitFor(() =>
 			expect(screen.getByRole("alert")).toHaveTextContent("removeError"),
@@ -127,7 +126,6 @@ describe("RemoveEntryButton", () => {
 	});
 
 	it("shows the pending label and disables itself while the request is in flight", async () => {
-		window.confirm = mock(() => true);
 		let release: () => void = () => {};
 		globalThis.fetch = mock(
 			() =>
@@ -143,6 +141,7 @@ describe("RemoveEntryButton", () => {
 		setup();
 
 		click();
+		await answerConfirm(true);
 
 		const button = await screen.findByRole("button", {
 			name: "removeLabel",
@@ -152,13 +151,10 @@ describe("RemoveEntryButton", () => {
 		await act(async () => release());
 	});
 
-	it("keeps the confirm text with the recipients", () => {
-		const confirm = mock(() => false);
-		window.confirm = confirm;
+	it("keeps the confirm text with the recipients", async () => {
 		setup();
 
 		click();
-
-		expect(confirm).toHaveBeenCalledTimes(1);
+		await answerConfirm(false);
 	});
 });

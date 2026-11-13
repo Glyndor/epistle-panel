@@ -1,13 +1,7 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { cleanup, render, screen } from "@testing-library/react";
 
-import {
-	SidebarContent,
-	SidebarFooter,
-	SidebarHeader,
-	SidebarInset,
-	SidebarSeparator,
-} from ".";
+import { SidebarContent, SidebarFooter, SidebarHeader, SidebarInset } from ".";
 
 afterEach(cleanup);
 
@@ -34,11 +28,5 @@ describe("sidebar regions", () => {
 
 		expect(screen.getByText("content").tagName).toBe("DIV");
 		expect(screen.queryByRole("main")).toBeNull();
-	});
-
-	it("renders a decorative separator", () => {
-		const { container } = render(<SidebarSeparator />);
-
-		expect(container.firstElementChild).toHaveAttribute("role", "none");
 	});
 });

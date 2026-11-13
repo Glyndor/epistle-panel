@@ -49,14 +49,34 @@ describe("Input", () => {
 		expect(screen.getByLabelText("Name")).not.toHaveAttribute("style");
 	});
 
-	it("shows the invalid state with the destructive border and still reacts to hover", () => {
-		// Hover on an invalid field must not look like its rest state.
-		render(<Input aria-label="Name" aria-invalid="true" />);
+	it("is a tonal well with no border at rest, and shows a destructive border only when invalid", () => {
+		render(
+			<>
+				<Input aria-label="Name" />
+				<Input aria-label="Bad" aria-invalid="true" />
+			</>,
+		);
 
-		const input = screen.getByLabelText("Name");
-		expect(input).toHaveClass(
+		const rest = screen.getByLabelText("Name");
+		expect(rest).toHaveClass(
+			"bg-field",
+			"border-transparent",
+			"hover:bg-accent",
+		);
+		expect(rest).not.toHaveClass("border-input");
+		const bad = screen.getByLabelText("Bad");
+		expect(bad).toHaveClass(
 			"aria-invalid:border-destructive",
-			"aria-invalid:hover:border-destructive/70",
+			"hover:bg-accent",
+		);
+	});
+
+	it("takes the focus ring on keyboard focus", () => {
+		render(<Input aria-label="Name" />);
+
+		expect(screen.getByLabelText("Name")).toHaveClass(
+			"focus-visible:outline-2",
+			"focus-visible:outline-ring",
 		);
 	});
 });

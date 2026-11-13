@@ -55,7 +55,7 @@ function DropdownMenuContent({
 			data-slot="dropdown-menu-content"
 			sideOffset={sideOffset}
 			className={cn(
-				"z-50 min-w-40 rounded-md border bg-popover p-1 text-popover-foreground shadow-md",
+				"z-50 min-w-40 rounded-xl bg-popover p-1.5 text-popover-foreground shadow-raised",
 				className,
 			)}
 			{...props}
@@ -80,7 +80,7 @@ function DropdownMenuLabel({
 	);
 }
 
-/** A rule between two runs of items. */
+/** A gap between two runs of items; it draws no line. */
 function DropdownMenuSeparator({
 	className,
 	...props
@@ -88,7 +88,7 @@ function DropdownMenuSeparator({
 	return (
 		<DropdownMenuPrimitive.Separator
 			data-slot="dropdown-menu-separator"
-			className={cn("-mx-1 my-1 h-px bg-border", className)}
+			className={cn("my-1.5", className)}
 			{...props}
 		/>
 	);
@@ -116,7 +116,7 @@ function DropdownMenuRadioItem({
 		<DropdownMenuPrimitive.RadioItem
 			data-slot="dropdown-menu-radio-item"
 			className={cn(
-				"relative flex min-h-8 cursor-default select-none items-center gap-2 rounded-sm ps-7 pe-2 text-sm focus:bg-accent focus:text-accent-foreground focus:outline-2 focus:-outline-offset-2 focus:outline-ring data-[disabled]:pointer-events-none data-[disabled]:opacity-50 pointer-coarse:min-h-11",
+				"relative flex min-h-8 cursor-default select-none items-center gap-2 rounded-lg ps-7 pe-2 text-sm focus:bg-accent focus:text-accent-foreground focus:outline-2 focus:-outline-offset-2 focus:outline-ring data-[disabled]:pointer-events-none data-[disabled]:opacity-50 pointer-coarse:min-h-11",
 				className,
 			)}
 			{...props}

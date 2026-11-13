@@ -12,17 +12,16 @@ import { useActionEnvironment } from "@/features/account-detail/test-support/act
 import { stubRoutes } from "@/features/account-detail/test-support/stub-routes";
 import { sentRequests, stubFetchReject } from "@/lib/api/test-support/fetch";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
+import { answerConfirm } from "@/test/confirm-dialog";
 import { withQuery } from "@/test/query-wrapper";
 
 const ADDRESS = "news.abcdefgh@example.org";
-const originalConfirm = window.confirm;
 const cookies = mockRequestCookies();
 const { RemoveMaskedButton } = await import(".");
 
 afterEach(() => {
 	cleanup();
 	clearToasts();
-	window.confirm = originalConfirm;
 });
 
 function setup() {
@@ -41,23 +40,24 @@ const click = () =>
 describe("RemoveMaskedButton", () => {
 	useActionEnvironment(cookies);
 
-	it("asks first and does nothing when the confirmation is declined", () => {
-		const confirm = mock(() => false);
-		window.confirm = confirm;
+	it("asks first and does nothing when the confirmation is declined", async () => {
 		setup();
 
 		click();
+		expect(await screen.findByRole("alertdialog")).toHaveTextContent(
+			"maskedRemoveConfirm",
+		);
+		await answerConfirm(false);
 
-		expect(confirm).toHaveBeenCalledWith("maskedRemoveConfirm");
 		expect(sentRequests()).toHaveLength(0);
 	});
 
 	it("deletes the address once confirmed and reports success", async () => {
-		window.confirm = mock(() => true);
 		stubRoutes([["DELETE", /\/masked\//, { body: { removed: ADDRESS } }]]);
 		setup();
 
 		click();
+		await answerConfirm(true);
 
 		await waitFor(() =>
 			expect(screen.getByRole("status")).toHaveTextContent(
@@ -72,7 +72,6 @@ describe("RemoveMaskedButton", () => {
 	});
 
 	it("reports an address that is already gone as an error", async () => {
-		window.confirm = mock(() => true);
 		stubRoutes([
 			[
 				"DELETE",
@@ -86,6 +85,7 @@ describe("RemoveMaskedButton", () => {
 		setup();
 
 		click();
+		await answerConfirm(true);
 
 		await waitFor(() =>
 			expect(screen.getByRole("alert")).toHaveTextContent("refusedGone"),
@@ -93,12 +93,12 @@ describe("RemoveMaskedButton", () => {
 	});
 
 	it("reports an unreachable server as an error toast", async () => {
-		window.confirm = mock(() => true);
 		const errors = spyOn(console, "error").mockImplementation(() => {});
 		stubFetchReject();
 		setup();
 
 		click();
+		await answerConfirm(true);
 
 		await waitFor(() =>
 			expect(screen.getByRole("alert")).toHaveTextContent("unavailable"),
@@ -107,13 +107,13 @@ describe("RemoveMaskedButton", () => {
 	});
 
 	it("disables itself while the request is in flight", async () => {
-		window.confirm = mock(() => true);
 		globalThis.fetch = mock(
 			() => new Promise<Response>(() => {}),
 		) as unknown as typeof fetch;
 		setup();
 
 		click();
+		await answerConfirm(true);
 
 		await waitFor(() =>
 			expect(

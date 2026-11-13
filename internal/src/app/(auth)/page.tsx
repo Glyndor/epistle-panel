@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
+import { Card } from "@/components/ui/card";
 import { getPublicCaptcha } from "@/features/auth/captcha/config";
 import { LoginForm } from "@/features/auth/components/login-form";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth/session";
@@ -18,9 +19,9 @@ export default async function LoginPage() {
 	}
 	const t = await getTranslations("auth");
 	return (
-		<>
+		<Card className="gap-4 p-6">
 			<h1 className="font-semibold text-lg">{t("heading")}</h1>
 			<LoginForm captcha={getPublicCaptcha()} />
-		</>
+		</Card>
 	);
 }

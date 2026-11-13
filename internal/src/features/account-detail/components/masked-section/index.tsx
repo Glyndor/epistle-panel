@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Empty, EmptyDescription } from "@/components/ui/empty";
 import {
 	Form,
 	FormControl,
@@ -106,15 +107,15 @@ export function MaskedSection({ name }: { name: string }) {
 					<AlertDescription>{t("unreachable")}</AlertDescription>
 				</Alert>
 			) : data.length === 0 ? (
-				<p className="text-muted-foreground text-sm">
-					{t("maskedEmpty")}
-				</p>
+				<Empty className="p-3">
+					<EmptyDescription>{t("maskedEmpty")}</EmptyDescription>
+				</Empty>
 			) : (
-				<ul className="flex flex-col divide-y">
+				<ul className="-mx-3 flex flex-col gap-1">
 					{data.map((row) => (
 						<li
 							key={row.address}
-							className="flex flex-wrap items-center justify-between gap-2 py-2 first:pt-0 last:pb-0"
+							className="flex flex-wrap items-center justify-between gap-2 rounded-lg px-3 py-2 even:bg-surface-sunken"
 						>
 							<div className="flex min-w-0 flex-col gap-0.5">
 								<span className="break-all font-mono text-sm">

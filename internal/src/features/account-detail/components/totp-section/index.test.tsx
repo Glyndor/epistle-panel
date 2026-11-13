@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, mock, spyOn } from "bun:test";
+import { afterEach, describe, expect, it, spyOn } from "bun:test";
 import {
 	act,
 	cleanup,
@@ -13,18 +13,17 @@ import { useActionEnvironment } from "@/features/account-detail/test-support/act
 import { stubRoutes } from "@/features/account-detail/test-support/stub-routes";
 import { sentRequests, stubFetchReject } from "@/lib/api/test-support/fetch";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
+import { answerConfirm } from "@/test/confirm-dialog";
 import { testQueryClient, withQuery } from "@/test/query-wrapper";
 
 const SECRET = "JBSWY3DPEHPK3PXP";
 const URI = `otpauth://totp/example.org:alice?secret=${SECRET}&issuer=example.org`;
-const originalConfirm = window.confirm;
 const cookies = mockRequestCookies();
 const { TotpSection } = await import(".");
 
 afterEach(() => {
 	cleanup();
 	clearToasts();
-	window.confirm = originalConfirm;
 });
 
 const enrolled = { body: { secret: SECRET, otpauth_uri: URI } };
@@ -50,23 +49,24 @@ describe("TotpSection", () => {
 	useActionEnvironment(cookies);
 
 	it("asks before enrolling, and does nothing when declined", async () => {
-		const confirm = mock(() => false);
-		window.confirm = confirm;
 		setup();
 
 		await click("totpEnroll");
+		expect(await screen.findByRole("alertdialog")).toHaveTextContent(
+			"totpEnrollConfirm",
+		);
+		await answerConfirm(false);
 
-		expect(confirm).toHaveBeenCalledWith("totpEnrollConfirm");
 		expect(sentRequests()).toHaveLength(0);
 		expect(screen.queryByText(SECRET)).toBeNull();
 	});
 
 	it("shows the new secret and its URI once confirmed, with the warning", async () => {
-		window.confirm = mock(() => true);
 		stubRoutes([["POST", /totp$/, enrolled]]);
 		setup();
 
 		await click("totpEnroll");
+		await answerConfirm(true);
 
 		expect(await screen.findByText(SECRET)).toBeInTheDocument();
 		expect(screen.getByText(URI)).toBeInTheDocument();
@@ -75,7 +75,6 @@ describe("TotpSection", () => {
 	});
 
 	it("keeps the secret out of the query cache, the toasts and the log", async () => {
-		window.confirm = mock(() => true);
 		stubRoutes([["POST", /totp$/, enrolled]]);
 		const logs = (["log", "error", "warn", "info"] as const).map((m) =>
 			spyOn(console, m).mockImplementation(() => {}),
@@ -83,6 +82,7 @@ describe("TotpSection", () => {
 		const client = setup();
 
 		await click("totpEnroll");
+		await answerConfirm(true);
 		await screen.findByText(SECRET);
 
 		expect(client.getQueryCache().getAll()).toHaveLength(0);
@@ -102,30 +102,31 @@ describe("TotpSection", () => {
 	});
 
 	it("takes the secret off the screen when asked, and when the section is left", async () => {
-		window.confirm = mock(() => true);
 		stubRoutes([["POST", /totp$/, enrolled]]);
 		setup();
 		await click("totpEnroll");
+		await answerConfirm(true);
 		await screen.findByText(SECRET);
 
 		await click("totpHide");
 
 		expect(screen.queryByText(SECRET)).toBeNull();
 		await click("totpEnroll");
+		await answerConfirm(true);
 		await screen.findByText(SECRET);
 		cleanup();
 		expect(document.body.innerHTML).not.toContain(SECRET);
 	});
 
 	it("asks before turning two-factor off, then does it with DELETE and reports it", async () => {
-		window.confirm = mock(() => false);
 		stubRoutes([["DELETE", /totp$/, { body: { updated: "alice" } }]]);
 		setup();
 		await click("totpDisable");
+		await answerConfirm(false);
 		expect(sentRequests()).toHaveLength(0);
 
-		window.confirm = mock(() => true);
 		await click("totpDisable");
+		await answerConfirm(true);
 
 		await waitFor(() =>
 			expect(screen.getByRole("status")).toHaveTextContent(
@@ -136,22 +137,22 @@ describe("TotpSection", () => {
 	});
 
 	it("hides a secret already shown when two-factor is turned off", async () => {
-		window.confirm = mock(() => true);
 		stubRoutes([
 			["POST", /totp$/, enrolled],
 			["DELETE", /totp$/, { body: { updated: "alice" } }],
 		]);
 		setup();
 		await click("totpEnroll");
+		await answerConfirm(true);
 		await screen.findByText(SECRET);
 
 		await click("totpDisable");
+		await answerConfirm(true);
 
 		await waitFor(() => expect(screen.queryByText(SECRET)).toBeNull());
 	});
 
 	it("reports an account that is gone as a toast, for both actions", async () => {
-		window.confirm = mock(() => true);
 		stubRoutes([
 			[
 				"POST",
@@ -173,11 +174,13 @@ describe("TotpSection", () => {
 		setup();
 
 		await click("totpEnroll");
+		await answerConfirm(true);
 		await waitFor(() =>
 			expect(screen.getByRole("alert")).toHaveTextContent("refusedGone"),
 		);
 		clearToasts();
 		await click("totpDisable");
+		await answerConfirm(true);
 		await waitFor(() =>
 			expect(screen.getByRole("alert")).toHaveTextContent("refusedGone"),
 		);
@@ -185,17 +188,18 @@ describe("TotpSection", () => {
 	});
 
 	it("reports an unreachable server as an error toast and shows no secret", async () => {
-		window.confirm = mock(() => true);
 		const errors = spyOn(console, "error").mockImplementation(() => {});
 		stubFetchReject();
 		setup();
 
 		await click("totpEnroll");
+		await answerConfirm(true);
 
 		await waitFor(() =>
 			expect(screen.getByRole("alert")).toHaveTextContent("unavailable"),
 		);
 		await click("totpDisable");
+		await answerConfirm(true);
 		await waitFor(() =>
 			expect(screen.getAllByRole("alert").length).toBeGreaterThan(0),
 		);

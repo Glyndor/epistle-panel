@@ -214,7 +214,7 @@ describe("proxy", () => {
 				headers.set(
 					name,
 					(headers.get(name) ?? "").replace(
-						/'nonce-[^']+'/,
+						/'nonce-[^']+'/g,
 						"'nonce'",
 					),
 				);

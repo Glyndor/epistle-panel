@@ -58,7 +58,7 @@ export function Sidebar({
 			<div
 				data-slot="sidebar-container"
 				className={cn(
-					"fixed inset-y-0 left-0 z-10 hidden h-svh w-(--sidebar-width) border-r transition-[width] duration-150 ease-linear group-data-[collapsible=icon]:w-(--sidebar-width-icon) md:flex",
+					"fixed inset-y-0 left-0 z-10 hidden h-svh w-(--sidebar-width) transition-[width] duration-150 ease-linear group-data-[collapsible=icon]:w-(--sidebar-width-icon) md:flex",
 					className,
 				)}
 				{...props}

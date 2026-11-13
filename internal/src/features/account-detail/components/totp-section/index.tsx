@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
+import { ConfirmAction } from "@/components/confirm-action";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toaster";
@@ -18,7 +19,7 @@ type Busy = "enroll" | "disable" | null;
 /**
  * Two-factor authentication of an account the API manages. The API cannot say
  * whether it is on, and enrolling replaces the secret at once with no
- * confirmation step, so both buttons ask first with the browser's own dialog.
+ * confirmation step, so both buttons ask first with an alert dialog.
  *
  * The new secret is the one sensitive value on the page. It lives in this
  * component's state only: not in the query cache (so it is never dehydrated or
@@ -31,9 +32,6 @@ export function TotpSection({ name }: { name: string }) {
 	const [busy, setBusy] = useState<Busy>(null);
 
 	async function enroll() {
-		if (!window.confirm(t("totpEnrollConfirm", { name }))) {
-			return;
-		}
 		setBusy("enroll");
 		setSecret(null);
 		try {
@@ -53,9 +51,6 @@ export function TotpSection({ name }: { name: string }) {
 	}
 
 	async function disable() {
-		if (!window.confirm(t("totpDisableConfirm", { name }))) {
-			return;
-		}
 		setBusy("disable");
 		setSecret(null);
 		try {
@@ -81,22 +76,35 @@ export function TotpSection({ name }: { name: string }) {
 			description={t("totpHelp")}
 		>
 			<div className="flex flex-wrap gap-2">
-				<Button
-					type="button"
-					variant="outline"
-					disabled={busy !== null}
-					onClick={enroll}
+				<ConfirmAction
+					description={t("totpEnrollConfirm", { name })}
+					destructive={false}
+					onConfirm={enroll}
 				>
-					{busy === "enroll" ? t("totpEnrolling") : t("totpEnroll")}
-				</Button>
-				<Button
-					type="button"
-					variant="destructive"
-					disabled={busy !== null}
-					onClick={disable}
+					<Button
+						type="button"
+						variant="outline"
+						disabled={busy !== null}
+					>
+						{busy === "enroll"
+							? t("totpEnrolling")
+							: t("totpEnroll")}
+					</Button>
+				</ConfirmAction>
+				<ConfirmAction
+					description={t("totpDisableConfirm", { name })}
+					onConfirm={disable}
 				>
-					{busy === "disable" ? t("totpDisabling") : t("totpDisable")}
-				</Button>
+					<Button
+						type="button"
+						variant="destructive"
+						disabled={busy !== null}
+					>
+						{busy === "disable"
+							? t("totpDisabling")
+							: t("totpDisable")}
+					</Button>
+				</ConfirmAction>
 			</div>
 			{secret ? (
 				<Alert variant="warning" role="status">

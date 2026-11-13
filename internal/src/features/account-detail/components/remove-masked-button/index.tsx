@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 
+import { ConfirmAction } from "@/components/confirm-action";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toaster";
 import { removeMaskedAction } from "@/features/account-detail/actions/remove-masked";
@@ -11,9 +12,8 @@ import { reportFailure } from "@/features/account-detail/queries/action-feedback
 import { unwrap } from "@/lib/query/action-result";
 
 /**
- * Remove control for one masked address. It confirms first with the browser's
- * own dialog (the action cannot be undone, and a modal Radix dialog would
- * inject the style element the policy refuses), and the list is read again
+ * Remove control for one masked address. It confirms first with an alert
+ * dialog (the action cannot be undone), and the list is read again
  * whatever the outcome, so the screen shows what the server holds.
  */
 export function RemoveMaskedButton({
@@ -40,19 +40,19 @@ export function RemoveMaskedButton({
 	});
 
 	return (
-		<Button
-			type="button"
-			variant="destructive"
-			size="sm"
-			disabled={isPending}
-			aria-label={t("maskedRemoveLabel", { address })}
-			onClick={() => {
-				if (window.confirm(t("maskedRemoveConfirm", { address }))) {
-					mutate();
-				}
-			}}
+		<ConfirmAction
+			description={t("maskedRemoveConfirm", { address })}
+			onConfirm={() => mutate()}
 		>
-			{isPending ? t("maskedRemoving") : t("maskedRemove")}
-		</Button>
+			<Button
+				type="button"
+				variant="destructive"
+				size="sm"
+				disabled={isPending}
+				aria-label={t("maskedRemoveLabel", { address })}
+			>
+				{isPending ? t("maskedRemoving") : t("maskedRemove")}
+			</Button>
+		</ConfirmAction>
 	);
 }

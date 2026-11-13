@@ -11,7 +11,7 @@ import { cn } from "@/lib/class-names";
  * `prefers-color-scheme` in `globals.css`.
  */
 const buttonVariants = cva(
-	"inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md font-medium text-sm transition-colors hover:cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+	"inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium text-sm transition-colors hover:cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
 	{
 		variants: {
 			variant: {
@@ -20,7 +20,7 @@ const buttonVariants = cva(
 				destructive:
 					"bg-destructive text-destructive-foreground hover:bg-destructive/90 active:bg-destructive/80",
 				outline:
-					"border border-input bg-background hover:bg-accent hover:text-accent-foreground active:bg-accent/70",
+					"bg-secondary text-secondary-foreground hover:bg-accent hover:text-accent-foreground active:bg-accent/70",
 				secondary:
 					"bg-secondary text-secondary-foreground hover:bg-secondary/80 active:bg-secondary/70",
 				ghost: "hover:bg-accent hover:text-accent-foreground active:bg-accent/70",

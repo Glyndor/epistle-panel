@@ -102,6 +102,7 @@ describe("RootLayout", () => {
 			"accountDetail",
 			"accounts",
 			"auth",
+			"confirm",
 			"dashboard",
 			"deliveries",
 			"domains",

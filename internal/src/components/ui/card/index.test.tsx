@@ -6,12 +6,13 @@ import { Card } from ".";
 afterEach(cleanup);
 
 describe("Card", () => {
-	it("renders its children inside a bordered surface", () => {
+	it("renders its children inside a tonal surface with no border", () => {
 		render(<Card>Domains</Card>);
 
 		const card = screen.getByText("Domains");
 		expect(card).toHaveAttribute("data-slot", "card");
-		expect(card).toHaveClass("border", "bg-card");
+		expect(card).toHaveClass("bg-card", "rounded-xl");
+		expect(card).not.toHaveClass("border");
 	});
 
 	it("lets a caller class override its padding", () => {
