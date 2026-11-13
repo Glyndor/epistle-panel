@@ -1,6 +1,8 @@
 {
 	"label": "Principal",
 	"skip": "Ir para o conteúdo",
+	"breadcrumb": "Trilha de navegação",
+	"administration": "Administração",
 	"status": "Status",
 	"domains": "Domínios",
 	"accounts": "Contas",

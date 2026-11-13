@@ -68,5 +68,11 @@ describe("Breadcrumb", () => {
 		);
 
 		expect(screen.getByRole("link", { name: "x" })).toHaveClass("extra");
+		// Hover, press and keyboard focus each look different from rest.
+		expect(screen.getByRole("link", { name: "x" })).toHaveClass(
+			"hover:bg-accent",
+			"active:bg-accent/70",
+			"focus-visible:outline-2",
+		);
 	});
 });

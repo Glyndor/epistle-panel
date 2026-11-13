@@ -1,7 +1,5 @@
 {
 	"heading": "Konto {name}",
-	"back": "Alle Konten",
-	"breadcrumb": "Brotkrümelnavigation",
 	"unreachable": "Die Verwaltungs-API des Mailservers ist nicht erreichbar. Prüfen Sie, ob der Server läuft und das Panel konfiguriert ist.",
 	"gone": "Dieses Konto existiert nicht mehr.",
 	"unavailable": "Die Änderung konnte nicht abgeschlossen werden. Bitte versuchen Sie es erneut.",

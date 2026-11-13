@@ -1,7 +1,5 @@
 {
 	"heading": "Account {name}",
-	"back": "Tutti gli account",
-	"breadcrumb": "Percorso di navigazione",
 	"unreachable": "L’API di gestione del server di posta non è raggiungibile. Verifica che il server sia in esecuzione e che il pannello sia configurato.",
 	"gone": "Questo account non esiste più.",
 	"unavailable": "Non è stato possibile completare la modifica. Riprova.",
