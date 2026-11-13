@@ -19,6 +19,7 @@ import {
 	SESSION_COOKIE,
 	SESSION_COOKIE_OPTIONS,
 } from "@/lib/auth/session";
+import { ROUTES } from "@/lib/routes";
 
 /**
  * Verify submitted credentials against the mail server and, if they belong to
@@ -100,5 +101,5 @@ export async function login(
 		await createSession(name),
 		SESSION_COOKIE_OPTIONS,
 	);
-	redirect("/");
+	redirect(ROUTES.home);
 }

@@ -7,7 +7,7 @@ scenario_idle() {
 	fresh
 	login admin correct-horse
 	local good=$cookie
-	fetch /queue "$good"
+	fetch /app/queue "$good"
 	local rss0 ticks0 ticks1 rss1 rss2 i
 	sleep 1
 	rss0=$(rss_kib)
@@ -24,9 +24,9 @@ scenario_idle() {
 	burst() {
 		local n
 		for n in $(seq 1 50); do
-			curl -s -o /dev/null -b "$good" "$panel/"
-			curl -s -o /dev/null -b "$good" "$panel/queue"
-			curl -s -o /dev/null -b "$good" "$panel/domains"
+			curl -s -o /dev/null -b "$good" "$panel/app"
+			curl -s -o /dev/null -b "$good" "$panel/app/queue"
+			curl -s -o /dev/null -b "$good" "$panel/app/domains"
 			curl -s -o /dev/null "$panel/login"
 		done
 	}

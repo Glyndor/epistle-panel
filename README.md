@@ -1,10 +1,10 @@
 # epistle-panel
 
-Admin panel for the [Epistle mail server](https://github.com/Glyndor/epistle): server status, domains, accounts and queues on top of its management API.
+Admin panel for the [Epistle mail server](https://github.com/Glyndor/epistle): server status, domains, accounts, queues, deliveries and the suppression list on top of its management API.
 
 [![CI](https://github.com/Glyndor/epistle-panel/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/Glyndor/epistle-panel/actions/workflows/ci.yml)
 
-> 🚧 Early development. The status, accounts, domains and queue views work; the rest of the management API is not covered yet.
+> 🚧 Early development. The status, accounts (with a detail page for each), domains, queue, deliveries and suppression views work; the rest of the management API is not covered yet.
 
 ## 🧱 Stack
 
@@ -80,7 +80,7 @@ export EPISTLE_PANEL_SESSION_SECRET="<random 32+ byte secret>"
 
 Admins sign in with a mail account that the Epistle server reports as an admin.
 The panel verifies the credentials against Epistle and signs the session cookie
-with `EPISTLE_PANEL_SESSION_SECRET`. Without that secret set, every route stays locked
+with `EPISTLE_PANEL_SESSION_SECRET`. Without that secret set, every page under `/app` stays locked
 (fail-closed).
 
 ### Secrets from files
@@ -98,7 +98,7 @@ export EPISTLE_PANEL_SESSION_SECRET_FILE="/run/secrets/epistle_panel_session_sec
 - Trailing whitespace, such as the final newline, is stripped from the file content.
 - A `_FILE` variable that is set but points at a missing, unreadable or empty
   file is an error. The panel never falls back to the plain variable in that
-  case: a missing session secret locks every route and a missing API token
+  case: a missing session secret locks every page under `/app` and a missing API token
   fails every API call.
 - Error messages name the variable, never the path or the content.
 - The path must be absolute and name a regular file of at most 64 KiB; a symlink

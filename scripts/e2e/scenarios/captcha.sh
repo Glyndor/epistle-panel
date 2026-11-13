@@ -84,10 +84,10 @@ scenario_captcha() {
 	assert_contains "solved token: a session cookie is set" "$cookie" "$SESSION_COOKIE_NAME="
 	assert_eq "solved token: the provider was asked again" "$(provider_calls)" 2
 	assert_eq "solved token: the API was asked once" "$(api_count '"path":"/api/v1/auth/verify"')" 1
-	fetch / "$cookie"
+	fetch /app "$cookie"
 	assert_eq "the signed-in page renders" "$status" 200
 	assert_absent "the signed-in page's CSP is not widened" "$(header content-security-policy)" "$origin"
-	fetch /queue
+	fetch /app/queue
 	assert_eq "a redirect is not widened either" "$status" 307
 	assert_absent "the redirect's CSP is not widened" "$(header content-security-policy)" "$origin"
 

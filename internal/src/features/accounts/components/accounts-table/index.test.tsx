@@ -24,9 +24,16 @@ describe("AccountsTable", () => {
 			accounts: [
 				{
 					name: "bob",
+					display_name: null,
+					dynamic: true,
 					addresses: ["bob@example.org", "b@example.org"],
 				},
-				{ name: "alice", addresses: ["alice@example.org"] },
+				{
+					name: "alice",
+					display_name: null,
+					dynamic: true,
+					addresses: ["alice@example.org"],
+				},
 			],
 		});
 
@@ -45,8 +52,18 @@ describe("AccountsTable", () => {
 	it("filters over the addresses as well as the names", async () => {
 		stubFetchJson({
 			accounts: [
-				{ name: "bob", addresses: ["bob@example.org"] },
-				{ name: "alice", addresses: ["alice@elsewhere.example"] },
+				{
+					name: "bob",
+					display_name: null,
+					dynamic: true,
+					addresses: ["bob@example.org"],
+				},
+				{
+					name: "alice",
+					display_name: null,
+					dynamic: true,
+					addresses: ["alice@elsewhere.example"],
+				},
 			],
 		});
 		render(withQuery(<AccountsTable />));
@@ -66,5 +83,32 @@ describe("AccountsTable", () => {
 		render(withQuery(<AccountsTable />));
 
 		expect(await screen.findByRole("alert")).toHaveClass("bg-warning");
+	});
+
+	it("links each account whose name the detail page accepts to that page, and shows any other name as text", async () => {
+		stubFetchJson({
+			accounts: [
+				{
+					name: "alice",
+					display_name: null,
+					dynamic: true,
+					addresses: [],
+				},
+				{
+					name: "../odd",
+					display_name: null,
+					dynamic: false,
+					addresses: [],
+				},
+			],
+		});
+
+		render(withQuery(<AccountsTable />));
+
+		expect(
+			await screen.findByRole("link", { name: "alice" }),
+		).toHaveAttribute("href", "/app/accounts/alice");
+		expect(screen.getByText("../odd")).toBeInTheDocument();
+		expect(screen.queryByRole("link", { name: "../odd" })).toBeNull();
 	});
 });

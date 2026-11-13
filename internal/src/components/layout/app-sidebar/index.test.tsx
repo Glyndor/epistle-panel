@@ -17,7 +17,7 @@ afterEach(() => {
 });
 
 describe("AppSidebar", () => {
-	it("holds the brand, the four pages and the signed-in user", async () => {
+	it("holds the brand, the pages and the signed-in user", async () => {
 		render(
 			<SidebarProvider>
 				{
@@ -31,10 +31,10 @@ describe("AppSidebar", () => {
 
 		expect(screen.getByRole("link", { name: /Epistle/ })).toHaveAttribute(
 			"href",
-			"/",
+			"/app",
 		);
 		const nav = screen.getByRole("navigation", { name: "label" });
-		expect(nav.querySelectorAll("a")).toHaveLength(4);
+		expect(nav.querySelectorAll("a")).toHaveLength(6);
 		expect(
 			screen.getByRole("button", { name: "logout" }),
 		).toBeInTheDocument();
@@ -54,7 +54,7 @@ describe("AppSidebar", () => {
 		);
 
 		expect(
-			container.querySelector("a[href='/'] svg[aria-hidden='true']"),
+			container.querySelector("a[href='/app'] svg[aria-hidden='true']"),
 		).not.toBeNull();
 	});
 
@@ -75,7 +75,7 @@ describe("AppSidebar", () => {
 		expect(
 			screen.getByRole("link", { name: /Acme Mail/ }),
 		).toBeInTheDocument();
-		expect(container.querySelector("a[href='/'] img")).toHaveAttribute(
+		expect(container.querySelector("a[href='/app'] img")).toHaveAttribute(
 			"src",
 			"/brand/logo",
 		);

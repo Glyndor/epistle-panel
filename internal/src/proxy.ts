@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 
 import { captchaWideningFromEnv } from "./features/auth/captcha/config";
 import { SESSION_COOKIE, verifySession } from "./lib/auth/session";
+import { isSessionPath, PUBLIC_ROUTES } from "./lib/routes";
 import {
 	applySecurityHeaders,
 	buildCsp,
@@ -9,17 +10,22 @@ import {
 	generateNonce,
 } from "./lib/security-headers";
 
-/** Whether a path is the login route, the only one reachable without a session. */
+/** Whether a path is the login route, the only page outside `/app` that draws a form. */
 function isLoginPath(pathname: string): boolean {
-	return pathname === "/login" || pathname === "/login/";
+	return (
+		pathname === PUBLIC_ROUTES.login ||
+		pathname === `${PUBLIC_ROUTES.login}/`
+	);
 }
 
 /**
- * Gate every panel route (Next 16 proxy convention) behind a valid admin
- * session, and stamp the security headers on every response it emits. Without
- * a session the request is redirected to the login page. Fail-closed: a
- * missing signing secret or a forged/expired cookie all resolve to "no
- * session".
+ * Gate the signed-in area, `/app` and everything under it (Next 16 proxy
+ * convention), behind a valid admin session, and stamp the security headers on
+ * every response it emits. Without a session the request is redirected to the
+ * login page. Fail-closed: a missing signing secret or a forged/expired cookie
+ * all resolve to "no session". Outside `/app` nothing needs a session: the
+ * login page, the root that sends the visitor to `/app`, and the paths no
+ * route answers. Each Server Action still checks the session itself.
  *
  * The redirect target is the request's own origin with a fixed path and no
  * query. Next rewrites a same-origin `Location` into a relative one before it
@@ -38,7 +44,7 @@ export async function proxy(request: NextRequest) {
 	);
 
 	const allowed =
-		onLoginPage ||
+		!isSessionPath(request.nextUrl.pathname) ||
 		(await verifySession(request.cookies.get(SESSION_COOKIE)?.value)) !==
 			null;
 
@@ -51,7 +57,7 @@ export async function proxy(request: NextRequest) {
 		response = NextResponse.next({ request: { headers: requestHeaders } });
 	} else {
 		const url = request.nextUrl.clone();
-		url.pathname = "/login";
+		url.pathname = PUBLIC_ROUTES.login;
 		url.search = "";
 		response = NextResponse.redirect(url);
 	}
@@ -61,9 +67,10 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
 	// Everything except Next internals, static assets, `/robots.txt` and the
-	// operator's public assets (`/theme.css`, `/brand/logo`, `/brand/favicon`). The
-	// login route stays inside the matcher so it receives the nonce-bearing CSP;
-	// the proxy itself lets it through without a session. The skipped names are
+	// operator's public assets (`/theme.css`, `/brand/logo`, `/brand/favicon`).
+	// The matcher is wide on purpose: every page, public or not, must receive
+	// the nonce-bearing CSP. What needs a session is decided in the function
+	// above (`isSessionPath`), not here. The skipped names are
 	// anchored: an unanchored `_next/image` or an unescaped dot in `favicon.ico`
 	// would also skip `/_next/imagex` and `/faviconxico`, which belong behind
 	// the gate. `robots.txt` is skipped as that exact path only, so a crawler

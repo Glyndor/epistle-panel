@@ -13,16 +13,18 @@ const item = (href: NavItem["href"], roles: NavItem["roles"]): NavItem => ({
 });
 
 describe("navForRole", () => {
-	it("gives the admin role the four admin pages in one group", () => {
+	it("gives the admin role the admin pages in one group", () => {
 		const groups = navForRole("admin");
 
 		expect(groups).toHaveLength(1);
 		expect(groups[0]?.label).toBe("manage");
 		expect(groups[0]?.items.map((entry) => entry.href)).toEqual([
-			"/",
-			"/domains",
-			"/accounts",
-			"/queue",
+			"/app",
+			"/app/domains",
+			"/app/accounts",
+			"/app/queue",
+			"/app/deliveries",
+			"/app/suppression",
 		]);
 	});
 
@@ -32,17 +34,17 @@ describe("navForRole", () => {
 
 	it("keeps an entry for a role only when that role is listed on it", () => {
 		const items = [
-			item("/accounts", ["admin"]),
-			item("/domains", ["user"]),
-			item("/queue", ["admin", "user"]),
+			item("/app/accounts", ["admin"]),
+			item("/app/domains", ["user"]),
+			item("/app/queue", ["admin", "user"]),
 		];
 
 		expect(navForRole("user", items)[0]?.items.map((e) => e.href)).toEqual([
-			"/domains",
-			"/queue",
+			"/app/domains",
+			"/app/queue",
 		]);
 		expect(navForRole("admin", items)[0]?.items.map((e) => e.href)).toEqual(
-			["/accounts", "/queue"],
+			["/app/accounts", "/app/queue"],
 		);
 	});
 

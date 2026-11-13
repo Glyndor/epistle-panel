@@ -1,7 +1,9 @@
 "use client";
 
 import {
+	BanIcon,
 	GlobeIcon,
+	HistoryIcon,
 	InboxIcon,
 	LayoutDashboardIcon,
 	type LucideIcon,
@@ -25,6 +27,7 @@ import type {
 	NavGroup,
 	NavIconName,
 } from "@/features/navigation/schemas/nav-item";
+import { ROUTES } from "@/lib/routes";
 
 /** The icon each name in the navigation config stands for. */
 const ICONS: Record<NavIconName, LucideIcon> = {
@@ -32,12 +35,17 @@ const ICONS: Record<NavIconName, LucideIcon> = {
 	globe: GlobeIcon,
 	users: UsersIcon,
 	inbox: InboxIcon,
+	ban: BanIcon,
+	history: HistoryIcon,
 };
 
-/** Whether `pathname` is the page of `href` or one below it. */
+/**
+ * Whether `pathname` is the page of `href` or one below it. The home page is
+ * the root of every other path, so it matches itself only.
+ */
 function isActive(href: string, pathname: string): boolean {
-	return href === "/"
-		? pathname === "/"
+	return href === ROUTES.home
+		? pathname === href
 		: pathname === href || pathname.startsWith(`${href}/`);
 }
 

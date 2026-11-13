@@ -4,6 +4,10 @@ import { ZodError, type z } from "zod";
 import { type Rng, runCases } from "@/test/prng";
 
 import {
+	accountResponseGenerators,
+	accountResponseModels,
+} from "../test-support/account-payloads";
+import {
 	expectPrototypesClean,
 	type Json,
 	mutatePayload,
@@ -14,10 +18,22 @@ import {
 import {
 	accountsSchema,
 	apiErrorSchema,
+	archiveListSchema,
+	deliveriesSchema,
+	displayNameSchema,
 	domainsSchema,
+	mailboxesSchema,
+	maskedCreatedSchema,
+	maskedListSchema,
+	maskedRemovedSchema,
 	queuePageSchema,
+	removedAddressSchema,
 	removedSchema,
+	restoredSchema,
 	statusSchema,
+	suppressionPageSchema,
+	totpEnrolledSchema,
+	updatedSchema,
 	verifyResultSchema,
 } from ".";
 
@@ -29,16 +45,37 @@ const schemas: Record<string, z.ZodType> = {
 	verify: verifyResultSchema,
 	domains: domainsSchema,
 	queue: queuePageSchema,
+	suppression: suppressionPageSchema,
+	deliveries: deliveriesSchema,
+	removedAddress: removedAddressSchema,
 	removed: removedSchema,
 	status: statusSchema,
+	updated: updatedSchema,
+	maskedCreated: maskedCreatedSchema,
+	maskedRemoved: maskedRemovedSchema,
+	displayName: displayNameSchema,
+	totpEnrolled: totpEnrolledSchema,
+	mailboxes: mailboxesSchema,
+	maskedList: maskedListSchema,
+	archiveList: archiveListSchema,
+	restored: restoredSchema,
+};
+
+const models: Record<string, ResponseModel> = {
+	...responseModels,
+	...accountResponseModels,
+};
+const generators: Record<string, (rng: Rng) => Json> = {
+	...responseGenerators,
+	...accountResponseGenerators,
 };
 
 describe("response schemas on generated payloads", () => {
 	for (const name of Object.keys(schemas)) {
 		it(`${name}: parses into the declared shape or throws ZodError, and pollutes nothing`, async () => {
 			const schema = schemas[name] as z.ZodType;
-			const model = responseModels[name] as ResponseModel;
-			const generate = responseGenerators[name] as (rng: Rng) => Json;
+			const model = models[name] as ResponseModel;
+			const generate = generators[name] as (rng: Rng) => Json;
 			let accepted = 0;
 			let refused = 0;
 			await runCases(`schema ${name}`, 900, (rng) => {

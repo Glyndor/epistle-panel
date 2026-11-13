@@ -1,11 +1,14 @@
+import type accountDetail from "@/i18n/messages/en/accountDetail.json";
 import type accounts from "@/i18n/messages/en/accounts.json";
 import type auth from "@/i18n/messages/en/auth.json";
 import type dashboard from "@/i18n/messages/en/dashboard.json";
+import type deliveries from "@/i18n/messages/en/deliveries.json";
 import type domains from "@/i18n/messages/en/domains.json";
 import type error from "@/i18n/messages/en/error.json";
 import type nav from "@/i18n/messages/en/nav.json";
 import type notFound from "@/i18n/messages/en/notFound.json";
 import type queue from "@/i18n/messages/en/queue.json";
+import type suppression from "@/i18n/messages/en/suppression.json";
 import type table from "@/i18n/messages/en/table.json";
 
 // Type every `useTranslations`/`getTranslations` key against the English source
@@ -18,7 +21,10 @@ declare module "next-intl" {
 			nav: typeof nav;
 			domains: typeof domains;
 			accounts: typeof accounts;
+			accountDetail: typeof accountDetail;
 			queue: typeof queue;
+			suppression: typeof suppression;
+			deliveries: typeof deliveries;
 			notFound: typeof notFound;
 			auth: typeof auth;
 			error: typeof error;

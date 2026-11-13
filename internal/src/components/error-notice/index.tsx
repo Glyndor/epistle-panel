@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { ROUTES } from "@/lib/routes";
 
 /** Text of an {@link ErrorNotice}, already translated by the caller. */
 export interface ErrorNoticeLabels {
@@ -37,7 +38,7 @@ export function ErrorNotice({
 					{labels.retry}
 				</Button>
 				<Button asChild variant="link">
-					<a href="/">{labels.home}</a>
+					<a href={ROUTES.home}>{labels.home}</a>
 				</Button>
 			</div>
 		</main>

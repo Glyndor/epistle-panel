@@ -5,6 +5,8 @@
 	"domains": "Domains",
 	"accounts": "Accounts",
 	"queue": "Queue",
+	"suppression": "Suppression",
+	"deliveries": "Deliveries",
 	"logout": "Sign out",
 	"brandSubtitle": "Admin panel",
 	"manage": "Manage",

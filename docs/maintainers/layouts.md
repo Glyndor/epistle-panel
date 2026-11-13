@@ -9,7 +9,7 @@ webmail can be added without reworking what is here.
 | Group | Holds | Frame |
 |---|---|---|
 | `(auth)` | `/login` | `(auth)/layout.tsx`: a bare `main`, no navigation |
-| `(admin)` | `/`, `/domains`, `/accounts`, `/queue` | `(admin)/layout.tsx`: checks the session, then `AppShell` with the admin navigation |
+| `(admin)` | `/app`, `/app/domains`, `/app/accounts`, `/app/queue`, `/app/deliveries`, `/app/suppression`, `/app/accounts/[name]` | `(admin)/layout.tsx`: checks the session, then `AppShell` with the admin navigation |
 | `(mail)` | not built yet | will bring its own layout; see below |
 
 Group names are not part of a URL, so adding `(mail)` changes no existing
@@ -30,6 +30,23 @@ absolute in-app path, which `schemas/nav-item` enforces, and a route that exists
 in the app tree: `typedRoutes` types it as `Route`, so an entry added before its
 page fails `bun run typecheck` and `bun run build` (`typecheck` runs
 `next typegen` first, which writes the route types in `.next/types`).
+
+Everything that needs a session lives under `/app` (owner decision); outside it
+only `/login`, `/robots.txt` and the operator's public assets answer without one.
+`/` is the one path outside that forwards to `/app` (`app/page.tsx`), where the
+proxy asks for the session. `lib/routes` holds the paths in one place:
+`ROUTES` for the signed-in pages, `PUBLIC_ROUTES` for `/` and `/login`, and
+`isSessionPath`, which the proxy uses to decide what needs a session (`/app`
+and everything under it, read as a router might read it: decoded, any case,
+repeated or backslash separators). No link, redirect or navigation entry spells
+a path out; they all take it from there. The sign-in form has no `next` or
+return-to parameter, so the destination after sign-in is always `ROUTES.home`.
+`/app/accounts/[name]` is reached from the accounts table and is not a sidebar
+entry; the Accounts entry is marked on it, as the page of `/app/accounts`. Its
+`not-found.tsx` in the `(admin)` group renders inside the shell without a second
+`main` landmark. The proxy matcher stays wide so every page, public or not,
+gets the nonce-bearing CSP; the session check is not in the matcher but in the
+proxy function, and the Server Actions still check the session themselves.
 
 ## The shell and its contract
 

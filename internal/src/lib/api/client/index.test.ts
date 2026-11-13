@@ -12,10 +12,13 @@ import {
 import {
 	EpistleApiError,
 	getAccounts,
+	getDeliveries,
 	getDomains,
 	getQueue,
 	getStatus,
+	getSuppression,
 	removeQueueEntry,
+	removeSuppression,
 	VERIFY_TIMEOUT_MS,
 	verifyCredentials,
 } from ".";
@@ -43,7 +46,11 @@ describe("client getters", () => {
 	it("fetches domains and accounts", async () => {
 		stubFetchJson({ domains: ["example.org"] });
 		expect((await getDomains()).domains).toEqual(["example.org"]);
-		stubFetchJson({ accounts: [{ name: "a", addresses: [] }] });
+		stubFetchJson({
+			accounts: [
+				{ name: "a", display_name: null, dynamic: true, addresses: [] },
+			],
+		});
 		expect((await getAccounts()).accounts[0]?.name).toBe("a");
 	});
 
@@ -128,6 +135,91 @@ describe("client requests", () => {
 			`${BASE}/api/v1/queue?limit=2`,
 			`${BASE}/api/v1/queue?limit=2&cursor=${ID}`,
 		]);
+	});
+
+	it("asks for deliveries with no query string, skips absent filters and encodes the rest", async () => {
+		const urls: string[] = [];
+		for (const params of [
+			undefined,
+			{ outcome: undefined, since: undefined },
+			{ outcome: "failed", limit: 100 },
+			{ recipient: "a+b@x.org&limit=1", since: "24h" },
+		]) {
+			stubFetchJson({ entries: [] });
+			await getDeliveries(params);
+			const sent = onlyRequest();
+			expect([sent.method, sent.body]).toEqual(["GET", undefined]);
+			urls.push(sent.url);
+		}
+		expect(urls).toEqual([
+			`${BASE}/api/v1/deliveries`,
+			`${BASE}/api/v1/deliveries`,
+			`${BASE}/api/v1/deliveries?outcome=failed&limit=100`,
+			`${BASE}/api/v1/deliveries?recipient=a%2Bb%40x.org%26limit%3D1&since=24h`,
+		]);
+	});
+
+	it("asks for the first suppression page with no query string, and sends after and limit when given", async () => {
+		const urls: string[] = [];
+		for (const params of [
+			undefined,
+			{ after: "a@b.org" },
+			{ limit: 2 },
+			{ limit: 2, after: "a+b@c.org&limit=9" },
+		]) {
+			stubFetchJson({ addresses: [] });
+			await getSuppression(params);
+			const sent = onlyRequest();
+			expect(sent.method).toBe("GET");
+			urls.push(sent.url);
+		}
+		expect(urls).toEqual([
+			`${BASE}/api/v1/suppression`,
+			`${BASE}/api/v1/suppression?after=a%40b.org`,
+			`${BASE}/api/v1/suppression?limit=2`,
+			`${BASE}/api/v1/suppression?limit=2&after=a%2Bb%40c.org%26limit%3D9`,
+		]);
+	});
+
+	it("removes an address with DELETE /api/v1/suppression/<encoded address> and no body", async () => {
+		stubFetchJson({ removed: "bob@example.net" });
+		await removeSuppression("bob@example.net");
+		const sent = onlyRequest();
+		expect([sent.method, sent.url, sent.body]).toEqual([
+			"DELETE",
+			`${BASE}/api/v1/suppression/bob%40example.net`,
+			undefined,
+		]);
+	});
+
+	it("encodes every character that could change the path or add a parameter", async () => {
+		const urls: string[] = [];
+		for (const address of [
+			"../status@x.org",
+			"a/b@x.org",
+			"a%2fb@x.org",
+			"a?account=other@x.org",
+			"a#frag@x.org",
+			"a\\b@x.org",
+			"ñ用户@例子.广告",
+		]) {
+			stubFetchJson({ removed: address });
+			await removeSuppression(address);
+			urls.push(onlyRequest().url.slice(`${BASE}`.length));
+		}
+		expect(urls).toEqual([
+			"/api/v1/suppression/..%2Fstatus%40x.org",
+			"/api/v1/suppression/a%2Fb%40x.org",
+			"/api/v1/suppression/a%252fb%40x.org",
+			"/api/v1/suppression/a%3Faccount%3Dother%40x.org",
+			"/api/v1/suppression/a%23frag%40x.org",
+			"/api/v1/suppression/a%5Cb%40x.org",
+			"/api/v1/suppression/%C3%B1%E7%94%A8%E6%88%B7%40%E4%BE%8B%E5%AD%90.%E5%B9%BF%E5%91%8A",
+		]);
+		for (const url of urls) {
+			expect(url).not.toContain("?");
+			expect(url.slice("/api/v1/suppression/".length)).not.toContain("/");
+		}
 	});
 
 	it("removes an entry with DELETE /api/v1/queue/<id> and no body", async () => {

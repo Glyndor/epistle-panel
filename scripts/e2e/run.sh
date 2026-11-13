@@ -14,7 +14,7 @@
 # exercises.
 #
 # Usage: scripts/e2e/run.sh [scenario...]
-#   scenarios: headers logout limiter limiter-global noauth degraded rotation idle theme body-limit captcha csrf set-locale unknown-variable
+#   scenarios: headers logout limiter limiter-global noauth degraded rotation idle theme body-limit captcha csrf set-locale unknown-variable suppression deliveries account-detail
 # With no argument every scenario runs. Exit status is non-zero when any check
 # fails. Override the ports with PANEL_PORT and STAND_IN_PORT.
 set -euo pipefail
@@ -121,10 +121,17 @@ cp -R "$internal/.next/static" "$standalone/.next/static"
 . "$root/scripts/e2e/scenarios/set-locale.sh"
 # shellcheck source=scripts/e2e/scenarios/unknown-variable.sh
 . "$root/scripts/e2e/scenarios/unknown-variable.sh"
+# shellcheck source=scripts/e2e/scenarios/suppression.sh
+. "$root/scripts/e2e/scenarios/suppression.sh"
+# shellcheck source=scripts/e2e/scenarios/deliveries.sh
+. "$root/scripts/e2e/scenarios/deliveries.sh"
+
+# shellcheck source=scripts/e2e/scenarios/account-detail.sh
+. "$root/scripts/e2e/scenarios/account-detail.sh"
 
 # ---------------------------------------------------------------- main
 
-all=(headers logout limiter limiter-global noauth degraded rotation idle theme body-limit captcha csrf set-locale unknown-variable)
+all=(headers logout limiter limiter-global noauth degraded rotation idle theme body-limit captcha csrf set-locale unknown-variable suppression deliveries account-detail)
 selected=("$@")
 ((${#selected[@]})) || selected=("${all[@]}")
 
@@ -144,6 +151,9 @@ for name in "${selected[@]}"; do
 	csrf) scenario_csrf ;;
 	set-locale) scenario_set_locale ;;
 	unknown-variable) scenario_unknown_variable ;;
+	suppression) scenario_suppression ;;
+	deliveries) scenario_deliveries ;;
+	account-detail) scenario_account_detail ;;
 	*)
 		echo "error: unknown scenario '$name'" >&2
 		exit 2

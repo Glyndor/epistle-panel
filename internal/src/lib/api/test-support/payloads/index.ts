@@ -59,8 +59,20 @@ export const responseModels: Record<string, ResponseModel> = {
 								isString(s) ? s : undefined,
 							)
 						: undefined;
-					return isObj(a) && isString(a["name"]) && addresses
-						? { name: a["name"], addresses }
+					const displayName = isObj(a)
+						? a["display_name"]
+						: undefined;
+					return isObj(a) &&
+						isString(a["name"]) &&
+						(displayName === null || isString(displayName)) &&
+						typeof a["dynamic"] === "boolean" &&
+						addresses
+						? {
+								name: a["name"],
+								display_name: displayName,
+								addresses,
+								dynamic: a["dynamic"],
+							}
 						: undefined;
 				})
 			: undefined;
@@ -112,6 +124,73 @@ export const responseModels: Record<string, ResponseModel> = {
 			? { entries }
 			: { entries, next_cursor: cursor };
 	},
+	deliveries: (v) => {
+		const outcomes = [
+			"delivered",
+			"deferred",
+			"failed",
+			"suppressed",
+			"canceled",
+		];
+		const maybeString = (x: unknown) => x === null || isString(x);
+		const entries = isObj(v)
+			? listOf(v["entries"], (e) => {
+					if (!isObj(e)) {
+						return undefined;
+					}
+					const time = e["time"];
+					const attempt = e["attempt"];
+					return isString(e["spool_id"]) &&
+						UUID_RE.test(e["spool_id"]) &&
+						typeof time === "number" &&
+						Number.isSafeInteger(time) &&
+						time >= 0 &&
+						time <= 253_402_300_799 &&
+						typeof attempt === "number" &&
+						Number.isSafeInteger(attempt) &&
+						attempt >= 0 &&
+						maybeString(e["account"]) &&
+						isString(e["from"]) &&
+						isString(e["recipient"]) &&
+						isString(e["outcome"]) &&
+						outcomes.includes(e["outcome"]) &&
+						maybeString(e["remote"]) &&
+						maybeString(e["reply"])
+						? {
+								time,
+								spool_id: e["spool_id"],
+								account: e["account"],
+								from: e["from"],
+								recipient: e["recipient"],
+								outcome: e["outcome"],
+								remote: e["remote"],
+								reply: e["reply"],
+								attempt,
+							}
+						: undefined;
+				})
+			: undefined;
+		return entries && { entries };
+	},
+	suppression: (v) => {
+		if (!isObj(v)) {
+			return undefined;
+		}
+		const addresses = listOf(v["addresses"], (s) =>
+			isString(s) ? s : undefined,
+		);
+		const cursor = v["next_cursor"];
+		if (!addresses || (cursor !== undefined && !isString(cursor))) {
+			return undefined;
+		}
+		return cursor === undefined
+			? { addresses }
+			: { addresses, next_cursor: cursor };
+	},
+	removedAddress: (v) =>
+		isObj(v) && isString(v["removed"])
+			? { removed: v["removed"] }
+			: undefined,
 	removed: (v) =>
 		isObj(v) && isString(v["removed"]) && UUID_RE.test(v["removed"])
 			? { removed: v["removed"] }
@@ -144,7 +223,9 @@ export const responseGenerators: Record<string, (rng: Rng) => Json> = {
 	accounts: (rng) => ({
 		accounts: Array.from({ length: rng.int(0, 4) }, () => ({
 			name: word(rng),
+			display_name: rng.chance() ? word(rng) : null,
 			addresses: Array.from({ length: rng.int(0, 3) }, () => word(rng)),
+			dynamic: rng.chance(),
 		})),
 	}),
 	apiError: (rng) => ({ error: { code: word(rng), message: word(rng) } }),
@@ -167,6 +248,35 @@ export const responseGenerators: Record<string, (rng: Rng) => Json> = {
 		}
 		return page;
 	},
+	deliveries: (rng) => ({
+		entries: Array.from({ length: rng.int(0, 3) }, () => ({
+			time: rng.int(0, 2_000_000_000),
+			spool_id: uuid(rng),
+			account: rng.chance() ? word(rng) : null,
+			from: word(rng),
+			recipient: word(rng),
+			outcome: rng.pick([
+				"delivered",
+				"deferred",
+				"failed",
+				"suppressed",
+				"canceled",
+			]),
+			remote: rng.chance() ? word(rng) : null,
+			reply: rng.chance() ? word(rng) : null,
+			attempt: rng.int(0, 9),
+		})),
+	}),
+	suppression: (rng) => {
+		const page: { [key: string]: Json } = {
+			addresses: Array.from({ length: rng.int(0, 4) }, () => word(rng)),
+		};
+		if (rng.chance()) {
+			page["next_cursor"] = word(rng);
+		}
+		return page;
+	},
+	removedAddress: (rng) => ({ removed: word(rng) }),
 	removed: (rng) => ({ removed: uuid(rng) }),
 	status: (rng) => ({
 		version: word(rng),
