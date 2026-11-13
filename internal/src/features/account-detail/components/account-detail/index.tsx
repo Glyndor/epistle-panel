@@ -13,7 +13,7 @@ import {
 	BreadcrumbPage,
 	BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { Skeleton } from "@/components/ui/skeleton";
+import { AccountDetailSkeleton } from "@/features/account-detail/components/account-detail-skeleton";
 import { ArchiveSection } from "@/features/account-detail/components/archive-section";
 import { MailboxesSection } from "@/features/account-detail/components/mailboxes-section";
 import { MaskedSection } from "@/features/account-detail/components/masked-section";
@@ -57,7 +57,7 @@ export function AccountDetail({ name }: { name: string }) {
 	);
 
 	if (isPending) {
-		return <Skeleton className="h-24" aria-busy="true" />;
+		return <AccountDetailSkeleton />;
 	}
 	if (data === undefined) {
 		return (

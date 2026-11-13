@@ -96,3 +96,26 @@ rail and its regions are separate leaves) and keeps the same rules:
   with Tailwind's `[--name:value]`, and an overlay is measured in the built
   server for CSP violations (see `shadcn.md`);
 - 32 px controls on a fine pointer, 44 px on a coarse one.
+
+## Server first, streamed
+
+A page is a Server Component. It checks the session, paints its heading and
+puts the part that waits for the API inside `Suspense` with a skeleton of the
+same shape as the view that is coming (`components/skeletons/`, and one per
+feature where the view has its own shape), so the frame and the heading leave
+before the API answers. Each route also has a `loading.tsx` with that skeleton
+for the navigation between pages. `PrefetchBoundary` is the part that waits: it
+runs the page's queries on the server and hands the result to the client
+components below it.
+
+`"use client"` goes on the smallest component that needs state, an effect, an
+event handler or a browser API, never on a page or a layout. A table's rows, a
+section's text and a skeleton stay server components; the button, the form and
+the menu inside them are the client leaves.
+
+The account page is the one exception to "paint first": it reads the accounts
+list before it sends anything, so an account that does not exist is a 404 and
+costs no per-account call.
+
+The `streaming` end-to-end scenario measures this against the built server with
+a slow API.

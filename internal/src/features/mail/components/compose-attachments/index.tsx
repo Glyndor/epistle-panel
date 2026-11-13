@@ -1,5 +1,3 @@
-"use client";
-
 import { PaperclipIcon, XIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useId, useRef, useState } from "react";

@@ -70,6 +70,11 @@ set_mode() {
 	curl -s -o /dev/null -X POST "$api/__control/mode" -d "{\"mode\":\"$1\"}"
 }
 
+# set_delay MS: every data answer of the stand-in waits MS milliseconds.
+set_delay() {
+	curl -s -o /dev/null -X POST "$api/__control/delay" -d "{\"ms\":$1}"
+}
+
 reset_api() {
 	curl -s -o /dev/null -X POST "$api/__control/reset"
 }

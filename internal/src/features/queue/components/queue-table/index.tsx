@@ -8,8 +8,8 @@ import { columnHelper, DataTable } from "@/components/data-table";
 import { useAdminRoutes } from "@/components/layout/admin-routes";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { getQueuePageAction } from "@/features/queue/actions/get-queue-page";
+import { QueueTableSkeleton } from "@/features/queue/components/queue-table-skeleton";
 import { RemoveEntryButton } from "@/features/queue/components/remove-entry-button";
 import { queueQueryOptions } from "@/features/queue/queries/queue-query";
 import type { QueueRow } from "@/features/queue/schemas/queue-view";
@@ -61,7 +61,7 @@ export function QueueTable({ cursor }: { cursor: string | undefined }) {
 	]);
 
 	if (isPending) {
-		return <Skeleton className="h-24" aria-busy="true" />;
+		return <QueueTableSkeleton />;
 	}
 	if (data === undefined) {
 		return (

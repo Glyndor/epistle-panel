@@ -1,5 +1,3 @@
-"use client";
-
 import { useFormatter, useTranslations } from "next-intl";
 
 import { formatReceivedAt } from "@/features/mail/format/received-at";

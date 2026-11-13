@@ -1,4 +1,4 @@
-import { cloneElement, isValidElement, type ReactNode } from "react";
+import { cloneElement, isValidElement, type ReactNode, Suspense } from "react";
 
 /**
  * Run the async (Server) components in a React tree and leave the rest alone,
@@ -37,4 +37,31 @@ export async function resolveServerTree(node: ReactNode): Promise<ReactNode> {
 		undefined,
 		await resolveServerTree(props.children),
 	);
+}
+
+/**
+ * What a page streams first: every `Suspense` boundary replaced by its
+ * fallback, without running anything inside it. A test renders this to assert
+ * the frame and the skeleton that paint before the slow part answers.
+ */
+export function firstPaint(node: ReactNode): ReactNode {
+	if (Array.isArray(node)) {
+		return node.map((child, index) => {
+			const resolved = firstPaint(child);
+			return isValidElement(resolved) && resolved.key === null
+				? // biome-ignore lint/suspicious/noArrayIndexKey: the list is rebuilt once and never reordered.
+					cloneElement(resolved, { key: index })
+				: resolved;
+		});
+	}
+	if (!isValidElement<{ children?: ReactNode; fallback?: ReactNode }>(node)) {
+		return node;
+	}
+	if (node.type === Suspense) {
+		return node.props.fallback ?? null;
+	}
+	if (node.props.children === undefined) {
+		return node;
+	}
+	return cloneElement(node, undefined, firstPaint(node.props.children));
 }

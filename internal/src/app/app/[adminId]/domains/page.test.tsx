@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { cleanup, render, screen } from "@testing-library/react";
-
 import {
 	sentRequests,
 	stubFetchJson,
@@ -10,8 +9,8 @@ import {
 	mockRequestCookies,
 	NotFoundSignal,
 } from "@/lib/auth/test-support/cookies";
-
 import { withAdminArea } from "@/test/admin-routes";
+import { resolveServerTree } from "@/test/server-tree";
 
 const originalFetch = globalThis.fetch;
 const cookies = mockRequestCookies();
@@ -31,7 +30,7 @@ describe("DomainsPage", () => {
 	it("lists each configured domain", async () => {
 		stubFetchJson({ domains: ["example.org", "example.net"] });
 
-		render(withAdminArea(await DomainsPage()));
+		render(withAdminArea(await resolveServerTree(await DomainsPage())));
 
 		expect(screen.getByText("example.org")).toBeInTheDocument();
 		expect(screen.getByText("example.net")).toBeInTheDocument();
@@ -40,7 +39,7 @@ describe("DomainsPage", () => {
 	it("puts domains in a table with a labelled column", async () => {
 		stubFetchJson({ domains: ["example.org", "example.net"] });
 
-		render(withAdminArea(await DomainsPage()));
+		render(withAdminArea(await resolveServerTree(await DomainsPage())));
 
 		expect(screen.getByRole("table")).toBeInTheDocument();
 		const headers = screen.getAllByRole("columnheader");
@@ -52,7 +51,7 @@ describe("DomainsPage", () => {
 	it("shows the empty state when there are no domains", async () => {
 		stubFetchJson({ domains: [] });
 
-		render(withAdminArea(await DomainsPage()));
+		render(withAdminArea(await resolveServerTree(await DomainsPage())));
 
 		expect(screen.getByText("empty")).toBeInTheDocument();
 	});
@@ -60,7 +59,7 @@ describe("DomainsPage", () => {
 	it("shows the unreachable notice when the API errors", async () => {
 		stubFetchReject();
 
-		render(withAdminArea(await DomainsPage()));
+		render(withAdminArea(await resolveServerTree(await DomainsPage())));
 
 		const alert = await screen.findByRole("alert");
 		expect(alert).toHaveTextContent("unreachable");

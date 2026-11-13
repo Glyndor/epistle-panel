@@ -3,5 +3,6 @@
 	"noMatches": "Ninguna fila coincide con el filtro.",
 	"sortable": "ordenable",
 	"sortedAscending": "orden ascendente",
-	"sortedDescending": "orden descendente"
+	"sortedDescending": "orden descendente",
+	"loading": "Cargando"
 }

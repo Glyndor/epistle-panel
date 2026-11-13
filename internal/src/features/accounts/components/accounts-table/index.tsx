@@ -7,8 +7,8 @@ import { useTranslations } from "next-intl";
 import { columnHelper, DataTable } from "@/components/data-table";
 import { useAdminRoutes } from "@/components/layout/admin-routes";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Skeleton } from "@/components/ui/skeleton";
 import { getAccountsAction } from "@/features/accounts/actions/get-accounts";
+import { AccountsTableSkeleton } from "@/features/accounts/components/accounts-table-skeleton";
 import { accountsQueryOptions } from "@/features/accounts/queries/accounts-query";
 import type { AccountRow } from "@/features/accounts/schemas/accounts-view";
 import { isAccountName } from "@/lib/api/account-name-pattern";
@@ -58,7 +58,7 @@ export function AccountsTable() {
 	]);
 
 	if (isPending) {
-		return <Skeleton className="h-24" aria-busy="true" />;
+		return <AccountsTableSkeleton />;
 	}
 	if (data === undefined) {
 		return (
