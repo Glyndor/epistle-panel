@@ -1,6 +1,5 @@
 "use server";
 
-import { currentMailSession } from "@/features/mail/jmap/credentials";
 import {
 	type ChangeOutcome,
 	changeMessage,
@@ -8,7 +7,7 @@ import {
 } from "@/features/mail/queries/change-message";
 import { changeMessageInputSchema } from "@/features/mail/schemas/mail-input";
 import type { ActionResult } from "@/lib/query/action-result";
-import { runValidatedAction } from "@/lib/query/run-action";
+import { runValidatedMailAction } from "../run-mail-action";
 
 /** What the change action answers: what happened, or that the account has no such folder. */
 export type ChangeResult =
@@ -24,15 +23,11 @@ export type ChangeResult =
 export async function changeMessageAction(
 	input: unknown,
 ): Promise<ActionResult<ChangeResult>> {
-	return runValidatedAction(
+	return runValidatedMailAction(
 		"mail change",
 		changeMessageInputSchema,
 		input,
-		async (data) => {
-			const session = await currentMailSession();
-			if (session === null) {
-				throw new Error("no mail session");
-			}
+		async (session, data) => {
 			try {
 				return {
 					kind: "done",

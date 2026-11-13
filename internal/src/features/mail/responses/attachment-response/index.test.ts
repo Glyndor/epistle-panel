@@ -65,7 +65,7 @@ describe("forcedType", () => {
 });
 
 describe("attachmentResponse", () => {
-	it("sends the file as an attachment, with a clean name and a policy that allows nothing", async () => {
+	it("sends the file as an attachment, with a clean name and a type that is not rendered", async () => {
 		const seen = stubJmap(
 			{ "Email/get": { list: [withAttachment({})] } },
 			new Response("hello", { headers: { "content-type": "text/html" } }),
@@ -80,13 +80,27 @@ describe("attachmentResponse", () => {
 			"attachment; filename=\"report.pdf\"; filename*=UTF-8''report.pdf",
 		);
 		expect(response.headers.get("content-length")).toBe("5");
-		expect(response.headers.get("content-security-policy")).toBe(
-			"default-src 'none'; sandbox",
-		);
+		// The proxy sets the panel's policy on this route; a policy set here would be replaced.
+		expect(response.headers.get("content-security-policy")).toBeNull();
 		expect(response.headers.get("x-content-type-options")).toBe("nosniff");
 		expect(response.headers.get("cache-control")).toBe("private, no-store");
 		expect(seen.at(-1)?.url).toBe(
 			`http://127.0.0.1:8025/jmap/download/admin/${ID}.2/blob`,
+		);
+	});
+
+	it("downloads the blob the message lists for that part, not one built from the ids", async () => {
+		const listedBlob = "00000000-0000-4000-8000-0000000000ee";
+		const seen = stubJmap(
+			{ "Email/get": { list: [withAttachment({ blobId: listedBlob })] } },
+			new Response("hello"),
+		);
+
+		const response = await attachmentResponse(ID, "2");
+
+		expect(response.status).toBe(200);
+		expect(seen.at(-1)?.url).toBe(
+			`http://127.0.0.1:8025/jmap/download/admin/${listedBlob}/blob`,
 		);
 	});
 

@@ -57,7 +57,7 @@ async function readCapped(
 }
 
 /**
- * `POST /app/mail/compose`: save a draft or send a message. A route handler and
+ * `POST /app/mail/compose-message`: save a draft or send a message. A route handler and
  * not a Server Action because a message body is larger than the 16 KB a Server
  * Action may carry. Because it is a plain POST endpoint it does what an action
  * does and one thing more: the request must come from the panel's own origin,
