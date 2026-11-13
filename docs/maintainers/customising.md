@@ -18,7 +18,8 @@ new image.
 
 All the variables live in one file, `internal/src/styles/theme.css`: the colour
 roles (`--background`, `--foreground`, `--primary`, `--muted`, `--accent`,
-`--destructive`, `--destructive-soft`, `--warning`, `--field`, `--ring`,
+`--destructive`, `--destructive-soft`, `--warning`, `--field`, `--input` (the
+drawn edge of a field that has not moved to `--field`, the webmail's for now), `--ring`,
 `--overlay`, and the `--sidebar-*` family), the four surface roles
 (`--background` the canvas, `--surface` a card or table, `--surface-sunken` a
 stripe or quiet callout, `--surface-raised` a menu, toast or dialog, with its
