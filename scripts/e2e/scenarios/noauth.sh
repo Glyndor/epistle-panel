@@ -15,11 +15,16 @@ scenario_noauth() {
 
 	local path
 	# The signed-in area is /app and everything under it, known page or not.
-	for path in /app /app/accounts /app/domains /app/queue "/app/queue?cursor=11111111-1111-4111-8111-111111111111" /app/deliveries "/app/deliveries?outcome=failed" /app/suppression "/app/suppression?after=alpha%40example.test" /app/nope /app/accounts/admin /login/../app/queue /APP/queue /%61pp/queue //app/queue; do
+	for path in /app /app/accounts /app/domains /app/queue "/app/queue?cursor=11111111-1111-4111-8111-111111111111" /app/deliveries "/app/deliveries?outcome=failed" /app/suppression "/app/suppression?after=alpha%40example.test" /app/nope /app/accounts/admin /login/../app/queue /APP/queue /%61pp/queue; do
 		fetch "$path"
 		assert_eq "no cookie: GET $path" "$status" 307
 		assert_contains "no cookie: $path goes to /login" "$(header location)" "/login"
 	done
+	# Next folds a doubled slash into the canonical path before any page runs,
+	# and the canonical path is then gated; no page is served on the way.
+	fetch //app/queue
+	assert_eq "no cookie: GET //app/queue is sent to the canonical path" "$status" 308
+	assert_contains "no cookie: //app/queue goes to /app/queue" "$(header location)" "/app/queue"
 	# The root only forwards to /app, which is where the session is asked for.
 	fetch /
 	assert_eq "no cookie: GET /" "$status" 307
