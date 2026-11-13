@@ -1,10 +1,12 @@
 import { getTranslations } from "next-intl/server";
 import { SidebarTrigger } from "@/components/ui/sidebar/trigger";
 import { getBrand } from "@/features/branding/queries/brand";
+import { ThemeSwitcher } from "@/features/theme/components/theme-switcher";
 
 /**
- * The bar above the page content: the sidebar toggle and, where the sidebar is
- * a sheet, the product name. The page's own heading stays in the page.
+ * The bar above the page content: the sidebar toggle, the product name where
+ * the sidebar is a sheet and, at the far end, the theme button. The page's own
+ * heading stays in the page.
  */
 export async function SiteHeader() {
 	const t = await getTranslations("nav");
@@ -15,6 +17,9 @@ export async function SiteHeader() {
 			<span className="font-semibold text-sm md:sr-only">
 				{getBrand().name}
 			</span>
+			<div className="ml-auto flex items-center gap-2">
+				<ThemeSwitcher />
+			</div>
 		</header>
 	);
 }

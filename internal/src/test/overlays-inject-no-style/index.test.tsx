@@ -26,6 +26,7 @@ import { testQueryClient, withQuery } from "@/test/query-wrapper";
  */
 const cookies = mockRequestCookies();
 const { LanguageMenu } = await import("@/components/layout/language-menu");
+const { ThemeMenu } = await import("@/features/theme/components/theme-menu");
 const { RemoveEntryButton } = await import(
 	"@/features/queue/components/remove-entry-button"
 );
@@ -52,6 +53,18 @@ describe("overlays and the CSP", () => {
 			</SidebarProvider>,
 		);
 		fireEvent.keyDown(screen.getByRole("button", { name: /language/ }), {
+			key: "Enter",
+		});
+		await screen.findByRole("menu");
+
+		expect(styleElements()).toBe(before);
+		expect(document.body).not.toHaveAttribute("data-scroll-locked");
+	});
+
+	it("the theme menu adds no style element when opened", async () => {
+		const before = styleElements();
+		render(<ThemeMenu defaultOpen={false} />);
+		fireEvent.keyDown(screen.getByRole("button", { name: /theme/ }), {
 			key: "Enter",
 		});
 		await screen.findByRole("menu");

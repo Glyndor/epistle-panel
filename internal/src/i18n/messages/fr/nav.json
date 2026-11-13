@@ -16,6 +16,12 @@
 	"close": "Fermer",
 	"signedInAs": "Connecté en tant que {name}",
 	"language": "Langue",
+	"theme": "Thème",
+	"themeCurrent": "Thème : {theme}",
+	"theme_system": "Système",
+	"theme_light": "Clair",
+	"theme_dark": "Sombre",
+	"themeFailed": "Le thème n’a pas pu être enregistré.",
 	"notifications": "Notifications",
 	"dismiss": "Fermer"
 }

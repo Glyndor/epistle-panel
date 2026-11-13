@@ -35,4 +35,30 @@ describe("SiteHeader", () => {
 
 		expect(screen.getByText("Epistle")).toHaveClass("md:sr-only");
 	});
+
+	it("has the theme button, showing the theme of the document", async () => {
+		render(<SidebarProvider>{await SiteHeader()}</SidebarProvider>);
+		expect(
+			screen.getByRole("button", { name: "themeCurrent" }),
+		).toHaveAttribute("data-theme-choice", "system");
+		cleanup();
+
+		document.documentElement.setAttribute("data-theme", "dark");
+		render(<SidebarProvider>{await SiteHeader()}</SidebarProvider>);
+		expect(
+			screen.getByRole("button", { name: "themeCurrent" }),
+		).toHaveAttribute("data-theme-choice", "dark");
+		document.documentElement.removeAttribute("data-theme");
+	});
+
+	it("keeps the theme button inside the banner, after the toggle", async () => {
+		render(<SidebarProvider>{await SiteHeader()}</SidebarProvider>);
+
+		const banner = screen.getByRole("banner");
+		const buttons = [...banner.querySelectorAll("button")];
+		expect(buttons.map((b) => b.textContent)).toEqual([
+			"toggle",
+			"themeCurrent",
+		]);
+	});
 });
