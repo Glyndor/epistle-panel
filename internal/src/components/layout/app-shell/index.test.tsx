@@ -1,7 +1,10 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { cleanup, render, screen } from "@testing-library/react";
 
-import { navForRole } from "@/features/navigation/queries/nav-for-role";
+import {
+	adminNav,
+	TEST_ROUTES,
+} from "@/features/navigation/test-support/admin-nav";
 import { resolveServerTree } from "@/test/server-tree";
 
 import { AppShell } from ".";
@@ -12,7 +15,8 @@ async function renderShell(defaultOpen = true) {
 	render(
 		await resolveServerTree(
 			AppShell({
-				groups: navForRole("admin"),
+				groups: adminNav(),
+				homeHref: TEST_ROUTES.home,
 				userName: "ops",
 				defaultOpen,
 				children: <p>page</p>,
@@ -42,6 +46,7 @@ describe("AppShell", () => {
 			await resolveServerTree(
 				AppShell({
 					groups: [],
+					homeHref: TEST_ROUTES.home,
 					userName: "u",
 					defaultOpen: true,
 					children: <p>page</p>,

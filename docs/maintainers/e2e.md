@@ -40,7 +40,13 @@ the line limit:
 | `scripts/e2e/lib/reporting.sh` | the pass and fail counters and the `assert_*` helpers |
 | `scripts/e2e/lib/processes.sh` | secrets, start and restart of the stand-in and the panel, its control calls |
 | `scripts/e2e/lib/http.sh` | `fetch`, `login`, the form-field readers, memory and CPU counters |
-| `scripts/e2e/scenarios/<name>.sh` | one scenario each: `headers`, `logout`, `limiter`, `limiter-global`, `noauth`, `degraded`, `rotation`, `idle`, `theme`, `body-limit`, `captcha`, `csrf`, `set-locale`, `unknown-variable`, `suppression`, `deliveries`, `account-detail` |
+| `scripts/e2e/scenarios/<name>.sh` | one scenario each: `headers`, `logout`, `limiter`, `limiter-global`, `noauth`, `degraded`, `rotation`, `idle`, `theme`, `body-limit`, `captcha`, `csrf`, `set-locale`, `unknown-variable`, `suppression`, `deliveries`, `account-detail`, `admin-id`, `mail` |
+
+Every run generates its own admin id (a fresh UUID v4, `admin_id`, and `adm` for the
+admin path) and passes it as `EPISTLE_PANEL_ADMIN_ID`; nothing in the repository
+spells one. `lib/http.sh` has the helpers that compare a response with the 404 of a
+missing path: `set_404_reference`, `assert_hidden` and `assert_action_hidden` (same
+status, same headers and same body once the nonce is blanked).
 
 A new scenario is a new file in `scenarios/`, a `source` line and a `case` entry
 in `run.sh`, and a row in the table below.
@@ -49,8 +55,8 @@ Two small files are sourced by both scripts: `session-cookie.sh` holds the
 session cookie name, and a test fails when it differs from `SESSION_COOKIE` in
 `internal/src/lib/auth/session/index.ts`; `html-checks.sh` holds the check that
 every `<script>` tag carries the nonce, whatever its attributes. A script that
-sends a stale cookie name is redirected to `/login`, and every header check
-still passes on the redirect, so `verify.sh` also asserts a 200 with an HTML
+sends a stale cookie name gets the 404 of a hidden path, and every header check
+still passes on the 404, so `verify.sh` also asserts a 200 with an HTML
 body before it checks anything else.
 
 `scripts/e2e/stand-in-api/` answers the paths the panel calls, validated
@@ -72,10 +78,10 @@ secret: a password is only counted.
 | Scenario | Proves |
 |---|---|
 | `headers` | CSP with a fresh nonce per request, no `unsafe-inline`, the nonce on every script tag (with or without attributes), the other headers, the cookie flags, no inline style on every page and on the 404 page, `X-Robots-Tag` on the login page, the pages and a static asset, the robots meta tag and no canonical, Open Graph or Twitter tag |
-| `logout` | a replayed cookie is refused by the proxy and by an action after logout, and reaches no API endpoint; another session survives |
+| `logout` | a replayed cookie gets the 404 from the proxy and from an action after logout, and reaches no API endpoint; the mail area redirects it; another session survives; logout goes to `/` |
 | `limiter` | three free tries, then the lock; locked attempts never reach the API; another name signs in; the lock ends; a failure and a success each take at least 1 s |
 | `limiter-global` | 60 failing names fill the global window and the 61st unknown name is refused; the admin, who signed in before, is still admitted. The cap of 8 concurrent API calls is covered by the unit tests, since parallel curl processes cannot make the count deterministic |
-| `noauth` | every page under `/app`, known or not (also `/APP/queue` and `/%61pp/queue`; `//app/queue` is first sent to the canonical path), and every Server Action is redirected without a session, with a garbage or altered cookie, and the stand-in sees nothing; `/` forwards to `/app` and never asks for a session itself; the old `/accounts`, `/domains` and `/queue` answer 404 with and without a session; `/login` and `/robots.txt` answer 200 without one, `/robots.txt` says `Disallow: /`, and its look-alikes (`/robots.txtx`, `/robots.txt/queue`, `/x/robots.txt`, `/ROBOTS.TXT`) and `/sitemap.xml` are 404s |
+| `noauth` | the admin area, with the right id and without a session, with a garbage or altered cookie, with another UUID, an upper-case or truncated id, `/app` itself and the old unprefixed paths (and `/login`), answers the very 404 of a path that does not exist (same status, headers and body but the nonce), never a redirect, for a page and for a Server Action, and the stand-in sees nothing; `/` is the sign-in page without a session and forwards to `/app/mail` with one; `/app/mail` without a session goes to `/`; `/robots.txt` answers 200 with `Disallow: /` and its look-alikes (`/robots.txtx`, `/robots.txt/queue`, `/x/robots.txt`, `/ROBOTS.TXT`, `/app/robots.txt`) and `/sitemap.xml` are the 404 |
 | `degraded` | a hanging API degrades the page within the 10 s budget and the server keeps answering; a body over the cap degrades quickly with bounded memory |
 | `rotation` | replacing a `_FILE` secret does not change a running process, in any bundle; a restart picks it up |
 | `idle` | idle CPU, and a memory ceiling after 400 requests |
@@ -84,9 +90,11 @@ secret: a password is only counted.
 | `csrf` | a Server Action post with a valid session and a foreign `Origin` (or `Origin: null`) is refused by Next and the API sees no `DELETE`; the panel's own `Origin` is accepted. It also pins a measured dependency: a foreign `Origin` together with the same foreign `X-Forwarded-Host` passes Next's check and the action runs (see below) |
 | `set-locale` | the `set-locale` action with an unknown, path-like, wrong-case or very long language answers `false` and writes no `locale` cookie; each supported language (read from `internal/src/i18n/locales`) writes it, and the queue page then renders with `<html lang>` and the heading of that locale; without a session the proxy redirects and nothing is written |
 | `unknown-variable` | a misspelt `EPISTLE_PANEL_` name is warned about in the startup log by name, the value is never printed, a name the panel reads (and the `_FILE` form of a secret) is not warned about, and the panel still serves |
-| `suppression` | `/app/suppression` and its Server Action are denied without a session and the stand-in sees nothing; the first page, the encoded `after` cursor and the next link; a hostile `?after=` (`../`, `%2e%2e%2f`, line breaks, a bidi override, 300 characters, an injected parameter) is dropped and the first page is fetched; hostile action arguments (the same, an extra field, an empty or non-object argument) reach no `DELETE`; a valid removal sends the address as one percent-encoded path segment (the stand-in's seed holds a `/` and a `+`) and the address leaves the page |
-| `deliveries` | `/app/deliveries` is denied without a session and the stand-in sees nothing; the unfiltered page asks the API once for 100 records; a reply with markup is printed as text; filters (`outcome`, `since`, `recipient`) reach the API encoded and narrow the page; hostile parameters (an unknown outcome, `../`, `1e9d`, a line break, an injected parameter, a bidi override, 300 characters, `limit`, `account`) are dropped and the unfiltered log is fetched; nothing but `GET` reaches the API |
-| `account-detail` | `/app/accounts/[name]` and its actions: without a session every route and action is redirected and the stand-in sees nothing; with one the page is rendered from the API (list, mailboxes, masked addresses, archive, each asked once, for that account only), carries no inline style and is `no-store`; an archive the server does not keep is a plain notice and no logged failure; hostile and unknown names (`..`, `%2f`, an encoded `..`, CR/LF, a look-alike or accented letter, upper case, `%00`) show the not-found page and reach no per-account endpoint; actions refuse a hostile name, address, id, password or display name before the API; display name, password, two-factor, masked create and remove (with the address percent-encoded), the masked cap and archive restore work; the password and the TOTP secret appear in no log, the secret only in the one answer that is `no-store`, and not in the page afterwards |
+| `suppression` | `/app/{id}/suppression` and its Server Action are the 404 without a session and the stand-in sees nothing; the first page, the encoded `after` cursor and the next link; a hostile `?after=` (`../`, `%2e%2e%2f`, line breaks, a bidi override, 300 characters, an injected parameter) is dropped and the first page is fetched; hostile action arguments (the same, an extra field, an empty or non-object argument) reach no `DELETE`; a valid removal sends the address as one percent-encoded path segment (the stand-in's seed holds a `/` and a `+`) and the address leaves the page |
+| `deliveries` | `/app/{id}/deliveries` is the 404 without a session and the stand-in sees nothing; the unfiltered page asks the API once for 100 records; a reply with markup is printed as text; filters (`outcome`, `since`, `recipient`) reach the API encoded and narrow the page; hostile parameters (an unknown outcome, `../`, `1e9d`, a line break, an injected parameter, a bidi override, 300 characters, `limit`, `account`) are dropped and the unfiltered log is fetched; nothing but `GET` reaches the API |
+| `account-detail` | `/app/{id}/accounts/[name]` and its actions: without a session every route and action is the 404 and the stand-in sees nothing; with one the page is rendered from the API (list, mailboxes, masked addresses, archive, each asked once, for that account only), carries no inline style and is `no-store`; an archive the server does not keep is a plain notice and no logged failure; hostile and unknown names (`..`, `%2f`, an encoded `..`, CR/LF, a look-alike or accented letter, upper case, `%00`) show the not-found page and reach no per-account endpoint; actions refuse a hostile name, address, id, password or display name before the API; display name, password, two-factor, masked create and remove (with the address percent-encoded), the masked cap and archive restore work; the password and the TOTP secret appear in no log, the secret only in the one answer that is `no-store`, and not in the page afterwards |
+| `admin-id` | one sign-in for an admin and a non-admin, both sent to `/app/mail`, one cookie; the mail page offers the admin area to an admin only (the link is built with the id), never to a user, and the id is in no page or header a user gets; a user session with the right id gets the same 404 on a page and on a Server Action and the API sees nothing; an admin session with another id, an upper-case id, `/app` or an old path gets it too; a token whose payload role was edited to `admin` fails its signature; the id is in no public page, header, `robots.txt`, 404, public static file or log line; the id read from `EPISTLE_PANEL_ADMIN_ID_FILE` works and the previous one stops; with no id the start logs it and the admin area is off even for an admin; a malformed id (not a UUID, upper case, v1, v7, one character too long) stops the start with a message that names the variable and not the value |
+| `mail` | `/app/mail`, its framed body route and its attachment route are denied without a session (to the sign-in page) and reach no endpoint; with one the inbox, a folder, a page, the filters and the search render; hostile parameters fall back to the default view; a subject and addresses with line breaks and bidi controls are text; a text body keeps its markup as text; the framed body of a hostile message (script, svg onload, css `url()`, meta refresh, base, `javascript:`, handlers, iframe, form, mutation payloads) carries none of it, under a `default-src 'none'` policy that only the panel may frame; remote images are blocked and load only with `?images=1`; attachments are downloads with a forced type and a clean name, and only a part the message lists; hostile ids answer 404 and cost no JMAP call; the change action is redirected without a session, refuses a hostile id, operation or folder before JMAP, and read, star, unstar, archive (new id), trash, delete from the trash, move and spam change the stand-in's mailbox as epistle would; the composer page renders with no inline style, a reply and a forward are prefilled from cleaned text (a hostile message's code never reaches the quote), a hostile id opens it empty; the compose and upload routes are redirected without a session and refuse a foreign, missing or null origin, a body that is not JSON and every hostile body before any JMAP call; a draft is stored from the account's own address with its Bcc, saving again replaces it, a 12 MB attachment arrives whole and 27 MB is refused, sending delivers to To and Bcc with the attachment, keeps a copy in Sent and removes the draft, and a send the server refuses answers a category without the server's words and keeps the work as a draft |
 | `theme` | `/theme.css`, `/brand/logo` and `/brand/favicon` answer without a session when configured and 404 when not; the sign-in page links the stylesheet and shows the name, the logo and the original copyright notice; the CSP is the same with and without a theme; look-alike paths stay behind the gate; a symlink, an oversized or a missing file is a 404 and a log line with no path, and a symlink or a FIFO as the logo is refused the same way; an SVG with script is refused, also when `javascript:` is written with numeric character references |
 
 ## Origin check of Server Actions, measured
@@ -149,22 +157,22 @@ required by the stand-in, `STAND_IN_PORT` and `PANEL_PORT` set the ports, and
 `lib/processes.sh` shows the variables the panel needs), then use a Chromium-based browser with
 the console open.
 
-1. Open `http://127.0.0.1:<port>/login` and `http://localhost:<port>/login`.
+1. Open `http://127.0.0.1:<port>/` and `http://localhost:<port>/` (the sign-in page).
    Sign in as `admin` / `correct-horse`. In Chromium both origins count as
    secure, so the `__Host-` cookie is stored (Secure, HttpOnly, Path=/,
    SameSite=Lax, no Domain). Over plain HTTP on any other host name the browser
    drops it and sign-in does not stick. Firefox and Safari were not checked here; Firefox is documented as accepting
    the cookie on `http://localhost` (see the README).
-2. Visit `/` (it must land on `/app`), `/app/accounts`, `/app/domains`, `/app/queue`, `/app/suppression`, `/app/deliveries`: the console must show no CSP
+2. Visit `/` (it must land on `/app/mail`), follow the Administration link, then `accounts`, `domains`, `queue`, `suppression` and `deliveries` under `/app/{id}`: the console must show no CSP
    violation and no error, and the login form must be hydrated (a failed
    sign-in shows the alert without a page reload).
-3. On `/app/queue` press Remove and accept the confirmation: the entry disappears
+3. On `/app/{id}/queue` press Remove and accept the confirmation: the entry disappears
    and the stand-in log shows one `DELETE`.
 4. Set the cookie `locale` to each language in turn (`es`, `pt`, `fr`, `de`, `it`) and
    reload: the headings are in that language and `<html lang>` matches.
-5. Visit an unknown path while signed in: the panel's own 404 page, with no
-   inline-style violation.
-6. Press Sign out: the page goes to `/login` and the session cookie is gone.
+5. Visit an unknown path while signed in, and `/app/<another UUID>/queue`: the
+   panel's own 404 page, the same for both, with no inline-style violation.
+6. Press Sign out: the page goes to `/` and the session cookie is gone.
 7. Sidebar: collapse it with the toggle or Ctrl+B and hover an icon (a tooltip
    names it); open the Language menu and pick another language (the page re-renders in
    it); narrow the window below 768 px, open the sheet with the toggle,

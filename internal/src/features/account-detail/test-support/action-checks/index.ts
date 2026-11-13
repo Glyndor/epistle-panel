@@ -54,7 +54,7 @@ export function itGuardsItsInput(
 			ok: false,
 			reason: "unauthenticated",
 		});
-		cookies.jar.set("__Host-epistle_admin_session", "forged.token");
+		cookies.jar.set("__Host-epistle_session", "forged.token");
 		expect(await action(build("alice"))).toEqual({
 			ok: false,
 			reason: "unauthenticated",

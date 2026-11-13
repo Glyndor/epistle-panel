@@ -58,7 +58,7 @@ describe("removeEntryAction", () => {
 			reason: "unauthenticated",
 		});
 
-		cookies.jar.set("__Host-epistle_admin_session", "forged.token");
+		cookies.jar.set("__Host-epistle_session", "forged.token");
 		expect(await removeEntryAction({ id: ID })).toEqual({
 			ok: false,
 			reason: "unauthenticated",

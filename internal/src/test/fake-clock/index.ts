@@ -22,6 +22,45 @@ export interface Timed<T> {
 }
 
 /**
+ * The timers the code under test has set and that have not fired or been
+ * cleared. `jest.getTimerCount()` cannot stand in for this: Bun keeps counting a
+ * timer after it has fired, so a count of 1 after the last wait is over is not a
+ * timer to wait for, and advancing to it adds a phantom millisecond to whatever
+ * real work (a file read, a WebCrypto call) is still finishing. Measured with one 300 ms
+ * timer: the count is 1 before, and still 1 after, `advanceTimersToNextTimer`.
+ */
+const pending = new Set<unknown>();
+
+/** Count the timers set through the faked globals, so {@link timeIt} knows what is really pending. */
+function trackPendingTimers(): void {
+	const fakeSetTimeout = globalThis.setTimeout;
+	const fakeClearTimeout = globalThis.clearTimeout;
+	pending.clear();
+	globalThis.setTimeout = ((
+		callback: (...args: unknown[]) => void,
+		delay?: number,
+		...args: unknown[]
+	) => {
+		const handle: unknown = fakeSetTimeout(
+			(...inner: unknown[]) => {
+				pending.delete(handle);
+				callback(...inner);
+			},
+			delay,
+			...args,
+		);
+		pending.add(handle);
+		return handle;
+	}) as typeof setTimeout;
+	globalThis.clearTimeout = ((
+		handle?: Parameters<typeof clearTimeout>[0],
+	) => {
+		pending.delete(handle);
+		fakeClearTimeout(handle);
+	}) as typeof clearTimeout;
+}
+
+/**
  * Freeze `Date.now` and the timers at {@link FAKE_CLOCK_START}. Time then
  * moves only through {@link timeIt} or `jest.advanceTimersByTime`, so a test
  * about a waiting floor asserts exact milliseconds and never races the real
@@ -35,10 +74,12 @@ export interface Timed<T> {
 export function useFakeClock(): void {
 	jest.useFakeTimers({ now: FAKE_CLOCK_START });
 	AbortSignal.timeout = () => new AbortController().signal;
+	trackPendingTimers();
 }
 
 /** Give the real clock and timers back. */
 export function useRealClock(): void {
+	pending.clear();
 	jest.useRealTimers();
 	AbortSignal.timeout = realAbortTimeout;
 }
@@ -66,7 +107,7 @@ export async function timeIt<T>(work: () => Promise<T>): Promise<Timed<T>> {
 	);
 	while (!finished) {
 		await nextTurn();
-		if (!finished && jest.getTimerCount() > 0) {
+		if (!finished && pending.size > 0) {
 			jest.advanceTimersToNextTimer();
 		}
 	}

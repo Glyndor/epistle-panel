@@ -24,6 +24,11 @@ describe("panel variables", () => {
 		expect(isKnownPanelVariable("EPISTLE_PANEL_LOGIN_MIN_MSS")).toBe(false);
 	});
 
+	it("reads the admin id as a plain variable and as a file", () => {
+		expect(isKnownPanelVariable("EPISTLE_PANEL_ADMIN_ID")).toBe(true);
+		expect(isKnownPanelVariable("EPISTLE_PANEL_ADMIN_ID_FILE")).toBe(true);
+	});
+
 	it("returns the misspelt names sorted and ignores other prefixes", () => {
 		const env = {
 			EPISTLE_PANEL_ZZ: "1",

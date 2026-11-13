@@ -1,5 +1,5 @@
 /**
- * Admin session tokens for the panel.
+ * Session tokens for the panel, for every account, admin or not.
  *
  * A session is a compact `payload.signature` string carried in an httpOnly
  * cookie. The payload is HMAC-SHA256 signed with a server-side secret, so the
@@ -18,7 +18,18 @@ import { isRevoked, revokeToken } from "../revocation";
  * accept the cookie only with `Secure`, `Path=/` and no `Domain`, so a sibling
  * subdomain cannot plant or shadow it.
  */
-export const SESSION_COOKIE = "__Host-epistle_admin_session";
+export const SESSION_COOKIE = "__Host-epistle_session";
+
+/**
+ * What a session may do. It is decided on the server when the account signs in
+ * (the epistle API says whether the account is an admin) and travels inside the
+ * signed token, so a browser cannot change it without breaking the signature.
+ */
+export type SessionRole = "admin" | "user";
+
+function isSessionRole(value: unknown): value is SessionRole {
+	return value === "admin" || value === "user";
+}
 
 /** Absolute session lifetime, in seconds (8 hours). */
 export const SESSION_MAX_AGE_SECONDS = 8 * 60 * 60;
@@ -44,8 +55,10 @@ export const SESSION_COOKIE_OPTIONS = {
 const SIGNATURE_BYTES = 32;
 
 interface SessionPayload {
-	/** The admin account name the session belongs to. */
+	/** The account name the session belongs to. */
 	sub: string;
+	/** The role the account had when it signed in. */
+	role: SessionRole;
 	/** Absolute expiry, in Unix seconds. */
 	exp: number;
 	/** Random id that makes each token unique, even for the same name and second. */
@@ -93,11 +106,15 @@ async function hmacKey(): Promise<CryptoKey> {
 }
 
 /**
- * Mint a signed session token for `sub`, valid for {@link SESSION_MAX_AGE_SECONDS}.
+ * Mint a signed session token for `sub` with `role`, valid for {@link SESSION_MAX_AGE_SECONDS}.
  */
-export async function createSession(sub: string): Promise<string> {
+export async function createSession(
+	sub: string,
+	role: SessionRole,
+): Promise<string> {
 	const payload: SessionPayload = {
 		sub,
+		role,
 		exp: Math.floor(Date.now() / 1000) + SESSION_MAX_AGE_SECONDS,
 		jti: base64UrlEncode(crypto.getRandomValues(new Uint8Array(16))),
 	};
@@ -174,6 +191,7 @@ async function readToken(
 	if (
 		payload === null ||
 		typeof payload.sub !== "string" ||
+		!isSessionRole(payload.role) ||
 		!Number.isInteger(payload.exp)
 	) {
 		return null;
@@ -187,17 +205,17 @@ async function readToken(
 
 /**
  * Verify a session token's signature, lifetime and revocation, returning the
- * admin name it belongs to, or `null` if it is missing, malformed, forged,
+ * account name and role it belongs to, or `null` if it is missing, malformed, forged,
  * expired or revoked by {@link revokeSession}.
  */
 export async function verifySession(
 	token: string | undefined,
-): Promise<{ sub: string } | null> {
+): Promise<{ sub: string; role: SessionRole } | null> {
 	const payload = await readToken(token);
 	if (!payload || !token || (await isRevoked(token))) {
 		return null;
 	}
-	return { sub: payload.sub };
+	return { sub: payload.sub, role: payload.role };
 }
 
 /**

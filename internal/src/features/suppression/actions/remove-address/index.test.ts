@@ -75,7 +75,7 @@ describe("removeAddressAction", () => {
 			reason: "unauthenticated",
 		});
 
-		cookies.jar.set("__Host-epistle_admin_session", "forged.token");
+		cookies.jar.set("__Host-epistle_session", "forged.token");
 		expect(await removeAddressAction({ address: ADDRESS })).toEqual({
 			ok: false,
 			reason: "unauthenticated",

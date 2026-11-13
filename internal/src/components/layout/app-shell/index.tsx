@@ -1,7 +1,10 @@
+import type { Route } from "next";
+
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AppToaster } from "@/components/layout/app-toaster";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SkipLink } from "@/components/layout/skip-link";
+import { StyleNonce } from "@/components/layout/style-nonce";
 import { SidebarProvider } from "@/components/ui/sidebar/provider";
 import { SidebarInset } from "@/components/ui/sidebar/regions";
 import type { NavGroup } from "@/features/navigation/schemas/nav-item";
@@ -19,24 +22,27 @@ import type { NavGroup } from "@/features/navigation/schemas/nav-item";
  */
 export function AppShell({
 	groups,
+	homeHref,
 	userName,
 	defaultOpen,
 	children,
 }: {
 	groups: readonly NavGroup[];
+	homeHref: Route;
 	userName: string;
 	defaultOpen: boolean;
 	children: React.ReactNode;
 }) {
 	return (
 		<SidebarProvider defaultOpen={defaultOpen}>
+			<StyleNonce />
 			<SkipLink />
-			<AppSidebar name={userName} groups={groups} />
+			<AppSidebar name={userName} groups={groups} homeHref={homeHref} />
 			<SidebarInset>
 				<SiteHeader />
 				<main
 					id="main-content"
-					className="flex min-w-0 flex-1 flex-col gap-3 p-4"
+					className="flex min-w-0 flex-1 flex-col gap-3 p-4 md:px-6"
 				>
 					{children}
 				</main>

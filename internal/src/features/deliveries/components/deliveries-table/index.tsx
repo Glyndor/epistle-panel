@@ -5,18 +5,32 @@ import { useTranslations } from "next-intl";
 
 import { columnHelper, DataTable } from "@/components/data-table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getDeliveriesAction } from "@/features/deliveries/actions/get-deliveries";
 import { deliveriesQueryOptions } from "@/features/deliveries/queries/deliveries-query";
 import { formatUtcTime } from "@/features/deliveries/queries/format-time";
 import type { DeliveryFilters } from "@/features/deliveries/schemas/deliveries-input";
 import type { DeliveryRow } from "@/features/deliveries/schemas/deliveries-view";
+import type { DELIVERY_OUTCOMES } from "@/lib/api/schemas";
 import { unwrap } from "@/lib/query/action-result";
 
 const fetchDeliveries = async (filters: DeliveryFilters) =>
 	unwrap(await getDeliveriesAction(filters));
 const getRowId = (row: DeliveryRow) => row.id;
 const helper = columnHelper<DeliveryRow>();
+
+/** The badge tone of each outcome; the label always says it in words too. */
+const OUTCOME_VARIANT: Record<
+	(typeof DELIVERY_OUTCOMES)[number],
+	"secondary" | "warning" | "destructive" | "muted"
+> = {
+	delivered: "secondary",
+	deferred: "warning",
+	failed: "destructive",
+	suppressed: "muted",
+	canceled: "muted",
+};
 
 /**
  * The delivery log, read only: sortable, with a text filter over the records on
@@ -39,7 +53,11 @@ export function DeliveriesTable({ filters }: { filters: DeliveryFilters }) {
 		}),
 		helper.accessor("outcome", {
 			header: t("outcome"),
-			cell: (info) => t(`outcomes.${info.getValue()}`),
+			cell: (info) => (
+				<Badge variant={OUTCOME_VARIANT[info.getValue()]}>
+					{t(`outcomes.${info.getValue()}`)}
+				</Badge>
+			),
 		}),
 		helper.accessor("recipient", {
 			header: t("recipient"),

@@ -82,7 +82,7 @@ describe("login success", () => {
 		const outcome = await login(INITIAL, form("ops", "pw")).catch((e) => e);
 
 		expect(outcome).toBeInstanceOf(RedirectSignal);
-		expect(outcome.target).toBe("/app");
+		expect(outcome.target).toBe("/app/mail");
 		const [write] = cookies.writes;
 		expect(write?.name).toBe(SESSION_COOKIE);
 		expect(write?.name.startsWith("__Host-")).toBe(true);
@@ -93,7 +93,37 @@ describe("login success", () => {
 			path: "/",
 		});
 		expect(write?.options).not.toHaveProperty("domain");
-		expect(await verifySession(write?.value)).toEqual({ sub: "ops" });
+		expect(await verifySession(write?.value)).toEqual({
+			sub: "ops",
+			role: "admin",
+		});
+	});
+
+	it("signs a user role into the token for an account that is not an admin, and sends it to the same page", async () => {
+		stubVerify(() => ({ valid: true, admin: false }));
+
+		const outcome = await login(INITIAL, form("ana", "pw")).catch((e) => e);
+
+		expect(outcome).toBeInstanceOf(RedirectSignal);
+		expect(outcome.target).toBe("/app/mail");
+		expect(await verifySession(cookies.writes[0]?.value)).toEqual({
+			sub: "ana",
+			role: "user",
+		});
+	});
+
+	it("takes the role from the API's answer alone, never from the submitted form", async () => {
+		stubVerify(() => ({ valid: true, admin: false }));
+		const data = form("ana", "pw");
+		data.set("role", "admin");
+		data.set("admin", "true");
+
+		await followRedirect(login(INITIAL, data));
+
+		expect(await verifySession(cookies.writes[0]?.value)).toEqual({
+			sub: "ana",
+			role: "user",
+		});
 	});
 
 	it("sets Secure whatever NODE_ENV says", async () => {
@@ -112,10 +142,9 @@ describe("login success", () => {
 });
 
 describe("login failure", () => {
-	it("returns a generic error for bad credentials, a non-admin and an unreachable API", async () => {
+	it("returns a generic error for bad credentials and an unreachable API", async () => {
 		for (const answer of [
 			{ valid: false, admin: false },
-			{ valid: true, admin: false },
 			new Error("network"),
 		]) {
 			resetLoginLimiter();
@@ -220,7 +249,6 @@ describe("login timing", () => {
 	it("holds every kind of failure to the minimum time", async () => {
 		const failures: Array<() => void> = [
 			() => stubVerify(() => ({ valid: false, admin: false })),
-			() => stubVerify(() => ({ valid: true, admin: false })),
 			() => stubVerify(() => new Error("down")),
 		];
 		for (const arrange of failures) {

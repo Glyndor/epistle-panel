@@ -17,6 +17,7 @@ import { apiError, json } from "./responses";
 import { createDeliveriesStore } from "./deliveries";
 import { createSuppressionStore } from "./suppression";
 import { createAccountsStore } from "./accounts";
+import { createJmapStore } from "./jmap";
 
 /** Behaviour of the data endpoints, switched at run time through the control path. */
 export type Mode = "ok" | "hang" | "huge";
@@ -126,6 +127,7 @@ export function createStandIn(options: StandInOptions) {
 	const suppression = createSuppressionStore();
 	const deliveries = createDeliveriesStore();
 	const accounts = createAccountsStore(Object.keys(ACCOUNTS));
+	const jmap = createJmapStore();
 
 	const bearerOf = (request: Request): LoggedRequest["bearer"] => {
 		const header = request.headers.get("authorization");
@@ -148,7 +150,14 @@ export function createStandIn(options: StandInOptions) {
 			queue = [...SEED_IDS];
 			suppression.reset();
 			accounts.reset();
+			jmap.reset();
 			return json({ ok: true });
+		}
+		if (path === "/__control/sent") {
+			return json(jmap.sent());
+		}
+		if (path === "/__control/mail") {
+			return json(jmap.snapshot());
 		}
 		if (path === "/__control/accounts") {
 			return json(accounts.snapshot());
@@ -274,6 +283,10 @@ export function createStandIn(options: StandInOptions) {
 					addresses: [`${name}@example.test`],
 				})),
 			});
+		}
+		const mail = await jmap.handle(request, url);
+		if (mail !== null) {
+			return mail;
 		}
 		const perAccount = await accounts.handle(request, path);
 		if (perAccount !== null) {

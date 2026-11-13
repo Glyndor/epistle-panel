@@ -6,14 +6,16 @@ scenario_headers() {
 	echo "# headers, nonce and session cookie"
 	fresh
 	local csp1 csp2 nonce1 nonce2 html
-	fetch /login
-	assert_eq "GET /login" "$status" 200
+	fetch /
+	assert_eq "GET / (the sign-in page)" "$status" 200
 	csp1=$(header content-security-policy)
 	html=$(cat "$work/b")
 	nonce1=$(nonce_of_csp "$csp1")
 	assert_contains "CSP has script-src with nonce and strict-dynamic" "$csp1" "'strict-dynamic'"
 	assert_contains "CSP forbids framing" "$csp1" "frame-ancestors 'none'"
 	assert_absent "CSP has no unsafe-inline" "$csp1" "unsafe-inline"
+	assert_contains "a style element is accepted only with the request's nonce" "$csp1" "style-src-elem 'self' 'nonce-$nonce1'"
+	assert_contains "style attributes stay refused: style-src is self alone" "$csp1" "style-src 'self';"
 	assert_absent "CSP has no unsafe-eval in production" "$csp1" "unsafe-eval"
 	assert_contains "the nonce in the CSP is the one on the scripts" "$html" "nonce=\"$nonce1\""
 	assert_eq "no script tag without the nonce, whatever its attributes" "$(unnonced_scripts "$work/b" "$nonce1")" 0
@@ -23,7 +25,7 @@ scenario_headers() {
 	assert_eq "x-robots-tag on the login page" "$(header x-robots-tag)" "noindex, nofollow, noarchive, nosnippet, noimageindex"
 	assert_contains "permissions-policy denies the camera" "$(header permissions-policy)" "camera=()"
 	assert_eq "x-powered-by is absent" "$(header x-powered-by)" ""
-	fetch /login
+	fetch /
 	csp2=$(header content-security-policy)
 	nonce2=$(nonce_of_csp "$csp2")
 	if [[ -n "$nonce1" && "$nonce1" != "$nonce2" ]]; then
@@ -54,7 +56,7 @@ scenario_headers() {
 	assert_absent "cookie has no Domain" "${set_cookie,,}" "domain="
 
 	local path
-	for path in /app /app/accounts /app/domains /app/queue /app/suppression /app/deliveries; do
+	for path in "$adm" "$adm/accounts" "$adm/domains" "$adm/queue" "$adm/suppression" "$adm/deliveries"; do
 		fetch "$path" "$cookie"
 		assert_eq "GET $path with a session" "$status" 200
 		nonce1=$(nonce_of_csp "$(header content-security-policy)")
@@ -74,6 +76,15 @@ scenario_headers() {
 		assert_contains "$path: a client catalog is in the payload" "$(cat "$work/b")" 'table\":{'
 		assert_contains "$path: the client strings are in the payload" "$(cat "$work/b")" "Could not remove the message"
 	done
+
+	fetch /app/mail "$cookie"
+	assert_eq "the mail area with a session" "$status" 200
+	nonce1=$(nonce_of_csp "$(header content-security-policy)")
+	assert_eq "mail: no script tag without the nonce" "$(unnonced_scripts "$work/b" "$nonce1")" 0
+	assert_eq "mail: no inline style attribute or element" \
+		"$({ grep -o -E ' style="|<style' "$work/b" || true; } | wc -l | tr -d ' ')" 0
+	assert_eq "mail: x-robots-tag" "$(header x-robots-tag)" "noindex, nofollow, noarchive, nosnippet, noimageindex"
+	assert_contains "mail: an admin session is offered the way into the admin area" "$(cat "$work/b")" "href=\"$adm\""
 
 	fetch /does-not-exist "$cookie"
 	assert_eq "unknown path with a session" "$status" 404

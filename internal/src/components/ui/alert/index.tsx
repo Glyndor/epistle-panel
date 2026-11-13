@@ -4,14 +4,13 @@ import type * as React from "react";
 import { cn } from "@/lib/class-names";
 
 const alertVariants = cva(
-	"relative flex w-full flex-col gap-1 rounded-lg border px-4 py-3 text-sm",
+	"relative flex w-full flex-col gap-1 rounded-xl px-4 py-3 text-sm",
 	{
 		variants: {
 			variant: {
-				default: "bg-card text-card-foreground",
-				destructive: "border-destructive bg-card text-destructive",
-				warning:
-					"border-warning-foreground/70 bg-warning text-warning-foreground",
+				default: "bg-surface-sunken text-foreground",
+				destructive: "bg-destructive-soft text-destructive",
+				warning: "bg-warning text-warning-foreground",
 			},
 		},
 		defaultVariants: {

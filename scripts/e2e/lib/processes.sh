@@ -26,11 +26,12 @@ start_panel() {
 			EPISTLE_API_TOKEN_FILE="$api_token_file" \
 			EPISTLE_PANEL_SESSION_SECRET_FILE="$session_secret_file" \
 			EPISTLE_PANEL_LOGIN_MIN_MS="${login_min_ms:-1000}" \
+			${panel_admin_id:+EPISTLE_PANEL_ADMIN_ID="$panel_admin_id"} \
 			${panel_env[@]+"${panel_env[@]}"} \
 			node server.js
 	) >"$work/panel.log" 2>&1 &
 	panel_pid=$!
-	wait_http "$panel/login"
+	wait_http "$panel/"
 }
 
 wait_http() {

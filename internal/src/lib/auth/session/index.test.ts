@@ -72,13 +72,13 @@ describe("session cookie", () => {
 
 describe("token shape", () => {
 	it("rejects a token with extra segments", async () => {
-		const token = await createSession("ops");
+		const token = await createSession("ops", "admin");
 		expect(await verifySession(`${token}.extra`)).toBeNull();
 		expect(await verifySession(`${token}.a.b`)).toBeNull();
 	});
 
 	it("rejects a signature that is not exactly 32 bytes before verifying it", async () => {
-		const token = await createSession("ops");
+		const token = await createSession("ops", "admin");
 		const [payload, signature] = token.split(".") as [string, string];
 		const verify = spyOn(crypto.subtle, "verify");
 		try {
@@ -97,7 +97,7 @@ describe("token shape", () => {
 	});
 
 	it("rejects a signature written non-canonically", async () => {
-		const token = await createSession("ops");
+		const token = await createSession("ops", "admin");
 		const [payload, signature] = token.split(".") as [string, string];
 		// The last character carries two spare bits: another letter with the
 		// same value bits decodes to the same 32 bytes but is a different string.
@@ -113,10 +113,65 @@ describe("token shape", () => {
 	});
 });
 
+describe("session role", () => {
+	const future = () => nowSeconds() + 60;
+
+	it("carries the role the session was minted with", async () => {
+		expect(
+			await verifySession(await createSession("ops", "admin")),
+		).toEqual({ sub: "ops", role: "admin" });
+		expect(await verifySession(await createSession("ana", "user"))).toEqual(
+			{ sub: "ana", role: "user" },
+		);
+	});
+
+	it("refuses a signed token without a role or with one that is not exactly admin or user", async () => {
+		for (const role of [
+			undefined,
+			null,
+			"",
+			"root",
+			"Admin",
+			"ADMIN",
+			" admin",
+			"admin ",
+			true,
+			1,
+			["admin"],
+			{ admin: true },
+		]) {
+			const token = await signRaw({ sub: "ops", role, exp: future() });
+			expect(await verifySession(token), JSON.stringify(role)).toBeNull();
+		}
+	});
+
+	it("refuses a role changed in the payload, because the signature covers it", async () => {
+		const token = await createSession("ana", "user");
+		const [payload, signature] = token.split(".") as [string, string];
+		const claims = JSON.parse(
+			atob(payload.replaceAll("-", "+").replaceAll("_", "/")),
+		);
+		expect(claims.role).toBe("user");
+		const forged = b64url(
+			new TextEncoder().encode(
+				JSON.stringify({ ...claims, role: "admin" }),
+			),
+		);
+		expect(await verifySession(`${forged}.${signature}`)).toBeNull();
+	});
+});
+
 describe("token lifetime", () => {
 	it("accepts a correctly signed token with an in-range exp", async () => {
-		const token = await signRaw({ sub: "ops", exp: nowSeconds() + 60 });
-		expect(await verifySession(token)).toEqual({ sub: "ops" });
+		const token = await signRaw({
+			sub: "ops",
+			role: "admin",
+			exp: nowSeconds() + 60,
+		});
+		expect(await verifySession(token)).toEqual({
+			sub: "ops",
+			role: "admin",
+		});
 	});
 
 	it("rejects a non-finite exp", async () => {
@@ -131,7 +186,9 @@ describe("token lifetime", () => {
 			["sign"],
 		);
 		const encoded = b64url(
-			new TextEncoder().encode('{"sub":"ops","exp":1e999}'),
+			new TextEncoder().encode(
+				'{"sub":"ops","role":"admin","exp":1e999}',
+			),
 		);
 		const signature = await crypto.subtle.sign(
 			"HMAC",
@@ -143,7 +200,11 @@ describe("token lifetime", () => {
 	});
 
 	it("rejects a fractional exp", async () => {
-		const token = await signRaw({ sub: "ops", exp: nowSeconds() + 60.5 });
+		const token = await signRaw({
+			sub: "ops",
+			role: "admin",
+			exp: nowSeconds() + 60.5,
+		});
 		expect(await verifySession(token)).toBeNull();
 	});
 
@@ -170,7 +231,7 @@ describe("session lifetime, in literals", () => {
 
 	it("mints a token that expires exactly eight hours from now", async () => {
 		setSystemTime(NOW);
-		const token = await createSession("ops");
+		const token = await createSession("ops", "admin");
 
 		const payload = JSON.parse(
 			atob(
@@ -187,22 +248,37 @@ describe("session lifetime, in literals", () => {
 
 		expect(
 			await verifySession(
-				await signRaw({ sub: "ops", exp: now() + EIGHT_HOURS }),
+				await signRaw({
+					sub: "ops",
+					role: "admin",
+					exp: now() + EIGHT_HOURS,
+				}),
 			),
-		).toEqual({ sub: "ops" });
+		).toEqual({ sub: "ops", role: "admin" });
 		expect(
 			await verifySession(
-				await signRaw({ sub: "ops", exp: now() + EIGHT_HOURS + 1 }),
+				await signRaw({
+					sub: "ops",
+					role: "admin",
+					exp: now() + EIGHT_HOURS + 1,
+				}),
 			),
 		).toBeNull();
 	});
 
 	it("stops accepting a token the second its exp is reached", async () => {
 		setSystemTime(NOW);
-		const token = await signRaw({ sub: "ops", exp: now() + 10 });
+		const token = await signRaw({
+			sub: "ops",
+			role: "admin",
+			exp: now() + 10,
+		});
 
 		setSystemTime(new Date(NOW.getTime() + 9_000));
-		expect(await verifySession(token)).toEqual({ sub: "ops" });
+		expect(await verifySession(token)).toEqual({
+			sub: "ops",
+			role: "admin",
+		});
 		setSystemTime(new Date(NOW.getTime() + 10_000));
 		expect(await verifySession(token)).toBeNull();
 	});
@@ -210,8 +286,11 @@ describe("session lifetime, in literals", () => {
 
 describe("revocation", () => {
 	it("makes a revoked token stop verifying", async () => {
-		const token = await createSession("ops");
-		expect(await verifySession(token)).toEqual({ sub: "ops" });
+		const token = await createSession("ops", "admin");
+		expect(await verifySession(token)).toEqual({
+			sub: "ops",
+			role: "admin",
+		});
 
 		await revokeSession(token);
 
@@ -219,27 +298,36 @@ describe("revocation", () => {
 	});
 
 	it("leaves other sessions of the same account alone", async () => {
-		const revoked = await createSession("ops");
-		const other = await createSession("ops");
+		const revoked = await createSession("ops", "admin");
+		const other = await createSession("ops", "admin");
 
 		await revokeSession(revoked);
 
-		expect(await verifySession(other)).toEqual({ sub: "ops" });
+		expect(await verifySession(other)).toEqual({
+			sub: "ops",
+			role: "admin",
+		});
 	});
 
 	it("ignores an invalid token and an absent one", async () => {
 		await revokeSession("forged.token");
 		await revokeSession(undefined);
-		expect(await verifySession(await createSession("ops"))).toEqual({
+		expect(
+			await verifySession(await createSession("ops", "admin")),
+		).toEqual({
 			sub: "ops",
+			role: "admin",
 		});
 	});
 });
 
 describe("session tokens", () => {
 	it("verifies a token it just minted", async () => {
-		const token = await createSession("ops");
-		expect(await verifySession(token)).toEqual({ sub: "ops" });
+		const token = await createSession("ops", "admin");
+		expect(await verifySession(token)).toEqual({
+			sub: "ops",
+			role: "admin",
+		});
 	});
 
 	it("rejects a missing or malformed token", async () => {
@@ -250,12 +338,12 @@ describe("session tokens", () => {
 	});
 
 	it("rejects a tampered signature", async () => {
-		const token = await createSession("ops");
+		const token = await createSession("ops", "admin");
 		expect(await verifySession(`${token}tampered`)).toBeNull();
 	});
 
 	it("rejects a swapped payload under a stolen signature", async () => {
-		const token = await createSession("ops");
+		const token = await createSession("ops", "admin");
 		const signature = token.split(".")[1];
 		const forgedPayload = btoa('{"sub":"evil","exp":9999999999}')
 			.replaceAll("+", "-")
@@ -265,7 +353,7 @@ describe("session tokens", () => {
 	});
 
 	it("rejects an expired token", async () => {
-		const token = await createSession("ops");
+		const token = await createSession("ops", "admin");
 		setSystemTime(
 			new Date(Date.now() + (SESSION_MAX_AGE_SECONDS + 60) * 1000),
 		);
@@ -291,18 +379,21 @@ describe("session secret file", () => {
 	}
 
 	it("signs with the file secret instead of the plain one", async () => {
-		const plain = await createSession("ops");
+		const plain = await createSession("ops", "admin");
 		writeSecretFile("another-secret-from-a-file-32-bytes-long\n");
-		const fromFile = await createSession("ops");
-		expect(await verifySession(fromFile)).toEqual({ sub: "ops" });
+		const fromFile = await createSession("ops", "admin");
+		expect(await verifySession(fromFile)).toEqual({
+			sub: "ops",
+			role: "admin",
+		});
 		expect(await verifySession(plain)).toBeNull();
 	});
 
 	it("locks every session when the secret file is unusable", async () => {
-		const token = await createSession("ops");
+		const token = await createSession("ops", "admin");
 		writeSecretFile("");
 		expect(await verifySession(token)).toBeNull();
-		expect(createSession("ops")).rejects.toThrow(
+		expect(createSession("ops", "admin")).rejects.toThrow(
 			"EPISTLE_PANEL_SESSION_SECRET_FILE",
 		);
 	});
@@ -312,7 +403,7 @@ describe("session secret file", () => {
 		delete process.env["EPISTLE_PANEL_SESSION_SECRET"];
 		try {
 			expect(await verifySession("a.b")).toBeNull();
-			expect(createSession("ops")).rejects.toThrow(
+			expect(createSession("ops", "admin")).rejects.toThrow(
 				"EPISTLE_PANEL_SESSION_SECRET is not configured",
 			);
 		} finally {

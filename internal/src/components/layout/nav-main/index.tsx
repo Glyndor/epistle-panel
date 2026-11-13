@@ -27,7 +27,6 @@ import type {
 	NavGroup,
 	NavIconName,
 } from "@/features/navigation/schemas/nav-item";
-import { ROUTES } from "@/lib/routes";
 
 /** The icon each name in the navigation config stands for. */
 const ICONS: Record<NavIconName, LucideIcon> = {
@@ -40,11 +39,11 @@ const ICONS: Record<NavIconName, LucideIcon> = {
 };
 
 /**
- * Whether `pathname` is the page of `href` or one below it. The home page is
- * the root of every other path, so it matches itself only.
+ * Whether `pathname` is the page of `href` or one below it. An `exact` entry
+ * (the home page, the root of every other path) matches itself only.
  */
-function isActive(href: string, pathname: string): boolean {
-	return href === ROUTES.home
+function isActive(href: string, pathname: string, exact?: boolean): boolean {
+	return exact
 		? pathname === href
 		: pathname === href || pathname.startsWith(`${href}/`);
 }
@@ -65,9 +64,9 @@ export function NavMain({ groups }: { groups: readonly NavGroup[] }) {
 					<SidebarGroupLabel>{t(group.label)}</SidebarGroupLabel>
 					<SidebarGroupContent>
 						<SidebarMenu>
-							{group.items.map(({ href, label, icon }) => {
+							{group.items.map(({ href, label, icon, exact }) => {
 								const Icon = ICONS[icon];
-								const active = isActive(href, pathname);
+								const active = isActive(href, pathname, exact);
 								return (
 									<SidebarMenuItem key={href}>
 										<SidebarMenuButton

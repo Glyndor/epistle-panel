@@ -11,6 +11,9 @@ standalone="$internal/.next/standalone"
 port="${PORT:-7598}"
 base="http://127.0.0.1:$port"
 secret="verify-headers-secret-verify-headers-secret"
+# A fresh admin id for this run, as an installation has its own.
+admin_id=$(cat /proc/sys/kernel/random/uuid)
+adm="/app/$admin_id"
 
 # shellcheck source=scripts/e2e/session-cookie.sh
 . "$root/scripts/e2e/session-cookie.sh"
@@ -40,13 +43,13 @@ cp -R "$internal/.next/static" "$standalone/.next/static"
 
 (
 	cd "$standalone"
-	EPISTLE_PANEL_SESSION_SECRET="$secret" PORT="$port" HOSTNAME=127.0.0.1 \
-		exec node server.js
+	EPISTLE_PANEL_SESSION_SECRET="$secret" EPISTLE_PANEL_ADMIN_ID="$admin_id" \
+		PORT="$port" HOSTNAME=127.0.0.1 exec node server.js
 ) >"$work/server.log" 2>&1 &
 pid=$!
 
 tries=0
-until curl -fs -o /dev/null "$base/login"; do
+until curl -fs -o /dev/null "$base/"; do
 	tries=$((tries + 1))
 	if [ "$tries" -gt 50 ]; then
 		echo "error: the server did not come up" >&2
@@ -57,7 +60,7 @@ until curl -fs -o /dev/null "$base/login"; do
 done
 
 cookie=$(cd "$internal" && EPISTLE_PANEL_SESSION_SECRET="$secret" bun --conditions react-server -e \
-	'import { createSession } from "./src/lib/auth/session"; console.log(await createSession("admin"))')
+	'import { createSession } from "./src/lib/auth/session"; console.log(await createSession("admin", "admin"))')
 
 fail() {
 	echo "FAIL: $*" >&2
@@ -103,7 +106,7 @@ expect_secure_headers() {
 # inline styles the CSP would block. It must be the page itself: a request the
 # proxy redirects carries the same headers and an empty body, and would pass
 # every check below without rendering anything.
-fetch -H "Cookie: $SESSION_COOKIE_NAME=$cookie" "$base/app/queue"
+fetch -H "Cookie: $SESSION_COOKIE_NAME=$cookie" "$base$adm/queue"
 status=$(sed -n '1s/^[^ ]* \([0-9]*\).*/\1/p' "$work/h")
 [ "$status" = 200 ] || fail "authenticated page: status $status, want 200 (is the session cookie name right?)"
 grep -q '<html' "$work/b" || fail "authenticated page: the body is not an HTML document"
@@ -111,35 +114,51 @@ grep -q '</html>' "$work/b" || fail "authenticated page: the HTML document is cu
 expect_secure_headers "authenticated page"
 nonce=$(header content-security-policy | sed -n "s/.*'nonce-\([^']*\)'.*/\1/p")
 [ -n "$nonce" ] || fail "authenticated page: no nonce in the CSP"
+case "$(header content-security-policy)" in
+	*"style-src 'self'; style-src-elem 'self' 'nonce-$nonce'"*) ;;
+	*) fail "authenticated page: style-src-elem is not self plus the request's nonce" ;;
+esac
 bare=$(unnonced_scripts "$work/b" "$nonce")
 [ "$bare" = 0 ] || fail "authenticated page: $bare script tags lack the nonce"
 grep -q ' style="\|<style' "$work/b" && fail "authenticated page: inline style, blocked by style-src"
 
-# The login page is public but carries the same headers and a nonce.
-fetch "$base/login"
+# The sign-in page, at the root, is public but carries the same headers and a nonce.
+fetch "$base/"
 expect_secure_headers "login page"
 grep -q "nonce-" "$work/h" || fail "login page: no nonce"
 
 # Two requests must not share a nonce.
 first=$(header content-security-policy)
-fetch "$base/login"
+fetch "$base/"
 [ "$first" != "$(header content-security-policy)" ] || fail "the nonce repeats between requests"
 
 # Redirects keep the headers, and a client-chosen host never reaches Location.
+# The only redirect left is the mail area without a session.
 for extra in "X-Forwarded-Host: evil.test" "Host: evil.test" "X-Forwarded-Proto: gopher"; do
-	fetch -H "$extra" "$base/app/queue"
+	fetch -H "$extra" "$base/app/mail"
 	[ "$(sed -n '1s/^[^ ]* \([0-9]*\).*/\1/p' "$work/h")" = 307 ] || fail "no 307 for '$extra'"
-	expect_header location /login "redirect with '$extra'"
+	expect_header location / "redirect with '$extra'"
 	expect_secure_headers "redirect with '$extra'"
 done
 
-# A Server Action POST without a session is redirected, headers included.
-fetch -X POST -H "Next-Action: 00" -H "Content-Type: text/plain" -d "[]" "$base/app/queue"
+# The admin area without a session is the 404 of a missing path with the same
+# headers, never a redirect, and so is a Server Action POST to it.
+fetch "$base$adm/queue"
+[ "$(sed -n '1s/^[^ ]* \([0-9]*\).*/\1/p' "$work/h")" = 404 ] || fail "admin area without a session: not a 404"
+[ -z "$(header location)" ] || fail "admin area without a session: a Location header"
+expect_secure_headers "admin area without a session"
+# Next answers a Server Action posted to a path no route has in its own way, so
+# the hidden one must answer the same, not a redirect.
+fetch -X POST -H "Next-Action: 00" -H "Content-Type: text/plain" -d "[]" "$base/no-such-route"
+missing=$(sed -n '1s/^[^ ]* \([0-9]*\).*/\1/p' "$work/h")
+fetch -X POST -H "Next-Action: 00" -H "Content-Type: text/plain" -d "[]" "$base$adm/queue"
+[ "$(sed -n '1s/^[^ ]* \([0-9]*\).*/\1/p' "$work/h")" = "$missing" ] || fail "server action without session: not what a missing path answers ($missing)"
+[ -z "$(header location)" ] || fail "server action without session: a Location header"
 expect_secure_headers "server action without session"
 
 # robots.txt answers without a session, refuses everything, and opens nothing
 # else: a look-alike path is not robots.txt, and one under /app is still
-# redirected to the login page.
+# the 404.
 fetch "$base/robots.txt"
 status=$(sed -n '1s/^[^ ]* \([0-9]*\).*/\1/p' "$work/h")
 [ "$status" = 200 ] || fail "robots.txt without a session: status $status, want 200"
@@ -153,10 +172,10 @@ for path in /robots.txtx /robots.txt/queue /x/robots.txt /ROBOTS.TXT; do
 done
 fetch "$base/app/queue"
 status=$(sed -n '1s/^[^ ]* \([0-9]*\).*/\1/p' "$work/h")
-[ "$status" = 307 ] || fail "/app/queue without a session: status $status, want 307"
+[ "$status" = 404 ] || fail "/app/queue without a session: status $status, want 404"
 
 # The page itself says it is not to be indexed.
-fetch -H "Cookie: $SESSION_COOKIE_NAME=$cookie" "$base/app/queue"
+fetch -H "Cookie: $SESSION_COOKIE_NAME=$cookie" "$base$adm/queue"
 grep -q '<meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex"' "$work/b" ||
 	fail "authenticated page: no robots meta tag"
 for forbidden in 'rel="canonical"' 'property="og:' 'name="twitter:' 'name="description"'; do
@@ -167,8 +186,15 @@ fetch "$base/sitemap.xml"
 
 # Static assets skip the proxy but keep the static headers.
 chunk=$(grep -o '/_next/static/[^"]*\.js' "$work/b" | head -n 1 || true)
-[ -n "$chunk" ] || { fetch "$base/login"; chunk=$(grep -o '/_next/static/[^"]*\.js' "$work/b" | head -n 1); }
+[ -n "$chunk" ] || { fetch "$base/"; chunk=$(grep -o '/_next/static/[^"]*\.js' "$work/b" | head -n 1); }
 fetch "$base$chunk"
 expect_secure_headers "static asset"
+
+# The admin id is in no public response: not in the sign-in page, robots.txt or
+# a 404, nor in the headers of any of them.
+for path in / /robots.txt /nothing-here "/app/$(cat /proc/sys/kernel/random/uuid)/queue"; do
+	fetch "$base$path"
+	! grep -q "$admin_id" "$work/b" "$work/h" || fail "$path carries the admin id"
+done
 
 echo "ok: security headers verified against $base"

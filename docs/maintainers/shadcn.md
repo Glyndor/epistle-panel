@@ -12,17 +12,23 @@ helpers (`class-variance-authority`, `clsx`, `tailwind-merge`).
   Select, Popover, Tooltip, DropdownMenu) position themselves with a `style`
   attribute and would be blocked. Before a component is used, run it in the built
   standalone server (see `e2e.md`) and read the browser console: a CSP violation
-  means the component is not used until it can run without a `style` attribute.
-  Static components (Button, Input, Label, Table, Card, Alert, Separator) set
-  none.
-- **Radix overlays that lock page scroll are out.** A modal Radix Dialog or
-  DropdownMenu injects a `<style>` element (react-remove-scroll), a
-  `style-src-elem` violation. The dropdown is non-modal (`modal={false}`) and the
-  Sheet is a native `<dialog>`; see the table below. Every Radix overlay that is
-  added needs a test that asserts `document.head.querySelectorAll("style").length`
-  does not grow when it opens; `components/ui/dropdown-menu/index.test.tsx` is the
-  pattern to copy. Reading the console in the built server is not enough on its
-  own, because nothing forces anyone to do it.
+  means the component is not used until it can run without a violation. A `style`
+  set from script (the CSSOM, which is how Radix and floating-ui place a popper)
+  is not a violation; a `style` attribute in the server-rendered HTML and a
+  `<style>` element are.
+- **A modal Radix overlay needs the request's nonce.** A modal Dialog or
+  AlertDialog locks page scroll through react-remove-scroll, which injects one
+  `<style>` element. The policy accepts a style element only with the request's
+  nonce (`style-src-elem 'self' 'nonce-...'`; no `'unsafe-inline'`, and `style-src`
+  stays `'self'`, so style attributes are still refused). `StyleNonce`
+  (`components/layout/style-nonce`, mounted in the app shell) passes the nonce of
+  Next's own scripts to the library with `setNonce` from `get-nonce`. Measured in
+  the built server: without it the dialog logs one `style-src-elem` violation,
+  with it none. The non-modal dropdown and the native-`<dialog>` Sheet inject
+  nothing. Every overlay that is added needs a test in
+  `src/test/overlays-inject-no-style`; the unit tests of the policy
+  (`lib/security-headers`) and the e2e `headers` scenario fail if the directive
+  loses its nonce.
 - **Compact on a fine pointer, 44 px on a coarse one.** The panel is an
   administration surface, so controls are 32 px (`min-h-8`) and menu rows 32 px.
   Every interactive component adds `pointer-coarse:min-h-11` (or `size-11`), and
@@ -33,7 +39,22 @@ helpers (`class-variance-authority`, `clsx`, `tailwind-merge`).
   ours sets `[--sidebar-width:14rem]` as a class.
 - **Theme tokens, no `dark:`.** Components read `bg-primary`, `text-muted-foreground`
   and the other roles. The values flip with `prefers-color-scheme` in
-  `internal/src/app/globals.css`, so a component needs no `dark:` utility.
+  `internal/src/styles/theme.css`, so a component needs no `dark:` utility.
+- **No lines between things.** Hierarchy is tone and space: `bg-background`
+  (canvas), `bg-surface` / `bg-card` (a card or a table), `bg-surface-sunken` (a
+  stripe, a quiet callout), `bg-surface-raised` plus `shadow-raised` (a menu, a
+  toast, a dialog, a sheet: the only shadows). Radii come from `--radius`
+  (`rounded-lg` controls, `rounded-xl` cards, `rounded-2xl` dialogs). Do not add
+  `border`, `divide-*` or a separator; the panel sets no default border colour.
+  A form field is `bg-field` (`FIELD_CLASS` in `components/ui/input`) with a
+  2px bottom line in `--field-edge` (3:1 against the surface and the fill, the
+  boundary WCAG 1.4.11 asks for), the focus ring on keyboard focus and a
+  destructive line and outline when `aria-invalid`. Every field wears it: the
+  input, the composer's text area and the native `select`s.
+- **Variants over extra state.** Prefer `hover:`, `focus-visible:`, `aria-*`,
+  `data-*`, `group-*` and `has-*`, and container queries (`@container` with
+  `@xl:`, `@2xl:`) over window breakpoints for a block that lives in a column of
+  unknown width (the status cards and the delivery filters do).
 - **Focus ring is an outline.** `focus-visible:outline-2 outline-offset-2
   outline-ring`. Do not add `outline-none` next to it: in Tailwind 4 it sets
   `--tw-outline-style: none` and the focus outline never draws.
@@ -78,7 +99,7 @@ follow `icons.md`.
 The generated Sidebar exceeded 300 code lines, so it lives in leaf folders under
 `components/ui/sidebar/` (`context`, `provider`, `sidebar`, `trigger`,
 `regions`, `group`, `menu`, `use-is-mobile`), imported by path, with no barrel.
-Parts the panel does not use (rail, input, skeleton, sub-menus, badges) were not
+Parts the panel does not use (rail, input, skeleton, sub-menus, badges, separator) were not
 kept.
 
 ## In use
@@ -89,27 +110,28 @@ kept.
 | Input, Label | sign-in form | no violation |
 | Alert | `warning` for the unreachable notice on four pages, `destructive` for the sign-in error | no violation |
 | Card | status counters | no violation |
-| Table | queue, deliveries, suppression, domains, accounts | no violation |
+| Table | queue, deliveries, suppression, domains, accounts | no violation; rows striped by tone, no lines |
+| AlertDialog (`ConfirmAction`) | the six confirmations: remove queue entry, suppressed address, masked address, enrol and turn off two-factor, delete a message for good from the trash (the button, or the Delete and # keys through `open` and `onOpenChange`) | **needs the nonce**: one `style-src-elem` violation without `StyleNonce`, none with it (built server, light and dark). Focus lands on Cancel, Tab cycles inside, Escape closes, the focus returns to the control, page scroll is locked and released |
+| Badge | delivery outcome | no violation; static, the label always says the outcome |
+| Empty | empty tables and the empty sections of the account page | no violation; static |
+| Breadcrumb | account page | no violation; static |
 | Sidebar (provider, rail, menu, trigger) | every signed-in page | none at first paint, after hydration, collapsed or expanded; width variables are classes |
 | Sidebar tooltip (own, no popper) | collapsed sidebar icons | none after hover or keyboard focus (placed through the CSSOM); Escape dismisses it |
 | DropdownMenu, non-modal, loaded on demand | language menu | none after opening; the modal default injects a style element and was replaced. Its code loads on hover, focus or press of a placeholder button |
 | Sheet, native `<dialog>` | sidebar below 768 px | none after opening; Radix Dialog violated and was replaced |
-| Separator | header, sidebar | no violation |
 | Form (react-hook-form) | sign-in | no violation; classes only |
 | Toaster (own) | mutation outcomes, one region in the shell | none; classes only |
-| Native `<select>` | delivery log filters | no violation (the browser draws it; no `style` attribute) |
+| Native `<select>` | delivery log filters | no violation. Radix Select was measured and kept out: its `SelectValue` puts `style="pointer-events:none"` in the server HTML (a `style-src` violation, and a nonce cannot cover an attribute), its viewport injects a `<style>` element with no nonce prop wired, and the filter form is a plain GET form that works without script |
 | Skeleton | loading states | no violation; static, never pulses |
 
-Not used on purpose: Sonner (measured: it injects a `<style>` element when it loads, a `style-src-elem` violation 16 times in one page view with version 2.0.8, and offers no switch to stop it; the panel's own `components/ui/toaster` replaces it), Radix Dialog and AlertDialog (modal, so they inject the
-scroll-lock style), Select and Popover (not measured yet). The Remove
-confirmation stays the native `confirm`.
+Measured in the built server and not used: Radix Dialog (same result as AlertDialog, with the nonce: no violation, but no screen needs it), Popover and Tooltip (no violation, no screen needs them; the sidebar keeps its own tooltip), Select (above). Sonner (it injects a `<style>` element with no nonce when it loads, 16 violations in one page view with version 2.0.8; the panel's own `components/ui/toaster` replaces it). From the shadcn catalogue nothing else is installed: a component joins the tree when a screen uses it, so Spinner (a looping animation, against the no-decoration rule), InputOTP (the panel never takes a one-time code, it shows a secret), Kbd (no shortcut exists), Pagination, ToggleGroup, Checkbox and Switch (no such control in any screen) wait for the screen that needs them. `Field` is not used because the forms already compose `Form` (react-hook-form); the two do not mix.
 
 ## Semantic roles of the Alert
 
 An unreachable API is a warning, not a destructive state, so the Alert has three
 variants: `default`, `warning` (amber, `--warning` and `--warning-foreground`) and
-`destructive` (red, for a failure the person caused or can retry, such as a refused
-sign-in). Do not borrow `destructive` for a state that only needs attention. Both
-themes' values live in `globals.css` and were measured: text on the alert 8.73
-(light) and 12.05 (dark), border against the page 4.23 and 7.95, border against the
-alert 4.08 and 6.02.
+`destructive` (a soft red fill, `--destructive-soft`, for a failure the person caused or
+can retry, such as a refused sign-in). Do not borrow `destructive` for a state that
+only needs attention. The alerts have no border: the fill is the boundary. Both
+themes' values live in `styles/theme.css` and were measured: warning text on its
+fill 8.44 (light) and 12.05 (dark), destructive text on its fill 5.52 and 7.84.

@@ -106,7 +106,7 @@ function ToastView({
 			onPointerLeave={start}
 			onFocus={pause}
 			onBlur={start}
-			className="flex items-start gap-2 rounded-md border bg-popover p-3 text-popover-foreground text-sm shadow-md data-[kind=error]:border-destructive data-[kind=error]:text-destructive"
+			className="flex items-start gap-2 rounded-xl bg-popover p-3 text-popover-foreground text-sm shadow-raised data-[kind=error]:bg-destructive-soft data-[kind=error]:text-destructive"
 		>
 			<p className="min-w-0 flex-1 break-words">{item.message}</p>
 			<button

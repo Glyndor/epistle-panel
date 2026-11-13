@@ -1,6 +1,6 @@
 import { mock } from "bun:test";
 
-import { createSession, SESSION_COOKIE } from "../../session";
+import { createSession, SESSION_COOKIE, type SessionRole } from "../../session";
 
 /** What a Server Action or Component asked the cookie store to write. */
 export interface CookieWrite {
@@ -83,14 +83,22 @@ export function mockRequestCookies() {
 			throw new NotFoundSignal();
 		},
 		usePathname: () => "/",
+		useRouter: () => ({
+			push: () => {},
+			replace: () => {},
+			refresh: () => {},
+		}),
 	}));
 
 	return {
 		jar,
 		writes,
 		/** Put a freshly minted session for `sub` in the jar and return its token. */
-		async signIn(sub = "admin"): Promise<string> {
-			const token = await createSession(sub);
+		async signIn(
+			sub = "admin",
+			role: SessionRole = "admin",
+		): Promise<string> {
+			const token = await createSession(sub, role);
 			jar.set(SESSION_COOKIE, token);
 			return token;
 		},

@@ -23,7 +23,7 @@ function StatusCard({ label, value }: { label: string; value: string }) {
 }
 
 /**
- * The status counters, as a compact row of cards. The first paint comes from
+ * The status counters, as a compact row of cards that goes from two columns to four by the width of its own container, not of the window. The first paint comes from
  * the server prefetch (hydrated into the query), and the numbers refresh every
  * 15 s while the tab is in view. Numbers go through `useFormatter`, so the
  * grouping follows the locale.
@@ -35,13 +35,15 @@ export function StatusCards() {
 
 	if (isPending) {
 		return (
-			<div
-				className="grid grid-cols-2 gap-2 sm:grid-cols-4"
-				aria-busy="true"
-			>
-				{["version", "domains", "accounts", "queue"].map((key) => (
-					<Skeleton key={key} className="h-16" />
-				))}
+			<div className="@container">
+				<div
+					className="grid grid-cols-2 gap-3 @xl:grid-cols-4"
+					aria-busy="true"
+				>
+					{["version", "domains", "accounts", "queue"].map((key) => (
+						<Skeleton key={key} className="h-16" />
+					))}
+				</div>
 			</div>
 		);
 	}
@@ -53,20 +55,22 @@ export function StatusCards() {
 		);
 	}
 	return (
-		<dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-			<StatusCard label={t("version")} value={data.version} />
-			<StatusCard
-				label={t("domains")}
-				value={format.number(data.domains)}
-			/>
-			<StatusCard
-				label={t("accounts")}
-				value={format.number(data.accounts)}
-			/>
-			<StatusCard
-				label={t("queue")}
-				value={format.number(data.queueSize)}
-			/>
-		</dl>
+		<div className="@container">
+			<dl className="grid grid-cols-2 gap-3 @xl:grid-cols-4">
+				<StatusCard label={t("version")} value={data.version} />
+				<StatusCard
+					label={t("domains")}
+					value={format.number(data.domains)}
+				/>
+				<StatusCard
+					label={t("accounts")}
+					value={format.number(data.accounts)}
+				/>
+				<StatusCard
+					label={t("queue")}
+					value={format.number(data.queueSize)}
+				/>
+			</dl>
+		</div>
 	);
 }

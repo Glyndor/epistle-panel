@@ -2,21 +2,27 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { cleanup, render, screen } from "@testing-library/react";
 
 import type { DeliveryFilters } from "@/features/deliveries/schemas/deliveries-input";
+import { TEST_ADMIN_ID } from "@/lib/config/test-support/admin-id";
+import { adminRoutes } from "@/lib/routes";
 
 import { DeliveriesFilters } from ".";
+
+const PATH = adminRoutes(TEST_ADMIN_ID).deliveries;
 
 afterEach(cleanup);
 
 const open = (filters: DeliveryFilters = {}) =>
-	render(<DeliveriesFilters filters={filters} />);
+	render(<DeliveriesFilters filters={filters} path={PATH} />);
 
 describe("DeliveriesFilters", () => {
-	it("is a GET form to /app/deliveries with a labelled control per filter", () => {
+	it("is a GET form to the delivery log path with a labelled control per filter", () => {
 		const { container } = open();
 
 		const form = container.querySelector("form");
 		expect(form?.getAttribute("method")).toBe("get");
-		expect(form?.getAttribute("action")).toBe("/app/deliveries");
+		expect(form?.getAttribute("action")).toBe(
+			`/app/${TEST_ADMIN_ID}/deliveries`,
+		);
 		expect(screen.getByLabelText("outcome")).toHaveAttribute(
 			"name",
 			"outcome",
@@ -31,7 +37,7 @@ describe("DeliveriesFilters", () => {
 		).toBeInTheDocument();
 		expect(screen.getByRole("link", { name: "clear" })).toHaveAttribute(
 			"href",
-			"/app/deliveries",
+			`/app/${TEST_ADMIN_ID}/deliveries`,
 		);
 	});
 

@@ -1,6 +1,7 @@
 {
 	"heading": "Conta {name}",
 	"back": "Todas as contas",
+	"breadcrumb": "Caminho de navegação",
 	"unreachable": "Não foi possível acessar a API de gerenciamento do servidor de correio. Verifique se o servidor está em execução e se o painel está configurado.",
 	"gone": "Esta conta não existe mais.",
 	"unavailable": "Não foi possível concluir a alteração. Tente novamente.",

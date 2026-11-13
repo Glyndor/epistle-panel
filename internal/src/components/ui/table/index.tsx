@@ -4,13 +4,15 @@ import { cn } from "@/lib/class-names";
 
 /**
  * A semantic table in a container that scrolls sideways when the columns do
- * not fit, so an action column is never clipped on a narrow screen.
+ * not fit, so an action column is never clipped on a narrow screen. No line
+ * separates the rows: the body stripes every second row with the sunken
+ * surface and tints the row under the pointer.
  */
 function Table({ className, ...props }: React.ComponentProps<"table">) {
 	return (
 		<div
 			data-slot="table-container"
-			className="relative w-full overflow-x-auto rounded-lg border"
+			className="relative w-full overflow-x-auto rounded-xl bg-card"
 		>
 			<table
 				data-slot="table"
@@ -25,7 +27,7 @@ function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
 	return (
 		<thead
 			data-slot="table-header"
-			className={cn("[&_tr]:border-b", className)}
+			className={cn("text-muted-foreground", className)}
 			{...props}
 		/>
 	);
@@ -35,20 +37,17 @@ function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
 	return (
 		<tbody
 			data-slot="table-body"
-			className={cn("[&_tr:last-child]:border-0", className)}
+			className={cn(
+				"[&_tr:nth-child(even):not(:hover)]:bg-surface-sunken [&_tr:hover]:bg-accent",
+				className,
+			)}
 			{...props}
 		/>
 	);
 }
 
 function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
-	return (
-		<tr
-			data-slot="table-row"
-			className={cn("border-b", className)}
-			{...props}
-		/>
-	);
+	return <tr data-slot="table-row" className={cn(className)} {...props} />;
 }
 
 function TableHead({ className, ...props }: React.ComponentProps<"th">) {
@@ -56,7 +55,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
 		<th
 			data-slot="table-head"
 			className={cn(
-				"px-3 py-1.5 align-middle font-medium pointer-coarse:py-3",
+				"px-4 py-1.5 align-middle font-medium pointer-coarse:py-3",
 				className,
 			)}
 			{...props}
@@ -69,7 +68,7 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
 		<td
 			data-slot="table-cell"
 			className={cn(
-				"px-3 py-1.5 align-middle pointer-coarse:py-3",
+				"px-4 py-1.5 align-middle pointer-coarse:py-3",
 				className,
 			)}
 			{...props}

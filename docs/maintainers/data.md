@@ -15,24 +15,24 @@ the session stay on the server; the browser never calls the API.
    drift. Hydrated data is fresh for 30 s, so the first render needs no request;
    measured: no Server Action call at load on any page.
 3. The browser's `queryFn` is a Server Action (`features/<f>/actions`). Each runs
-   through `lib/query/run-action`: it checks the session first (an action is a
-   public POST endpoint), validates input with a strict zod schema when it takes
+   through `lib/query/run-action`: it checks the admin session first (an action is a
+   public POST endpoint, and a session of another role is no session here), validates input with a strict zod schema when it takes
    any, calls the `lib/api` client, and returns an `ActionResult`: the data or a
    reason (`unauthenticated`, `unavailable`, `invalid`). It never returns a raw
    error; the detail goes to the server log under a fixed operation name.
 4. The status counters and the queue refetch every 15 s while the tab is in
    view (`refetchIntervalInBackground: false`); a hidden tab makes no request.
-   A query that finds the session ended sends the browser to `/login`.
+   A query that finds the session ended sends the browser to the sign-in page at `/`.
 
 Removing a queue entry is a mutation with an optimistic update: the row leaves
 the cached page at once, the snapshot is restored on failure, and the queue and
 status are refetched either way. Its outcome is a toast (`components/ui/toaster`).
-The browser's own `confirm` stays: a modal Radix dialog injects a style element
-that the CSP refuses.
+It asks first with `ConfirmAction` (an alert dialog; its style element carries
+the request's nonce, see shadcn.md).
 
 ## The suppression list
 
-`/app/suppression` reads `GET /api/v1/suppression` and removes with
+`/app/{id}/suppression` reads `GET /api/v1/suppression` and removes with
 `DELETE /api/v1/suppression/{address}` (scopes `read` and `write`; the panel's
 token is unconfined, which the global list requires). Measured against the API's
 handler and its OpenAPI file:
@@ -55,7 +55,7 @@ handler and its OpenAPI file:
 
 ## The delivery log
 
-`/app/deliveries` reads `GET /api/v1/deliveries` (scope `read`), read only. Measured
+`/app/{id}/deliveries` reads `GET /api/v1/deliveries` (scope `read`), read only. Measured
 against the handler and the OpenAPI file:
 
 - **It does not page.** There is no cursor: the answer is at most `limit` records
@@ -86,7 +86,7 @@ against the handler and the OpenAPI file:
 
 ## The account page and what it must not keep
 
-`/app/accounts/[name]` (`features/account-detail`) follows the same flow, with
+`/app/{id}/accounts/[name]` (`features/account-detail`) follows the same flow, with
 differences that matter:
 
 - The name in the URL is parsed with `accountNameSchema` (lowercase ASCII
@@ -112,7 +112,7 @@ differences that matter:
   is no QR code: drawing one needs a library, and the secret and URI are shown
   as text.
 - Destructive actions (turning two-factor off, enrolling a new secret, removing
-  a masked address) use the browser's `confirm`.
+  a masked address) ask with `ConfirmAction`.
 - The archive answers 404 when the server keeps no deleted mail; that is a
   state of the section, not an error, and it is not logged.
 

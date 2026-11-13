@@ -1,11 +1,14 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-
 import { useSidebar } from "@/components/ui/sidebar/context";
 import { SidebarProvider } from "@/components/ui/sidebar/provider";
-import { navForRole } from "@/features/navigation/queries/nav-for-role";
+import {
+	adminNav,
+	TEST_ROUTES,
+} from "@/features/navigation/test-support/admin-nav";
+import { TEST_ADMIN_ID } from "@/lib/config/test-support/admin-id";
 
-let pathname = "/app/domains";
+let pathname = `/app/${TEST_ADMIN_ID}/domains`;
 mock.module("next/navigation", () => ({
 	usePathname: () => pathname,
 	redirect: () => {
@@ -32,7 +35,7 @@ function Probe() {
 function renderNav() {
 	return render(
 		<SidebarProvider>
-			<NavMain groups={navForRole("admin")} />
+			<NavMain groups={adminNav()} />
 		</SidebarProvider>,
 	);
 }
@@ -44,12 +47,12 @@ describe("NavMain", () => {
 		const nav = screen.getByRole("navigation", { name: "label" });
 		const links = Array.from(nav.querySelectorAll("a"));
 		expect(links.map((link) => link.getAttribute("href"))).toEqual([
-			"/app",
-			"/app/domains",
-			"/app/accounts",
-			"/app/queue",
-			"/app/deliveries",
-			"/app/suppression",
+			`/app/${TEST_ADMIN_ID}`,
+			`/app/${TEST_ADMIN_ID}/domains`,
+			`/app/${TEST_ADMIN_ID}/accounts`,
+			`/app/${TEST_ADMIN_ID}/queue`,
+			`/app/${TEST_ADMIN_ID}/deliveries`,
+			`/app/${TEST_ADMIN_ID}/suppression`,
 		]);
 		expect(
 			container.querySelectorAll("a > svg[aria-hidden='true']"),
@@ -57,7 +60,7 @@ describe("NavMain", () => {
 	});
 
 	it("marks only the current page with aria-current", () => {
-		pathname = "/app/domains";
+		pathname = `/app/${TEST_ADMIN_ID}/domains`;
 		renderNav();
 
 		expect(screen.getByRole("link", { name: "domains" })).toHaveAttribute(
@@ -76,7 +79,7 @@ describe("NavMain", () => {
 		render(
 			<SidebarProvider>
 				<Probe />
-				<NavMain groups={navForRole("admin")} />
+				<NavMain groups={adminNav()} />
 			</SidebarProvider>,
 		);
 		fireEvent.click(screen.getByRole("button", { name: "sheet-false" }));
@@ -94,7 +97,7 @@ describe("NavMain", () => {
 	});
 
 	it("keeps a section current below its own path, but not for look-alikes", () => {
-		pathname = "/app/queue/anything";
+		pathname = `/app/${TEST_ADMIN_ID}/queue/anything`;
 		renderNav();
 		expect(screen.getByRole("link", { name: "queue" })).toHaveAttribute(
 			"aria-current",
@@ -102,14 +105,14 @@ describe("NavMain", () => {
 		);
 		cleanup();
 
-		pathname = "/app/queuex";
+		pathname = `/app/${TEST_ADMIN_ID}/queuex`;
 		renderNav();
 		expect(screen.getByRole("link", { name: "queue" })).not.toHaveAttribute(
 			"aria-current",
 		);
 		cleanup();
 
-		pathname = "/app";
+		pathname = `/app/${TEST_ADMIN_ID}`;
 		renderNav();
 		expect(screen.getByRole("link", { name: "status" })).toHaveAttribute(
 			"aria-current",
@@ -128,7 +131,7 @@ describe("NavMain data", () => {
 							label: "manage",
 							items: [
 								{
-									href: "/app/queue",
+									href: TEST_ROUTES.queue,
 									label: "queue",
 									icon: "inbox",
 								},

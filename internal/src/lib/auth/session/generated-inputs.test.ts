@@ -61,8 +61,11 @@ async function expectRefused(token: string | undefined): Promise<void> {
 
 describe("verifySession on generated tokens", () => {
 	it("refuses every single-character mutation of a valid token", async () => {
-		const valid = await createSession("admin");
-		expect(await verifySession(valid)).toEqual({ sub: "admin" });
+		const valid = await createSession("admin", "admin");
+		expect(await verifySession(valid)).toEqual({
+			sub: "admin",
+			role: "admin",
+		});
 		await runCases(
 			"single-character flips",
 			valid.length,
@@ -84,7 +87,7 @@ describe("verifySession on generated tokens", () => {
 	it("refuses every other character at the last position of each half", async () => {
 		// The final character of a base64url half carries spare bits: several
 		// characters decode to the same bytes, and only one is canonical.
-		const valid = await createSession("admin");
+		const valid = await createSession("admin", "admin");
 		const dot = valid.indexOf(".");
 		for (const position of [dot - 1, valid.length - 1]) {
 			for (const char of B64URL) {
@@ -99,7 +102,7 @@ describe("verifySession on generated tokens", () => {
 	});
 
 	it("refuses truncations, extensions and extra dots of a valid token", async () => {
-		const valid = await createSession("admin");
+		const valid = await createSession("admin", "admin");
 		for (let cut = 0; cut < valid.length; cut++) {
 			await expectRefused(valid.slice(0, cut));
 		}
@@ -203,7 +206,11 @@ describe("verifySession on signed but odd payloads", () => {
 		await runCases("signed payloads", 1200, async (rng) => {
 			const exp = expValue(rng);
 			const sub = subValue(rng);
-			const fields = [`"sub":${sub.json}`, `"exp":${exp.json}`];
+			const fields = [
+				`"sub":${sub.json}`,
+				`"role":"user"`,
+				`"exp":${exp.json}`,
+			];
 			if (rng.chance(0.3)) {
 				fields.push(`"jti":${rng.pick(['"x"', "1", "null", "[]"])}`);
 			}
@@ -224,7 +231,10 @@ describe("verifySession on signed but odd payloads", () => {
 			const result = await verifySession(token);
 			if (exp.ok && sub.ok) {
 				accepted++;
-				expect(result).toEqual({ sub: JSON.parse(sub.json) });
+				expect(result).toEqual({
+					sub: JSON.parse(sub.json),
+					role: "user",
+				});
 			} else {
 				refused++;
 				expect(result).toBeNull();
@@ -237,13 +247,17 @@ describe("verifySession on signed but odd payloads", () => {
 
 	it("takes the last of duplicate keys, as JSON does, and still checks it", async () => {
 		const future = NOW_S + 60;
-		const good = await signJson(`{"sub":"x","sub":"y","exp":${future}}`);
-		expect(await verifySession(good)).toEqual({ sub: "y" });
+		const good = await signJson(
+			`{"sub":"x","sub":"y","role":"admin","exp":${future}}`,
+		);
+		expect(await verifySession(good)).toEqual({ sub: "y", role: "admin" });
 		const badLast = await signJson(
-			`{"sub":"x","exp":${future},"exp":${NOW_S - 1}}`,
+			`{"sub":"x","role":"admin","exp":${future},"exp":${NOW_S - 1}}`,
 		);
 		expect(await verifySession(badLast)).toBeNull();
-		const typeLast = await signJson(`{"sub":"x","sub":7,"exp":${future}}`);
+		const typeLast = await signJson(
+			`{"sub":"x","sub":7,"role":"admin","exp":${future}}`,
+		);
 		expect(await verifySession(typeLast)).toBeNull();
 	});
 
@@ -272,9 +286,12 @@ describe("verifySession on signed but odd payloads", () => {
 		}
 		// Depth in an unread field is harmless: the signed payload still verifies.
 		const nested = await signJson(
-			`{"sub":"a","exp":${NOW_S + 60},"deep":${deep("[", "]", 5000)}}`,
+			`{"sub":"a","role":"admin","exp":${NOW_S + 60},"deep":${deep("[", "]", 5000)}}`,
 		);
-		expect(await verifySession(nested)).toEqual({ sub: "a" });
+		expect(await verifySession(nested)).toEqual({
+			sub: "a",
+			role: "admin",
+		});
 		expect(({} as { sub?: string }).sub).toBeUndefined();
 	});
 });

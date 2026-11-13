@@ -1,11 +1,18 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeftIcon } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-
+import { useAdminRoutes } from "@/components/layout/admin-routes";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+	Breadcrumb,
+	BreadcrumbItem,
+	BreadcrumbLink,
+	BreadcrumbList,
+	BreadcrumbPage,
+	BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArchiveSection } from "@/features/account-detail/components/archive-section";
 import { MailboxesSection } from "@/features/account-detail/components/mailboxes-section";
@@ -17,7 +24,6 @@ import { TotpSection } from "@/features/account-detail/components/totp-section";
 import { getAccountsAction } from "@/features/accounts/actions/get-accounts";
 import { accountsQueryOptions } from "@/features/accounts/queries/accounts-query";
 import { unwrap } from "@/lib/query/action-result";
-import { ROUTES } from "@/lib/routes";
 
 const fetchAccounts = async () => unwrap(await getAccountsAction());
 
@@ -30,17 +36,24 @@ const fetchAccounts = async () => unwrap(await getAccountsAction());
  */
 export function AccountDetail({ name }: { name: string }) {
 	const t = useTranslations("accountDetail");
+	const routes = useAdminRoutes();
 	const { data, isPending } = useQuery(accountsQueryOptions(fetchAccounts));
 	const account = data?.find((row) => row.name === name);
 
 	const back = (
-		<Link
-			href={ROUTES.accounts}
-			className="inline-flex w-fit items-center gap-1 text-primary text-sm underline underline-offset-4 hover:no-underline"
-		>
-			<ArrowLeftIcon aria-hidden="true" className="size-4" />
-			{t("back")}
-		</Link>
+		<Breadcrumb aria-label={t("breadcrumb")}>
+			<BreadcrumbList>
+				<BreadcrumbItem>
+					<BreadcrumbLink asChild>
+						<Link href={routes.accounts}>{t("back")}</Link>
+					</BreadcrumbLink>
+				</BreadcrumbItem>
+				<BreadcrumbSeparator />
+				<BreadcrumbItem>
+					<BreadcrumbPage>{name}</BreadcrumbPage>
+				</BreadcrumbItem>
+			</BreadcrumbList>
+		</Breadcrumb>
 	);
 
 	if (isPending) {

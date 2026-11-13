@@ -26,12 +26,12 @@ import {
 	stubFetchReject,
 } from "@/lib/api/test-support/fetch";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
+import { answerConfirm, settle } from "@/test/confirm-dialog";
 import { testQueryClient, withQuery } from "@/test/query-wrapper";
 
 const A = "a@example.org";
 const B = "b@example.org";
 const originalFetch = globalThis.fetch;
-const originalConfirm = window.confirm;
 const cookies = mockRequestCookies();
 const { RemoveAddressButton } = await import(".");
 
@@ -44,11 +44,11 @@ beforeEach(async () => {
 	cookies.reset();
 	await cookies.signIn();
 });
-afterEach(() => {
+afterEach(async () => {
+	await settle();
 	cleanup();
 	clearToasts();
 	globalThis.fetch = originalFetch;
-	window.confirm = originalConfirm;
 });
 
 function setup(client: QueryClient = testQueryClient()) {
@@ -73,22 +73,22 @@ const cached = (client: QueryClient) =>
 		?.entries.map((e) => e.address);
 
 describe("RemoveAddressButton", () => {
-	it("does nothing when the confirmation is declined", () => {
-		window.confirm = mock(() => false);
+	it("does nothing when the confirmation is declined", async () => {
 		stubFetchJson({ removed: A });
 		setup();
 
 		click();
+		await answerConfirm(false);
 
 		expect(sentRequests()).toHaveLength(0);
 	});
 
 	it("deletes the address once confirmed, takes the row out of the cache and reports success", async () => {
-		window.confirm = mock(() => true);
 		stubFetchJson({ removed: A });
 		const client = setup();
 
 		click();
+		await answerConfirm(true);
 
 		await waitFor(() =>
 			expect(screen.getByRole("status")).toHaveTextContent("removed"),
@@ -102,12 +102,12 @@ describe("RemoveAddressButton", () => {
 	});
 
 	it("puts the row back and reports an error when the server cannot be reached", async () => {
-		window.confirm = mock(() => true);
 		const errors = spyOn(console, "error").mockImplementation(() => {});
 		stubFetchReject();
 		const client = setup();
 
 		click();
+		await answerConfirm(true);
 
 		await waitFor(() =>
 			expect(screen.getByRole("alert")).toHaveTextContent("removeError"),
@@ -117,7 +117,6 @@ describe("RemoveAddressButton", () => {
 	});
 
 	it("shows the pending label and disables itself while the request is in flight", async () => {
-		window.confirm = mock(() => true);
 		let release: () => void = () => {};
 		globalThis.fetch = mock(
 			() =>
@@ -133,6 +132,7 @@ describe("RemoveAddressButton", () => {
 		setup();
 
 		click();
+		await answerConfirm(true);
 
 		const button = await screen.findByRole("button", {
 			name: "removeLabel",
@@ -142,13 +142,10 @@ describe("RemoveAddressButton", () => {
 		await act(async () => release());
 	});
 
-	it("asks for confirmation naming the address", () => {
-		const confirm = mock(() => false);
-		window.confirm = confirm;
+	it("asks for confirmation naming the address", async () => {
 		setup();
 
 		click();
-
-		expect(confirm).toHaveBeenCalledTimes(1);
+		await answerConfirm(false);
 	});
 });

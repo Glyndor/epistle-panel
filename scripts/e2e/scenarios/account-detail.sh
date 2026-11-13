@@ -12,7 +12,7 @@ ACCOUNT_PASSWORD="a perfectly fine pass"
 # browser's client does. Body to $work/b, headers to $work/h, status printed.
 account_action() {
 	local saved=${action_page:-}
-	action_page=/app/accounts/admin
+	action_page="$adm/accounts/admin"
 	post_action "features/account-detail/actions/$1/index.ts" "$2" "${3:-}"
 	action_page=$saved
 }
@@ -39,22 +39,20 @@ scenario_account_detail() {
 	reset_api
 
 	# --- no session: redirected, and nothing reaches the API
-	for path in /app/accounts/admin /app/accounts/nobody /app/accounts/..%2fstatus /app/accounts/Admin; do
-		fetch "$path"
-		assert_eq "no cookie: GET $path" "$status" 307
-		assert_contains "no cookie: $path goes to /login" "$(header location)" "/login"
+	set_404_reference
+	for path in "$adm/accounts/admin" "$adm/accounts/nobody" "$adm/accounts/..%2fstatus" "$adm/accounts/Admin;" ; do
+		assert_hidden "no cookie: GET $path" "$path"
 	done
-	fetch /app/accounts/admin "$SESSION_COOKIE_NAME=garbage"
-	assert_eq "garbage cookie: GET /app/accounts/admin" "$status" 307
-	assert_eq "no session: the account actions are redirected" \
-		"$(account_action set-display-name '[{"name":"admin","displayName":"x"}]')" 307
-	assert_eq "no session: enrolling two-factor is redirected" \
-		"$(account_action enroll-totp '[{"name":"admin"}]')" 307
+	assert_hidden "garbage cookie: GET the account page" "$adm/accounts/admin" "$SESSION_COOKIE_NAME=garbage"
+	assert_eq "no session: the account actions are what a missing path answers" \
+		"$(account_action set-display-name '[{"name":"admin","displayName":"x"}]')" "$ref_action_status"
+	assert_eq "no session: enrolling two-factor is the same" \
+		"$(account_action enroll-totp '[{"name":"admin"}]')" "$ref_action_status"
 	assert_eq "no session: none of it reached the stand-in" "$(api_count '"method"')" 0
 
 	# --- with a session: the page, server-rendered from the API
-	fetch /app/accounts/admin "$good"
-	assert_eq "GET /app/accounts/admin with a session" "$status" 200
+	fetch "$adm/accounts/admin" "$good"
+	assert_eq "GET $adm/accounts/admin with a session" "$status" 200
 	body=$(cat "$work/b")
 	assert_contains "the page names the account" "$body" "Account admin"
 	assert_contains "the page lists its address" "$body" "admin@example.test"
@@ -73,11 +71,11 @@ scenario_account_detail() {
 	assert_eq "the page asked for the archive of admin" "$(api_calls GET '/api/v1/accounts/admin/archive')" 1
 	assert_eq "the page asked about no other account" "$(api_calls GET '/api/v1/accounts/ops')" 0
 	assert_contains "the account list links to this page" \
-		"$(curl -s -b "$good" "$panel/app/accounts")" 'href="/app/accounts/admin"'
+		"$(curl -s -b "$good" "$panel$adm/accounts")" "href=\"$adm/accounts/admin\""
 
 	# --- an archive the server does not keep is a plain state, not a failure
-	fetch /app/accounts/ops "$good"
-	assert_eq "GET /app/accounts/ops (archive off)" "$status" 200
+	fetch "$adm/accounts/ops" "$good"
+	assert_eq "GET $adm/accounts/ops (archive off)" "$status" 200
 	assert_contains "the archive is reported as not available" "$(cat "$work/b")" "The archive is not available"
 	assert_absent "the 404 of the archive is not logged as a failure" "$(cat "$work/panel.log")" "account archive failed"
 
@@ -86,21 +84,21 @@ scenario_account_detail() {
 	# resolves, so a `notFound()` thrown by the page cannot change it (measured on
 	# Next 16.4.6); the body is what tells them apart from the account page.
 	reset_api
-	for path in /app/accounts/nobody /app/accounts/Admin /app/accounts/ADMIN /app/accounts/admin%2fpassword \
-		/app/accounts/..%2f..%2fstatus /app/accounts/%2e%2e%2fstatus \
-		/app/accounts/a%0d%0ax /app/accounts/a%0ax /app/accounts/%C3%A9 /app/accounts/%EF%BC%A1 /app/accounts/%00 \
-		/app/accounts/a%20b "/app/accounts/a%3Fqueue=drain" /app/accounts/-admin; do
+	for path in "$adm/accounts/nobody" "$adm/accounts/Admin" "$adm/accounts/ADMIN" "$adm/accounts/admin%2fpassword" \
+		"$adm/accounts/..%2f..%2fstatus" "$adm/accounts/%2e%2e%2fstatus" \
+		"$adm/accounts/a%0d%0ax" "$adm/accounts/a%0ax" "$adm/accounts/%C3%A9" "$adm/accounts/%EF%BC%A1" "$adm/accounts/%00" \
+		"$adm/accounts/a%20b" "$adm/accounts/a%3Fqueue=drain" "$adm/accounts/-admin"; do
 		fetch "$path" "$good"
 		assert_contains "hostile name: GET $path shows the not-found page" "$(cat "$work/b")" "Page not found"
 		assert_absent "hostile name: GET $path is not an account page" "$(cat "$work/b")" 'id="mailboxes-title"'
 	done
 	assert_eq "unknown and hostile names reached no per-account endpoint" "$(api_calls GET '/api/v1/accounts/')" 0
 	assert_eq "no hostile name reached any write" "$(api_count '"method":"PUT"')" 0
-	fetch /app/accounts/%2e "$good"
+	fetch "$adm/accounts/%2e" "$good"
 	assert_eq "a dot segment is normalised away by Next before the page" "$status" 308
-	fetch /app/accounts/%2e%2e "$good"
+	fetch "$adm/accounts/%2e%2e" "$good"
 	assert_absent "an encoded .. is resolved by Next to another page, never to an account" "$(cat "$work/b")" 'id="mailboxes-title"'
-	curl -s -o /dev/null --path-as-is -b "$good" "$panel/app/accounts/../../api/v1/status"
+	curl -s -o /dev/null --path-as-is -b "$good" "$panel$adm/accounts/../../api/v1/status"
 	assert_eq "no path through the panel reached a per-account endpoint" "$(api_calls GET '/api/v1/accounts/')" 0
 
 	# --- the actions: a hostile name or value is refused before the API
@@ -143,7 +141,7 @@ scenario_account_detail() {
 	assert_contains "two-factor enrolment: the answer is never cached" "$(header cache-control)" "no-store"
 	assert_absent "two-factor enrolment: the panel log never holds the secret" "$(cat "$work/panel.log")" "$ACCOUNT_TOTP_SECRET"
 	assert_absent "two-factor enrolment: the stand-in log never holds the secret" "$(api_log)" "$ACCOUNT_TOTP_SECRET"
-	fetch /app/accounts/ops "$good"
+	fetch "$adm/accounts/ops" "$good"
 	assert_absent "two-factor enrolment: the page does not carry the secret afterwards" "$(cat "$work/b")" "$ACCOUNT_TOTP_SECRET"
 	code=$(account_action disable-totp '[{"name":"ops"}]' "$good")
 	assert_contains "two-factor: turned off" "$(cat "$work/b")" '"kind":"done"'
@@ -154,7 +152,7 @@ scenario_account_detail() {
 	local address
 	address=$(grep -o 'my-shop\.[a-z2-7]*@example\.test' "$work/b" | head -1)
 	[[ -n "$address" ]] || not_ok "found the minted address in the answer"
-	fetch /app/accounts/ops "$good"
+	fetch "$adm/accounts/ops" "$good"
 	assert_contains "masked: the page lists the new address" "$(cat "$work/b")" "$address"
 	code=$(account_action remove-masked "[{\"name\":\"ops\",\"address\":\"$address\"}]" "$good")
 	assert_contains "masked: removed" "$(cat "$work/b")" '"kind":"done"'
