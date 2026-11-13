@@ -22,6 +22,17 @@ describe("plainTextOf", () => {
 		expect(hostile).not.toMatch(/<|alert/u);
 	});
 
+	it("keeps text a sender wrote as escaped markup as text, and nests blocks", () => {
+		expect(plainTextOf("<p>&lt;script&gt;x&lt;/script&gt;</p>")).toBe(
+			"<script>x</script>",
+		);
+		expect(
+			plainTextOf(
+				"<blockquote><div>a<br>b</div><div>c</div></blockquote>",
+			),
+		).toBe("a\nb\nc");
+	});
+
 	it("removes bidi controls and collapses runs of blank lines", () => {
 		expect(plainTextOf("<p>a‮b</p><br><br><br><br><p>c</p>")).toBe(
 			"ab\n\nc",
