@@ -127,6 +127,21 @@ It covers the clients made by `testQueryClient`, which is every one
   `await settled()`. One left open for ever costs the next case a quarter of a
   second.
 
+## A script left in the head
+
+Test files share one document. A component that loads a script (the CAPTCHA
+widget) adds a `<script>` to the head, and unmounting it does not take the
+script away. The sign-in page's file left two there, and the form's "no script
+when the CAPTCHA is off" case counted them when it ran right after: one seed in
+several failed. The preload removes the scripts in the head before every case
+(`src/test/left-in-head`), so a case sees only its own.
+
+A request held open on purpose is made **before** the `fetch` stub, and the
+stub hands it out. Taking the promise's `resolve` from inside the stub makes it
+exist only once `fetch` has been called, and the button is already disabled
+before the action reaches `fetch` (it checks the session first): a case that
+answered in that gap answered nothing, and the request never ended.
+
 ## Pinning limits
 
 A limit is tested against a literal written in the test (`28_800` for the

@@ -110,14 +110,14 @@ describe("RemoveMaskedButton", () => {
 	it("disables itself while the request is in flight", async () => {
 		const errors = spyOn(console, "error").mockImplementation(() => {});
 		// Held open until the case has looked, then answered: no case ends with a
-		// request on its way.
+		// request on its way. The promise is made here, not when `fetch` is called:
+		// the button is disabled before the action reaches `fetch` (it checks the
+		// session first), and an answer given in that gap must still be the answer.
 		let answer: (response: Response) => void = () => {};
-		globalThis.fetch = mock(
-			() =>
-				new Promise<Response>((resolve) => {
-					answer = resolve;
-				}),
-		) as unknown as typeof fetch;
+		const held = new Promise<Response>((resolve) => {
+			answer = resolve;
+		});
+		globalThis.fetch = mock(() => held) as unknown as typeof fetch;
 		setup();
 
 		click();
