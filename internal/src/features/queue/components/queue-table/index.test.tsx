@@ -3,7 +3,8 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
 import { stubFetchJson, stubFetchReject } from "@/lib/api/test-support/fetch";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
-import { withQuery } from "@/test/query-wrapper";
+import { TEST_ADMIN_ID } from "@/lib/config/test-support/admin-id";
+import { withAdminArea } from "@/test/admin-routes";
 
 const ID = "01890a5d-ac96-774b-b9aa-9be4c3bd6b0e";
 const ID2 = "01890a5d-ac96-774b-b9aa-9be4c3bd6b0f";
@@ -47,7 +48,7 @@ describe("QueueTable", () => {
 	it("lists the entries with their recipients and a remove control each", async () => {
 		stubFetchJson(body);
 
-		render(withQuery(<QueueTable cursor={undefined} />));
+		render(withAdminArea(<QueueTable cursor={undefined} />));
 
 		expect(await screen.findByText("zed@example.org")).toBeInTheDocument();
 		expect(
@@ -60,7 +61,7 @@ describe("QueueTable", () => {
 
 	it("sorts by sender and filters the page on screen", async () => {
 		stubFetchJson(body);
-		render(withQuery(<QueueTable cursor={undefined} />));
+		render(withAdminArea(<QueueTable cursor={undefined} />));
 		await screen.findByText("zed@example.org");
 
 		fireEvent.click(screen.getByRole("button", { name: /from/ }));
@@ -75,14 +76,14 @@ describe("QueueTable", () => {
 
 	it("links to the next page through the API's cursor, and to the first page when on a later one", async () => {
 		stubFetchJson(body);
-		render(withQuery(<QueueTable cursor={ID} />));
+		render(withAdminArea(<QueueTable cursor={ID} />));
 
 		expect(
 			await screen.findByRole("link", { name: "next" }),
-		).toHaveAttribute("href", `/app/queue?cursor=${NEXT}`);
+		).toHaveAttribute("href", `/app/${TEST_ADMIN_ID}/queue?cursor=${NEXT}`);
 		expect(screen.getByRole("link", { name: "first" })).toHaveAttribute(
 			"href",
-			"/app/queue",
+			`/app/${TEST_ADMIN_ID}/queue`,
 		);
 	});
 
@@ -91,7 +92,7 @@ describe("QueueTable", () => {
 			entries: [{ id: ID, reverse_path: "", recipients: ["a@b"] }],
 		});
 
-		render(withQuery(<QueueTable cursor={undefined} />));
+		render(withAdminArea(<QueueTable cursor={undefined} />));
 
 		expect(await screen.findByText("<>")).toBeInTheDocument();
 		expect(screen.queryByRole("link")).toBeNull();
@@ -99,12 +100,12 @@ describe("QueueTable", () => {
 
 	it("shows the empty text for an empty queue and the warning when unreachable", async () => {
 		stubFetchJson({ entries: [] });
-		render(withQuery(<QueueTable cursor={undefined} />));
+		render(withAdminArea(<QueueTable cursor={undefined} />));
 		expect(await screen.findByText("empty")).toBeInTheDocument();
 		cleanup();
 
 		stubFetchReject();
-		render(withQuery(<QueueTable cursor={undefined} />));
+		render(withAdminArea(<QueueTable cursor={undefined} />));
 		expect(await screen.findByRole("alert")).toHaveClass("bg-warning");
 	});
 });

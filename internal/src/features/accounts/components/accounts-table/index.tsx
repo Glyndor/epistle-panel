@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 
 import { columnHelper, DataTable } from "@/components/data-table";
+import { useAdminRoutes } from "@/components/layout/admin-routes";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getAccountsAction } from "@/features/accounts/actions/get-accounts";
@@ -12,7 +13,6 @@ import { accountsQueryOptions } from "@/features/accounts/queries/accounts-query
 import type { AccountRow } from "@/features/accounts/schemas/accounts-view";
 import { isAccountName } from "@/lib/api/account-name-pattern";
 import { unwrap } from "@/lib/query/action-result";
-import { accountDetailPath } from "@/lib/routes";
 
 const fetchAccounts = async () => unwrap(await getAccountsAction());
 const getRowId = (row: AccountRow) => row.name;
@@ -23,9 +23,10 @@ const helper = columnHelper<AccountRow>();
  * rule is the page's own, so a name it would answer 404 for is not offered.
  */
 function AccountName({ name }: { name: string }) {
+	const routes = useAdminRoutes();
 	return isAccountName(name) ? (
 		<Link
-			href={accountDetailPath(name)}
+			href={routes.accountDetail(name)}
 			className="break-all font-semibold text-primary underline underline-offset-4 hover:no-underline"
 		>
 			{name}

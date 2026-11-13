@@ -124,12 +124,13 @@ jobs:
             exit 1
           fi
 
-      - name: The server answers and gates every route but the login page
+      - name: The server answers, and the admin area is the 404 of a missing path
         run: |
           set -euo pipefail
           # Run the way an operator can: root file system read-only with a
           # writable /tmp, no capability, no privilege gain. The server has to
           # answer without writing anywhere else in the image.
+          admin_id=$(cat /proc/sys/kernel/random/uuid)
           podman run -d --name panel \
             --read-only --tmpfs /tmp \
             --cap-drop=ALL --security-opt no-new-privileges \
@@ -137,29 +138,36 @@ jobs:
             -e EPISTLE_API_URL=http://127.0.0.1:1 \
             -e EPISTLE_API_TOKEN=ci-token \
             -e EPISTLE_PANEL_SESSION_SECRET=ci-session-secret-at-least-32-bytes-long \
+            -e EPISTLE_PANEL_ADMIN_ID="${admin_id}" \
             localhost/epistle-panel:ci
           trap 'podman logs panel || true; podman rm -f panel >/dev/null' EXIT
 
           for _ in $(seq 1 30); do
-            if curl -s -o /dev/null http://127.0.0.1:17587/login; then
+            if curl -s -o /dev/null http://127.0.0.1:17587/; then
               break
             fi
             sleep 1
           done
 
-          login=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:17587/login)
-          if [ "$login" != "200" ]; then
-            echo "::error::/login answered ${login}, expected 200"
+          signin=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:17587/)
+          if [ "$signin" != "200" ]; then
+            echo "::error::/ answered ${signin}, expected 200"
             exit 1
           fi
 
-          # Without a session the signed-in area, /app and everything under it,
-          # must send the browser to the login page; anything else means the
-          # gate is open.
-          for path in /app /app/queue /app/domains /app/accounts; do
+          # Without a session the mail area sends the browser to the sign-in
+          # page, and the admin area, with the right id or another, is the 404
+          # of a missing path, never a redirect; anything else means the gate
+          # is open or that it confirms the admin area exists.
+          result=$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' http://127.0.0.1:17587/app/mail)
+          if [ "$result" != "307 http://127.0.0.1:17587/" ]; then
+            echo "::error::/app/mail answered '${result}', expected a 307 to /"
+            exit 1
+          fi
+          for path in /app /app/queue "/app/${admin_id}" "/app/${admin_id}/queue" "/app/$(cat /proc/sys/kernel/random/uuid)/accounts" /login; do
             result=$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' "http://127.0.0.1:17587${path}")
-            if [ "$result" != "307 http://127.0.0.1:17587/login" ]; then
-              echo "::error::${path} answered '${result}', expected a 307 to /login"
+            if [ "$result" != "404 " ]; then
+              echo "::error::${path} answered '${result}', expected a bare 404"
               exit 1
             fi
           done

@@ -5,7 +5,8 @@ import { useActionEnvironment } from "@/features/account-detail/test-support/act
 import { stubRoutes } from "@/features/account-detail/test-support/stub-routes";
 import { stubFetchReject } from "@/lib/api/test-support/fetch";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
-import { withQuery } from "@/test/query-wrapper";
+import { TEST_ADMIN_ID } from "@/lib/config/test-support/admin-id";
+import { withAdminArea } from "@/test/admin-routes";
 
 const cookies = mockRequestCookies();
 const { AccountDetail } = await import(".");
@@ -33,7 +34,7 @@ describe("AccountDetail", () => {
 	it("shows the addresses and every section for an account the API manages", async () => {
 		api([account(), account({ name: "bob" })]);
 
-		render(withQuery(<AccountDetail name="alice" />));
+		render(withAdminArea(<AccountDetail name="alice" />));
 
 		expect(
 			await screen.findByText("alice@example.org"),
@@ -54,7 +55,7 @@ describe("AccountDetail", () => {
 		}
 		expect(screen.getByRole("link", { name: "back" })).toHaveAttribute(
 			"href",
-			"/app/accounts",
+			`/app/${TEST_ADMIN_ID}/accounts`,
 		);
 		expect(screen.queryByText("configManaged")).toBeNull();
 	});
@@ -62,7 +63,7 @@ describe("AccountDetail", () => {
 	it("leaves out the password and two-factor sections for an account declared in the configuration file", async () => {
 		api([account({ dynamic: false, display_name: null })]);
 
-		render(withQuery(<AccountDetail name="alice" />));
+		render(withAdminArea(<AccountDetail name="alice" />));
 
 		expect(await screen.findByText("configManaged")).toBeInTheDocument();
 		expect(
@@ -77,7 +78,7 @@ describe("AccountDetail", () => {
 	it("says there are no addresses", async () => {
 		api([account({ addresses: [] })]);
 
-		render(withQuery(<AccountDetail name="alice" />));
+		render(withAdminArea(<AccountDetail name="alice" />));
 
 		expect(await screen.findByText("noAddresses")).toBeInTheDocument();
 	});
@@ -85,7 +86,7 @@ describe("AccountDetail", () => {
 	it("says the account is gone when the list no longer has it, with a way back", async () => {
 		api([account({ name: "bob" })]);
 
-		render(withQuery(<AccountDetail name="alice" />));
+		render(withAdminArea(<AccountDetail name="alice" />));
 
 		expect(await screen.findByText("gone")).toBeInTheDocument();
 		expect(screen.getByRole("link", { name: "back" })).toBeInTheDocument();
@@ -98,7 +99,7 @@ describe("AccountDetail", () => {
 		const errors = spyOn(console, "error").mockImplementation(() => {});
 		stubFetchReject();
 
-		render(withQuery(<AccountDetail name="alice" />));
+		render(withAdminArea(<AccountDetail name="alice" />));
 
 		const alert = await screen.findByRole("alert");
 		expect(alert).toHaveTextContent("unreachable");
@@ -110,7 +111,9 @@ describe("AccountDetail", () => {
 	it("shows a loading block while the list is on its way", () => {
 		api([account()]);
 
-		const { container } = render(withQuery(<AccountDetail name="alice" />));
+		const { container } = render(
+			withAdminArea(<AccountDetail name="alice" />),
+		);
 
 		expect(container.querySelector("[aria-busy='true']")).not.toBeNull();
 	});

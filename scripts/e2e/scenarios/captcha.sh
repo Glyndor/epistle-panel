@@ -36,7 +36,7 @@ scenario_captcha() {
 	fresh
 	local baseline csp origin
 	origin=$api
-	fetch /login
+	fetch /
 	baseline=$(normalised_csp "$(header content-security-policy)")
 	assert_absent "off by default: the sign-in page has no widget" "$(cat "$work/b")" "captcha-widget"
 	login admin correct-horse
@@ -47,7 +47,7 @@ scenario_captcha() {
 	start_panel
 	reset_api
 
-	fetch /login
+	fetch /
 	assert_eq "on: the sign-in page renders" "$status" 200
 	assert_contains "on: the page carries the widget box" "$(cat "$work/b")" "captcha-widget"
 	assert_contains "on: the page carries the public site key" "$(cat "$work/b")" "stand-in-site-key"
@@ -84,10 +84,10 @@ scenario_captcha() {
 	assert_contains "solved token: a session cookie is set" "$cookie" "$SESSION_COOKIE_NAME="
 	assert_eq "solved token: the provider was asked again" "$(provider_calls)" 2
 	assert_eq "solved token: the API was asked once" "$(api_count '"path":"/api/v1/auth/verify"')" 1
-	fetch /app "$cookie"
+	fetch "$adm" "$cookie"
 	assert_eq "the signed-in page renders" "$status" 200
 	assert_absent "the signed-in page's CSP is not widened" "$(header content-security-policy)" "$origin"
-	fetch /app/queue
+	fetch /app/mail
 	assert_eq "a redirect is not widened either" "$status" 307
 	assert_absent "the redirect's CSP is not widened" "$(header content-security-policy)" "$origin"
 
@@ -115,7 +115,7 @@ scenario_captcha() {
 	login admin correct-horse
 	assert_eq "no site key: sign-in is refused even with a solved token" "$cookie" ""
 	assert_contains "no site key: the log names the variable" "$(cat "$work/panel.log")" "EPISTLE_PANEL_CAPTCHA_SITE_KEY"
-	fetch /login
+	fetch /
 	assert_absent "no site key: no widget is drawn" "$(cat "$work/b")" "captcha-widget"
 	assert_eq "no site key: the policy is not widened" "$(normalised_csp "$(header content-security-policy)")" "$baseline"
 

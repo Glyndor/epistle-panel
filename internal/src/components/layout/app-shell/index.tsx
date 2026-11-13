@@ -1,3 +1,5 @@
+import type { Route } from "next";
+
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AppToaster } from "@/components/layout/app-toaster";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -19,11 +21,13 @@ import type { NavGroup } from "@/features/navigation/schemas/nav-item";
  */
 export function AppShell({
 	groups,
+	homeHref,
 	userName,
 	defaultOpen,
 	children,
 }: {
 	groups: readonly NavGroup[];
+	homeHref: Route;
 	userName: string;
 	defaultOpen: boolean;
 	children: React.ReactNode;
@@ -31,7 +35,7 @@ export function AppShell({
 	return (
 		<SidebarProvider defaultOpen={defaultOpen}>
 			<SkipLink />
-			<AppSidebar name={userName} groups={groups} />
+			<AppSidebar name={userName} groups={groups} homeHref={homeHref} />
 			<SidebarInset>
 				<SiteHeader />
 				<main

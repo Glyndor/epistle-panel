@@ -2,7 +2,12 @@ import { type NextRequest, NextResponse } from "next/server";
 
 import { captchaWideningFromEnv } from "./features/auth/captcha/config";
 import { SESSION_COOKIE, verifySession } from "./lib/auth/session";
-import { isSessionPath, PUBLIC_ROUTES } from "./lib/routes";
+import { readAdminId } from "./lib/config/admin-id";
+import {
+	classifyAppPath,
+	constantTimeEqual,
+	PUBLIC_ROUTES,
+} from "./lib/routes";
 import {
 	applySecurityHeaders,
 	buildCsp,
@@ -10,56 +15,95 @@ import {
 	generateNonce,
 } from "./lib/security-headers";
 
-/** Whether a path is the login route, the only page outside `/app` that draws a form. */
-function isLoginPath(pathname: string): boolean {
-	return (
-		pathname === PUBLIC_ROUTES.login ||
-		pathname === `${PUBLIC_ROUTES.login}/`
-	);
-}
+/**
+ * The path the proxy rewrites every request to that no route of the panel
+ * answers. Nothing matches it, so Next renders its 404 for it, and since every
+ * such request ends up here, a path that does not exist, the admin area seen by
+ * someone who may not see it, and `/app` itself all get the same body (the
+ * nonce aside) and the same headers. If each kept its own path, the page's own
+ * payload, which names the path it answered, would tell them apart.
+ *
+ * A request for this path itself is let on, as it is the very request a rewrite
+ * makes. Next rewrites in-process when the rewritten URL has the host the
+ * request came with, but sends it over the network when they differ (a request
+ * to `127.0.0.1` is read as `localhost`), and that second request comes back
+ * through the proxy: rewriting it to this path again would be a loop.
+ */
+export const HIDDEN_PATH = "/__not-found__";
 
 /**
- * Gate the signed-in area, `/app` and everything under it (Next 16 proxy
- * convention), behind a valid admin session, and stamp the security headers on
- * every response it emits. Without a session the request is redirected to the
- * login page. Fail-closed: a missing signing secret or a forged/expired cookie
- * all resolve to "no session". Outside `/app` nothing needs a session: the
- * login page, the root that sends the visitor to `/app`, and the paths no
- * route answers. Each Server Action still checks the session itself.
+ * Gate the panel (Next 16 proxy convention) and stamp the security headers on
+ * every response it emits. Only four things get on to the router: the sign-in
+ * page at `/`, `/app/mail` for a session of any role (a visitor without one is
+ * sent to the sign-in page), the admin area, which passes only when the first
+ * segment after `/app` is the configured admin id and the session is valid and
+ * carries the admin role, and the assets the matcher skips. Every other request
+ * (a path no route answers, `/app` itself, no session, a user session, another
+ * id, no id configured) is rewritten to {@link HIDDEN_PATH}, so it is the 404 of
+ * a path that does not exist and never a redirect that would confirm an admin
+ * area exists. Fail-closed: a missing signing secret, a forged or expired
+ * cookie, or an unreadable id all resolve to "hidden". Each page and Server
+ * Action checks the role again itself.
  *
- * The redirect target is the request's own origin with a fixed path and no
- * query. Next rewrites a same-origin `Location` into a relative one before it
- * is sent, so a `Host` or `X-Forwarded-Host` a client chose never reaches the
- * wire (see `scripts/headers/verify.sh`, which asserts it on a real server).
+ * The admin decision evaluates the session and the id comparison every time,
+ * so its time does not tell which part was wrong. A redirect target is the
+ * request's own origin with a fixed path and no query. Next rewrites a
+ * same-origin `Location` into a relative one before it is sent, so a `Host` or
+ * `X-Forwarded-Host` a client chose never reaches the wire (see
+ * `scripts/headers/verify.sh`, which asserts it on a real server).
  */
 export async function proxy(request: NextRequest) {
 	const nonce = generateNonce();
-	const onLoginPage = isLoginPath(request.nextUrl.pathname);
+	const { pathname } = request.nextUrl;
+	const area = classifyAppPath(pathname);
 	// The CAPTCHA provider's hosts are added to the sign-in page's policy and to
 	// no other response: its widget loads there only.
 	const csp = buildCsp(
 		nonce,
 		process.env.NODE_ENV === "development",
-		onLoginPage ? captchaWideningFromEnv() : undefined,
+		area.kind === "root" ? captchaWideningFromEnv() : undefined,
 	);
 
-	const allowed =
-		!isSessionPath(request.nextUrl.pathname) ||
-		(await verifySession(request.cookies.get(SESSION_COOKIE)?.value)) !==
-			null;
+	const session =
+		area.kind === "mail" || area.kind === "admin"
+			? await verifySession(request.cookies.get(SESSION_COOKIE)?.value)
+			: null;
+	const adminId = area.kind === "admin" ? await readAdminId() : undefined;
+	const isAdminArea =
+		area.kind === "admin" &&
+		constantTimeEqual(area.segment, adminId ?? "") &&
+		adminId !== undefined &&
+		session?.role === "admin";
 
 	let response: NextResponse;
-	if (allowed) {
+	if (
+		pathname === HIDDEN_PATH ||
+		area.kind === "root" ||
+		isAdminArea ||
+		(area.kind === "mail" && session)
+	) {
 		// Next reads the nonce from the request's CSP header and stamps it on
 		// the inline scripts it renders.
 		const requestHeaders = new Headers(request.headers);
 		requestHeaders.set(CSP_HEADER, csp);
 		response = NextResponse.next({ request: { headers: requestHeaders } });
-	} else {
+	} else if (area.kind === "mail") {
 		const url = request.nextUrl.clone();
-		url.pathname = PUBLIC_ROUTES.login;
+		url.pathname = PUBLIC_ROUTES.root;
 		url.search = "";
 		response = NextResponse.redirect(url);
+	} else {
+		// The request's own origin, which Next treats as an internal rewrite (a
+		// URL built from another host name is proxied as an external one), with
+		// the fixed path and no query: nothing of the hidden request survives.
+		const url = request.nextUrl.clone();
+		url.pathname = HIDDEN_PATH;
+		url.search = "";
+		const requestHeaders = new Headers(request.headers);
+		requestHeaders.set(CSP_HEADER, csp);
+		response = NextResponse.rewrite(url, {
+			request: { headers: requestHeaders },
+		});
 	}
 	applySecurityHeaders(response.headers, csp);
 	return response;
@@ -70,7 +114,7 @@ export const config = {
 	// operator's public assets (`/theme.css`, `/brand/logo`, `/brand/favicon`).
 	// The matcher is wide on purpose: every page, public or not, must receive
 	// the nonce-bearing CSP. What needs a session is decided in the function
-	// above (`isSessionPath`), not here. The skipped names are
+	// above (`classifyAppPath`), not here. The skipped names are
 	// anchored: an unanchored `_next/image` or an unescaped dot in `favicon.ico`
 	// would also skip `/_next/imagex` and `/faviconxico`, which belong behind
 	// the gate. `robots.txt` is skipped as that exact path only, so a crawler

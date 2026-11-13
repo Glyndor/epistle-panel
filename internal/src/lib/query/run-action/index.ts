@@ -5,19 +5,25 @@ import type { z } from "zod";
 
 import { logApiFailure } from "@/lib/api/log-failure";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth/session";
+import { readAdminId } from "@/lib/config/admin-id";
 import type { ActionResult } from "@/lib/query/action-result";
 
+/**
+ * Whether the caller holds a session with the admin role in an installation
+ * whose admin area is on. Every action that goes through this module is an
+ * admin action, so a session of another role is no session here.
+ */
 async function hasSession(): Promise<boolean> {
 	const session = await verifySession(
 		(await cookies()).get(SESSION_COOKIE)?.value,
 	);
-	return session !== null;
+	return session?.role === "admin" && (await readAdminId()) !== undefined;
 }
 
 /**
  * Run the body of a Server Action that reads or writes through the epistle API.
  *
- * A Server Action is a public POST endpoint, so the session is checked here and
+ * A Server Action is a public POST endpoint, so the admin session is checked here and
  * not trusted to the proxy in front of it: without one the answer is
  * `unauthenticated` and `load` never runs. A failure inside `load` is written to
  * the server log with the fixed `operation` name (see `describeFailure`) and

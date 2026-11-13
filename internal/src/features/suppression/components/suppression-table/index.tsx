@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { columnHelper, DataTable } from "@/components/data-table";
+import { useAdminRoutes } from "@/components/layout/admin-routes";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,7 +13,6 @@ import { RemoveAddressButton } from "@/features/suppression/components/remove-ad
 import { suppressionQueryOptions } from "@/features/suppression/queries/suppression-query";
 import type { SuppressionRow } from "@/features/suppression/schemas/suppression-view";
 import { unwrap } from "@/lib/query/action-result";
-import { ROUTES } from "@/lib/routes";
 
 const fetchPage = async (after: string | undefined) =>
 	unwrap(
@@ -29,6 +29,7 @@ const helper = columnHelper<SuppressionRow>();
  */
 export function SuppressionTable({ after }: { after: string | undefined }) {
 	const t = useTranslations("suppression");
+	const routes = useAdminRoutes();
 	const { data, isPending } = useQuery(
 		suppressionQueryOptions(after, fetchPage),
 	);
@@ -74,13 +75,13 @@ export function SuppressionTable({ after }: { after: string | undefined }) {
 				<>
 					{after !== undefined ? (
 						<Button asChild variant="link">
-							<Link href={ROUTES.suppression}>{t("first")}</Link>
+							<Link href={routes.suppression}>{t("first")}</Link>
 						</Button>
 					) : null}
 					{data.nextCursor !== null ? (
 						<Button asChild variant="link">
 							<Link
-								href={`${ROUTES.suppression}?after=${encodeURIComponent(data.nextCursor)}`}
+								href={`${routes.suppression}?after=${encodeURIComponent(data.nextCursor)}`}
 							>
 								{t("next")}
 							</Link>

@@ -14,7 +14,7 @@
 # exercises.
 #
 # Usage: scripts/e2e/run.sh [scenario...]
-#   scenarios: headers logout limiter limiter-global noauth degraded rotation idle theme body-limit captcha csrf set-locale unknown-variable suppression deliveries account-detail
+#   scenarios: headers logout limiter limiter-global noauth degraded rotation idle theme body-limit captcha csrf set-locale unknown-variable suppression deliveries account-detail admin-id
 # With no argument every scenario runs. Exit status is non-zero when any check
 # fails. Override the ports with PANEL_PORT and STAND_IN_PORT.
 set -euo pipefail
@@ -52,6 +52,11 @@ free_port() {
 panel_port=${PANEL_PORT:-$(free_port)}
 stand_in_port=${STAND_IN_PORT:-$(free_port)}
 panel="http://127.0.0.1:$panel_port"
+# The admin id of this run: a fresh UUID v4, the way an installation has its own.
+# Nothing in the repository spells one, so no check can pass on a copied value.
+admin_id=$(cat /proc/sys/kernel/random/uuid)
+adm="/app/$admin_id"
+panel_admin_id=$admin_id
 api="http://127.0.0.1:$stand_in_port"
 
 work=$(mktemp -d)
@@ -128,10 +133,12 @@ cp -R "$internal/.next/static" "$standalone/.next/static"
 
 # shellcheck source=scripts/e2e/scenarios/account-detail.sh
 . "$root/scripts/e2e/scenarios/account-detail.sh"
+# shellcheck source=scripts/e2e/scenarios/admin-id.sh
+. "$root/scripts/e2e/scenarios/admin-id.sh"
 
 # ---------------------------------------------------------------- main
 
-all=(headers logout limiter limiter-global noauth degraded rotation idle theme body-limit captcha csrf set-locale unknown-variable suppression deliveries account-detail)
+all=(headers logout limiter limiter-global noauth degraded rotation idle theme body-limit captcha csrf set-locale unknown-variable suppression deliveries account-detail admin-id)
 selected=("$@")
 ((${#selected[@]})) || selected=("${all[@]}")
 
@@ -154,6 +161,7 @@ for name in "${selected[@]}"; do
 	suppression) scenario_suppression ;;
 	deliveries) scenario_deliveries ;;
 	account-detail) scenario_account_detail ;;
+	admin-id) scenario_admin_id ;;
 	*)
 		echo "error: unknown scenario '$name'" >&2
 		exit 2

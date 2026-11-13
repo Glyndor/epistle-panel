@@ -2,27 +2,40 @@ import { describe, expect, it } from "bun:test";
 
 import { NextRequest } from "next/server";
 
+import { createSession, SESSION_COOKIE } from "@/lib/auth/session";
+import { TEST_ADMIN_ID } from "@/lib/config/test-support/admin-id";
 import { type Rng, runCases } from "@/test/prng";
 
-import { config, proxy } from "./proxy";
+import { config, HIDDEN_PATH, proxy } from "./proxy";
 
 // Next compiles the matcher itself; the pattern is plain enough to anchor and
 // run as a regular expression here to see which paths reach the proxy.
 const reachesProxy = new RegExp(`^${config.matcher[0]}$`);
 
-type Verdict = "static" | "open" | "gated";
+/**
+ * What a request ends as: `static` skips the proxy,
+ * `gated` is sent to the sign-in page, `hidden` is rewritten to the 404 path,
+ * `passed` goes on to the router, as the root or as a path let in.
+ */
+type Verdict = "static" | "passed" | "gated" | "hidden";
+
+/** Who sends the request: nobody, a user session or an admin session. */
+type Caller = "anonymous" | "user" | "admin";
 
 const isDot = (segment: string) => /^(\.|%2e)$/i.test(segment);
 const isDotDot = (segment: string) => /^(\.|%2e)(\.|%2e)$/i.test(segment);
 
 /**
  * Reference model of the gate, written from the intent and not from the code:
- * what a URL parser leaves of a request path, then which routes are gated.
- * Only `/app` and what is under it need a session, in any spelling a router
- * may read as that (percent-encoded, any case, backslashes, repeated slashes,
- * a `;` parameter, an undecodable escape); the static assets and everything else are open.
+ * what a URL parser leaves of a request path, then what each caller gets. The
+ * static assets skip the proxy. The root is let on. Anything else is read in
+ * any spelling a router may read it (percent-encoded, any case, backslashes,
+ * repeated slashes, a `;` parameter, an undecodable escape): under `/app`,
+ * `mail` wants a session of any role and sends the others to the sign-in page,
+ * and a second segment that is exactly the configured id lets an admin in; every
+ * other path is hidden as a 404.
  */
-function expectedVerdict(rawPath: string): Verdict {
+function expectedVerdict(rawPath: string, caller: Caller): Verdict {
 	// A parser drops tabs and newlines anywhere and trailing control characters
 	// and spaces, then ends the path at the first `?` or `#`.
 	let text = rawPath
@@ -57,39 +70,73 @@ function expectedVerdict(rawPath: string): Verdict {
 	) {
 		return "static";
 	}
+	if (path === "/__not-found__") {
+		return "passed";
+	}
 	let decoded: string;
 	try {
 		decoded = decodeURIComponent(path);
 	} catch {
-		return "gated";
+		return "hidden";
 	}
-	const first = decoded
+	const parts = decoded
 		.replaceAll("\\", "/")
 		.split("/")
-		.filter((part) => part !== "")[0];
-	return first !== undefined && first.split(";")[0]?.toLowerCase() === "app"
-		? "gated"
-		: "open";
+		.filter((part) => part !== "");
+	if (parts.length === 0) {
+		return "passed";
+	}
+	const second = parts[1]?.split(";")[0];
+	if (
+		parts[0]?.split(";")[0]?.toLowerCase() !== "app" ||
+		second === undefined
+	) {
+		return "hidden";
+	}
+	if (second?.toLowerCase() === "mail") {
+		return caller === "anonymous" ? "gated" : "passed";
+	}
+	return caller === "admin" && second === TEST_ADMIN_ID ? "passed" : "hidden";
 }
 
-/** What the real matcher and proxy do with a request for `rawPath`, no cookie. */
-async function observedVerdict(rawPath: string): Promise<Verdict> {
+/** What the real matcher and proxy do with a request for `rawPath` from `caller`. */
+async function observedVerdict(
+	rawPath: string,
+	caller: Caller = "anonymous",
+): Promise<Verdict> {
 	const request = new NextRequest(`http://panel.test${rawPath}`);
 	if (!reachesProxy.test(request.nextUrl.pathname)) {
 		return "static";
 	}
+	if (caller !== "anonymous") {
+		request.cookies.set(
+			SESSION_COOKIE,
+			await createSession("someone", caller),
+		);
+	}
 	const response = await proxy(request);
 	if (response.status === 307) {
-		// The target is the login route of the same origin with no query. Next
+		// The target is the sign-in page of the same origin with no query. Next
 		// keeps a trailing slash the request had; it is not sent on.
 		const target = new URL(response.headers.get("location") ?? "");
 		expect(target.origin).toBe("http://panel.test");
-		expect(["/login", "/login/"]).toContain(target.pathname);
+		expect(target.pathname).toBe("/");
 		expect(target.search).toBe("");
 		return "gated";
 	}
 	expect(response.status).toBe(200);
-	return "open";
+	const rewrite = response.headers.get("x-middleware-rewrite");
+	if (rewrite !== null) {
+		// The hidden request is answered from one fixed path and nothing of the
+		// original survives in the rewrite.
+		// A request that ends in a slash never reaches the proxy on a real
+		// server (Next redirects it first), but a test request can, and the
+		// URL class keeps the slash.
+		expect(new URL(rewrite).pathname.replace(/\/$/, "")).toBe(HIDDEN_PATH);
+		expect(new URL(rewrite).search).toBe("");
+		return "hidden";
+	}
+	return "passed";
 }
 
 /** `text` with each character percent-encoded with probability `p`. */
@@ -118,6 +165,26 @@ const BASES = [
 	"/app/queue",
 	"/app/accounts/alice",
 	"/app/unknown/deep",
+	"/app/mail",
+	"/app/mail/",
+	"/app/mail/inbox",
+	"/app/Mail",
+	"/app/MAIL/x",
+	"/app/mailx",
+	"/app/mai",
+	`/app/${TEST_ADMIN_ID}`,
+	`/app/${TEST_ADMIN_ID}/`,
+	`/app/${TEST_ADMIN_ID}/queue`,
+	`/app/${TEST_ADMIN_ID}/accounts/alice`,
+	`/app/${TEST_ADMIN_ID}//queue`,
+	`//app//${TEST_ADMIN_ID}`,
+	`/app/${TEST_ADMIN_ID.toUpperCase()}`,
+	`/app/${TEST_ADMIN_ID.slice(0, -1)}`,
+	`/app/${TEST_ADMIN_ID}0`,
+	`/app/%33f2b8c1e-5d4a-4b7e-9c3d-1a2b3c4d5e6f/queue`,
+	`/app/${TEST_ADMIN_ID};x/queue`,
+	`/app/${TEST_ADMIN_ID}%2fqueue`,
+	`/app/${TEST_ADMIN_ID}\\queue`,
 	"/apps",
 	"/application",
 	"/x/app",
@@ -254,25 +321,53 @@ function variant(rng: Rng): string {
 	return path;
 }
 
+const CALLERS: readonly Caller[] = ["anonymous", "user", "admin"];
+
 describe("proxy gate on generated paths", () => {
-	it("gates /app and what is under it and opens the rest, whatever the spelling", async () => {
-		const seen: Record<Verdict, number> = { static: 0, open: 0, gated: 0 };
+	it("hides the admin area from everyone but an admin with the right id, and gates the mail area, whatever the spelling", async () => {
+		const seen: Record<Verdict, number> = {
+			static: 0,
+			passed: 0,
+			gated: 0,
+			hidden: 0,
+		};
 		await runCases("path variants", 4000, async (rng) => {
 			const path = variant(rng);
-			const want = expectedVerdict(path);
-			const got = await observedVerdict(path);
+			const caller = rng.pick(CALLERS);
+			const want = expectedVerdict(path, caller);
+			const got = await observedVerdict(path, caller);
 			seen[want]++;
-			expect(JSON.stringify([path, got])).toBe(
-				JSON.stringify([path, want]),
+			expect(JSON.stringify([path, caller, got])).toBe(
+				JSON.stringify([path, caller, want]),
 			);
 		});
 		// Each outcome must be exercised, or the model is vacuous.
 		expect(seen.static).toBeGreaterThan(50);
-		expect(seen.open).toBeGreaterThan(50);
-		expect(seen.gated).toBeGreaterThan(500);
+		expect(seen.passed).toBeGreaterThan(200);
+		expect(seen.gated).toBeGreaterThan(20);
+		expect(seen.hidden).toBeGreaterThan(500);
 	});
 
-	it("gates every spelling of /app with one character percent-encoded", async () => {
+	it("never lets a caller without the admin role reach the admin id, in any spelling", async () => {
+		for (const caller of ["anonymous", "user"] as const) {
+			for (const path of [
+				`/app/${TEST_ADMIN_ID}`,
+				`/app/${TEST_ADMIN_ID}/`,
+				`/app/${TEST_ADMIN_ID}/queue`,
+				`/APP/${TEST_ADMIN_ID}/queue`,
+				`/%61pp/${TEST_ADMIN_ID}`,
+				`//app//${TEST_ADMIN_ID}`,
+			]) {
+				expect([
+					path,
+					caller,
+					await observedVerdict(path, caller),
+				]).toEqual([path, caller, "hidden"]);
+			}
+		}
+	});
+
+	it("hides every spelling of /app with one character percent-encoded when nothing else is right", async () => {
 		for (let i = 1; i < "/app".length; i++) {
 			for (const hexCase of [true, false]) {
 				const code = "/app".charCodeAt(i).toString(16);
@@ -280,13 +375,13 @@ describe("proxy gate on generated paths", () => {
 				const path = `${"/app".slice(0, i)}${encoded}${"/app".slice(i + 1)}/queue`;
 				expect([path, await observedVerdict(path)]).toEqual([
 					path,
-					"gated",
+					"hidden",
 				]);
 			}
 		}
 	});
 
-	it("keeps look-alikes of the skipped assets inside the proxy, and gates them under /app", async () => {
+	it("keeps look-alikes of the skipped assets inside the proxy, which hides them", async () => {
 		for (const path of [
 			"/faviconxico",
 			"/favicon-ico",
@@ -298,11 +393,14 @@ describe("proxy gate on generated paths", () => {
 			"/_next/staticx/a.js",
 			"/_next/static",
 		]) {
-			expect([path, await observedVerdict(path)]).toEqual([path, "open"]);
+			expect([path, await observedVerdict(path)]).toEqual([
+				path,
+				"hidden",
+			]);
 			const under = `/app${path}`;
 			expect([under, await observedVerdict(under)]).toEqual([
 				under,
-				"gated",
+				"hidden",
 			]);
 		}
 		for (const path of [

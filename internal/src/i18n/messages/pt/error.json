@@ -1,6 +1,6 @@
 {
 	"heading": "Algo deu errado",
-	"body": "Não foi possível exibir a página. Tente novamente ou volte para a página de status.",
+	"body": "Não foi possível exibir a página. Tente novamente ou volte ao início.",
 	"retry": "Tentar novamente",
-	"home": "Voltar ao status"
+	"home": "Voltar ao início"
 }

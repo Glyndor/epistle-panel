@@ -4,7 +4,7 @@ import { PUBLIC_ROUTES } from "@/lib/routes";
 
 /** Where the browser goes when an action finds the session ended. */
 function goToLogin(): void {
-	window.location.assign(PUBLIC_ROUTES.login);
+	window.location.assign(PUBLIC_ROUTES.root);
 }
 
 /**

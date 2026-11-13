@@ -6,15 +6,15 @@ const { default: NotFound } = await import("./not-found");
 afterEach(cleanup);
 
 describe("NotFound", () => {
-	it("explains the missing page and links back to the status page", async () => {
+	it("explains the missing page and links back to the start, a path with no admin id in it", async () => {
 		render(await NotFound());
 
 		expect(
 			screen.getByRole("heading", { level: 1, name: "heading" }),
 		).toBeInTheDocument();
-		expect(screen.getByRole("link", { name: "home" })).toHaveAttribute(
+		expect(screen.getByRole("link", { name: "start" })).toHaveAttribute(
 			"href",
-			"/app",
+			"/",
 		);
 	});
 

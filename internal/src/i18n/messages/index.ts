@@ -17,6 +17,7 @@ export const NAMESPACES = [
 	"notFound",
 	"error",
 	"table",
+	"mail",
 ] as const;
 export type Namespace = (typeof NAMESPACES)[number];
 

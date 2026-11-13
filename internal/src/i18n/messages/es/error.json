@@ -1,6 +1,6 @@
 {
 	"heading": "Algo salió mal",
-	"body": "No se pudo mostrar la página. Inténtalo de nuevo o vuelve a la página de estado.",
+	"body": "No se pudo mostrar la página. Inténtalo de nuevo o vuelve al inicio.",
 	"retry": "Reintentar",
-	"home": "Volver al estado"
+	"home": "Volver al inicio"
 }

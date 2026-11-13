@@ -61,7 +61,7 @@ USER 65532:65532
 EXPOSE 7587
 # No HEALTHCHECK on purpose: the distroless runtime has no shell, curl or wget,
 # and a check would need a second binary in the image. The orchestrator probes
-# the port instead (a TCP connect to 7587, or an HTTP GET of /login, which is
-# public and answers 200 without a session).
+# the port instead (a TCP connect to 7587, or an HTTP GET of /, the sign-in page,
+# which is public and answers 200 without a session).
 # The distroless Node image's entrypoint is `node`; the command is the script.
 CMD ["server.js"]

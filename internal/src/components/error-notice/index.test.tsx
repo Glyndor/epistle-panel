@@ -13,7 +13,7 @@ const labels = {
 };
 
 describe("ErrorNotice", () => {
-	it("names the problem, offers a retry and a way back", () => {
+	it("names the problem, offers a retry and a way back to the root, which carries no admin id", () => {
 		const onRetry = mock(() => {});
 		render(<ErrorNotice labels={labels} onRetry={onRetry} />);
 
@@ -22,7 +22,7 @@ describe("ErrorNotice", () => {
 		).toBeInTheDocument();
 		expect(screen.getByRole("link", { name: "home" })).toHaveAttribute(
 			"href",
-			"/app",
+			"/",
 		);
 		fireEvent.click(screen.getByRole("button", { name: "retry" }));
 		expect(onRetry).toHaveBeenCalledTimes(1);

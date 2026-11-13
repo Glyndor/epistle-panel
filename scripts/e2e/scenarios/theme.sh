@@ -10,7 +10,7 @@ scenario_theme() {
 	assert_eq "no theme configured: /theme.css is a 404" "$status" 404
 	fetch /brand/logo
 	assert_eq "no logo configured: /brand/logo is a 404" "$status" 404
-	fetch /login
+	fetch /
 	assert_absent "no theme configured: the page links no stylesheet of the operator's" "$(cat "$work/b")" 'href="/theme.css"'
 	csp_before=$(header content-security-policy)
 
@@ -35,7 +35,7 @@ scenario_theme() {
 	assert_eq "theme: x-robots-tag" "$(header x-robots-tag)" "noindex, nofollow, noarchive, nosnippet, noimageindex"
 	assert_contains "theme: the operator's stylesheet is served" "$(cat "$work/b")" "e2e-theme-marker"
 
-	fetch /login
+	fetch /
 	assert_contains "theme: the sign-in page links the stylesheet" "$(cat "$work/b")" 'href="/theme.css"'
 	assert_contains "brand: the sign-in page shows the operator's name" "$(cat "$work/b")" "Acme Mail"
 	assert_contains "brand: the sign-in page shows the operator's logo" "$(cat "$work/b")" 'src="/brand/logo"'

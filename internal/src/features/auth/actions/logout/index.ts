@@ -11,7 +11,7 @@ import {
 import { PUBLIC_ROUTES } from "@/lib/routes";
 
 /**
- * Revoke the session token, expire the cookie and return to the login page.
+ * Revoke the session token, expire the cookie and return to the sign-in page.
  * The cookie is expired with the same attributes it was set with, because a
  * browser ignores a `__Host-` cookie that arrives without `Secure` and `Path=/`.
  */
@@ -19,5 +19,5 @@ export async function logout(): Promise<void> {
 	const store = await cookies();
 	await revokeSession(store.get(SESSION_COOKIE)?.value);
 	store.set(SESSION_COOKIE, "", { ...SESSION_COOKIE_OPTIONS, maxAge: 0 });
-	redirect(PUBLIC_ROUTES.login);
+	redirect(PUBLIC_ROUTES.root);
 }

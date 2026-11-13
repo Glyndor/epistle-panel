@@ -76,16 +76,43 @@ Epistle server with (`EPISTLE_API_URL` defaults to `http://127.0.0.1:8025`):
 export EPISTLE_API_URL="http://127.0.0.1:8025"
 export EPISTLE_API_TOKEN="<token>"
 export EPISTLE_PANEL_SESSION_SECRET="<random 32+ byte secret>"
+export EPISTLE_PANEL_ADMIN_ID="$(cat /proc/sys/kernel/random/uuid)"
 ```
 
-Admins sign in with a mail account that the Epistle server reports as an admin.
-The panel verifies the credentials against Epistle and signs the session cookie
-with `EPISTLE_PANEL_SESSION_SECRET`. Without that secret set, every page under `/app` stays locked
-(fail-closed).
+Every account signs in on the same page, the root (`/`). The panel verifies the
+credentials against Epistle, which also says whether the account is an admin, and
+signs a session cookie with `EPISTLE_PANEL_SESSION_SECRET`; the role travels
+inside the signed token. After signing in everyone lands on `/app/mail`, the mail
+area (not built yet: the page says so). An admin finds there a link to the admin
+area. Without the session secret set, every page stays locked (fail-closed).
+
+### The admin area and its id
+
+The administration lives at `/app/{id}`, where `{id}` is a UUID v4 that belongs to
+each installation, set with `EPISTLE_PANEL_ADMIN_ID` (a lower-case canonical UUID
+v4; `uuidgen -r | tr A-Z a-z` or `cat /proc/sys/kernel/random/uuid` make one).
+
+- **Without a value the admin area is off.** Every path under `/app` except
+  `/app/mail` answers 404, and the start logs a warning. A value that is set but is
+  not a lower-case UUID v4 stops the start with a message that names the variable
+  and never the value.
+- It also has the `_FILE` form (`EPISTLE_PANEL_ADMIN_ID_FILE`) like the secrets below.
+- A request without a session, with a session that is not an admin's, or with
+  another id gets the same 404 as a path that does not exist: no redirect, so
+  nothing confirms that an admin area exists.
+- **The id is not a secret.** It is one more layer of obscurity, so a scanner
+  finds nothing at `/app/admin`. The barrier is the session and the admin role,
+  which every admin page and Server Action check again. The id appears only in
+  links the panel builds for an admin session (the mail page's link and the admin
+  pages themselves), never in a public page, `robots.txt`, a 404 or a log line.
+- The role is read from the signed token, so an account demoted in Epistle keeps
+  the admin role until its session ends (at most 8 hours) or it signs out.
+- `epistle` generates the id and hands it to the panel when it renders the stack;
+  a panel updated before that has no id, and so no admin area.
 
 ### Secrets from files
 
-`EPISTLE_API_TOKEN` and `EPISTLE_PANEL_SESSION_SECRET` also have a `_FILE` form
+`EPISTLE_API_TOKEN`, `EPISTLE_PANEL_SESSION_SECRET` and `EPISTLE_PANEL_ADMIN_ID` also have a `_FILE` form
 that points at a file holding the secret, which is how container secrets are
 mounted (for example under `/run/secrets/`):
 
@@ -98,7 +125,7 @@ export EPISTLE_PANEL_SESSION_SECRET_FILE="/run/secrets/epistle_panel_session_sec
 - Trailing whitespace, such as the final newline, is stripped from the file content.
 - A `_FILE` variable that is set but points at a missing, unreadable or empty
   file is an error. The panel never falls back to the plain variable in that
-  case: a missing session secret locks every page under `/app` and a missing API token
+  case: a missing session secret locks every page and a missing API token
   fails every API call.
 - Error messages name the variable, never the path or the content.
 - The path must be absolute and name a regular file of at most 64 KiB; a symlink
@@ -148,7 +175,7 @@ every sign-in, with a log line that names the variable. The provider calls are c
 
 ### Sessions and sign-in limits
 
-- The session cookie is named `__Host-epistle_admin_session` and is always
+- The session cookie is named `__Host-epistle_session` and is always
   `Secure`, `HttpOnly`, `SameSite=Lax`, `Path=/` with no `Domain`. The `__Host-`
   prefix requires `Secure`, so the cookie does not depend on `NODE_ENV`. Serve
   the panel over HTTPS, normally terminated by your reverse proxy. Chrome and

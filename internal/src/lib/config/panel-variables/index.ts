@@ -8,6 +8,7 @@ export const PANEL_VARIABLE_PREFIX = "EPISTLE_PANEL_";
  * without being listed.
  */
 export const PANEL_VARIABLES: readonly string[] = [
+	"EPISTLE_PANEL_ADMIN_ID",
 	"EPISTLE_PANEL_BRAND_FAVICON_FILE",
 	"EPISTLE_PANEL_BRAND_LOGO_FILE",
 	"EPISTLE_PANEL_BRAND_NAME",
@@ -28,6 +29,7 @@ export const PANEL_VARIABLES: readonly string[] = [
  * naming a file that holds the value.
  */
 export const PANEL_SECRET_VARIABLES: readonly string[] = [
+	"EPISTLE_PANEL_ADMIN_ID",
 	"EPISTLE_PANEL_CAPTCHA_SECRET_KEY",
 	"EPISTLE_PANEL_SESSION_SECRET",
 ];

@@ -85,7 +85,7 @@ describe("QueryProvider", () => {
 			</QueryProvider>,
 		);
 
-		await waitFor(() => expect(assign).toHaveBeenCalledWith("/login"));
+		await waitFor(() => expect(assign).toHaveBeenCalledWith("/"));
 		assign.mockRestore();
 	});
 });

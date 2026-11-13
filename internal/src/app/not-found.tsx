@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
 
 import { Button } from "@/components/ui/button";
-import { ROUTES } from "@/lib/routes";
+import { PUBLIC_ROUTES } from "@/lib/routes";
 
 /**
  * Page for a path no route matches. Next's built-in 404 page styles itself
@@ -18,7 +18,7 @@ export default async function NotFound() {
 			<h1 className="font-semibold text-3xl">{t("heading")}</h1>
 			<p className="text-muted-foreground">{t("body")}</p>
 			<Button asChild variant="link" className="self-start px-0">
-				<a href={ROUTES.home}>{t("home")}</a>
+				<a href={PUBLIC_ROUTES.root}>{t("start")}</a>
 			</Button>{" "}
 		</main>
 	);
