@@ -79,10 +79,34 @@ describe("sniffImage", () => {
 	});
 
 	it("decodes references in linear time", () => {
-		const hostile = text(`<svg>${"&#".repeat(200_000)}</svg>`);
-		const started = performance.now();
-		expect(sniffImage(hostile)).toBe("image/svg+xml");
-		expect(performance.now() - started).toBeLessThan(500);
+		// No clock: a timing bound fails on a loaded machine. Count the string
+		// searches instead. A decoder that goes back over text it has read does
+		// work in proportion to the square of the input, so doubling the input
+		// would more than double the count; a single pass doubles it, give or take.
+		const searches = (references: number) => {
+			const hostile = text(`<svg>${"&#".repeat(references)}</svg>`);
+			const original = String.prototype.indexOf;
+			let calls = 0;
+			String.prototype.indexOf = function (
+				this: string,
+				...args: Parameters<string["indexOf"]>
+			) {
+				calls += 1;
+				return original.apply(this, args);
+			};
+			try {
+				expect(sniffImage(hostile)).toBe("image/svg+xml");
+			} finally {
+				String.prototype.indexOf = original;
+			}
+			return calls;
+		};
+
+		const small = searches(20_000);
+		const large = searches(40_000);
+
+		expect(small).toBeGreaterThan(20_000);
+		expect(large).toBeLessThan(small * 2.5);
 	});
 
 	it("refuses text that is not an SVG, HTML, and binary that is not an image", () => {
