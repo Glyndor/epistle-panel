@@ -18,18 +18,18 @@ import { firstPaint } from "@/test/server-tree";
 const originalFetch = globalThis.fetch;
 const cookies = mockRequestCookies();
 
-const { default: HomePage } = await import("./page");
+const { default: HomePage } = await import("./(status)/page");
 const { default: QueuePage } = await import("./queue/page");
-const { default: AccountsPage } = await import("./accounts/page");
+const { default: AccountsPage } = await import("./accounts/(list)/page");
 const { default: AccountDetailPage } = await import("./accounts/[name]/page");
 const { default: DomainsPage } = await import("./domains/page");
 const { default: SuppressionPage } = await import("./suppression/page");
 const { default: DeliveriesPage } = await import("./deliveries/page");
 
 const loadings = {
-	status: (await import("./loading")).default,
+	status: (await import("./(status)/loading")).default,
 	queue: (await import("./queue/loading")).default,
-	accounts: (await import("./accounts/loading")).default,
+	accounts: (await import("./accounts/(list)/loading")).default,
 	domains: (await import("./domains/loading")).default,
 	suppression: (await import("./suppression/loading")).default,
 	deliveries: (await import("./deliveries/loading")).default,
