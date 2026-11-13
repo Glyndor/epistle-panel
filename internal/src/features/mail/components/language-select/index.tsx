@@ -3,9 +3,11 @@
 import { useLocale, useTranslations } from "next-intl";
 import { useTransition } from "react";
 
+import { FIELD_CLASS } from "@/components/ui/input";
 import { setLocale } from "@/features/locale/actions/set-locale";
 import { localeSchema } from "@/features/locale/schemas/locale";
 import { LOCALE_NAMES, SUPPORTED_LOCALES } from "@/i18n/locales";
+import { cn } from "@/lib/class-names";
 
 /**
  * The language of the interface as a native `<select>`: the browser draws the
@@ -33,7 +35,7 @@ export function LanguageSelect() {
 						});
 					}
 				}}
-				className="min-h-8 rounded-md border border-input bg-background px-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring pointer-coarse:min-h-11"
+				className={cn(FIELD_CLASS, "w-auto px-2")}
 			>
 				{SUPPORTED_LOCALES.map((code) => (
 					<option key={code} value={code} lang={code}>

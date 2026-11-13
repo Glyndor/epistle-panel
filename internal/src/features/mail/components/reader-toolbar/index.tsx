@@ -14,8 +14,9 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
+import { ConfirmAction } from "@/components/confirm-action";
 import { Button } from "@/components/ui/button";
 import { MoveMenu } from "@/features/mail/components/move-menu";
 import { useMessageChange } from "@/features/mail/components/reader-toolbar/use-message-change";
@@ -32,7 +33,7 @@ function belongsElsewhere(event: KeyboardEvent): boolean {
 		target instanceof HTMLElement &&
 		(target.isContentEditable ||
 			target.closest(
-				"input, textarea, select, dialog[open], [role=menu]",
+				"input, textarea, select, dialog[open], [role=alertdialog], [role=menu]",
 			) !== null)
 	);
 }
@@ -40,9 +41,8 @@ function belongsElsewhere(event: KeyboardEvent): boolean {
 /**
  * The actions on the open message: star, read or unread, archive, spam, move and
  * delete. Opening an unread message marks it read (quietly), once. Deleting from
- * the trash is permanent and asks first with the browser's own confirm (a modal
- * dialog from the component library would inject a style element the policy
- * refuses). Keys: `s` star, `e` archive, `!` spam, `#` or Delete to the trash;
+ * the trash is permanent and asks first with the panel's alert dialog
+ * (`ConfirmAction`), whether it is the button or the key that asks. Keys: `s` star, `e` archive, `!` spam, `#` or Delete to the trash;
  * they follow the same rules as the list's keys.
  */
 export function ReaderToolbar({
@@ -75,8 +75,11 @@ export function ReaderToolbar({
 		}
 	}, [messageId]);
 
+	const [confirming, setConfirming] = useState(false);
 	const remove = () => {
-		if (!inTrash || window.confirm(t("confirmDeleteForever"))) {
+		if (inTrash) {
+			setConfirming(true);
+		} else {
 			change("trash");
 		}
 	};
@@ -101,6 +104,20 @@ export function ReaderToolbar({
 		document.addEventListener("keydown", onKeyDown);
 		return () => document.removeEventListener("keydown", onKeyDown);
 	});
+
+	const deleteButton = (
+		<Button
+			type="button"
+			variant="ghost"
+			size="sm"
+			aria-keyshortcuts="#"
+			disabled={pending}
+			{...(inTrash ? {} : { onClick: remove })}
+		>
+			<Trash2Icon aria-hidden="true" />
+			{inTrash ? t("deleteForever") : t("trash")}
+		</Button>
+	);
 
 	return (
 		<div
@@ -190,17 +207,18 @@ export function ReaderToolbar({
 				disabled={pending}
 				onMove={(box) => change({ move: box })}
 			/>
-			<Button
-				type="button"
-				variant="ghost"
-				size="sm"
-				aria-keyshortcuts="#"
-				disabled={pending}
-				onClick={remove}
-			>
-				<Trash2Icon aria-hidden="true" />
-				{inTrash ? t("deleteForever") : t("trash")}
-			</Button>
+			{inTrash ? (
+				<ConfirmAction
+					description={t("confirmDeleteForever")}
+					open={confirming}
+					onOpenChange={setConfirming}
+					onConfirm={() => change("trash")}
+				>
+					{deleteButton}
+				</ConfirmAction>
+			) : (
+				deleteButton
+			)}
 		</div>
 	);
 }

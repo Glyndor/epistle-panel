@@ -16,9 +16,11 @@
    - `--surface-raised`  a menu, a toast or a sheet, the only surfaces that also
                          carry the `--elevation` shadow.
 
-   A form field is a tonal well, `--field`, with no border at rest. It takes a
-   focus ring (`--ring`, 3:1 or more against every surface) when focused and a
-   soft destructive border only when its value is invalid. The panel sets no
+   A form field is a tonal well, `--field`, with no box around it. What marks its
+   edge is a 2px line along the bottom, `--field-edge`, at 3:1 or more against
+   the surface and the well. It takes a focus ring (`--ring`, 3:1 or more against
+   every surface) when focused, and a destructive outline and line when its value
+   is invalid. The panel sets no
    default border colour: a component that wants a line names its colour. */
 /* Theme tokens in the names shadcn/ui components read, plus the surface roles
    above. The light and dark values follow `prefers-color-scheme`, so a
@@ -49,9 +51,10 @@
 	--warning-foreground: oklch(0.414 0.112 45.904);
 	/* The fill of a form field: one step deeper than the surfaces it sits on. */
 	--field: oklch(0.94 0.005 286.3);
-	/* The drawn edge of a field, 3:1 against its surface. Only a field that has not
-	   moved to `bg-field` still reads it (the webmail's); the panel's own fields do not. */
-	--input: oklch(0.552 0.016 285.938);
+	/* The indicator line under a field: 2px, and at least 3:1 (WCAG 1.4.11)
+	   against every surface a field sits on, against `--field` and against the
+	   hover fill (`--accent`). Measured in the built panel; see customising.md. */
+	--field-edge: oklch(0.58 0.016 285.9);
 	--ring: oklch(0.552 0.016 285.938);
 	--radius: 0.75rem;
 	--overlay: rgb(0 0 0 / 0.5);
@@ -90,7 +93,7 @@
 		--warning: oklch(0.279 0.077 45.635);
 		--warning-foreground: oklch(0.924 0.12 95.746);
 		--field: oklch(0.26 0.006 286);
-		--input: oklch(0.62 0.016 286);
+		--field-edge: oklch(0.64 0.016 286);
 		--ring: oklch(0.72 0.015 286.067);
 		--overlay: rgb(0 0 0 / 0.6);
 		--popover-foreground: #ededed;
@@ -146,7 +149,6 @@
 	--color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
 	--color-sidebar-ring: var(--sidebar-ring);
 	--color-field: var(--field);
-	--color-input: var(--input);
 	--color-ring: var(--ring);
 	--radius-sm: calc(var(--radius) - 4px);
 	--radius-md: calc(var(--radius) - 2px);

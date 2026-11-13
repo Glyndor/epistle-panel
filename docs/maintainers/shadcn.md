@@ -47,8 +47,10 @@ helpers (`class-variance-authority`, `clsx`, `tailwind-merge`).
   (`rounded-lg` controls, `rounded-xl` cards, `rounded-2xl` dialogs). Do not add
   `border`, `divide-*` or a separator; the panel sets no default border colour.
   A form field is `bg-field` (`FIELD_CLASS` in `components/ui/input`) with a
-  transparent border at rest, the focus ring on keyboard focus and a destructive
-  border only when `aria-invalid`.
+  2px bottom line in `--field-edge` (3:1 against the surface and the fill, the
+  boundary WCAG 1.4.11 asks for), the focus ring on keyboard focus and a
+  destructive line and outline when `aria-invalid`. Every field wears it: the
+  input, the composer's text area and the native `select`s.
 - **Variants over extra state.** Prefer `hover:`, `focus-visible:`, `aria-*`,
   `data-*`, `group-*` and `has-*`, and container queries (`@container` with
   `@xl:`, `@2xl:`) over window breakpoints for a block that lives in a column of
@@ -109,7 +111,7 @@ kept.
 | Alert | `warning` for the unreachable notice on four pages, `destructive` for the sign-in error | no violation |
 | Card | status counters | no violation |
 | Table | queue, deliveries, suppression, domains, accounts | no violation; rows striped by tone, no lines |
-| AlertDialog (`ConfirmAction`) | the five confirmations: remove queue entry, suppressed address, masked address, enrol and turn off two-factor | **needs the nonce**: one `style-src-elem` violation without `StyleNonce`, none with it (built server, light and dark). Focus lands on Cancel, Tab cycles inside, Escape closes, the focus returns to the control, page scroll is locked and released |
+| AlertDialog (`ConfirmAction`) | the six confirmations: remove queue entry, suppressed address, masked address, enrol and turn off two-factor, delete a message for good from the trash (the button, or the Delete and # keys through `open` and `onOpenChange`) | **needs the nonce**: one `style-src-elem` violation without `StyleNonce`, none with it (built server, light and dark). Focus lands on Cancel, Tab cycles inside, Escape closes, the focus returns to the control, page scroll is locked and released |
 | Badge | delivery outcome | no violation; static, the label always says the outcome |
 | Empty | empty tables and the empty sections of the account page | no violation; static |
 | Breadcrumb | account page | no violation; static |

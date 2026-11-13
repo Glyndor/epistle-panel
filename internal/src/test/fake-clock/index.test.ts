@@ -46,4 +46,30 @@ describe("fake clock", () => {
 		useRealClock();
 		expect(AbortSignal.timeout).toBe(real);
 	});
+
+	it("adds no fake time for real work that finishes after the last wait", async () => {
+		// Bun keeps counting a timer after it fired, so a loop that trusted the
+		// count advanced the clock once more while the crypto call was still
+		// running and measured 301 for a 300 ms wait. Reading a file needs real
+		// turns of the event loop, as the sign-in's WebCrypto call does.
+		for (let round = 0; round < 5; round++) {
+			const run = await timeIt(async () => {
+				await new Promise((resolve) => setTimeout(resolve, 300));
+				await Bun.file(import.meta.path).text();
+				await Bun.file(import.meta.path).text();
+			});
+
+			expect(run.elapsedMs).toBe(300);
+		}
+	});
+
+	it("forgets a timer that was cleared, so it is never waited for", async () => {
+		const run = await timeIt(async () => {
+			const cancelled = setTimeout(() => {}, 5_000);
+			clearTimeout(cancelled);
+			await new Promise((resolve) => setTimeout(resolve, 25));
+		});
+
+		expect(run.elapsedMs).toBe(25);
+	});
 });

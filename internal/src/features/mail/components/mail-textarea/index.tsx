@@ -1,10 +1,13 @@
 import type * as React from "react";
 
+import { FIELD_CLASS } from "@/components/ui/input";
 import { cn } from "@/lib/class-names";
 
 /**
- * A multi-line text field on the `Input` look (the `input` border token at 3:1
- * against the page, an outline for focus). A thin stand-in until the library's
+ * A multi-line text field on the shared field look (`FIELD_CLASS`: a tonal
+ * well, a bottom line at 3:1, the outline for focus), taller and resizable. It
+ * restates the coarse-pointer minimum so the 44 px of a one-line field does not
+ * win over the height of a text area. A thin stand-in until the library's
  * Textarea is installed; callers use only this component.
  */
 export function MailTextarea({
@@ -15,7 +18,8 @@ export function MailTextarea({
 		<textarea
 			data-slot="textarea"
 			className={cn(
-				"min-h-48 w-full min-w-0 resize-y rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors placeholder:text-muted-foreground hover:border-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive",
+				FIELD_CLASS,
+				"min-h-48 resize-y py-2 pointer-coarse:min-h-48",
 				className,
 			)}
 			{...props}

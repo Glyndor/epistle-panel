@@ -10,12 +10,12 @@ import {
 import { clearToasts } from "@/components/ui/toaster";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
 import { clearSecretCache } from "@/lib/config/secret";
+import { answerConfirm } from "@/test/confirm-dialog";
 import { withQuery } from "@/test/query-wrapper";
 import { detail } from "../../test-support/fixtures";
 import { emailFixture, stubJmap } from "../../test-support/jmap-stub";
 
 const originalFetch = globalThis.fetch;
-const originalConfirm = window.confirm;
 const savedEnv = { ...process.env };
 const cookies = mockRequestCookies();
 const { ReaderToolbar } = await import(".");
@@ -104,7 +104,6 @@ afterEach(async () => {
 	cleanup();
 	process.env = { ...savedEnv };
 	globalThis.fetch = originalFetch;
-	window.confirm = originalConfirm;
 });
 
 function renderBar(msg = message(), inTrash = false, inDrafts = false) {
@@ -245,29 +244,44 @@ describe("ReaderToolbar", () => {
 		]);
 	});
 
-	it("deletes to the trash without asking, and for good from the trash only after a confirm", async () => {
-		const asked: string[] = [];
-		window.confirm = (text?: string) => {
-			asked.push(String(text));
-			return false;
-		};
+	it("deletes to the trash without asking, and for good from the trash only after the dialog is confirmed", async () => {
 		const seen = serve();
 		renderBar();
 		fireEvent.click(screen.getByRole("button", { name: "trash" }));
 		await waitFor(() => expect(setCalls(seen)).toHaveLength(1));
-		expect(asked).toEqual([]);
+		expect(screen.queryByRole("alertdialog")).toBeNull();
 		cleanup();
 		const seenTrash = serve({ $seen: true }, "Trash");
 		renderBar(message({ mailboxId: "Trash" }), true);
 		fireEvent.click(screen.getByRole("button", { name: "deleteForever" }));
-		await new Promise((r) => setTimeout(r, 30));
-		expect(asked).toEqual(["confirmDeleteForever"]);
+		expect(await screen.findByRole("alertdialog")).toHaveTextContent(
+			"confirmDeleteForever",
+		);
+		await answerConfirm(false);
 		expect(setCalls(seenTrash)).toHaveLength(0);
-		window.confirm = () => true;
 		fireEvent.click(screen.getByRole("button", { name: "deleteForever" }));
+		await answerConfirm(true);
 		await waitFor(() => expect(setCalls(seenTrash)).toHaveLength(1));
 		expect(
 			(setCalls(seenTrash)[0] as { destroy: string[] }).destroy,
+		).toEqual([ID]);
+	});
+
+	it("asks with the same dialog when the key deletes from the trash, and ignores keys while it is open", async () => {
+		const seen = serve({ $seen: true }, "Trash");
+		renderBar(message({ mailboxId: "Trash" }), true);
+		await new Promise((r) => setTimeout(r, 40));
+		const baseline = setCalls(seen).length;
+		fireEvent.keyDown(document.body, { key: "Delete" });
+		const dialog = await screen.findByRole("alertdialog");
+		expect(setCalls(seen)).toHaveLength(baseline);
+		fireEvent.keyDown(dialog, { key: "s" });
+		await new Promise((r) => setTimeout(r, 30));
+		expect(setCalls(seen)).toHaveLength(baseline);
+		await answerConfirm(true);
+		await waitFor(() => expect(setCalls(seen)).toHaveLength(baseline + 1));
+		expect(
+			(setCalls(seen)[baseline] as { destroy: string[] }).destroy,
 		).toEqual([ID]);
 	});
 

@@ -13,7 +13,7 @@ import { useActionEnvironment } from "@/features/account-detail/test-support/act
 import { stubRoutes } from "@/features/account-detail/test-support/stub-routes";
 import { sentRequests, stubFetchReject } from "@/lib/api/test-support/fetch";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
-import { answerConfirm, settle } from "@/test/confirm-dialog";
+import { answerConfirm } from "@/test/confirm-dialog";
 import { testQueryClient, withQuery } from "@/test/query-wrapper";
 
 const SECRET = "JBSWY3DPEHPK3PXP";
@@ -21,8 +21,24 @@ const URI = `otpauth://totp/example.org:alice?secret=${SECRET}&issuer=example.or
 const cookies = mockRequestCookies();
 const { TotpSection } = await import(".");
 
+/**
+ * Wait until no action is in flight: both buttons come back enabled only when
+ * the action has answered and its toast, if any, has been raised. A test that
+ * ends earlier would let that toast land in the next test's shared store.
+ */
+async function idle() {
+	await waitFor(() => {
+		for (const name of ["totpEnroll", "totpDisable"]) {
+			const button = screen.queryByRole("button", { name });
+			if (button) {
+				expect(button).toBeEnabled();
+			}
+		}
+	});
+}
+
 afterEach(async () => {
-	await settle();
+	await idle();
 	cleanup();
 	clearToasts();
 });
@@ -151,6 +167,7 @@ describe("TotpSection", () => {
 		await answerConfirm(true);
 
 		await waitFor(() => expect(screen.queryByText(SECRET)).toBeNull());
+		expect(await screen.findByText("totpDisabled")).toBeInTheDocument();
 	});
 
 	it("reports an account that is gone as a toast, for both actions", async () => {
@@ -179,7 +196,7 @@ describe("TotpSection", () => {
 		await waitFor(() =>
 			expect(screen.getByRole("alert")).toHaveTextContent("refusedGone"),
 		);
-		clearToasts();
+		act(() => clearToasts());
 		await click("totpDisable");
 		await answerConfirm(true);
 		await waitFor(() =>
@@ -202,7 +219,7 @@ describe("TotpSection", () => {
 		await click("totpDisable");
 		await answerConfirm(true);
 		await waitFor(() =>
-			expect(screen.getAllByRole("alert").length).toBeGreaterThan(0),
+			expect(screen.getAllByRole("alert")).toHaveLength(2),
 		);
 		expect(screen.queryByRole("status")).toBeNull();
 		errors.mockRestore();

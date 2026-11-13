@@ -133,9 +133,8 @@ named folder), which asks JMAP for the message, writes the **whole** keyword set
 and removing the original, so a moved message gets a **new id**: the reader goes
 back to the list and the list and counters reload. A flag change shows at once on
 the message, its row and the folder counter, and is put back if the server refuses.
-Deleting from the trash destroys the message and asks first with the browser's own
-`confirm` (a modal dialog from the component library would inject a style element
-the policy refuses). Moving a message to Junk does not set `$junk`: epistle trains
+Deleting from the trash destroys the message and asks first with `ConfirmAction`, whether
+the button or the Delete and # keys ask (the keys are ignored while the dialog is open). Moving a message to Junk does not set `$junk`: epistle trains
 on the move itself (`src/api/jmap/email/mod.rs`).
 
 ## The composer
@@ -192,7 +191,7 @@ editor and no signature.
   rich text, no address book or completion, no forwarding of attachments.
 - Inline `cid:` images (shown as attachments for now), conversation threads
   (epistle has none), push updates (the list polls every 30 s while visible).
-- Native `<select>`, `<details>` and `<kbd>`, and `window.confirm`, stand in for shadcn components that
+- Native `<select>`, `<details>` and `<kbd>` stand in for shadcn components that
   are not installed yet (`language-select`, `headers-disclosure`,
   `shortcuts-help`). They sit behind their own components so they can be replaced
   by `select`, `collapsible` and `kbd` when those land.
