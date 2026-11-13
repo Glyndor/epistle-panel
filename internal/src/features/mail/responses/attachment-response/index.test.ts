@@ -68,7 +68,9 @@ describe("attachmentResponse", () => {
 	it("sends the file as an attachment, with a clean name and a type that is not rendered", async () => {
 		const seen = stubJmap(
 			{ "Email/get": { list: [withAttachment({})] } },
-			new Response("hello", { headers: { "content-type": "text/html" } }),
+			new Response("hello", {
+				headers: { "content-type": "text/html", "content-length": "5" },
+			}),
 		);
 
 		const response = await attachmentResponse(ID, "2");
@@ -184,6 +186,57 @@ describe("attachmentResponse", () => {
 		const seen = stubJmap({});
 		expect((await attachmentResponse(ID, "2")).status).toBe(401);
 		expect(seen).toHaveLength(0);
+	});
+
+	it("declares the size the mail server declared, and none when it declared none", async () => {
+		stubJmap(
+			{ "Email/get": { list: [withAttachment({})] } },
+			new Response("hello"),
+		);
+		const response = await attachmentResponse(ID, "2");
+		expect(response.headers.get("content-length")).toBeNull();
+		expect(await response.text()).toBe("hello");
+	});
+
+	it("passes the file on as it arrives, and breaks the download off past 25 MiB instead of ending it short", async () => {
+		let asked = 0;
+		// A megabyte each time it is asked, for ever, with no declared size.
+		const endless = new ReadableStream<Uint8Array>(
+			{
+				pull(controller) {
+					asked += 1;
+					controller.enqueue(new Uint8Array(1_048_576));
+				},
+			},
+			{ highWaterMark: 0 },
+		);
+		stubJmap(
+			{ "Email/get": { list: [withAttachment({})] } },
+			new Response(endless),
+		);
+
+		const response = await attachmentResponse(ID, "2");
+		expect(response.status).toBe(200);
+		// The answer is ready before the file has been read.
+		expect(asked).toBeLessThanOrEqual(2);
+
+		const reader = (
+			response.body as ReadableStream<Uint8Array>
+		).getReader();
+		let passed = 0;
+		const ended = await (async () => {
+			for (;;) {
+				const { done, value } = await reader.read();
+				if (done) {
+					return "ended as if whole";
+				}
+				passed += value.byteLength;
+			}
+		})().catch(() => "broken off");
+
+		expect(ended).toBe("broken off");
+		// 25 MiB, and not a byte of the megabyte that crossed it.
+		expect(passed).toBe(26_214_400);
 	});
 
 	it("answers 404 when the blob is gone and 502 when the download fails or is too large", async () => {

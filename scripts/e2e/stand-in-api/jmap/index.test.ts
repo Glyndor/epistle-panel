@@ -64,6 +64,21 @@ describe("the stand-in JMAP", () => {
 		expect(await get("/other")).toBeNull();
 	});
 
+	it("in its oversize mode sends 27 MiB for a blob it has, with no declared size, until the reset", async () => {
+		const get = async (path: string) => {
+			const request = new Request(`http://x${path}`);
+			return store.handle(request, new URL(request.url));
+		};
+		store.oversizeBlobs(true);
+		const big = await get(`/jmap/download/admin/${IDS.attachments}.3/x`);
+		expect(big?.headers.get("content-length")).toBeNull();
+		expect((await big?.arrayBuffer())?.byteLength).toBe(27 * 1_048_576);
+		expect((await get(`/jmap/download/admin/${IDS.attachments}.99/x`))?.status).toBe(404);
+		store.reset();
+		const again = await get(`/jmap/download/admin/${IDS.attachments}.3/x`);
+		expect((await again?.arrayBuffer())?.byteLength).toBeLessThan(10_000);
+	});
+
 	it("sets keywords whole, moves a message to a new id and destroys on request", async () => {
 		const set = async (args: Record<string, unknown>) =>
 			(await call([["Email/set", { accountId: MAIL_ACCOUNT, ...args }, "s"]])).methodResponses[0]?.[1] as Record<string, any>;

@@ -188,6 +188,14 @@ export function createStandIn(options: StandInOptions) {
 			mode = body.mode;
 			return json({ mode });
 		}
+		if (path === "/__control/blobs" && request.method === "POST") {
+			const body = (await request.json()) as { oversize?: unknown };
+			if (typeof body.oversize !== "boolean") {
+				return json({ error: "oversize must be true or false" }, 400);
+			}
+			jmap.oversizeBlobs(body.oversize);
+			return json({ oversize: body.oversize });
+		}
 		if (path === "/__control/delay" && request.method === "POST") {
 			const body = (await request.json()) as { ms?: unknown };
 			if (

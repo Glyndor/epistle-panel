@@ -108,6 +108,14 @@ A message is hostile input. What the panel does:
   segment (`safe-filename`), the type is forced to a short allow-list or
   `application/octet-stream` (HTML, SVG, XML and script types never keep theirs),
   and the file is always `Content-Disposition: attachment`, at most 25 MiB.
+  The file is passed on as it arrives from the mail server and is never held in
+  memory: one chunk is read when the browser asks for one. The headers have 60 s
+  to come; after that the download has no total time (the reader may be on a slow
+  line) but may not stand still for 30 s. A file that declares more than 25 MiB is
+  refused before a byte is sent; one that carries more without saying so breaks
+  the download off at that byte, with the stream failed and not ended, so the
+  browser reports a failed download and never saves a short file as whole. The
+  answer declares the size the mail server declared.
 - Limits: 1 MiB of body read, 1 MiB of HTML parsed, 64 levels and 20 000 elements
   kept, 120 headers listed.
 

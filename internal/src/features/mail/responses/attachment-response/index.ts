@@ -1,6 +1,6 @@
 import "server-only";
 
-import { downloadBlob, JmapError } from "@/features/mail/jmap/call";
+import { JmapError, openBlob } from "@/features/mail/jmap/call";
 import { currentMailSession } from "@/features/mail/jmap/credentials";
 import { loadEmailRecord } from "@/features/mail/queries/message-body";
 import {
@@ -67,7 +67,9 @@ function plain(status: number, text: string): Response {
  * the one it lists for that part (the route never turns a number from the URL
  * into a blob on its own); the name is cleaned, the type forced to one a
  * browser does not render as a page, and the file sent as an attachment with
- * `nosniff`, so nothing in it is run or drawn in the panel's origin. The proxy
+ * `nosniff`, so nothing in it is run or drawn in the panel's origin. The file
+ * is passed on as it arrives from the mail server and is never held in memory;
+ * past 25 MiB the download breaks off. The proxy
  * sends the panel's own security headers on this response, its
  * Content-Security-Policy included; this handler sets none of its own, since
  * the proxy would replace it.
@@ -95,15 +97,19 @@ export async function attachmentResponse(
 		if (!listed || !blobId) {
 			return plain(404, "Not found");
 		}
-		const blob = await downloadBlob(session, blobId, MAX_ATTACHMENT_BYTES);
-		return new Response(blob.bytes as BodyInit, {
+		const blob = await openBlob(session, blobId, MAX_ATTACHMENT_BYTES);
+		return new Response(blob.body, {
 			status: 200,
 			headers: {
 				"Content-Type": forcedType(listed.type),
 				"Content-Disposition": attachmentDisposition(
 					safeFilename(listed.name),
 				),
-				"Content-Length": String(blob.bytes.byteLength),
+				// The size the mail server declared, so a download that breaks off
+				// is seen as broken and not saved as a whole file.
+				...(blob.length === null
+					? {}
+					: { "Content-Length": String(blob.length) }),
 				"X-Content-Type-Options": "nosniff",
 				"Cache-Control": "private, no-store",
 				"Referrer-Policy": "no-referrer",

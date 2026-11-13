@@ -133,6 +133,16 @@ scenario_mail() {
 	assert_eq "it is never sniffed" "$(header x-content-type-options)" "nosniff"
 	assert_contains "the panel's own policy covers it, which forbids framing" "$(header content-security-policy)" "frame-ancestors 'none'"
 	assert_contains "its bytes arrive" "$(cat "$work/b")" "%PDF-1.4"
+	# A file that turns out longer than the panel relays, with no size declared:
+	# the download breaks off, so it is never saved as a whole file.
+	set_oversize_blobs true
+	local cut_exit=0 cut_size
+	cut_size=$(curl -s -o /dev/null -w '%{size_download}' -b "$good" "$panel/app/mail/attachment/$MAIL_ATTACHMENTS/2") || cut_exit=$?
+	set_oversize_blobs false
+	assert_eq "a download past 25 MiB breaks off: curl does not end it cleanly" "$([[ $cut_exit -ne 0 ]] && echo broken || echo whole)" broken
+	assert_eq "and no byte past 25 MiB was passed on" "$([[ $cut_size -le 26214400 ]] && echo within || echo "over: $cut_size")" within
+	fetch "/app/mail/attachment/$MAIL_ATTACHMENTS/2" "$good"
+	assert_eq "the next download is whole again" "$status" 200
 	fetch "/app/mail/attachment/$MAIL_ATTACHMENTS/3" "$good"
 	assert_eq "the HTML attachment is octet-stream" "$(header content-type)" "application/octet-stream"
 	assert_contains "and an attachment" "$(header content-disposition)" "attachment;"
