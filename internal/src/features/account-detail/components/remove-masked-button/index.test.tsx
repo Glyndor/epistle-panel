@@ -13,7 +13,7 @@ import { stubRoutes } from "@/features/account-detail/test-support/stub-routes";
 import { sentRequests, stubFetchReject } from "@/lib/api/test-support/fetch";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
 import { answerConfirm, settle } from "@/test/confirm-dialog";
-import { withQuery } from "@/test/query-wrapper";
+import { settled, withQuery } from "@/test/query-wrapper";
 
 const ADDRESS = "news.abcdefgh@example.org";
 const cookies = mockRequestCookies();
@@ -108,8 +108,15 @@ describe("RemoveMaskedButton", () => {
 	});
 
 	it("disables itself while the request is in flight", async () => {
+		const errors = spyOn(console, "error").mockImplementation(() => {});
+		// Held open until the case has looked, then answered: no case ends with a
+		// request on its way.
+		let answer: (response: Response) => void = () => {};
 		globalThis.fetch = mock(
-			() => new Promise<Response>(() => {}),
+			() =>
+				new Promise<Response>((resolve) => {
+					answer = resolve;
+				}),
 		) as unknown as typeof fetch;
 		setup();
 
@@ -121,5 +128,8 @@ describe("RemoveMaskedButton", () => {
 				screen.getByRole("button", { name: "maskedRemoveLabel" }),
 			).toBeDisabled(),
 		);
+		answer(new Response("{}", { status: 503 }));
+		await settled();
+		errors.mockRestore();
 	});
 });

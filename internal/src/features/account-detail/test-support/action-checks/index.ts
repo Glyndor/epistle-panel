@@ -6,6 +6,8 @@ import { clearToasts } from "@/components/ui/toaster";
 import { sentRequests, stubFetchJson } from "@/lib/api/test-support/fetch";
 import type { mockRequestCookies } from "@/lib/auth/test-support/cookies";
 
+import { settled } from "@/test/query-wrapper";
+
 import { HOSTILE_NAMES } from "../hostile";
 
 type Cookies = ReturnType<typeof mockRequestCookies>;
@@ -30,7 +32,10 @@ export function useActionEnvironment(cookies: Cookies): void {
 		// call stubs its own answer.
 		stubFetchJson({});
 	});
-	afterEach(() => {
+	afterEach(async () => {
+		// While the case's stub still answers: a request that outlived the case
+		// would wait for ever on the idle `fetch` below.
+		await settled();
 		cleanup();
 		clearToasts();
 		globalThis.fetch = idleFetch;

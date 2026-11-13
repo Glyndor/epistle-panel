@@ -16,7 +16,7 @@ import {
 } from "@/features/account-detail/test-support/stub-routes";
 import { sentRequests, stubFetchReject } from "@/lib/api/test-support/fetch";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
-import { withQuery } from "@/test/query-wrapper";
+import { settled, withQuery } from "@/test/query-wrapper";
 
 const cookies = mockRequestCookies();
 const { MaskedSection } = await import(".");
@@ -328,9 +328,14 @@ describe("MaskedSection", () => {
 		const original = globalThis.fetch;
 		stubRoutes([["GET", /masked$/, list()]]);
 		const base = globalThis.fetch;
+		// Held open until the case has looked, then answered: no case ends with a
+		// request on its way.
+		let answer: (response: Response) => void = () => {};
 		globalThis.fetch = mock((input: string | URL, init?: RequestInit) =>
 			init?.method === "POST"
-				? new Promise<Response>(() => {})
+				? new Promise<Response>((resolve) => {
+						answer = resolve;
+					})
 				: base(input, init),
 		) as unknown as typeof fetch;
 		render(withQuery(<MaskedSection name="alice" />));
@@ -343,6 +348,8 @@ describe("MaskedSection", () => {
 				screen.getByRole("button", { name: "maskedCreating" }),
 			).toBeDisabled(),
 		);
+		answer(new Response("{}", { status: 503 }));
+		await settled();
 		globalThis.fetch = original;
 		errors.mockRestore();
 	});

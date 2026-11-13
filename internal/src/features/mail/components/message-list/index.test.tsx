@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
 import { clearSecretCache } from "@/lib/config/secret";
-import { withQuery } from "@/test/query-wrapper";
+import { settled, withQuery } from "@/test/query-wrapper";
 import { emailFixture, stubJmap } from "../../test-support/jmap-stub";
 
 const originalFetch = globalThis.fetch;
@@ -22,7 +22,8 @@ beforeEach(async () => {
 	process.env["EPISTLE_API_TOKEN"] = "t";
 	await cookies.signIn("admin");
 });
-afterEach(() => {
+afterEach(async () => {
+	await settled();
 	process.env = { ...savedEnv };
 	cleanup();
 	globalThis.fetch = originalFetch;
