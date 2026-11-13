@@ -26,7 +26,7 @@ import {
 	stubFetchReject,
 } from "@/lib/api/test-support/fetch";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
-import { answerConfirm } from "@/test/confirm-dialog";
+import { answerConfirm, settle } from "@/test/confirm-dialog";
 import { testQueryClient, withQuery } from "@/test/query-wrapper";
 
 const A = "a@example.org";
@@ -44,7 +44,8 @@ beforeEach(async () => {
 	cookies.reset();
 	await cookies.signIn();
 });
-afterEach(() => {
+afterEach(async () => {
+	await settle();
 	cleanup();
 	clearToasts();
 	globalThis.fetch = originalFetch;

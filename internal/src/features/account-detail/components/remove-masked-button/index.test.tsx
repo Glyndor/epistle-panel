@@ -12,14 +12,15 @@ import { useActionEnvironment } from "@/features/account-detail/test-support/act
 import { stubRoutes } from "@/features/account-detail/test-support/stub-routes";
 import { sentRequests, stubFetchReject } from "@/lib/api/test-support/fetch";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
-import { answerConfirm } from "@/test/confirm-dialog";
+import { answerConfirm, settle } from "@/test/confirm-dialog";
 import { withQuery } from "@/test/query-wrapper";
 
 const ADDRESS = "news.abcdefgh@example.org";
 const cookies = mockRequestCookies();
 const { RemoveMaskedButton } = await import(".");
 
-afterEach(() => {
+afterEach(async () => {
+	await settle();
 	cleanup();
 	clearToasts();
 });

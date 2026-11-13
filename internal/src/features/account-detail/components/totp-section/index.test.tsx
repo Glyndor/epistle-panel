@@ -13,7 +13,7 @@ import { useActionEnvironment } from "@/features/account-detail/test-support/act
 import { stubRoutes } from "@/features/account-detail/test-support/stub-routes";
 import { sentRequests, stubFetchReject } from "@/lib/api/test-support/fetch";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
-import { answerConfirm } from "@/test/confirm-dialog";
+import { answerConfirm, settle } from "@/test/confirm-dialog";
 import { testQueryClient, withQuery } from "@/test/query-wrapper";
 
 const SECRET = "JBSWY3DPEHPK3PXP";
@@ -21,7 +21,8 @@ const URI = `otpauth://totp/example.org:alice?secret=${SECRET}&issuer=example.or
 const cookies = mockRequestCookies();
 const { TotpSection } = await import(".");
 
-afterEach(() => {
+afterEach(async () => {
+	await settle();
 	cleanup();
 	clearToasts();
 });

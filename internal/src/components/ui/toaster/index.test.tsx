@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import {
 	act,
 	cleanup,
@@ -8,6 +8,9 @@ import {
 } from "@testing-library/react";
 
 import { clearToasts, TOAST_DURATION_MS, Toaster, toast } from ".";
+
+// The toast store is shared by every test file in the process; start empty.
+beforeEach(clearToasts);
 
 afterEach(() => {
 	cleanup();

@@ -1,5 +1,11 @@
 import { expect } from "bun:test";
-import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import {
+	act,
+	fireEvent,
+	screen,
+	waitFor,
+	within,
+} from "@testing-library/react";
 
 /**
  * Answer the alert dialog a `ConfirmAction` opens: wait for it, press Continue
@@ -14,4 +20,15 @@ export async function answerConfirm(accept: boolean): Promise<void> {
 		}),
 	);
 	await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
+}
+
+/**
+ * Let the work a test left in flight (a request that answers after the last
+ * assertion, and the toast it raises) finish before the test cleans up, so
+ * nothing lands in the next test's shared toast store.
+ */
+export async function settle(): Promise<void> {
+	await act(async () => {
+		await new Promise((resolve) => setTimeout(resolve, 20));
+	});
 }

@@ -27,7 +27,7 @@ import {
 	stubFetchReject,
 } from "@/lib/api/test-support/fetch";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
-import { answerConfirm } from "@/test/confirm-dialog";
+import { answerConfirm, settle } from "@/test/confirm-dialog";
 import { testQueryClient, withQuery } from "@/test/query-wrapper";
 
 const ID = queueEntryIdSchema.parse("01890a5d-ac96-774b-b9aa-9be4c3bd6b0e");
@@ -48,7 +48,8 @@ beforeEach(async () => {
 	cookies.reset();
 	await cookies.signIn();
 });
-afterEach(() => {
+afterEach(async () => {
+	await settle();
 	cleanup();
 	clearToasts();
 	globalThis.fetch = originalFetch;
