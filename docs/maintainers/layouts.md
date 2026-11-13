@@ -61,6 +61,32 @@ sidebar entry; the Accounts entry is marked on it, as the page of
 `/app/{id}/accounts`. Its `not-found.tsx` in `[adminId]` renders inside the shell
 without a second `main` landmark.
 
+## Breadcrumbs
+
+Every admin page draws the trail to itself above its heading, with
+`AdminBreadcrumbs` (`features/navigation/components/admin-breadcrumbs`): the
+administration, the page and, on a page about one thing (an account), that
+thing. `queries/admin-trail` builds it from the admin routes and the key of the
+page's navigation label, so a trail cannot name a path the panel does not have
+and the name of the thing is never part of an address. The last step is the
+current page (`aria-current="page"`, not a link).
+
+A page passes the routes it got from `requireAdmin()`. Its `loading.tsx` is
+given no parameters, so it takes them from `queries/loading-routes` and renders
+the same call: the trail is in the first paint and does not move when the page
+arrives. The account page's loading state does not know the account, so a bar
+holds the place of the last step. To add a page, add its navigation entry (the
+trail reads the same label) and render `AdminBreadcrumbs` in the page and in
+its `loading.tsx`; `streaming.test.tsx` compares the two.
+
+A `loading.tsx` is the first paint of every page in the folders below it, not
+only of the page beside it. So a page that has other pages below it (the status
+page at the root of the area, the accounts list above the account page) lives
+in a route group, `(status)` and `accounts/(list)`, with its own `loading.tsx`.
+Before that, measured in Chromium against the built server, a load of the
+domains page painted the Status heading first. `streaming.test.tsx` fails when
+a loading state sits above a page that is not its own.
+
 ## How the 404 stays one
 
 The proxy lets four things on to the router: `/`, `/app/mail` with a session,
