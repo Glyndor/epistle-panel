@@ -6,6 +6,7 @@ import { readAdminId } from "./lib/config/admin-id";
 import {
 	classifyAppPath,
 	constantTimeEqual,
+	isMailBodyPath,
 	PUBLIC_ROUTES,
 } from "./lib/routes";
 import {
@@ -105,7 +106,12 @@ export async function proxy(request: NextRequest) {
 			request: { headers: requestHeaders },
 		});
 	}
-	applySecurityHeaders(response.headers, csp);
+	// The framed body of a message sends its own headers from its route, so the
+	// panel's (which forbid framing) are not laid over them. Only a session
+	// reaches it; the redirect and the hidden 404 keep the panel's headers.
+	if (!(area.kind === "mail" && session && isMailBodyPath(pathname))) {
+		applySecurityHeaders(response.headers, csp);
+	}
 	return response;
 }
 

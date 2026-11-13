@@ -14,7 +14,7 @@
 # exercises.
 #
 # Usage: scripts/e2e/run.sh [scenario...]
-#   scenarios: headers logout limiter limiter-global noauth degraded rotation idle theme body-limit captcha csrf set-locale unknown-variable suppression deliveries account-detail admin-id
+#   scenarios: headers logout limiter limiter-global noauth degraded rotation idle theme body-limit captcha csrf set-locale unknown-variable suppression deliveries account-detail admin-id mail
 # With no argument every scenario runs. Exit status is non-zero when any check
 # fails. Override the ports with PANEL_PORT and STAND_IN_PORT.
 set -euo pipefail
@@ -131,6 +131,9 @@ cp -R "$internal/.next/static" "$standalone/.next/static"
 # shellcheck source=scripts/e2e/scenarios/deliveries.sh
 . "$root/scripts/e2e/scenarios/deliveries.sh"
 
+# shellcheck source=scripts/e2e/scenarios/mail.sh
+. "$root/scripts/e2e/scenarios/mail.sh"
+
 # shellcheck source=scripts/e2e/scenarios/account-detail.sh
 . "$root/scripts/e2e/scenarios/account-detail.sh"
 # shellcheck source=scripts/e2e/scenarios/admin-id.sh
@@ -138,7 +141,7 @@ cp -R "$internal/.next/static" "$standalone/.next/static"
 
 # ---------------------------------------------------------------- main
 
-all=(headers logout limiter limiter-global noauth degraded rotation idle theme body-limit captcha csrf set-locale unknown-variable suppression deliveries account-detail admin-id)
+all=(headers logout limiter limiter-global noauth degraded rotation idle theme body-limit captcha csrf set-locale unknown-variable suppression deliveries account-detail admin-id mail)
 selected=("$@")
 ((${#selected[@]})) || selected=("${all[@]}")
 

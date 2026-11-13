@@ -10,6 +10,7 @@ import {
 	classifyAppPath,
 	constantTimeEqual,
 	isAdminIdShape,
+	isMailBodyPath,
 	PUBLIC_ROUTES,
 } from ".";
 
@@ -175,6 +176,34 @@ describe("classifyAppPath", () => {
 				kind: "admin",
 				segment,
 			});
+		}
+	});
+});
+
+describe("isMailBodyPath", () => {
+	it("matches the framed body route spelled exactly", () => {
+		expect(isMailBodyPath("/app/mail/body/abc")).toBe(true);
+		expect(
+			isMailBodyPath(
+				"/app/mail/body/01890a5d-ac96-774b-b9aa-9be4c3bd6b0e",
+			),
+		).toBe(true);
+	});
+
+	it("matches nothing else, so any other spelling keeps the panel's headers", () => {
+		for (const path of [
+			"/app/mail",
+			"/app/mail/body",
+			"/app/mail/body/",
+			"/app/mail/body/a/b",
+			"/APP/mail/body/a",
+			"/app/Mail/body/a",
+			"/app/mail/bodyx/a",
+			"//app/mail/body/a",
+			"/x/app/mail/body/a",
+			"/app/mail/attachment/a/1",
+		]) {
+			expect(isMailBodyPath(path), path).toBe(false);
 		}
 	});
 });

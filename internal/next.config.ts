@@ -22,7 +22,9 @@ const nextConfig: NextConfig = {
 	async headers() {
 		return [
 			{
-				source: "/:path*",
+				// Every path but the framed message body, which sends its own headers
+				// (`features/mail/sanitize/body-document`) in place of these.
+				source: "/((?!app/mail/body/[^/]+$).*)",
 				headers: STATIC_SECURITY_HEADERS.map(([key, value]) => ({
 					key,
 					value,

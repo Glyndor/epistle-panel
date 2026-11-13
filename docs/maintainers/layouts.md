@@ -10,7 +10,7 @@ role.
 | Area | Path | Who | Frame |
 |---|---|---|---|
 | Sign-in | `/` (`(auth)/page.tsx`) | anyone without a session; a visitor with one is sent to `/app/mail` | `(auth)/layout.tsx`: a bare `main`, no navigation |
-| Mail | `/app/mail` (`app/app/mail`) | a session of any role | `mail/layout.tsx`: checks the session, then the placeholder card. The mail client is not built; the page says so |
+| Mail | `/app/mail` (`app/app/mail`) | a session of any role | `mail/layout.tsx`: checks the session, then its own frame (header with the way into the admin for an admin session, one `main`, three named panes); `/app/mail/body/[id]` and `/app/mail/attachment/[id]/[part]` are its route handlers. See `mail.md` |
 | Admin | `/app/{id}/...` (`app/app/[adminId]`) | a session with the admin role, and the installation's id | `[adminId]/layout.tsx`: checks the role and the id, then `AppShell` with the admin navigation |
 
 `{id}` is a UUID v4 that belongs to the installation (`EPISTLE_PANEL_ADMIN_ID`).
@@ -19,10 +19,8 @@ barrier. Without the variable the admin area is off. Everything that does not
 answer is one 404 (see "How the 404 stays one" below).
 
 The two areas never share a layout, so the admin shell does not load the mail
-area's code and the reverse. The mail frame today is the sign-in frame
-(`components/layout/public-frame`); the real client will bring its own three-pane
-layout from the parts in `components/ui/sidebar`, in `app/app/mail`, and will not
-touch the admin tree. There is one session and no separate admin cookie: the role
+area's code and the reverse. The mail frame is its own (`app/app/mail/layout.tsx`, three panes, no sidebar) and
+does not touch the admin tree. There is one session and no separate admin cookie: the role
 (`admin` or `user`) is signed into the token at sign-in from the epistle API's
 `/auth/verify` answer, and each admin page, each admin Server Action
 (`lib/query/run-action`) and the proxy read it again from the token. A `user`
