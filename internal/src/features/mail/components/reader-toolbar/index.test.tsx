@@ -97,6 +97,7 @@ beforeEach(async () => {
 	process.env["EPISTLE_API_TOKEN"] = "t";
 	await cookies.signIn("admin");
 });
+afterEach(clearToasts);
 afterEach(async () => {
 	// Let a change still in flight finish against this test's stub, not the next one's.
 	await new Promise((r) => setTimeout(r, 80));
@@ -106,10 +107,15 @@ afterEach(async () => {
 	window.confirm = originalConfirm;
 });
 
-function renderBar(msg = message(), inTrash = false) {
+function renderBar(msg = message(), inTrash = false, inDrafts = false) {
 	return render(
 		withQuery(
-			<ReaderToolbar message={msg} onLeft={left} inTrash={inTrash} />,
+			<ReaderToolbar
+				message={msg}
+				onLeft={left}
+				inTrash={inTrash}
+				inDrafts={inDrafts}
+			/>,
 		),
 	);
 }
@@ -141,6 +147,29 @@ describe("ReaderToolbar", () => {
 		);
 	});
 
+	it("links to the composer to reply, reply to all and forward, and to edit a draft instead of replying to it", () => {
+		serve();
+		renderBar();
+		for (const [name, mode] of [
+			["reply", "reply"],
+			["replyAll", "replyAll"],
+			["forward", "forward"],
+		] as const) {
+			expect(screen.getByRole("link", { name })).toHaveAttribute(
+				"href",
+				`/app/mail/compose?mode=${mode}&msg=${ID}`,
+			);
+		}
+		expect(screen.queryByRole("link", { name: "editDraft" })).toBeNull();
+		cleanup();
+		renderBar(message(), false, true);
+		expect(screen.getByRole("link", { name: "editDraft" })).toHaveAttribute(
+			"href",
+			`/app/mail/compose?mode=draft&msg=${ID}`,
+		);
+		expect(screen.queryByRole("link", { name: "reply" })).toBeNull();
+	});
+
 	it("marks an unread message read once, when it is opened, without a toast", async () => {
 		const seen = serve({});
 		const { rerender } = renderBar(message({ unread: true }));
@@ -158,6 +187,7 @@ describe("ReaderToolbar", () => {
 					message={message({ unread: true })}
 					onLeft={left}
 					inTrash={false}
+					inDrafts={false}
 				/>,
 			),
 		);

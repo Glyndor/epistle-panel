@@ -2,18 +2,24 @@
 
 import {
 	ArchiveIcon,
+	ForwardIcon,
 	MailCheckIcon,
 	MailIcon,
+	PenLineIcon,
+	ReplyAllIcon,
+	ReplyIcon,
 	ShieldAlertIcon,
 	StarIcon,
 	Trash2Icon,
 } from "lucide-react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import { MoveMenu } from "@/features/mail/components/move-menu";
 import { useMessageChange } from "@/features/mail/components/reader-toolbar/use-message-change";
+import { composeHref } from "@/features/mail/links/mail-href";
 import type { MessageDetail } from "@/features/mail/schemas/mail-view";
 
 /** Whether a key press is meant for a field, a dialog or a modifier combination. */
@@ -43,12 +49,15 @@ export function ReaderToolbar({
 	message,
 	onLeft,
 	inTrash,
+	inDrafts,
 }: {
 	message: MessageDetail;
 	/** Where to go when the message leaves its folder: back to the list. */
 	onLeft: () => void;
 	/** Whether the message is in the trash folder, where "delete" is permanent. */
 	inTrash: boolean;
+	/** Whether the message is in the drafts folder, where it is edited and not replied to. */
+	inDrafts: boolean;
 }) {
 	const t = useTranslations("mail");
 	const { change, pending } = useMessageChange({
@@ -99,6 +108,35 @@ export function ReaderToolbar({
 			aria-label={t("toolbarLabel")}
 			className="flex flex-wrap items-center gap-1 px-3 pt-2"
 		>
+			{inDrafts ? (
+				<Button asChild variant="ghost" size="sm">
+					<Link href={composeHref("draft", message.id)}>
+						<PenLineIcon aria-hidden="true" />
+						{t("editDraft")}
+					</Link>
+				</Button>
+			) : (
+				<>
+					<Button asChild variant="ghost" size="sm">
+						<Link href={composeHref("reply", message.id)}>
+							<ReplyIcon aria-hidden="true" />
+							{t("reply")}
+						</Link>
+					</Button>
+					<Button asChild variant="ghost" size="sm">
+						<Link href={composeHref("replyAll", message.id)}>
+							<ReplyAllIcon aria-hidden="true" />
+							{t("replyAll")}
+						</Link>
+					</Button>
+					<Button asChild variant="ghost" size="sm">
+						<Link href={composeHref("forward", message.id)}>
+							<ForwardIcon aria-hidden="true" />
+							{t("forward")}
+						</Link>
+					</Button>
+				</>
+			)}
 			<Button
 				type="button"
 				variant="ghost"

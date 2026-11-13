@@ -8,6 +8,7 @@ import { MailNotice } from "@/features/mail/components/mail-notice";
 import { MessageList } from "@/features/mail/components/message-list";
 import { MessageReader } from "@/features/mail/components/message-reader";
 import { ShortcutsHelp } from "@/features/mail/components/shortcuts-help";
+import { WriteLink } from "@/features/mail/components/write-link";
 import { currentMailSession } from "@/features/mail/jmap/credentials";
 import { loadMailboxes } from "@/features/mail/queries/load-mailboxes";
 import { loadMessage } from "@/features/mail/queries/load-message";
@@ -85,6 +86,9 @@ export default async function MailPage({
 		<HydrationBoundary state={dehydrate(client)}>
 			<div className="grid h-full min-h-0 grid-cols-1 grid-rows-[minmax(0,1fr)] gap-2 p-2 lg:grid-cols-[14rem_minmax(18rem,26rem)_minmax(0,1fr)]">
 				<div className="relative hidden min-h-0 overflow-y-auto rounded-2xl bg-background lg:block">
+					<div className="p-2">
+						<WriteLink />
+					</div>
 					<FolderPane activeId={box} />
 				</div>
 				<section
@@ -95,6 +99,7 @@ export default async function MailPage({
 					)}
 				>
 					<div className="flex items-center gap-2 p-2 lg:hidden">
+						<WriteLink />
 						<FolderSheet>
 							<FolderPane activeId={box} />
 						</FolderSheet>

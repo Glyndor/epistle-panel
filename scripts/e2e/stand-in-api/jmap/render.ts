@@ -113,7 +113,7 @@ export function toEmail(m: SeedMessage, args: Record<string, unknown>): Record<s
 		from: m.from,
 		to: m.to,
 		cc: m.cc ?? null,
-		bcc: null,
+		bcc: m.bcc ?? null,
 		replyTo: null,
 		sender: null,
 		messageId: [`${m.id}@example.test`],

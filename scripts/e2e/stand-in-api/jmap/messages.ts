@@ -25,6 +25,7 @@ export interface SeedMessage {
 	from: Addr[];
 	to: Addr[];
 	cc?: Addr[];
+	bcc?: Addr[];
 	keywords: Record<string, boolean>;
 	text?: string;
 	html?: string;

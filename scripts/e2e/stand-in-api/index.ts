@@ -153,6 +153,9 @@ export function createStandIn(options: StandInOptions) {
 			jmap.reset();
 			return json({ ok: true });
 		}
+		if (path === "/__control/sent") {
+			return json(jmap.sent());
+		}
 		if (path === "/__control/mail") {
 			return json(jmap.snapshot());
 		}

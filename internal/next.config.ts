@@ -14,6 +14,11 @@ const nextConfig: NextConfig = {
 	typedRoutes: true,
 	experimental: {
 		serverActions: { bodySizeLimit: "16kb" },
+		// The proxy buffers a request body to hand it on, and cuts it at this size
+		// (10 MB by default). The webmail uploads an attachment of up to 25 MiB to
+		// `/app/mail/upload`, so the buffer is a little above it; Server Actions keep
+		// their own 16 KB limit above.
+		proxyClientMaxBodySize: "26mb",
 	},
 	// Do not announce the framework on every response.
 	poweredByHeader: false,
