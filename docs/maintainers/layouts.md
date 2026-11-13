@@ -120,12 +120,23 @@ administration and sign out. The address of the administration is built on the
 server and handed down only for an admin session in an installation whose
 admin area is on; the menu never derives it from the role.
 
-One choice is stored at a time: while the language or the theme is on its way
-to the server the button is marked busy and looks it, and the items wait.
+Inside one menu, one thing goes to the server at a time: while a language or a
+theme picked there is being stored, or the session is being ended, that menu's
+button is marked busy and looks it, and its rows wait. The two menus are
+independent of each other on purpose: the theme and the language are separate
+choices, each stored by its own action, so a theme picked from the theme button
+while a language is on its way is stored as well, and both hold.
+
+Both buttons open from the keyboard with Enter, Space or the down arrow, with
+the focus on the first row, also on the first press, before the menu's code has
+arrived.
 
 The menu needs script. Sign out and the way into the administration are also
 in the served page as a plain form and a plain link, inside a `noscript`, so a
-browser without script keeps both.
+browser without script keeps both. They take room the menu does not: the
+header is a row with a least height that wraps, so on a narrow window without
+script that end goes under the rest of the bar and the page is not pushed
+sideways.
 
 ## The shell and its contract
 

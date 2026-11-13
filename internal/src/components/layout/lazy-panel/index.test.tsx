@@ -36,14 +36,7 @@ function Button({ load }: { load: () => Promise<typeof Panel> }) {
 		return <Loaded how={lazy.press} />;
 	}
 	return (
-		<button
-			type="button"
-			aria-busy={lazy.loading}
-			onFocus={lazy.warm}
-			onClick={(event) =>
-				lazy.open(event.detail === 0 ? "keyboard" : "pointer")
-			}
-		>
+		<button type="button" aria-busy={lazy.loading} {...lazy.trigger}>
 			open
 		</button>
 	);
@@ -107,6 +100,38 @@ describe("useLazyPanel", () => {
 		expect(await screen.findByRole("status")).toHaveTextContent(
 			"panel opened by pointer",
 		);
+	});
+
+	it("opens on the down arrow as a keyboard press, and keeps the page from scrolling", async () => {
+		render(<Probe load={async () => Panel} />);
+
+		// `fireEvent` answers false when the default was prevented.
+		const scrolls = fireEvent.keyDown(
+			screen.getByRole("button", { name: "open" }),
+			{ key: "ArrowDown" },
+		);
+
+		expect(scrolls).toBe(false);
+		expect(await screen.findByRole("status")).toHaveTextContent(
+			"panel opened by keyboard",
+		);
+	});
+
+	it("leaves every other key alone", async () => {
+		const load = mock(async () => Panel);
+		render(<Probe load={load} />);
+		const button = screen.getByRole("button", { name: "open" });
+
+		for (const key of ["ArrowUp", "ArrowRight", "Tab", "a", "Escape"]) {
+			expect([key, fireEvent.keyDown(button, { key })]).toEqual([
+				key,
+				true,
+			]);
+		}
+		await Promise.resolve();
+
+		expect(load).not.toHaveBeenCalled();
+		expect(screen.queryByRole("status")).toBeNull();
 	});
 
 	it("keeps the button, says so and lets the next press try again when the code cannot be fetched", async () => {

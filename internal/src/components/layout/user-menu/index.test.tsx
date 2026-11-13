@@ -58,6 +58,17 @@ describe("UserMenu", () => {
 		);
 	});
 
+	it("opens it on the down arrow too, before it was ever opened, with the focus on the first item", async () => {
+		render(<UserMenu name="ana" sessionRole="user" />);
+
+		fireEvent.keyDown(account(), { key: "ArrowDown" });
+
+		const items = await screen.findAllByRole("menuitemradio");
+		await waitFor(() =>
+			expect(document.activeElement).toBe(items[0] as HTMLElement),
+		);
+	});
+
 	it("hands the menu the account, its role and the way into the administration", async () => {
 		render(
 			<UserMenu name="ops" sessionRole="admin" adminHref="/app/abc" />,

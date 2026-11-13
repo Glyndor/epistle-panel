@@ -66,6 +66,48 @@ describe("HeaderActions", () => {
 		expect(fallback).toContain("<form");
 	});
 
+	it("lets the fallback wrap, so a narrow window without script is not pushed sideways", () => {
+		const html = renderToStaticMarkup(
+			<HeaderActions
+				name="ana"
+				sessionRole="admin"
+				adminHref="/app/abc"
+			/>,
+		);
+		const end = /^<div class="([^"]*)"/.exec(html)?.[1] ?? "";
+		const fallback =
+			/^<span class="([^"]*)"/.exec(withoutScript(html))?.[1] ?? "";
+
+		for (const classes of [end, fallback]) {
+			expect(classes.split(" ")).toEqual(
+				expect.arrayContaining(["flex", "flex-wrap", "justify-end"]),
+			);
+		}
+	});
+
+	it("draws the fallback's link and button at the size of every other control, not the small one", () => {
+		const fallback = withoutScript(
+			renderToStaticMarkup(
+				<HeaderActions
+					name="ana"
+					sessionRole="admin"
+					adminHref="/app/abc"
+				/>,
+			),
+		);
+		const controls = [
+			...fallback.matchAll(/<(?:a|button) [^>]*class="([^"]*)"/g),
+		];
+
+		expect(controls).toHaveLength(2);
+		for (const [, classes] of controls) {
+			expect(classes?.split(" ")).toEqual(
+				expect.arrayContaining(["min-h-8", "pointer-coarse:min-h-11"]),
+			);
+			expect(classes).not.toContain("min-h-6");
+		}
+	});
+
 	it("uses no inline style", () => {
 		expect(
 			renderToStaticMarkup(

@@ -1,3 +1,4 @@
+import type { KeyboardEvent, MouseEvent } from "react";
 import { useState } from "react";
 
 import { toast } from "@/components/ui/toaster";
@@ -7,10 +8,12 @@ export type Press = "pointer" | "keyboard";
 
 /**
  * A panel whose code is fetched the first time it is asked for: a menu that a
- * page should not carry until someone reaches for it. `warm` starts the
- * download early (on hover or focus) and `open` shows the panel once it is
- * there. When the download fails, `failed`, a sentence already translated, is
- * shown as a toast and the next `open` tries again.
+ * page should not carry until someone reaches for it. `trigger` is what the
+ * button standing in for it listens to: hover and focus start the download
+ * early, and a press shows the panel once it is there. A press is a click, the
+ * way Enter and Space arrive too, or the down arrow, which opens a menu button
+ * as well. When the download fails, `failed`, a sentence already translated,
+ * is shown as a toast and the next press tries again.
  *
  * It keeps its own state on purpose, not `React.lazy` under `Suspense`. A
  * download that fails must leave the button it was asked from in place, so
@@ -29,8 +32,13 @@ export function useLazyPanel<Panel>(
 	press: Press | undefined;
 	/** Asked for and still on its way. */
 	loading: boolean;
-	warm: () => void;
-	open: (press: Press) => void;
+	/** The handlers of the button that stands in for the panel. */
+	trigger: {
+		onPointerEnter: () => void;
+		onFocus: () => void;
+		onClick: (event: MouseEvent) => void;
+		onKeyDown: (event: KeyboardEvent) => void;
+	};
 } {
 	const [panel, setPanel] = useState<Panel>();
 	const [press, setPress] = useState<Press>();
@@ -53,5 +61,20 @@ export function useLazyPanel<Panel>(
 			.finally(() => setLoading(false));
 	};
 
-	return { panel, press, loading, warm, open };
+	const trigger = {
+		onPointerEnter: warm,
+		onFocus: warm,
+		// A click that Enter or Space made has no pointer behind it.
+		onClick: (event: MouseEvent) =>
+			open(event.detail === 0 ? "keyboard" : "pointer"),
+		onKeyDown: (event: KeyboardEvent) => {
+			if (event.key === "ArrowDown") {
+				// The arrow would scroll the page behind the menu it opens.
+				event.preventDefault();
+				open("keyboard");
+			}
+		},
+	};
+
+	return { panel, press, loading, trigger };
 }

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import {
 	cleanup,
 	fireEvent,
@@ -203,6 +203,56 @@ describe("UserMenuPanel", () => {
 		const [write] = writes("__Host-epistle_session");
 		expect(write?.value).toBe("");
 		expect(write?.options).toMatchObject({ maxAge: 0 });
+	});
+
+	it("ends the session once: while it is on its way the rows wait and a second press sends nothing", async () => {
+		await cookies.signIn();
+		const seen: unknown[] = [];
+		// The action checks the session token first. Held there, sign out is
+		// on its way for as long as the case needs to look.
+		const verify = crypto.subtle.verify.bind(crypto.subtle);
+		let release: () => void = () => {};
+		const gate = new Promise<void>((resolve) => {
+			release = resolve;
+		});
+		const held = spyOn(crypto.subtle, "verify").mockImplementation(
+			async (...args: Parameters<typeof verify>) => {
+				await gate;
+				return verify(...args);
+			},
+		);
+		try {
+			renderPanel({ adminHref: "/app/abc", sessionRole: "admin" }, (e) =>
+				seen.push(e),
+			);
+			fireEvent.click(
+				await screen.findByRole("menuitem", { name: "logout" }),
+			);
+			const button = screen.getByRole("button", { name: "account" });
+			await waitFor(() =>
+				expect(button).toHaveAttribute("aria-busy", "true"),
+			);
+
+			// Opened again while the first press is still on its way.
+			fireEvent.keyDown(button, { key: "Enter" });
+			const again = await screen.findByRole("menuitem", {
+				name: "logout",
+			});
+			expect(again).toHaveAttribute("data-disabled");
+			for (const row of screen.getAllByRole("menuitemradio")) {
+				expect(row).toHaveAttribute("data-disabled");
+			}
+			fireEvent.click(again);
+			await Promise.resolve();
+			expect(held).toHaveBeenCalledTimes(1);
+		} finally {
+			release();
+		}
+
+		await waitFor(() => expect(seen).toHaveLength(1));
+		held.mockRestore();
+		expect(seen[0]).toBeInstanceOf(RedirectSignal);
+		expect(writes("__Host-epistle_session")).toHaveLength(1);
 	});
 
 	it("keeps the list inside the window: no wider than it, and scrolling inside when it is short", async () => {

@@ -47,13 +47,14 @@ export function UserMenuPanel({
 	const theme = useThemeChoice();
 	const [leaving, startLeaving] = useTransition();
 	const content = useFirstItemFocus(defaultOpen && focusFirstItem);
-	// One choice at a time: a second one waits for the first to be stored.
-	const storing = language.pending || theme.pending;
+	// One thing at a time in this menu: while a choice is being stored, or the
+	// session is being ended, the rows wait.
+	const busy = language.pending || theme.pending || leaving;
 
 	return (
 		<DropdownMenu defaultOpen={defaultOpen}>
 			<DropdownMenuTrigger asChild>
-				<UserTrigger name={name} aria-busy={storing || leaving} />
+				<UserTrigger name={name} aria-busy={busy} />
 			</DropdownMenuTrigger>
 			<DropdownMenuContent
 				ref={content}
@@ -71,13 +72,13 @@ export function UserMenuPanel({
 				<LanguageOptions
 					locale={language.locale}
 					onChoose={language.choose}
-					disabled={storing}
+					disabled={busy}
 				/>
 				<DropdownMenuSeparator />
 				<ThemeOptions
 					choice={theme.choice}
 					onChoose={theme.choose}
-					disabled={storing}
+					disabled={busy}
 				/>
 				<DropdownMenuSeparator />
 				{adminHref === undefined ? null : (
@@ -89,6 +90,7 @@ export function UserMenuPanel({
 					</DropdownMenuItem>
 				)}
 				<DropdownMenuItem
+					disabled={busy}
 					onSelect={() =>
 						startLeaving(async () => {
 							await logout();

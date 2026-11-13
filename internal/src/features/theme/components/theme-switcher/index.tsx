@@ -16,7 +16,8 @@ const loadMenu = () =>
  * real trigger, so the page carries none of the menu code and nothing moves
  * when the menu arrives. Hover and focus only warm the download; a press swaps
  * in the real menu already open. Opened with the pointer the menu takes the
- * focus; opened from the keyboard its first item does. Closing it returns the
+ * focus; opened from the keyboard (Enter, Space or the down arrow) its first
+ * item does. Closing it returns the
  * focus to the button. If the code cannot be fetched the button stays, a
  * toast says so and the next press tries again.
  */
@@ -35,12 +36,7 @@ export function ThemeSwitcher() {
 			aria-haspopup="menu"
 			aria-expanded="false"
 			aria-busy={menu.loading}
-			onPointerEnter={menu.warm}
-			onFocus={menu.warm}
-			// A click that Enter or Space made has no pointer behind it.
-			onClick={(event) =>
-				menu.open(event.detail === 0 ? "keyboard" : "pointer")
-			}
+			{...menu.trigger}
 		/>
 	);
 }

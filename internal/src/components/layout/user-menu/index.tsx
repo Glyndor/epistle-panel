@@ -16,7 +16,8 @@ const loadPanel = () =>
  * carries none of the menu code and nothing moves when the menu arrives.
  * Hover and focus only warm the download; a press swaps in the real menu
  * already open, with the focus on its first item when the press came from
- * the keyboard. Closing it returns the focus to the button. If the code
+ * the keyboard (Enter, Space or the down arrow). Closing it returns the focus
+ * to the button. If the code
  * cannot be fetched the button stays, a toast says so and the next press
  * tries again.
  */
@@ -51,12 +52,7 @@ export function UserMenu({
 			aria-haspopup="menu"
 			aria-expanded="false"
 			aria-busy={menu.loading}
-			onPointerEnter={menu.warm}
-			onFocus={menu.warm}
-			// A click that Enter or Space made has no pointer behind it.
-			onClick={(event) =>
-				menu.open(event.detail === 0 ? "keyboard" : "pointer")
-			}
+			{...menu.trigger}
 		/>
 	);
 }

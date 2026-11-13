@@ -15,7 +15,8 @@ import type { SessionRole } from "@/lib/auth/session";
  *
  * The menu needs script. Without it the two things nobody can do without stay
  * reachable: the way into the administration and sign out, a plain link and a
- * plain form, here in a `noscript`.
+ * plain form, here in a `noscript`. They take room the menu does not, so this
+ * end wraps under the rest of the bar where the window is narrow.
  */
 export function HeaderActions({
 	name,
@@ -29,7 +30,7 @@ export function HeaderActions({
 	const t = useTranslations("nav");
 
 	return (
-		<div className="ml-auto flex items-center gap-2">
+		<div className="ml-auto flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
 			<ThemeSwitcher />
 			<UserMenu
 				name={name}
@@ -37,14 +38,14 @@ export function HeaderActions({
 				adminHref={adminHref}
 			/>
 			<noscript>
-				<span className="flex items-center gap-2">
+				<span className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
 					{adminHref === undefined ? null : (
-						<Button asChild variant="ghost" size="sm">
+						<Button asChild variant="ghost">
 							<a href={adminHref}>{t("administration")}</a>
 						</Button>
 					)}
 					<form action={logout}>
-						<Button type="submit" variant="ghost" size="sm">
+						<Button type="submit" variant="ghost">
 							<LogOutIcon aria-hidden="true" />
 							{t("logout")}
 						</Button>

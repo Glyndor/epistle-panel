@@ -84,4 +84,22 @@ describe("SiteHeader", () => {
 			buttons.map((b) => b.querySelector(".sr-only")?.textContent),
 		).toEqual(["toggle", "themeCurrent", "account"]);
 	});
+
+	it("is one row that may wrap: a least height, never a fixed one", async () => {
+		render(
+			<SidebarProvider>
+				{await SiteHeader({ user: { name: "ops", role: "admin" } })}
+			</SidebarProvider>,
+		);
+
+		const classes = screen.getByRole("banner").className.split(" ");
+		expect(classes).toEqual(
+			expect.arrayContaining([
+				"flex-wrap",
+				"min-h-10",
+				"pointer-coarse:min-h-14",
+			]),
+		);
+		expect(classes.filter((name) => /(^|:)h-\d/.test(name))).toEqual([]);
+	});
 });

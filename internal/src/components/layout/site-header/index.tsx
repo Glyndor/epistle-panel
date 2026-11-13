@@ -7,7 +7,10 @@ import type { SessionRole } from "@/lib/auth/session";
 /**
  * The bar above the page content: the sidebar toggle, the product name where
  * the sidebar is a sheet and, at the far end, the theme button and the profile
- * menu. The page's own heading stays in the page.
+ * menu. The page's own heading stays in the page. The bar is one row; it
+ * wraps instead of pushing the page sideways when its content does not fit,
+ * as on a narrow window without script, where the plain link and form of
+ * `HeaderActions` are shown as well.
  */
 export async function SiteHeader({
 	user,
@@ -21,7 +24,7 @@ export async function SiteHeader({
 	const t = await getTranslations("nav");
 
 	return (
-		<header className="flex h-10 shrink-0 items-center gap-2 px-2 pointer-coarse:h-14">
+		<header className="flex min-h-10 shrink-0 flex-wrap items-center gap-x-2 gap-y-1 px-2 py-1 pointer-coarse:min-h-14">
 			<SidebarTrigger label={t("toggle")} />
 			<span className="font-semibold text-sm md:sr-only">
 				{getBrand().name}
