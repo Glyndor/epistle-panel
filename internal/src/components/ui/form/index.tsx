@@ -25,7 +25,10 @@ interface FormFieldContextValue {
 const FormFieldContext = React.createContext<FormFieldContextValue | null>(
 	null,
 );
-const FormItemContext = React.createContext<{ id: string } | null>(null);
+const FormItemContext = React.createContext<{
+	id: string;
+	described: boolean;
+} | null>(null);
 
 /** One field of the form, wired to react-hook-form through a `Controller`. */
 function FormField<
@@ -65,16 +68,28 @@ function useFormField() {
 		name: field.name,
 		formItemId: `${item.id}-form-item`,
 		formMessageId: `${item.id}-form-item-message`,
+		/** The id of the help text, when the item says it has one. */
+		formDescriptionId: item.described
+			? `${item.id}-form-item-description`
+			: undefined,
 		...getFieldState(field.name, formState),
 	};
 }
 
-/** Groups a label, a control and a message with one shared id. */
-function FormItem({ className, ...props }: React.ComponentProps<"div">) {
+/**
+ * Groups a label, a control and a message with one shared id. `described` says
+ * the item holds a `FormDescription`, so the control names it as its
+ * description from the first render, on the server too.
+ */
+function FormItem({
+	className,
+	described = false,
+	...props
+}: React.ComponentProps<"div"> & { described?: boolean }) {
 	const id = React.useId();
 
 	return (
-		<FormItemContext.Provider value={{ id }}>
+		<FormItemContext.Provider value={{ id, described }}>
 			<div
 				data-slot="form-item"
 				className={cn("grid gap-2", className)}
@@ -104,19 +119,46 @@ function FormLabel({
 
 /**
  * The control itself. It gets the field's id, `aria-invalid` and an
- * `aria-describedby` that names the message only while there is one, so a screen
- * reader is not pointed at an element that does not exist. Props passed to it
- * win, so a caller can point the control at a message of its own.
+ * `aria-describedby` that names the help text when the item has one and the
+ * message only while there is one, so a screen reader is not pointed at an
+ * element that does not exist. Props passed to it win, so a caller can point
+ * the control at a message of its own.
  */
 function FormControl(props: React.ComponentProps<typeof Slot>) {
-	const { error, formItemId, formMessageId } = useFormField();
+	const { error, formItemId, formMessageId, formDescriptionId } =
+		useFormField();
+	const describedBy = [formDescriptionId, error ? formMessageId : undefined]
+		.filter((id) => id !== undefined)
+		.join(" ");
 
 	return (
 		<Slot
 			data-slot="form-control"
 			id={formItemId}
-			aria-describedby={error ? formMessageId : undefined}
+			aria-describedby={describedBy === "" ? undefined : describedBy}
 			aria-invalid={error ? true : undefined}
+			{...props}
+		/>
+	);
+}
+
+/**
+ * The help text of the field. Its item must be marked `described`, which is
+ * what makes the control point at it.
+ */
+function FormDescription({ className, ...props }: React.ComponentProps<"p">) {
+	const { formDescriptionId } = useFormField();
+	if (formDescriptionId === undefined) {
+		throw new Error(
+			"FormDescription needs its FormItem to be marked `described`.",
+		);
+	}
+
+	return (
+		<p
+			data-slot="form-description"
+			id={formDescriptionId}
+			className={cn("text-muted-foreground text-xs", className)}
 			{...props}
 		/>
 	);
@@ -155,6 +197,7 @@ function FormMessage({
 export {
 	Form,
 	FormControl,
+	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,

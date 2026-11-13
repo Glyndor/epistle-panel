@@ -27,6 +27,39 @@ A form is react-hook-form with a zod schema that the Server Action enforces too.
   form test that did so made the action's own tests fail in some orders. They
   run the real action with `fetch` stubbed.
 
+## Three checks, in order
+
+A field is checked three times, each time by something that knows more.
+
+1. **The browser**, from the field's own attributes: `required`, `minLength`,
+   `maxLength`, `pattern`, `type`, `inputMode`. It runs before any script and
+   costs nothing. Write the attributes from the same constants the schema uses,
+   and test that they agree (`account-create-form` does: the HTML pattern, the
+   form schema and the action schema accept exactly the same names).
+2. **The schema**, in the form: what attributes cannot say (every line of a
+   text area is an address, no control character in a name), with a message per
+   field.
+3. **The server**, twice: the Server Action parses the schema again, since the
+   browser's two checks are bypassed by anyone who posts by hand, and the mail
+   server decides what only it knows (the name is free, the address is in a
+   hosted domain, the password is not in its list of leaked ones). Its refusal
+   comes back as a category, never its words: the API's message can quote what
+   was sent, a password included.
+
+A `pattern` is compiled by the browser with the `v` flag, where a bare `-` at
+the end of a class is a syntax error. The browser then ignores the attribute
+and logs an error, and the field checks nothing. happy-dom does not do this, so
+a unit test passed while Chromium refused the pattern: escape the hyphen, and
+test the attribute with `new RegExp(pattern, "v")`.
+
+The sign-in form sets `noValidate` after hydration so its own messages replace
+the browser's bubbles. A form with rules the browser can enforce (the
+new-account form) leaves the browser's check on.
+
+A help text goes in `FormDescription`, and its `FormItem` is marked
+`described`: the control is then described by the help from the first render,
+and by the help and the error once there is one.
+
 The field-level spacing is the adopted contract of the design bar: 8 px between
 label, control and message, 16 px between fields. A message appearing moves what
 is below it by its height plus the gap (24 px for one line).
