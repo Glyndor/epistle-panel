@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-
 import { SidebarProvider } from "@/components/ui/sidebar/provider";
+import { SUPPORTED_LOCALES } from "@/i18n/locales";
 
 const { LanguageSwitcher } = await import(".");
 
@@ -42,7 +42,9 @@ describe("LanguageSwitcher", () => {
 		fireEvent.click(screen.getByRole("button", { name: "language" }));
 
 		expect(await screen.findByRole("menu")).toBeInTheDocument();
-		expect(await screen.findAllByRole("menuitemradio")).toHaveLength(2);
+		expect(await screen.findAllByRole("menuitemradio")).toHaveLength(
+			SUPPORTED_LOCALES.length,
+		);
 		expect(screen.getByRole("menu")).toContainElement(
 			document.activeElement as HTMLElement,
 		);

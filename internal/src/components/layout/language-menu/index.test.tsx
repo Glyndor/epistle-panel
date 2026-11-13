@@ -6,8 +6,8 @@ import {
 	screen,
 	waitFor,
 } from "@testing-library/react";
-
 import { SidebarProvider } from "@/components/ui/sidebar/provider";
+import { LOCALE_NAMES, SUPPORTED_LOCALES } from "@/i18n/locales";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
 import { resetIntl } from "@/test/next-intl";
 
@@ -39,16 +39,19 @@ describe("LanguageMenu", () => {
 		expect(await screen.findByRole("menu")).toBeInTheDocument();
 	});
 
-	it("lists both languages with the current one checked", async () => {
+	it("lists every shipped language by its own name, the current one checked", async () => {
 		renderMenu({ defaultOpen: true });
 
 		const items = await screen.findAllByRole("menuitemradio");
 		expect(items.map((item) => item.getAttribute("lang"))).toEqual([
-			"en",
-			"es",
+			...SUPPORTED_LOCALES,
 		]);
-		expect(items[0]).toHaveAttribute("aria-checked", "true");
-		expect(items[1]).toHaveAttribute("aria-checked", "false");
+		expect(items.map((item) => item.textContent)).toEqual(
+			SUPPORTED_LOCALES.map((code) => LOCALE_NAMES[code]),
+		);
+		expect(items.map((item) => item.getAttribute("aria-checked"))).toEqual(
+			SUPPORTED_LOCALES.map((code) => String(code === "en")),
+		);
 	});
 
 	it("stores the chosen language through the Server Action for a signed-in admin", async () => {
@@ -56,7 +59,7 @@ describe("LanguageMenu", () => {
 		renderMenu({ defaultOpen: true });
 
 		fireEvent.click(
-			await screen.findByRole("menuitemradio", { name: "languageEs" }),
+			await screen.findByRole("menuitemradio", { name: "Español" }),
 		);
 
 		await waitFor(() => {
@@ -73,7 +76,7 @@ describe("LanguageMenu", () => {
 		renderMenu({ defaultOpen: true });
 
 		fireEvent.click(
-			await screen.findByRole("menuitemradio", { name: "languageEn" }),
+			await screen.findByRole("menuitemradio", { name: "English" }),
 		);
 		await new Promise((resolve) => setTimeout(resolve, 20));
 

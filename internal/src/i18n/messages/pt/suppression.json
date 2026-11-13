@@ -1,0 +1,17 @@
+{
+	"heading": "Lista de supressão",
+	"description": "Endereços para os quais o servidor não envia, por exemplo após uma rejeição permanente. Retirar um endereço da lista permite que ele volte a receber mensagens.",
+	"unreachable": "Não foi possível acessar a API de gerenciamento do servidor de correio. Verifique se o servidor está em execução e se o painel está configurado.",
+	"empty": "Nenhum endereço suprimido.",
+	"address": "Endereço",
+	"remove": "Remover",
+	"removing": "Removendo…",
+	"removeLabel": "Remover {address} da lista de supressão",
+	"removeError": "Não foi possível remover o endereço. Tente novamente.",
+	"confirm": "Retirar {address} da lista de supressão? O servidor voltará a enviar mensagens para ele.",
+	"next": "Próxima página",
+	"actions": "Ações",
+	"filter": "Filtrar esta página",
+	"first": "Primeira página",
+	"removed": "Endereço retirado da lista de supressão."
+}

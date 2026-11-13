@@ -1,0 +1,7 @@
+{
+	"rows": "{total, plural, =0 {Nessuna riga} one {# riga} other {{shown} di # righe}}",
+	"noMatches": "Nessuna riga corrisponde al filtro.",
+	"sortable": "ordinabile",
+	"sortedAscending": "ordine crescente",
+	"sortedDescending": "ordine decrescente"
+}

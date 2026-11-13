@@ -1,0 +1,37 @@
+{
+	"heading": "Consegne",
+	"description": "Cosa è successo a ogni messaggio per ogni destinatario, dal più recente. Gli orari sono in UTC.",
+	"unreachable": "L’API di gestione del server di posta non è raggiungibile. Verifica che il server sia in esecuzione e che il pannello sia configurato.",
+	"disabled": "Il registro delle consegne è disattivato sul server. Imposta una conservazione superiore a 0 giorni nelle impostazioni di archiviazione del server per registrare le consegne.",
+	"empty": "Nessuna consegna corrisponde.",
+	"full": "L’API restituisce al massimo 100 record e non ha una pagina successiva. Restringi l’elenco con i filtri per vedere gli altri.",
+	"filter": "Filtra questi record",
+	"time": "Ora (UTC)",
+	"outcome": "Esito",
+	"recipient": "Destinatario",
+	"from": "Da",
+	"account": "Account",
+	"remote": "Server remoto",
+	"reply": "Risposta",
+	"attempt": "Tentativo",
+	"none": "-",
+	"any": "Qualsiasi esito",
+	"anyTime": "Qualsiasi momento",
+	"since": "Da",
+	"apply": "Applica",
+	"clear": "Cancella",
+	"outcomes": {
+		"delivered": "Consegnato",
+		"deferred": "Differito",
+		"failed": "Non riuscito",
+		"suppressed": "Soppresso",
+		"canceled": "Annullato"
+	},
+	"windows": {
+		"15m": "Ultimi 15 minuti",
+		"1h": "Ultima ora",
+		"24h": "Ultime 24 ore",
+		"7d": "Ultimi 7 giorni",
+		"30d": "Ultimi 30 giorni"
+	}
+}

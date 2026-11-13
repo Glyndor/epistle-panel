@@ -1,0 +1,8 @@
+{
+	"heading": "Account",
+	"unreachable": "L’API di gestione del server di posta non è raggiungibile. Verifica che il server sia in esecuzione e che il pannello sia configurato.",
+	"empty": "Nessun account è ancora configurato.",
+	"name": "Account",
+	"addresses": "Indirizzi",
+	"filter": "Filtra gli account"
+}
