@@ -18,6 +18,7 @@
 	"displayNameCleared": "Display name cleared.",
 	"displayNameTooLong": "Use at most 128 characters.",
 	"displayNameControl": "Remove the control characters and line breaks.",
+	"displayNameFormat": "A name on one line, with no control characters.",
 	"displayNameRefused": "The server refused this name.",
 	"passwordTitle": "Password",
 	"passwordHelp": "12 to 64 printable ASCII characters. The new password applies at once and the old one stops working.",

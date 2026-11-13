@@ -1,7 +1,11 @@
 import { describe, expect, it } from "bun:test";
 
 import { mailAddressSchema } from "@/lib/mail-address";
-import { isMailAddress, MAX_ADDRESS_LENGTH } from ".";
+import {
+	isMailAddress,
+	MAIL_ADDRESS_HTML_PATTERN,
+	MAX_ADDRESS_LENGTH,
+} from ".";
 
 describe("isMailAddress", () => {
 	const cases: unknown[] = [
@@ -41,5 +45,24 @@ describe("isMailAddress", () => {
 		expect(
 			isMailAddress(`${"a".repeat(MAX_ADDRESS_LENGTH - 6)}@x.test`),
 		).toBe(false);
+	});
+
+	it("gives a browser the same rule as an input's pattern, which the browser anchors and compiles with the v flag", () => {
+		const pattern = new RegExp(`^(?:${MAIL_ADDRESS_HTML_PATTERN})$`, "v");
+		// The length is the `maxlength` attribute's part, and an empty field is
+		// `required`'s: a pattern is never asked about either.
+		const texts = cases.filter(
+			(value): value is string =>
+				typeof value === "string" &&
+				value !== "" &&
+				value.length <= MAX_ADDRESS_LENGTH,
+		);
+		expect(texts.length).toBeGreaterThan(8);
+		for (const value of texts) {
+			expect([value, pattern.test(value)]).toEqual([
+				value,
+				isMailAddress(value),
+			]);
+		}
 	});
 });

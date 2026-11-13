@@ -172,6 +172,9 @@ describe("LoginForm with a CAPTCHA", () => {
 
 	it("clears the error as soon as the challenge is solved", async () => {
 		await ready();
+		// Filled in: the browser's own check stops a form with an empty field first.
+		await type("name", "ops");
+		await type("password", "pw");
 		await submit();
 		await screen.findByText("captchaRequired");
 

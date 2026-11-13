@@ -1,7 +1,10 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
-import type { DeliveryFilters } from "@/features/deliveries/schemas/deliveries-input";
+import {
+	type DeliveryFilters,
+	parseFilterParams,
+} from "@/features/deliveries/schemas/deliveries-input";
 import { TEST_ADMIN_ID } from "@/lib/config/test-support/admin-id";
 import { adminRoutes } from "@/lib/routes";
 
@@ -74,5 +77,35 @@ describe("DeliveriesFilters", () => {
 			"maxlength",
 			"254",
 		);
+	});
+
+	it("lets the browser say what is not an address, with the rule the server reads the parameter by", () => {
+		open();
+		const recipient = screen.getByLabelText(
+			"recipient",
+		) as HTMLInputElement;
+
+		expect(recipient).not.toBeRequired();
+		expect(recipient).toHaveAttribute("title", "recipientFormat");
+		for (const [value, accepted] of [
+			["", true],
+			["ana@example.org", true],
+			["ålice@exämple.test", true],
+			["ana", false],
+			["ana@", false],
+			["a b@example.org", false],
+			["a@b@c", false],
+		] as const) {
+			fireEvent.change(recipient, { target: { value } });
+			expect([value, recipient.checkValidity()]).toEqual([
+				value,
+				accepted,
+			]);
+			expect([
+				value,
+				parseFilterParams({ recipient: value }).recipient !==
+					undefined || value === "",
+			]).toEqual([value, accepted]);
+		}
 	});
 });

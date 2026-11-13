@@ -47,24 +47,61 @@ const setup = () =>
 describe("PasswordSection", () => {
 	useActionEnvironment(cookies);
 
-	it("is a password field that browsers treat as a new password, bounded to 64", () => {
+	it("is a password field that browsers treat as a new password, with one character of room over its 64", () => {
 		setup();
 
 		expect(field()).toHaveAttribute("type", "password");
 		expect(field()).toHaveAttribute("autocomplete", "new-password");
-		expect(field()).toHaveAttribute("maxlength", "64");
+		expect(field()).toBeRequired();
+		expect(field()).toHaveAttribute("minlength", "12");
+		// One over the schema's 64: a paste the browser cuts is then too long, not
+		// a shorter password nobody typed.
+		expect(field()).toHaveAttribute("maxlength", "65");
 	});
 
-	it("names a short, and a non-ASCII, password and sends nothing", async () => {
+	it("a password the browser cut to the field's length is named too long, and is not set", async () => {
 		setup();
 
-		await type("short");
+		await type("p".repeat(65));
+		expect(field().checkValidity()).toBe(true);
 		await submit();
-		expect(await screen.findByText("passwordTooShort")).toBeInTheDocument();
+
+		expect(await screen.findByText("passwordTooLong")).toBeInTheDocument();
+		expect(puts()).toHaveLength(0);
+	});
+
+	it("the browser stops an empty and a short password before any script", async () => {
+		setup();
+
+		expect(field().validity.valueMissing).toBe(true);
+		await submit();
+		await type("short");
+		expect(field().validity.tooShort).toBe(true);
+		await submit();
+
+		expect(screen.queryByText("passwordTooShort")).toBeNull();
+		expect(puts()).toHaveLength(0);
+	});
+
+	it("the schema names what the attributes cannot say: a character outside printable ASCII", async () => {
+		setup();
+
 		await type(`${PASSWORD}é`);
 		await submit();
 
 		expect(await screen.findByText("passwordCharset")).toBeInTheDocument();
+		expect(puts()).toHaveLength(0);
+	});
+
+	it("a form submitted past the browser's check is stopped by the schema, which names a short password", async () => {
+		setup();
+
+		await type("short");
+		await act(async () => {
+			fireEvent.submit(field().closest("form") as HTMLFormElement);
+		});
+
+		expect(await screen.findByText("passwordTooShort")).toBeInTheDocument();
 		expect(puts()).toHaveLength(0);
 	});
 

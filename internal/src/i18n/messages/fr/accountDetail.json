@@ -18,6 +18,7 @@
 	"displayNameCleared": "Nom d’affichage effacé.",
 	"displayNameTooLong": "Utilisez 128 caractères au maximum.",
 	"displayNameControl": "Supprimez les caractères de contrôle et les sauts de ligne.",
+	"displayNameFormat": "Un nom sur une seule ligne, sans caractères de contrôle.",
 	"displayNameRefused": "Le serveur a refusé ce nom.",
 	"passwordTitle": "Mot de passe",
 	"passwordHelp": "De 12 à 64 caractères ASCII imprimables. Le nouveau mot de passe s’applique immédiatement et l’ancien cesse de fonctionner.",

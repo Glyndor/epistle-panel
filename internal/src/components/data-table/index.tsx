@@ -63,6 +63,9 @@ export function columnHelper<TData extends RowData>() {
 /** Keeps `data` referentially stable when a query has none yet. */
 const NO_ROWS: never[] = [];
 
+/** Longest text the filter takes, in characters: no value a row shows is longer than an address. */
+const FILTER_MAX = 254;
+
 interface DataTableProps<TData extends RowData> {
 	columns: DataTableColumn<TData>[];
 	data: readonly TData[] | undefined;
@@ -118,6 +121,7 @@ export function DataTable<TData extends RowData>({
 			<div className="flex flex-wrap items-center gap-2">
 				<Input
 					type="search"
+					maxLength={FILTER_MAX}
 					value={filter}
 					onChange={(event) => setFilter(event.target.value)}
 					aria-label={filterLabel}

@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
 	MAX_COMPOSE_ATTACHMENTS,
 	MAX_COMPOSE_TEXT,
+	MAX_SUBJECT,
 } from "@/features/mail/schemas/compose-input-limits";
 import { messageIdSchema } from "@/features/mail/schemas/mail-input";
 import { isAddress, MAX_RECIPIENTS } from "@/features/mail/schemas/recipients";
@@ -50,7 +51,7 @@ export const composeInputSchema = z.strictObject({
 	to: recipientsSchema,
 	cc: recipientsSchema,
 	bcc: recipientsSchema,
-	subject: z.string().max(998).regex(control),
+	subject: z.string().max(MAX_SUBJECT).regex(control),
 	text: z.string().max(MAX_COMPOSE_TEXT),
 	attachments: z
 		.array(

@@ -18,6 +18,7 @@
 	"displayNameCleared": "Nome visualizzato rimosso.",
 	"displayNameTooLong": "Usa al massimo 128 caratteri.",
 	"displayNameControl": "Rimuovi i caratteri di controllo e le interruzioni di riga.",
+	"displayNameFormat": "Un nome su una sola riga, senza caratteri di controllo.",
 	"displayNameRefused": "Il server ha rifiutato questo nome.",
 	"passwordTitle": "Password",
 	"passwordHelp": "Da 12 a 64 caratteri ASCII stampabili. La nuova password vale subito e la vecchia smette di funzionare.",

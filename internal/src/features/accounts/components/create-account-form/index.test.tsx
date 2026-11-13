@@ -69,7 +69,9 @@ describe("CreateAccountForm", () => {
 
 		const name = field("nameLabel");
 		expect(name).toBeRequired();
-		expect(name).toHaveAttribute("maxlength", "64");
+		// Each length is one over the schema's: a paste the browser cuts is then
+		// over the limit and named, not sent short.
+		expect(name).toHaveAttribute("maxlength", "65");
 		expect(name).toHaveAttribute("pattern", "[a-z0-9][a-z0-9\\-]{0,63}");
 		// A browser compiles the attribute with the `v` flag; it must be valid there.
 		expect(
@@ -77,8 +79,15 @@ describe("CreateAccountForm", () => {
 		).not.toThrow();
 		expect(name).toHaveAttribute("autocapitalize", "none");
 		expect(name).toHaveAccessibleDescription("nameHelp");
-		expect(field("displayNameLabel")).toHaveAttribute("maxlength", "128");
+		// The server counts a name by code point and the attribute by UTF-16
+		// unit: twice the limit, so a name of 128 emoji is not cut.
+		expect(field("displayNameLabel")).toHaveAttribute("maxlength", "256");
+		expect(field("displayNameLabel")).toHaveAttribute(
+			"pattern",
+			"[^\\p{Cc}]*",
+		);
 		expect(field("addressesLabel")).toBeRequired();
+		expect(field("addressesLabel")).toHaveAttribute("maxlength", "5161");
 		expect(field("addressesLabel")).toHaveAccessibleDescription(
 			"addressesHelp",
 		);
@@ -86,30 +95,41 @@ describe("CreateAccountForm", () => {
 		expect(password).toHaveAttribute("type", "password");
 		expect(password).toBeRequired();
 		expect(password).toHaveAttribute("minlength", "12");
-		expect(password).toHaveAttribute("maxlength", "64");
+		expect(password).toHaveAttribute("maxlength", "65");
 		expect(password).toHaveAttribute("autocomplete", "new-password");
 	});
 
 	it("the browser's own check stops a name or a password outside its attributes, before any script", async () => {
 		setup();
 
-		await fill({ name: "Alice", password: "short" });
+		await fill({
+			name: "Alice",
+			displayName: "a\u0007b",
+			password: "short",
+		});
 		expect(field("nameLabel").validity.patternMismatch).toBe(true);
+		expect(field("displayNameLabel").validity.patternMismatch).toBe(true);
 		expect(field("passwordLabel").validity.tooShort).toBe(true);
 		await submit();
 
 		expect(field("nameLabel").checkValidity()).toBe(false);
+		expect(screen.queryByText("displayNameControl")).toBeNull();
 		expect(posts()).toHaveLength(0);
 	});
 
 	it("the schema names what the attributes cannot express, and sends nothing", async () => {
 		setup();
 
-		await fill({ addresses: "not-an-address", displayName: "a\u0007b" });
+		// A list of addresses has no pattern a browser can check, and a name is
+		// counted by code point: 129 letters fit the input's 256 units.
+		await fill({
+			addresses: "not-an-address",
+			displayName: "a".repeat(129),
+		});
 		await submit();
 
 		expect(await screen.findByText("addressesInvalid")).toBeInTheDocument();
-		expect(screen.getByText("displayNameControl")).toBeInTheDocument();
+		expect(screen.getByText("displayNameTooLong")).toBeInTheDocument();
 		expect(field("addressesLabel")).toHaveAttribute("aria-invalid", "true");
 		expect(posts()).toHaveLength(0);
 	});
@@ -117,7 +137,11 @@ describe("CreateAccountForm", () => {
 	it("a form submitted past the browser's check is still stopped by the schema, field by field", async () => {
 		setup();
 
-		await fill({ name: "Alice", password: "short" });
+		await fill({
+			name: "Alice",
+			displayName: "a\u0007b",
+			password: "short",
+		});
 		// What a script does when it submits without the browser's validation.
 		await act(async () => {
 			fireEvent.submit(
@@ -128,6 +152,7 @@ describe("CreateAccountForm", () => {
 		});
 
 		expect(await screen.findByText("nameInvalid")).toBeInTheDocument();
+		expect(screen.getByText("displayNameControl")).toBeInTheDocument();
 		expect(screen.getByText("passwordTooShort")).toBeInTheDocument();
 		expect(posts()).toHaveLength(0);
 	});

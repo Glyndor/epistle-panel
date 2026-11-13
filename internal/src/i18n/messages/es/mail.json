@@ -102,6 +102,7 @@
 	"recipientsHint": "Separa las direcciones con comas.",
 	"invalidRecipients": "Estas direcciones no son válidas: {list}",
 	"needRecipient": "Añade al menos un destinatario.",
+	"recipientsTooLong": "Esta lista de destinatarios es demasiado larga.",
 	"subjectTooLong": "El asunto es demasiado largo.",
 	"bodyTooLong": "El mensaje es demasiado largo.",
 	"attach": "Adjuntar archivos",

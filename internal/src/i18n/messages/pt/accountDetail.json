@@ -18,6 +18,7 @@
 	"displayNameCleared": "Nome de exibição removido.",
 	"displayNameTooLong": "Use no máximo 128 caracteres.",
 	"displayNameControl": "Remova os caracteres de controle e as quebras de linha.",
+	"displayNameFormat": "Um nome numa só linha, sem caracteres de controlo.",
 	"displayNameRefused": "O servidor recusou este nome.",
 	"passwordTitle": "Senha",
 	"passwordHelp": "De 12 a 64 caracteres ASCII imprimíveis. A nova senha vale imediatamente e a anterior deixa de funcionar.",

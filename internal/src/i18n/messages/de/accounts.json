@@ -48,5 +48,6 @@
 	"passwordTooLong": "Verwenden Sie höchstens 64 Zeichen.",
 	"passwordCharset": "Verwenden Sie nur druckbare ASCII-Zeichen: Buchstaben, Ziffern, Leerzeichen und gängige Satzzeichen.",
 	"displayNameTooLong": "Verwenden Sie höchstens 128 Zeichen.",
-	"displayNameControl": "Entfernen Sie die Steuerzeichen und Zeilenumbrüche."
+	"displayNameControl": "Entfernen Sie die Steuerzeichen und Zeilenumbrüche.",
+	"displayNameFormat": "Ein Name in einer Zeile, ohne Steuerzeichen."
 }

@@ -18,6 +18,7 @@
 	"displayNameCleared": "Anzeigename entfernt.",
 	"displayNameTooLong": "Verwenden Sie höchstens 128 Zeichen.",
 	"displayNameControl": "Entfernen Sie die Steuerzeichen und Zeilenumbrüche.",
+	"displayNameFormat": "Ein Name in einer Zeile, ohne Steuerzeichen.",
 	"displayNameRefused": "Der Server hat diesen Namen abgelehnt.",
 	"passwordTitle": "Passwort",
 	"passwordHelp": "12 bis 64 druckbare ASCII-Zeichen. Das neue Passwort gilt sofort, das alte funktioniert nicht mehr.",

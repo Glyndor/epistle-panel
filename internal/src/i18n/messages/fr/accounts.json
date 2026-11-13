@@ -48,5 +48,6 @@
 	"passwordTooLong": "Utilisez 64 caractères au maximum.",
 	"passwordCharset": "Utilisez uniquement des caractères ASCII imprimables : lettres, chiffres, espaces et ponctuation courante.",
 	"displayNameTooLong": "Utilisez 128 caractères au maximum.",
-	"displayNameControl": "Supprimez les caractères de contrôle et les sauts de ligne."
+	"displayNameControl": "Supprimez les caractères de contrôle et les sauts de ligne.",
+	"displayNameFormat": "Un nom sur une seule ligne, sans caractères de contrôle."
 }
