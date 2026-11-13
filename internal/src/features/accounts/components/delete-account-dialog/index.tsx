@@ -20,7 +20,7 @@ import { toast } from "@/components/ui/toaster";
 import { reportFailure } from "@/features/account-detail/queries/action-feedback";
 import { deleteAccountAction } from "@/features/accounts/actions/delete-account";
 import { accountsKeys } from "@/features/accounts/queries/accounts-query";
-import { QUEUE_CHOICES, type QueueChoice } from "@/lib/api/schemas";
+import { QUEUE_CHOICES, type QueueChoice } from "@/lib/api/queue-choices";
 import { isOneOf } from "@/lib/is-one-of";
 import { ActionError } from "@/lib/query/action-result";
 

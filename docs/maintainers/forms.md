@@ -9,6 +9,19 @@ A form is react-hook-form with a zod schema that the Server Action enforces too.
   (the sign-in page carries the core and the resolver, about 17 KB gzip, not the
   full library). The message of a failed check is a message key of the form's
   namespace; the component translates it with `FormMessage render`.
+- **Nothing that runs in the browser reaches the full `zod`.** The full build
+  compiles object schemas with `new Function` and tries it once to see whether
+  it may; under the panel's policy that try is refused and reported as a
+  `script-src` violation. It does not show in the console, only as a
+  `securitypolicyviolation` event (DevTools lists it under Issues). The delete
+  dialog imported one constant from `lib/api/schemas` and brought the library
+  and every API schema into `/accounts` with it. A value the page needs from a
+  schema (a list of choices, a pattern, a limit) lives in a file with no
+  dependency, which the schema imports, not the other way round
+  (`lib/api/queue-choices`, `lib/mail-address-pattern`,
+  `mail/schemas/compose-input-limits`). `src/test/client-without-zod` walks the
+  imports of every `"use client"` module and fails on a chain that ends in
+  `zod`, naming the chain.
 - **`components/ui/form`** is the shadcn Form on the panel's tokens. Each field
   subscribes to its own state (`useFormState({ name })`), so typing in one field
   does not re-render the others. `FormControl` sets the id, `aria-invalid` and
