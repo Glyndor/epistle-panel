@@ -213,10 +213,6 @@ editor and no signature.
   rich text, no address book or completion, no forwarding of attachments.
 - Inline `cid:` images (shown as attachments for now), conversation threads
   (epistle has none), push updates (the list polls every 30 s while visible).
-- Native `<select>`, `<details>` and `<kbd>` stand in for shadcn components that
-  are not installed yet (`language-select`, `headers-disclosure`,
-  `shortcuts-help`). They sit behind their own components so they can be replaced
-  by `select`, `collapsible` and `kbd` when those land.
 - The real JMAP was not run; the stand-in follows the source. Measure against a
   running epistle before relying on any row above.
 
