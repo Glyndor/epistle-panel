@@ -4,10 +4,10 @@ import { currentMailSession } from "@/features/mail/jmap/credentials";
 import { composeMessage } from "@/features/mail/queries/compose-message";
 import { isSameOrigin } from "@/features/mail/responses/same-origin";
 import { composeInputSchema } from "@/features/mail/schemas/compose-input";
+import { MAX_COMPOSE_BYTES } from "@/features/mail/schemas/compose-input-limits";
 import { logApiFailure } from "@/lib/api/log-failure";
 
-/** Largest request the composer's route reads, in bytes: the body limit plus room for the JSON around it. */
-export const MAX_COMPOSE_BYTES = 1_500_000;
+export { MAX_COMPOSE_BYTES };
 
 function answer(status: number, body: unknown): Response {
 	return new Response(JSON.stringify(body), {
