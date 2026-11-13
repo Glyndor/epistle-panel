@@ -268,7 +268,7 @@ describe("proxy", () => {
 			`${ID}%00`,
 			`${ID}%20`,
 			"３f2b8c1e-5d4a-4b7e-9c3d-1a2b3c4d5e6f",
-			ID.replace("f", "%66").toUpperCase(),
+			ID.replaceAll("f", "%66").toUpperCase(),
 		]) {
 			const response = await proxy(
 				request(session, `/app/${segment}/queue`),
