@@ -34,6 +34,8 @@ export interface LoggedRequest {
 	name?: string;
 	/** For a CAPTCHA verification: whether the secret matched, and whether the token solved it. */
 	captcha?: { secret: "valid" | "wrong"; token: "solved" | "unsolved" };
+	/** For a JMAP request: the names of its method calls, in order, arguments left out. */
+	jmap?: string[];
 }
 
 /** Options of {@link createStandIn}. */
@@ -315,7 +317,9 @@ export function createStandIn(options: StandInOptions) {
 				})),
 			});
 		}
-		const mail = await jmap.handle(request, url);
+		const mail = await jmap.handle(request, url, (names) => {
+			entry.jmap = names;
+		});
 		if (mail !== null) {
 			return mail;
 		}

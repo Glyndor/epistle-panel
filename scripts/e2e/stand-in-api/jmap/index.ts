@@ -111,9 +111,10 @@ export function createJmapStore() {
 		return result === null ? ["error", { type: "requestTooLarge" }, id] : [name, result, id];
 	}
 
-	async function handle(request: Request, url: URL): Promise<Response | null> {
+	async function handle(request: Request, url: URL, note?: (names: string[]) => void): Promise<Response | null> {
 		if (url.pathname === "/jmap/api" && request.method === "POST") {
 			const body = (await request.json()) as { methodCalls?: Call[] };
+			note?.((body.methodCalls ?? []).map(([name]) => name));
 			return json({ methodResponses: (body.methodCalls ?? []).map(method), sessionState: "0" });
 		}
 		const upload = /^\/jmap\/upload\/([^/]+)$/.exec(url.pathname);
