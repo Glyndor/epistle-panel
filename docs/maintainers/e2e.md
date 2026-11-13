@@ -40,7 +40,7 @@ the line limit:
 | `scripts/e2e/lib/reporting.sh` | the pass and fail counters and the `assert_*` helpers |
 | `scripts/e2e/lib/processes.sh` | secrets, start and restart of the stand-in and the panel, its control calls |
 | `scripts/e2e/lib/http.sh` | `fetch`, `login`, the form-field readers, memory and CPU counters |
-| `scripts/e2e/scenarios/<name>.sh` | one scenario each: `headers`, `logout`, `limiter`, `limiter-global`, `noauth`, `degraded`, `rotation`, `idle`, `theme`, `theme-choice`, `profile-menu`, `body-limit`, `captcha`, `csrf`, `set-locale`, `unknown-variable`, `suppression`, `deliveries`, `account-detail`, `accounts`, `breadcrumbs`, `admin-id`, `mail`, `streaming` |
+| `scripts/e2e/scenarios/<name>.sh` | one scenario each: `headers`, `logout`, `limiter`, `limiter-global`, `noauth`, `degraded`, `rotation`, `idle`, `theme`, `theme-choice`, `profile-menu`, `body-limit`, `captcha`, `csrf`, `set-locale`, `unknown-variable`, `suppression`, `deliveries`, `account-detail`, `accounts`, `breadcrumbs`, `admin-id`, `mail`, `streaming`, `tables` |
 
 Every run generates its own admin id (a fresh UUID v4, `admin_id`, and `adm` for the
 admin path) and passes it as `EPISTLE_PANEL_ADMIN_ID`; nothing in the repository
@@ -66,7 +66,11 @@ and `ops` (admins) and `user` (not an admin), keeps a suppression list
 address) and a delivery log (`stand-in-api/deliveries.ts`, filters and
 limit as the API takes them, no cursor), logs every request without any
 secret, and switches the data endpoints to `hang` or `huge` through
-`POST /__control/mode`. The per-account endpoints (`stand-in-api/accounts/`)
+`POST /__control/mode`. `POST /__control/seed` with `{"accounts": n, "domains": m}`
+(0 to 500 each) makes the accounts and domains lists long enough to page:
+accounts `seed-001` onwards, every fourth one declared in the configuration
+file, and domains `d001.example.test` onwards, every third one switched off;
+the reset takes them away. The per-account endpoints (`stand-in-api/accounts/`)
 follow epistle's OpenAPI document: the display name, the password policy, TOTP,
 masked addresses with a cap of three, the archive (only `admin` has one, the
 others answer `404` like a server with retention off) and mailboxes. It keeps
@@ -100,6 +104,7 @@ secret: a password is only counted.
 | `admin-id` | one sign-in for an admin and a non-admin, both sent to `/app/mail`, one cookie; the mail page offers the admin area to an admin only (the link is built with the id), never to a user, and the id is in no page or header a user gets; a user session with the right id gets the same 404 on a page and on a Server Action and the API sees nothing; an admin session with another id, an upper-case id, `/app` or an old path gets it too; a token whose payload role was edited to `admin` fails its signature; the id is in no public page, header, `robots.txt`, 404, public static file or log line; the id read from `EPISTLE_PANEL_ADMIN_ID_FILE` works and the previous one stops; with no id the start logs it and the admin area is off even for an admin; a malformed id (not a UUID, upper case, v1, v7, one character too long) stops the start with a message that names the variable and not the value |
 | `mail` | `/app/mail`, its framed body route and its attachment route are denied without a session (to the sign-in page) and reach no endpoint; with one the inbox, a folder, a page, the filters and the search render; hostile parameters fall back to the default view; a subject and addresses with line breaks and bidi controls are text; a text body keeps its markup as text; the framed body of a hostile message (script, svg onload, css `url()`, meta refresh, base, `javascript:`, handlers, iframe, form, mutation payloads) carries none of it, under a `default-src 'none'` policy that only the panel may frame; remote images are blocked and load only with `?images=1`; attachments are downloads with a forced type and a clean name, and only a part the message lists; hostile ids answer 404 and cost no JMAP call; the change action is redirected without a session, refuses a hostile id, operation or folder before JMAP, and read, star, unstar, archive (new id), trash, delete from the trash, move and spam change the stand-in's mailbox as epistle would; the composer page renders with no inline style, a reply and a forward are prefilled from cleaned text (a hostile message's code never reaches the quote), a hostile id opens it empty; the compose and upload routes are redirected without a session and refuse a foreign, missing or null origin, a body that is not JSON and every hostile body before any JMAP call; a draft is stored from the account's own address with its Bcc, saving again replaces it, a 12 MB attachment arrives whole and 27 MB is refused, sending delivers to To and Bcc with the attachment, keeps a copy in Sent and removes the draft, and a send the server refuses answers a category without the server's words and keeps the work as a draft |
 | `streaming` | with the stand-in API taking two seconds per answer (`POST /__control/delay`), every admin list page answers 200, sends its first byte at least a second before its data, carries a loading placeholder in that first part and still has a nonce in its policy; the data arrives later in the same response; with the delay off the page is quick again. A page with no `Suspense` around its data and no `loading.tsx` above it fails the first-byte check. The webmail sends its frame the same way; its folders are asked of the server once for the whole page, however many panes read them, and a view whose address names its folder does not wait for the folder tree (the stand-in logs the method names of a JMAP request, never its arguments) |
+| `tables` | with 132 accounts and 61 domains seeded: the page holds the 25 rows of the first page and not the 26th, the range ("1–25 of 132"), one empty live region and no other, a named filter field, a named landmark with one button per page, the current one marked, previous marked as having nowhere to go, the page in words for a narrow window, the size select on 25 with its four options, the Filters button, and the origin or the state of each row in words, with no inline style; the API was asked for the list once; the queue and the suppression list have the API's own page link and neither page controls nor a Filters menu; the delivery log, whose five records fit one page, has its range and page size, no page controls and no Filters menu; the seed leaves with the reset. Pressing the controls is not covered here: paging and the facets are state in the browser, which curl does not run |
 | `theme` | `/theme.css`, `/brand/logo` and `/brand/favicon` answer without a session when configured and 404 when not; the sign-in page links the stylesheet and shows the name, the logo and the original copyright notice; the CSP is the same with and without a theme; look-alike paths stay behind the gate; a symlink, an oversized or a missing file is a 404 and a log line with no path, and a symlink or a FIFO as the logo is refused the same way; an SVG with script is refused, also when `javascript:` is written with numeric character references |
 
 ## Origin check of Server Actions, measured
@@ -192,6 +197,16 @@ the console open.
    closes). In every step the console must show no CSP violation. A violation
    listener (`document.addEventListener("securitypolicyviolation", ...)`
    installed before the page loads) catches the ones the console shows late.
+8. Tables: `curl -X POST <stand-in>/__control/seed -d '{"accounts":129,"domains":60}'`,
+   then on `accounts`: Next shows other rows and the range moves to 26–50 of
+   132; a page number, the size select, a sort and the text filter each change
+   the rows, and the last three go back to the first page; Enter on Next up to
+   the last page keeps the focus on Next; Filters opens with Enter on its
+   first box, Space ticks a box, the menu stays open and only matching rows are
+   left, Escape returns the focus to the button; a text with no match offers
+   "Clear filters", which brings the rows back and focuses the filter field.
+   The unit tests do not run React Compiler, so this is where a part that
+   shows stale rows would be seen.
 
 ## Measured on 2026-11-12 (Node 24, Next 16.4.6)
 

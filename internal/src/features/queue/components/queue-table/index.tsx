@@ -33,14 +33,16 @@ export function QueueTable({ cursor }: { cursor: string | undefined }) {
 		helper.accessor("from", {
 			header: t("from"),
 			cell: (info) => (
-				<span className="break-all font-mono">{info.getValue()}</span>
+				<span className="wrap-anywhere font-mono">
+					{info.getValue()}
+				</span>
 			),
 		}),
 		helper.accessor((row) => row.recipients.join(", "), {
 			id: "to",
 			header: t("to"),
 			cell: (info) => (
-				<span className="break-all text-muted-foreground">
+				<span className="wrap-anywhere text-muted-foreground">
 					{info.getValue()}
 				</span>
 			),
@@ -77,6 +79,8 @@ export function QueueTable({ cursor }: { cursor: string | undefined }) {
 			getRowId={getRowId}
 			filterLabel={t("filter")}
 			emptyLabel={t("empty")}
+			// The API pages this list with its cursor: not a second time here.
+			pagination={false}
 			toolbar={
 				<>
 					{cursor !== undefined ? (

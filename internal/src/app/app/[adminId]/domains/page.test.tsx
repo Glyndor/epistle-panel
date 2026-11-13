@@ -43,8 +43,9 @@ describe("DomainsPage", () => {
 
 		expect(screen.getByRole("table")).toBeInTheDocument();
 		const headers = screen.getAllByRole("columnheader");
-		expect(headers).toHaveLength(1);
+		expect(headers).toHaveLength(2);
 		expect(headers[0]).toHaveTextContent("name");
+		expect(headers[1]).toHaveTextContent("state");
 		expect(screen.getAllByRole("row")).toHaveLength(3);
 	});
 

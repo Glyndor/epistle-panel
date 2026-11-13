@@ -2,7 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 
 import {
 	AlertDialog,
@@ -31,26 +31,60 @@ const CHOICE_LABELS = {
 } as const satisfies Record<QueueChoice, string>;
 
 /**
+ * Where the focus goes once an account is deleted. The row that opened the
+ * dialog is gone with it, so the focus cannot return there and would fall on
+ * the page's body: it goes to the filter field of the table instead, or to
+ * the page's heading when no table is drawn. Says whether it found one of the
+ * two; when it did not, the dialog's own return of the focus is left alone.
+ */
+function focusAfterRemoval(): boolean {
+	const main = document.getElementById("main-content");
+	const field = main?.querySelector<HTMLElement>('input[name="filter"]');
+	if (field) {
+		field.focus();
+		return true;
+	}
+	const heading = main?.querySelector<HTMLElement>("h1");
+	if (heading) {
+		heading.tabIndex = -1;
+		heading.focus();
+		return true;
+	}
+	return false;
+}
+
+/**
  * Asks before an account is deleted, and what to do with the mail it still has
  * queued, a choice the API requires so nothing is dropped by omission. The
  * safe one, letting it be delivered, is chosen to start with. Cancel takes the
  * first focus and Escape closes without acting. The dialog is controlled: the
- * row's menu opens it.
+ * row's menu opens it. When it closes the focus goes back to the control that
+ * opened it, or, once the account and its row are gone, to the table's filter
+ * field.
  */
 export function DeleteAccountDialog({
 	name,
 	open,
 	onOpenChange,
+	returnFocus,
 }: {
 	name: string;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
+	/**
+	 * The control that opened the dialog. The dialog is controlled, so it has
+	 * no trigger of its own to give the focus back to when it closes without
+	 * deleting; without this the focus would fall on the page's body.
+	 */
+	returnFocus?: React.RefObject<HTMLElement | null>;
 }) {
 	const t = useTranslations("accounts");
 	const client = useQueryClient();
 	const group = useId();
 	const [queue, setQueue] = useState<QueueChoice>("drain");
 	const [pending, setPending] = useState(false);
+	/** Set once the server has deleted the account: the row is about to leave. */
+	const removed = useRef(false);
 
 	const remove = async () => {
 		setPending(true);
@@ -60,6 +94,7 @@ export function DeleteAccountDialog({
 				reportFailure(new ActionError(result.reason), t("unavailable"));
 				return;
 			}
+			removed.current = result.data.kind === "done";
 			if (result.data.kind !== "done") {
 				toast.error(t("deleteGone"));
 			} else if (result.data.value.left > 0) {
@@ -87,7 +122,20 @@ export function DeleteAccountDialog({
 
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>
-			<AlertDialogContent>
+			<AlertDialogContent
+				// The dialog's own return of the focus has nowhere to go (it
+				// looks for a trigger of its own, and this dialog has none),
+				// so nothing has to be cancelled here: only a place chosen.
+				onCloseAutoFocus={() => {
+					if (removed.current && focusAfterRemoval()) {
+						return;
+					}
+					const opener = returnFocus?.current;
+					if (opener?.isConnected) {
+						opener.focus();
+					}
+				}}
+			>
 				<AlertDialogHeader>
 					<AlertDialogTitle className="break-all">
 						{t("deleteTitle", { name })}

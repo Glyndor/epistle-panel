@@ -1,72 +1,71 @@
 import {
-	type ColumnDef,
-	columnFilteringFeature,
-	createColumnHelper,
-	createFilteredRowModel,
-	createSortedRowModel,
-	filterFn_includesString,
-	globalFilteringFeature,
 	type RowData,
-	rowSortingFeature,
 	type SortingState,
-	sortFn_alphanumeric,
-	tableFeatures,
 	useTable,
 } from "@tanstack/react-table";
-import {
-	ArrowDownIcon,
-	ArrowUpDownIcon,
-	ArrowUpIcon,
-	InboxIcon,
-} from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useDeferredValue, useState } from "react";
+import { useDeferredValue, useMemo, useRef, useState } from "react";
 
-import { Empty, EmptyDescription, EmptyIcon } from "@/components/ui/empty";
-import { Input } from "@/components/ui/input";
+import { DataTableAnnouncer } from "@/components/data-table/announcer";
 import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
+	type DataTableFacet,
+	type DataTableFiltersMenuProps,
+	type FacetSelection,
+	NO_FACETS,
+	toColumnFilters,
+	toggleFacet,
+} from "@/components/data-table/facets";
+import {
+	type DataTableColumn,
+	dataTableFeatures,
+} from "@/components/data-table/features";
+import { DataTableHeader } from "@/components/data-table/header";
+import { DataTableNoRows } from "@/components/data-table/no-rows";
+import { DataTablePagination } from "@/components/data-table/pagination";
+import {
+	clampPageIndex,
+	DEFAULT_PAGE_SIZE,
+	type PageSize,
+	pageIndexForSize,
+	pageRange,
+} from "@/components/data-table/paging";
+import { DataTableToolbar } from "@/components/data-table/toolbar";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 
-/**
- * The features every table of the panel registers: sorting and a text filter
- * over the rows it was given. Nothing else is registered, so nothing else is
- * bundled (no pagination, selection or grouping code). The server owns
- * pagination for the queue, through its cursor.
- */
-export const dataTableFeatures = tableFeatures({
-	rowSortingFeature,
-	columnFilteringFeature,
-	globalFilteringFeature,
-	sortedRowModel: createSortedRowModel(),
-	filteredRowModel: createFilteredRowModel(),
-	sortFns: { alphanumeric: sortFn_alphanumeric },
-	filterFns: { includesString: filterFn_includesString },
-});
-
-/** A column of a panel table. Build them with {@link columnHelper}. */
-export type DataTableColumn<TData extends RowData> = ColumnDef<
-	typeof dataTableFeatures,
-	TData
->;
-
-/** Typed column builder for the panel's tables. */
-export function columnHelper<TData extends RowData>() {
-	return createColumnHelper<typeof dataTableFeatures, TData>();
-}
+export type {
+	DataTableFacet,
+	DataTableFiltersMenuProps,
+} from "@/components/data-table/facets";
+export {
+	columnHelper,
+	type DataTableColumn,
+	type DataTableColumnMeta,
+	dataTableFeatures,
+} from "@/components/data-table/features";
 
 /** Keeps `data` referentially stable when a query has none yet. */
 const NO_ROWS: never[] = [];
 
-/** Longest text the filter takes, in characters: no value a row shows is longer than an address. */
-const FILTER_MAX = 254;
+/**
+ * The facets of a table and the menu that shows them go together, or not at
+ * all. The menu is handed in, not imported here: it brings the Radix menu with
+ * it, which a table with no facets (the queue, the suppression list, the
+ * delivery log) should not carry. Pass `DataTableFiltersMenu` from
+ * `data-table/filters-menu`.
+ */
+type FacetProps =
+	| { facets?: undefined; filtersMenu?: undefined }
+	| {
+			/**
+			 * The columns the Filters menu narrows by. Each names a column
+			 * whose accessor returns one of the option values.
+			 */
+			facets: readonly DataTableFacet[];
+			/** The component that draws the Filters button and its menu. */
+			filtersMenu: React.ComponentType<DataTableFiltersMenuProps>;
+	  };
 
-interface DataTableProps<TData extends RowData> {
+type DataTableProps<TData extends RowData> = FacetProps & {
 	columns: DataTableColumn<TData>[];
 	data: readonly TData[] | undefined;
 	/** Stable id of a row, such as the queue entry id. */
@@ -77,17 +76,36 @@ interface DataTableProps<TData extends RowData> {
 	emptyLabel: string;
 	/** Extra content on the right of the filter bar, such as the page links. */
 	toolbar?: React.ReactNode;
-}
+	/**
+	 * Split the rows into pages, here in the browser. Turn it off for a list
+	 * the server already pages (the queue and the suppression list, which
+	 * pass their page links in `toolbar`), so it is not paged twice.
+	 */
+	pagination?: boolean;
+};
 
 /**
- * A compact table with column sorting and a text filter, on TanStack Table.
+ * A compact table with column sorting, a text filter, facets and pages, on
+ * TanStack Table.
  *
  * Reads happen in this component's own render (`table.state`, `getRowModel`),
  * so React Compiler sees them: a child that read table state through a builder
- * method would be memoised against a stable object and show stale rows. Sorting
- * and filtering are client side, over the rows the query returned. The filter
- * input is urgent and the table follows it through `useDeferredValue`, so typing
- * stays responsive while a long list re-filters.
+ * method would be memoised against a stable object and show stale rows. The
+ * parts below it (bar, header, foot, menu) take plain values for that reason.
+ *
+ * Sorting, filtering and paging are client side, over the rows the query
+ * returned, and their state lives in this component: it is not in the URL, so
+ * a reload starts again from the first page with no filter. The filter input
+ * is urgent and the table follows it through `useDeferredValue`, so typing
+ * stays responsive while a long list re-filters. A change of the rows is said
+ * to a screen reader by one live region, half a second after they settle.
+ *
+ * The page goes back to the first one when the order or a filter changes, by
+ * hand. The table is given no way to write the page (no `onPaginationChange`)
+ * and its own reset is off as well: that reset also fires when the data
+ * changes, which would throw the viewer off their page on every refresh. When
+ * the list gets shorter under the page on screen, the last page that still
+ * has rows is shown instead.
  */
 export function DataTable<TData extends RowData>({
 	columns,
@@ -96,131 +114,164 @@ export function DataTable<TData extends RowData>({
 	filterLabel,
 	emptyLabel,
 	toolbar,
+	facets,
+	filtersMenu: FiltersMenu,
+	pagination: paged = true,
 }: DataTableProps<TData>) {
 	const t = useTranslations("table");
+	const filterInput = useRef<HTMLInputElement>(null);
 	const [sorting, setSorting] = useState<SortingState>([]);
 	const [filter, setFilter] = useState("");
+	const [selection, setSelection] = useState<FacetSelection>(NO_FACETS);
+	const [page, setPage] = useState<{ pageIndex: number; pageSize: PageSize }>(
+		{ pageIndex: 0, pageSize: DEFAULT_PAGE_SIZE },
+	);
 	const deferredFilter = useDeferredValue(filter);
+	const columnFilters = useMemo(
+		() => toColumnFilters(selection),
+		[selection],
+	);
+	const toFirstPage = () =>
+		setPage((current) =>
+			current.pageIndex === 0 ? current : { ...current, pageIndex: 0 },
+		);
 
 	const table = useTable({
 		features: dataTableFeatures,
 		columns,
 		data: (data as TData[] | undefined) ?? (NO_ROWS as TData[]),
 		getRowId,
-		state: { sorting, globalFilter: deferredFilter },
-		onSortingChange: setSorting,
-		onGlobalFilterChange: setFilter,
+		state: {
+			sorting,
+			globalFilter: deferredFilter,
+			columnFilters,
+			pagination: page,
+		},
+		onSortingChange: (updater) => {
+			setSorting(updater);
+			toFirstPage();
+		},
 		globalFilterFn: "includesString",
+		defaultColumn: { filterFn: "oneOf" },
+		autoResetPageIndex: false,
 	});
 
-	const rows = table.getRowModel().rows;
 	const total = data?.length ?? 0;
+	const matched = table.getPrePaginatedRowModel().rows.length;
+	const pageIndex = clampPageIndex(page.pageIndex, matched, page.pageSize);
+	if (paged && pageIndex !== page.pageIndex) {
+		// The list got shorter under the page on screen: step back to the
+		// last page with rows before anything is painted.
+		setPage({ ...page, pageIndex });
+	}
+	const rows = paged
+		? table.getRowModel().rows
+		: table.getPrePaginatedRowModel().rows;
+
+	const count = t("rows", { shown: matched, total });
+	// What a screen reader is told when the rows change: the range of a paged
+	// table, the count of one that is not, or that nothing matches.
+	const { from, to } = pageRange(pageIndex, page.pageSize, matched);
+	const announcement =
+		total === 0
+			? ""
+			: matched === 0
+				? t("noMatches")
+				: paged
+					? t("range", { from, to, count: matched })
+					: count;
+
+	const headerRows = table.getHeaderGroups().map((group) => ({
+		id: group.id,
+		cells: group.headers.map((header) => {
+			const column = header.column;
+			const title = column.columnDef.header;
+			const sortTitle =
+				!header.isPlaceholder &&
+				column.getCanSort() &&
+				typeof title === "string"
+					? title
+					: undefined;
+			return {
+				id: header.id,
+				sorted: column.getIsSorted(),
+				sortTitle,
+				onToggleSort:
+					sortTitle === undefined
+						? undefined
+						: column.getToggleSortingHandler(),
+				content: header.isPlaceholder ? null : (
+					<table.FlexRender header={header} />
+				),
+				className: column.columnDef.meta?.className,
+			};
+		}),
+	}));
 
 	return (
-		<div className="flex flex-col gap-2">
-			<div className="flex flex-wrap items-center gap-2">
-				<Input
-					type="search"
-					maxLength={FILTER_MAX}
-					value={filter}
-					onChange={(event) => setFilter(event.target.value)}
-					aria-label={filterLabel}
-					placeholder={filterLabel}
-					className="max-w-64"
-				/>
-				<p className="text-muted-foreground" aria-live="polite">
-					{t("rows", { shown: rows.length, total })}
-				</p>
-				{toolbar ? (
-					<div className="ms-auto flex items-center gap-2">
-						{toolbar}
-					</div>
-				) : null}
-			</div>
-			<Table>
-				<TableHeader>
-					{table.getHeaderGroups().map((group) => (
-						<TableRow key={group.id}>
-							{group.headers.map((header) => {
-								const column = header.column;
-								const sorted = column.getIsSorted();
-								const title = column.columnDef.header;
-								return (
-									<TableHead
-										key={header.id}
-										scope="col"
-										aria-sort={
-											sorted === "asc"
-												? "ascending"
-												: sorted === "desc"
-													? "descending"
-													: undefined
-										}
-									>
-										{header.isPlaceholder ? null : column.getCanSort() &&
-											typeof title === "string" ? (
-											<button
-												type="button"
-												onClick={column.getToggleSortingHandler()}
-												className="-mx-1 inline-flex min-h-6 items-center gap-1 rounded-md px-1 font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring pointer-coarse:min-h-11"
-											>
-												{title}
-												{sorted === "asc" ? (
-													<ArrowUpIcon
-														className="size-3.5"
-														aria-hidden="true"
-													/>
-												) : sorted === "desc" ? (
-													<ArrowDownIcon
-														className="size-3.5"
-														aria-hidden="true"
-													/>
-												) : (
-													<ArrowUpDownIcon
-														className="size-3.5 text-muted-foreground"
-														aria-hidden="true"
-													/>
-												)}
-												<span className="sr-only">
-													{sorted === "asc"
-														? t("sortedAscending")
-														: sorted === "desc"
-															? t(
-																	"sortedDescending",
-																)
-															: t("sortable")}
-												</span>
-											</button>
-										) : (
-											<table.FlexRender header={header} />
-										)}
-									</TableHead>
+		<div className="@container flex flex-col gap-2">
+			<DataTableToolbar
+				filterLabel={filterLabel}
+				filter={filter}
+				onFilterChange={(value) => {
+					setFilter(value);
+					toFirstPage();
+				}}
+				inputRef={filterInput}
+				count={count}
+				filters={
+					FiltersMenu && facets.length > 0 ? (
+						<FiltersMenu
+							facets={facets}
+							selection={selection}
+							onToggle={(columnId, value) => {
+								setSelection((current) =>
+									toggleFacet(current, columnId, value),
 								);
-							})}
-						</TableRow>
-					))}
-				</TableHeader>
+								toFirstPage();
+							}}
+							onClear={() => {
+								setSelection(NO_FACETS);
+								toFirstPage();
+							}}
+						/>
+					) : undefined
+				}
+			>
+				{toolbar}
+			</DataTableToolbar>
+			<Table>
+				<DataTableHeader rows={headerRows} />
 				<TableBody>
 					{rows.length === 0 ? (
-						<TableRow>
-							<TableCell colSpan={columns.length}>
-								<Empty className="p-4">
-									<EmptyIcon>
-										<InboxIcon aria-hidden="true" />
-									</EmptyIcon>
-									<EmptyDescription>
-										{total === 0
-											? emptyLabel
-											: t("noMatches")}
-									</EmptyDescription>
-								</Empty>
-							</TableCell>
-						</TableRow>
+						<DataTableNoRows
+							colSpan={columns.length}
+							emptyLabel={emptyLabel}
+							onClearFilters={
+								// With rows in the list, only a filter leaves
+								// none to show. The text still being typed is
+								// not asked: the rows follow it a moment later.
+								total > 0
+									? () => {
+											setFilter("");
+											setSelection(NO_FACETS);
+											toFirstPage();
+											filterInput.current?.focus();
+										}
+									: undefined
+							}
+						/>
 					) : (
 						rows.map((row) => (
 							<TableRow key={row.id}>
 								{row.getAllCells().map((cell) => (
-									<TableCell key={cell.id}>
+									<TableCell
+										key={cell.id}
+										className={
+											cell.column.columnDef.meta
+												?.className
+										}
+									>
 										<table.FlexRender cell={cell} />
 									</TableCell>
 								))}
@@ -229,6 +280,27 @@ export function DataTable<TData extends RowData>({
 					)}
 				</TableBody>
 			</Table>
+			<DataTableAnnouncer message={announcement} />
+			{paged && matched > 0 ? (
+				<DataTablePagination
+					pageIndex={pageIndex}
+					pageSize={page.pageSize}
+					count={matched}
+					onPageChange={(next) =>
+						setPage({ ...page, pageIndex: next })
+					}
+					onPageSizeChange={(pageSize) =>
+						setPage({
+							pageIndex: pageIndexForSize(
+								page.pageIndex,
+								page.pageSize,
+								pageSize,
+							),
+							pageSize,
+						})
+					}
+				/>
+			) : null}
 		</div>
 	);
 }

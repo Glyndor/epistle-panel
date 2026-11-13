@@ -3,5 +3,8 @@
 	"unreachable": "L’API de gestion du serveur de messagerie est injoignable. Vérifiez que le serveur est en marche et que le panneau est configuré.",
 	"empty": "Aucun domaine n’est encore configuré.",
 	"name": "Domaine",
+	"state": "État",
+	"stateActive": "Actif",
+	"stateDisabled": "Désactivé",
 	"filter": "Filtrer les domaines"
 }

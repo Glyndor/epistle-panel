@@ -7,6 +7,7 @@ import {
 	screen,
 	waitFor,
 } from "@testing-library/react";
+import { useRef, useState } from "react";
 
 import { clearToasts, Toaster } from "@/components/ui/toaster";
 import { useActionEnvironment } from "@/features/account-detail/test-support/action-checks";
@@ -57,6 +58,30 @@ function setup() {
 		),
 	);
 	return onOpenChange;
+}
+
+/**
+ * The dialog as a row mounts it: opened from a control of the row, which it is
+ * told about, and gone from the page once it closes.
+ */
+function Row() {
+	const [open, setOpen] = useState(false);
+	const opener = useRef<HTMLButtonElement>(null);
+	return (
+		<>
+			<button ref={opener} type="button" onClick={() => setOpen(true)}>
+				row actions
+			</button>
+			{open ? (
+				<DeleteAccountDialog
+					name="alice"
+					open
+					onOpenChange={setOpen}
+					returnFocus={opener}
+				/>
+			) : null}
+		</>
+	);
 }
 
 describe("DeleteAccountDialog", () => {
@@ -141,6 +166,95 @@ describe("DeleteAccountDialog", () => {
 		fireEvent.click(screen.getByRole("button", { name: "deleteCancel" }));
 
 		expect(onOpenChange).toHaveBeenCalledWith(false);
+		expect(deletes()).toHaveLength(0);
+	});
+
+	/** A page with the row, opened from its control as a person would. */
+	const page = async (field: boolean) => {
+		render(
+			withQuery(
+				<>
+					<main id="main-content">
+						<h1>Accounts</h1>
+						{field ? (
+							<input
+								type="search"
+								name="filter"
+								aria-label="Filter"
+							/>
+						) : null}
+						<Row />
+					</main>
+					<Toaster label="toasts" closeLabel="close" />
+				</>,
+			),
+		);
+		const opener = screen.getByRole("button", { name: "row actions" });
+		opener.focus();
+		fireEvent.click(opener);
+		await screen.findByRole("alertdialog");
+	};
+
+	it("sends the focus to the table's filter field once the account is deleted, not to the body", async () => {
+		stubRoutes([["DELETE", /accounts\/alice$/, removed(0, 0)]]);
+		await page(true);
+
+		await confirm();
+
+		await waitFor(() =>
+			expect(screen.queryByRole("alertdialog")).toBeNull(),
+		);
+		await waitFor(() =>
+			expect(document.activeElement).toBe(
+				screen.getByRole("searchbox", { name: "Filter" }),
+			),
+		);
+	});
+
+	it("sends it to the page's heading when no table is drawn", async () => {
+		stubRoutes([["DELETE", /accounts\/alice$/, removed(0, 0)]]);
+		await page(false);
+
+		await confirm();
+
+		// The page behind an open dialog is hidden from every query by role.
+		await waitFor(() =>
+			expect(screen.queryByRole("alertdialog")).toBeNull(),
+		);
+		const heading = screen.getByRole("heading", { name: "Accounts" });
+		await waitFor(() => expect(document.activeElement).toBe(heading));
+		expect(heading).toHaveAttribute("tabindex", "-1");
+	});
+
+	it("gives the focus back to the control that opened it when nothing was deleted", async () => {
+		stubRoutes([]);
+		await page(true);
+
+		await confirm();
+
+		await screen.findByText("deleteGone");
+		await waitFor(() =>
+			expect(screen.queryByRole("alertdialog")).toBeNull(),
+		);
+		// The row is still there, and so is its control: not the filter
+		// field, and not the page's body.
+		await waitFor(() =>
+			expect(document.activeElement).toBe(
+				screen.getByRole("button", { name: "row actions" }),
+			),
+		);
+	});
+
+	it("gives the focus back to the control that opened it on Cancel", async () => {
+		await page(true);
+
+		fireEvent.click(screen.getByRole("button", { name: "deleteCancel" }));
+
+		await waitFor(() =>
+			expect(document.activeElement).toBe(
+				screen.getByRole("button", { name: "row actions" }),
+			),
+		);
 		expect(deletes()).toHaveLength(0);
 	});
 });

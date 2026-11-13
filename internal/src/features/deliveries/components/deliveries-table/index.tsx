@@ -62,13 +62,15 @@ export function DeliveriesTable({ filters }: { filters: DeliveryFilters }) {
 		helper.accessor("recipient", {
 			header: t("recipient"),
 			cell: (info) => (
-				<span className="break-all font-mono">{info.getValue()}</span>
+				<span className="wrap-anywhere font-mono">
+					{info.getValue()}
+				</span>
 			),
 		}),
 		helper.accessor("from", {
 			header: t("from"),
 			cell: (info) => (
-				<span className="break-all font-mono">
+				<span className="wrap-anywhere font-mono">
 					{info.getValue() || "<>"}
 				</span>
 			),
@@ -82,7 +84,7 @@ export function DeliveriesTable({ filters }: { filters: DeliveryFilters }) {
 			id: "remote",
 			header: t("remote"),
 			cell: (info) => (
-				<span className="break-all">
+				<span className="wrap-anywhere">
 					{info.getValue() || t("none")}
 				</span>
 			),

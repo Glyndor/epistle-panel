@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+	cleanup,
+	fireEvent,
+	render,
+	screen,
+	waitFor,
+} from "@testing-library/react";
 
 import { useActionEnvironment } from "@/features/account-detail/test-support/action-checks";
 import type { AccountRow } from "@/features/accounts/schemas/accounts-view";
@@ -101,6 +107,24 @@ describe("AccountRowActions", () => {
 		expect(
 			await screen.findByRole("alertdialog", { name: "deleteTitle" }),
 		).toBeInTheDocument();
+		expect(sentRequests()).toHaveLength(0);
+	});
+
+	it("takes the focus back to its button when the confirmation is cancelled", async () => {
+		setup(row());
+		await open();
+		fireEvent.click(screen.getByRole("menuitem", { name: "delete" }));
+		await screen.findByRole("alertdialog", { name: "deleteTitle" });
+
+		fireEvent.click(screen.getByRole("button", { name: "deleteCancel" }));
+
+		// The dialog has no trigger of its own: without the row's button to
+		// return to, the focus would be on the page's body.
+		await waitFor(() =>
+			expect(document.activeElement).toBe(
+				screen.getByRole("button", { name: "actionsFor" }),
+			),
+		);
 		expect(sentRequests()).toHaveLength(0);
 	});
 });

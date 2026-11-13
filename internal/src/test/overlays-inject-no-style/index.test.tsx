@@ -35,6 +35,9 @@ const { CreateAccountDialog } = await import(
 const { AccountRowActions } = await import(
 	"@/features/accounts/components/account-row-actions"
 );
+const { DataTableFiltersMenu } = await import(
+	"@/components/data-table/filters-menu"
+);
 
 afterEach(() => {
 	cleanup();
@@ -187,6 +190,36 @@ describe("overlays and the CSP", () => {
 			key: "Enter",
 		});
 		await screen.findByRole("menu");
+
+		expect(styleElements()).toBe(before);
+		expect(document.body).not.toHaveAttribute("data-scroll-locked");
+	});
+
+	it("the Filters menu of a table adds no style element when opened, nor when a box is ticked", async () => {
+		const before = styleElements();
+		render(
+			<main id="main-content">
+				<DataTableFiltersMenu
+					facets={[
+						{
+							columnId: "state",
+							label: "State",
+							options: [{ value: "active", label: "Active" }],
+						},
+					]}
+					selection={{}}
+					onToggle={() => {}}
+					onClear={() => {}}
+				/>
+			</main>,
+		);
+		fireEvent.keyDown(screen.getByRole("button", { name: "filters" }), {
+			key: "Enter",
+		});
+		await screen.findByRole("menu");
+		fireEvent.click(
+			screen.getByRole("menuitemcheckbox", { name: "Active" }),
+		);
 
 		expect(styleElements()).toBe(before);
 		expect(document.body).not.toHaveAttribute("data-scroll-locked");
