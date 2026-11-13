@@ -1,7 +1,13 @@
 import { describe, expect, it } from "bun:test";
 
 import { assertSafeOutput } from "../test-support/assert-safe";
-import { MAX_DEPTH, MAX_ELEMENTS, MAX_INPUT_LENGTH, sanitizeHtml } from ".";
+import {
+	MAX_DEPTH,
+	MAX_ELEMENTS,
+	MAX_INPUT_LENGTH,
+	MAX_NESTING,
+	sanitizeHtml,
+} from ".";
 
 const BLOCK = { remoteImages: false };
 const LOAD = { remoteImages: true };
@@ -267,6 +273,24 @@ describe("sanitizeHtml: structure and limits", () => {
 	it("survives a hundred thousand nested elements", () => {
 		const result = sanitizeHtml("<div>".repeat(100_000), BLOCK);
 		expect(result.truncated).toBe(true);
+	});
+
+	it("survives deep nesting of elements it unwraps rather than writes", () => {
+		for (const open of ["<x>", "<font>", '<a href="javascript:x">', "<center>"]) {
+			const result = sanitizeHtml(`${open.repeat(100_000)}hi`, BLOCK);
+			expect(result.truncated).toBe(true);
+		}
+	});
+
+	it("keeps the text of unwrapped elements nested below the written-depth limit", () => {
+		const levels = MAX_DEPTH * 3;
+		const result = sanitizeHtml(
+			`${"<font>".repeat(levels)}deep text${"</font>".repeat(levels)}`,
+			BLOCK,
+		);
+		expect(levels).toBeLessThan(MAX_NESTING);
+		expect(result.truncated).toBe(false);
+		expect(result.html).toBe("deep text");
 	});
 
 	it("cuts a body with more elements than the limit", () => {

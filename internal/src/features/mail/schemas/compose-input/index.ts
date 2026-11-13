@@ -15,8 +15,15 @@ const recipientSchema = z.strictObject({
 
 const recipientsSchema = z.array(recipientSchema).max(MAX_RECIPIENTS);
 
-/** The id of an uploaded blob: what epistle issues, never a path. */
-export const blobIdSchema = z.string().regex(/^[0-9a-fA-F-]{8,64}$/);
+/**
+ * The id of a blob as epistle issues it, never a path: an upload's id, or the
+ * part of a stored message as `<message id>.<part index>`, the form epistle
+ * writes in `bodyStructure` and splits on the dot when the blob is reused
+ * (a draft's attachment, edited and saved again).
+ */
+export const blobIdSchema = z
+	.string()
+	.regex(/^[0-9a-fA-F-]{8,64}(?:\.[0-9]{1,6})?$/);
 
 /** A media type in its plain `type/subtype` form. */
 export const mediaTypeSchema = z

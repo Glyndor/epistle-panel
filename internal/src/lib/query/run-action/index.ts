@@ -21,20 +21,19 @@ async function hasSession(): Promise<boolean> {
 }
 
 /**
- * Run the body of a Server Action that reads or writes through the epistle API.
- *
- * A Server Action is a public POST endpoint, so the admin session is checked here and
- * not trusted to the proxy in front of it: without one the answer is
- * `unauthenticated` and `load` never runs. A failure inside `load` is written to
- * the server log with the fixed `operation` name (see `describeFailure`) and
- * reported as `unavailable`, with nothing of the error. The token and the raw
- * API error never reach the browser.
+ * Run the body of a Server Action behind a gate the caller names. `allowed`
+ * decides whether the caller may run it at all; without it the answer is
+ * `unauthenticated` and `load` never runs. A failure inside `load` is written
+ * to the server log with the fixed `operation` name (see `describeFailure`)
+ * and reported as `unavailable`, with nothing of the error. The token and the
+ * raw API error never reach the browser.
  */
-export async function runAction<T>(
+export async function runGatedAction<T>(
+	allowed: () => Promise<boolean>,
 	operation: string,
 	load: () => Promise<T>,
 ): Promise<ActionResult<T>> {
-	if (!(await hasSession())) {
+	if (!(await allowed())) {
 		return { ok: false, reason: "unauthenticated" };
 	}
 	try {
@@ -46,19 +45,20 @@ export async function runAction<T>(
 }
 
 /**
- * {@link runAction} for an action that takes input. The session is checked
- * first, so an anonymous caller learns nothing about the schema; then the input
- * is parsed with `schema`, the one the client builds its request from, and
- * anything that does not parse is `invalid` and never reaches `load`. `load`
- * gets the parsed value, never the raw input.
+ * {@link runGatedAction} for an action that takes input. The gate is checked
+ * first, so a caller who may not run it learns nothing about the schema; then
+ * the input is parsed with `schema`, the one the client builds its request
+ * from, and anything that does not parse is `invalid` and never reaches
+ * `load`. `load` gets the parsed value, never the raw input.
  */
-export async function runValidatedAction<S extends z.ZodType, T>(
+export async function runGatedValidatedAction<S extends z.ZodType, T>(
+	allowed: () => Promise<boolean>,
 	operation: string,
 	schema: S,
 	input: unknown,
 	load: (data: z.output<S>) => Promise<T>,
 ): Promise<ActionResult<T>> {
-	if (!(await hasSession())) {
+	if (!(await allowed())) {
 		return { ok: false, reason: "unauthenticated" };
 	}
 	const parsed = schema.safeParse(input);
@@ -71,4 +71,28 @@ export async function runValidatedAction<S extends z.ZodType, T>(
 		logApiFailure(operation, error);
 		return { ok: false, reason: "unavailable" };
 	}
+}
+
+/**
+ * Run the body of an admin Server Action that reads or writes through the
+ * epistle API.
+ *
+ * A Server Action is a public POST endpoint, so the admin session is checked
+ * here and not trusted to the proxy in front of it.
+ */
+export function runAction<T>(
+	operation: string,
+	load: () => Promise<T>,
+): Promise<ActionResult<T>> {
+	return runGatedAction(hasSession, operation, load);
+}
+
+/** {@link runAction} for an admin action that takes input, parsed before `load` runs. */
+export function runValidatedAction<S extends z.ZodType, T>(
+	operation: string,
+	schema: S,
+	input: unknown,
+	load: (data: z.output<S>) => Promise<T>,
+): Promise<ActionResult<T>> {
+	return runGatedValidatedAction(hasSession, operation, schema, input, load);
 }

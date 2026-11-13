@@ -34,6 +34,27 @@ describe("composeInputSchema", () => {
 		).toBe(true);
 	});
 
+	it("accepts the blob of a stored message's part, as a draft carries it when edited again", () => {
+		const attach = (blobId: string) =>
+			composeInputSchema.safeParse({
+				...ok,
+				attachments: [{ blobId, name: "a.pdf", type: "application/pdf" }],
+			}).success;
+		expect(attach(`${ID}.2`)).toBe(true);
+		expect(attach(`${ID}.12`)).toBe(true);
+		for (const hostile of [
+			`${ID}.`,
+			`${ID}.2.3`,
+			`${ID}.x`,
+			`${ID}/2`,
+			`${ID}.2/../x`,
+			`.${ID}`,
+			`${ID}.1234567`,
+		]) {
+			expect(attach(hostile), hostile).toBe(false);
+		}
+	});
+
 	it("refuses an unknown field, a bad operation, a bad address, a long subject, a control in the subject and a bad blob or type", () => {
 		for (const bad of [
 			{ ...ok, extra: 1 },
