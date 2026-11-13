@@ -172,7 +172,7 @@ editor and no signature.
   form says why with one of: no recipient, too many, from-address not owned,
   invalid address, mailbox full, rate limited, refused to send, too large, other.
 - **Attachments** are uploaded as soon as they are chosen, up to 20 files of 25 MiB,
-  and sent by blob id. The type is the declared one when it is a plain
+  and sent by blob id. The name is reduced on the server by the same `safeFilename` as a download (it ends up in MIME headers). The type is the declared one when it is a plain
   `type/subtype` (parameters dropped), else `application/octet-stream`; the name is
   cleaned like a download's. Next's proxy buffers a request body and cuts it at 10 MB
   by default (its documentation; not measured here), so `proxyClientMaxBodySize` is

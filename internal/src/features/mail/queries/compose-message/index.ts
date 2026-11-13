@@ -9,6 +9,7 @@ import {
 	submissionSetSchema,
 } from "@/features/mail/jmap/responses";
 import { loadSender } from "@/features/mail/queries/load-identity";
+import { safeFilename } from "@/features/mail/sanitize/safe-filename";
 import type { ComposeInput } from "@/features/mail/schemas/compose-input";
 
 /** Why a message was not sent or saved, as a closed category the form can say. */
@@ -114,7 +115,8 @@ function emailFor(
 					attachments: input.attachments.map((a) => ({
 						blobId: a.blobId,
 						type: a.type,
-						name: a.name,
+						// The name ends up in MIME headers: one clean path segment, as for a download.
+						name: safeFilename(a.name),
 						disposition: "attachment",
 					})),
 				}

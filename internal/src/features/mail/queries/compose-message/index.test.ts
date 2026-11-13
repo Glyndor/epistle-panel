@@ -349,3 +349,52 @@ describe("composeMessage: only a draft is replaced", () => {
 		).toHaveLength(0);
 	});
 });
+
+describe("composeMessage: attachment names", () => {
+	const nameOf = async (name: string) => {
+		const seen = serve();
+		await composeMessage(
+			SESSION,
+			input({
+				op: "draft",
+				attachments: [
+					{
+						blobId: "00000000-0000-4000-a000-000000000001",
+						name,
+						type: "application/pdf",
+					},
+				],
+			}),
+		);
+		const create = (
+			calls(seen, "Email/set")[0] as {
+				create: { c: { attachments: Array<{ name: string }> } };
+			}
+		).create.c;
+		return create.attachments[0]?.name;
+	};
+
+	it("cleans a name that would reach a MIME header: line breaks, NUL, bidi and path separators", async () => {
+		expect(await nameOf("a.pdf\r\nContent-Type: text/html")).toBe("html");
+		expect(await nameOf("evil\u0000.pdf")).toBe("evil .pdf");
+		expect(await nameOf("../../etc/passwd")).toBe("passwd");
+		expect(await nameOf("C:\\dir\\x.exe")).toBe("x.exe");
+		expect(await nameOf("photo\u202Egpj.exe")).toBe("photogpj.exe");
+		expect(await nameOf('a"; filename="b.exe')).not.toMatch(/["\\/;]/u);
+	});
+
+	it("falls back to a fixed name when nothing is left, and cuts 255 multibyte characters", async () => {
+		expect(await nameOf("")).toBe("attachment");
+		expect(await nameOf("..")).toBe("attachment");
+		expect(await nameOf("\u202E\u0000")).toBe("attachment");
+		const long = await nameOf(`${"é".repeat(250)}.pdf`);
+		expect(long?.length).toBeLessThanOrEqual(120);
+		expect(long?.endsWith(".pdf")).toBe(true);
+	});
+
+	it("keeps an ordinary name", async () => {
+		expect(await nameOf("Quarterly report 2026.pdf")).toBe(
+			"Quarterly report 2026.pdf",
+		);
+	});
+});
