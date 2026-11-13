@@ -69,4 +69,27 @@ describe("ThemeOptions", () => {
 			expect(item).toHaveClass("pointer-coarse:min-h-11");
 		}
 	});
+
+	it("makes its items wait while a choice is being stored", async () => {
+		const onChoose = mock((_value: string) => {});
+		render(
+			<DropdownMenu defaultOpen>
+				<DropdownMenuTrigger>open</DropdownMenuTrigger>
+				<DropdownMenuContent>
+					<ThemeOptions
+						choice="system"
+						onChoose={onChoose}
+						disabled
+					/>
+				</DropdownMenuContent>
+			</DropdownMenu>,
+		);
+
+		const items = await screen.findAllByRole("menuitemradio");
+		for (const item of items) {
+			expect(item).toHaveAttribute("aria-disabled", "true");
+		}
+		fireEvent.click(items[2] as HTMLElement);
+		expect(onChoose).not.toHaveBeenCalled();
+	});
 });

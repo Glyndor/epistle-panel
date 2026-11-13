@@ -1,6 +1,5 @@
 {
 	"heading": "E-mail",
-	"admin": "Administração",
 	"folders": "Pastas",
 	"foldersTitle": "Pastas",
 	"foldersDescription": "As pastas da sua caixa de correio.",
@@ -67,9 +66,6 @@
 	"shortcutPrevious": "Mensagem anterior",
 	"shortcutSearch": "Pesquisar",
 	"shortcutBack": "Voltar à lista",
-	"language": "Idioma",
-	"signOut": "Terminar sessão",
-	"signedInAs": "Sessão iniciada como {name}",
 	"skipList": "Saltar para as mensagens",
 	"toolbarLabel": "Ações da mensagem",
 	"star": "Marcar com estrela",

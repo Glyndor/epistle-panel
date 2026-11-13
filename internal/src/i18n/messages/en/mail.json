@@ -1,6 +1,5 @@
 {
 	"heading": "Mail",
-	"admin": "Administration",
 	"folders": "Folders",
 	"foldersTitle": "Folders",
 	"foldersDescription": "The folders of your mailbox.",
@@ -67,9 +66,6 @@
 	"shortcutPrevious": "Previous message",
 	"shortcutSearch": "Search",
 	"shortcutBack": "Back to the list",
-	"language": "Language",
-	"signOut": "Sign out",
-	"signedInAs": "Signed in as {name}",
 	"skipList": "Skip to the messages",
 	"toolbarLabel": "Message actions",
 	"star": "Star",

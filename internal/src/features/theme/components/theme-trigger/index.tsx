@@ -15,7 +15,11 @@ const ICONS = {
 /**
  * The button of the theme menu: an icon for the current choice and a name
  * that says it ("Theme: Dark"), so the state is not the icon alone. It is the
- * same element before and after the menu code loads, so nothing moves.
+ * same element before and after the menu code loads, so nothing moves. While
+ * its menu is loading or the choice is being stored it is marked busy, and
+ * looks it: what is inside fades, the button itself does not. With the whole
+ * button at 60% its focus outline measured 2.14:1 against the bar in the
+ * light theme, under the 3:1 a focus indicator needs.
  */
 export function ThemeTrigger({
 	choice,
@@ -33,7 +37,7 @@ export function ThemeTrigger({
 			size="icon"
 			data-theme-choice={choice}
 			className={cn(
-				"aria-expanded:bg-accent aria-expanded:text-accent-foreground",
+				"aria-expanded:bg-accent aria-expanded:text-accent-foreground aria-busy:cursor-progress aria-busy:*:opacity-70",
 				className,
 			)}
 			{...props}

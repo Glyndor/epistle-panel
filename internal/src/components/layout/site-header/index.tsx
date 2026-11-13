@@ -1,14 +1,23 @@
 import { getTranslations } from "next-intl/server";
+import { HeaderActions } from "@/components/layout/header-actions";
 import { SidebarTrigger } from "@/components/ui/sidebar/trigger";
 import { getBrand } from "@/features/branding/queries/brand";
-import { ThemeSwitcher } from "@/features/theme/components/theme-switcher";
+import type { SessionRole } from "@/lib/auth/session";
 
 /**
  * The bar above the page content: the sidebar toggle, the product name where
- * the sidebar is a sheet and, at the far end, the theme button. The page's own
- * heading stays in the page.
+ * the sidebar is a sheet and, at the far end, the theme button and the profile
+ * menu. The page's own heading stays in the page.
  */
-export async function SiteHeader() {
+export async function SiteHeader({
+	user,
+	adminHref,
+}: {
+	/** The account of the session, as the layout read it. */
+	user: { name: string; role: SessionRole };
+	/** The address of the administration, for an admin session only. */
+	adminHref?: string | undefined;
+}) {
 	const t = await getTranslations("nav");
 
 	return (
@@ -17,9 +26,11 @@ export async function SiteHeader() {
 			<span className="font-semibold text-sm md:sr-only">
 				{getBrand().name}
 			</span>
-			<div className="ml-auto flex items-center gap-2">
-				<ThemeSwitcher />
-			</div>
+			<HeaderActions
+				name={user.name}
+				sessionRole={user.role}
+				adminHref={adminHref}
+			/>
 		</header>
 	);
 }

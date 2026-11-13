@@ -138,4 +138,17 @@ describe("useThemeChoice", () => {
 		expect(root().getAttribute("data-theme")).toBe("dark");
 		expect(themeWrites()).toEqual([]);
 	});
+
+	it("takes one choice at a time: a second pick made while the first is being stored is dropped", async () => {
+		await cookies.signIn();
+		render(<Probe values={["dark", "light"]} />);
+
+		fireEvent.click(screen.getByRole("button", { name: "pick 0" }));
+		fireEvent.click(screen.getByRole("button", { name: "pick 1" }));
+
+		await waitFor(() => expect(themeWrites()).toHaveLength(1));
+		await new Promise((resolve) => setTimeout(resolve, 20));
+		expect(themeWrites().map((w) => w.value)).toEqual(["dark"]);
+		expect(root().getAttribute("data-theme")).toBe("dark");
+	});
 });

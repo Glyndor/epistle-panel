@@ -1,6 +1,5 @@
 {
 	"heading": "E-Mail",
-	"admin": "Verwaltung",
 	"folders": "Ordner",
 	"foldersTitle": "Ordner",
 	"foldersDescription": "Die Ordner Ihres Postfachs.",
@@ -67,9 +66,6 @@
 	"shortcutPrevious": "Vorherige Nachricht",
 	"shortcutSearch": "Suchen",
 	"shortcutBack": "Zurück zur Liste",
-	"language": "Sprache",
-	"signOut": "Abmelden",
-	"signedInAs": "Angemeldet als {name}",
 	"skipList": "Zu den Nachrichten springen",
 	"toolbarLabel": "Aktionen für die Nachricht",
 	"star": "Markieren",

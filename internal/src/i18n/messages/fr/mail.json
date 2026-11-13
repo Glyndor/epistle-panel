@@ -1,6 +1,5 @@
 {
 	"heading": "Courrier",
-	"admin": "Administration",
 	"folders": "Dossiers",
 	"foldersTitle": "Dossiers",
 	"foldersDescription": "Les dossiers de votre boîte aux lettres.",
@@ -67,9 +66,6 @@
 	"shortcutPrevious": "Message précédent",
 	"shortcutSearch": "Rechercher",
 	"shortcutBack": "Retour à la liste",
-	"language": "Langue",
-	"signOut": "Se déconnecter",
-	"signedInAs": "Connecté en tant que {name}",
 	"skipList": "Aller aux messages",
 	"toolbarLabel": "Actions sur le message",
 	"star": "Suivre",

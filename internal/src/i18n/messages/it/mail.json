@@ -1,6 +1,5 @@
 {
 	"heading": "Posta",
-	"admin": "Amministrazione",
 	"folders": "Cartelle",
 	"foldersTitle": "Cartelle",
 	"foldersDescription": "Le cartelle della tua casella.",
@@ -67,9 +66,6 @@
 	"shortcutPrevious": "Messaggio precedente",
 	"shortcutSearch": "Cerca",
 	"shortcutBack": "Torna all’elenco",
-	"language": "Lingua",
-	"signOut": "Esci",
-	"signedInAs": "Accesso come {name}",
 	"skipList": "Vai ai messaggi",
 	"toolbarLabel": "Azioni sul messaggio",
 	"star": "Contrassegna",

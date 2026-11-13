@@ -62,5 +62,9 @@ describe("ThemeTrigger", () => {
 		expect(pressed).toBe(1);
 		expect(button).toHaveAttribute("aria-haspopup", "menu");
 		expect(button).toHaveAttribute("aria-busy", "true");
+		// Busy is seen, not only announced: its content fades. The button
+		// itself keeps its opacity, and with it the contrast of its outline.
+		expect(button).toHaveClass("aria-busy:*:opacity-70");
+		expect(button.className).not.toMatch(/aria-busy:opacity-/);
 	});
 });

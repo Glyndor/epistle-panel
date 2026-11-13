@@ -27,6 +27,7 @@ export default async function MailLayout({
 				<SkipLink />
 				<MailHeader
 					name={session.sub}
+					sessionRole={session.role}
 					adminHref={
 						adminId === undefined
 							? undefined
