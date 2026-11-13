@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 
 import { Button } from "@/components/ui/button";
+import { ROUTES } from "@/lib/routes";
 
 /**
  * What an admin page shows for `notFound()`, such as an account name that is not
@@ -15,7 +16,7 @@ export default async function AdminNotFound() {
 			<h1 className="font-semibold text-lg">{t("heading")}</h1>
 			<p className="text-muted-foreground text-sm">{t("body")}</p>
 			<Button asChild variant="link" className="self-start px-0">
-				<a href="/">{t("home")}</a>
+				<a href={ROUTES.home}>{t("home")}</a>
 			</Button>
 		</div>
 	);

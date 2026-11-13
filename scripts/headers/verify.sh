@@ -103,7 +103,7 @@ expect_secure_headers() {
 # inline styles the CSP would block. It must be the page itself: a request the
 # proxy redirects carries the same headers and an empty body, and would pass
 # every check below without rendering anything.
-fetch -H "Cookie: $SESSION_COOKIE_NAME=$cookie" "$base/queue"
+fetch -H "Cookie: $SESSION_COOKIE_NAME=$cookie" "$base/app/queue"
 status=$(sed -n '1s/^[^ ]* \([0-9]*\).*/\1/p' "$work/h")
 [ "$status" = 200 ] || fail "authenticated page: status $status, want 200 (is the session cookie name right?)"
 grep -q '<html' "$work/b" || fail "authenticated page: the body is not an HTML document"
@@ -127,39 +127,43 @@ fetch "$base/login"
 
 # Redirects keep the headers, and a client-chosen host never reaches Location.
 for extra in "X-Forwarded-Host: evil.test" "Host: evil.test" "X-Forwarded-Proto: gopher"; do
-	fetch -H "$extra" "$base/queue"
+	fetch -H "$extra" "$base/app/queue"
 	[ "$(sed -n '1s/^[^ ]* \([0-9]*\).*/\1/p' "$work/h")" = 307 ] || fail "no 307 for '$extra'"
 	expect_header location /login "redirect with '$extra'"
 	expect_secure_headers "redirect with '$extra'"
 done
 
 # A Server Action POST without a session is redirected, headers included.
-fetch -X POST -H "Next-Action: 00" -H "Content-Type: text/plain" -d "[]" "$base/queue"
+fetch -X POST -H "Next-Action: 00" -H "Content-Type: text/plain" -d "[]" "$base/app/queue"
 expect_secure_headers "server action without session"
 
 # robots.txt answers without a session, refuses everything, and opens nothing
-# else: every look-alike path is still redirected to the login page.
+# else: a look-alike path is not robots.txt, and one under /app is still
+# redirected to the login page.
 fetch "$base/robots.txt"
 status=$(sed -n '1s/^[^ ]* \([0-9]*\).*/\1/p' "$work/h")
 [ "$status" = 200 ] || fail "robots.txt without a session: status $status, want 200"
 expect_secure_headers "robots.txt"
 grep -qx 'Disallow: /' "$work/b" || fail "robots.txt does not say 'Disallow: /'"
 ! grep -qi '^allow:\|^sitemap:' "$work/b" || fail "robots.txt allows a path or names a sitemap"
-for path in /robots.txtx /robots.txt/queue /x/robots.txt /ROBOTS.TXT /queue; do
+for path in /robots.txtx /robots.txt/queue /x/robots.txt /ROBOTS.TXT; do
 	fetch "$base$path"
 	status=$(sed -n '1s/^[^ ]* \([0-9]*\).*/\1/p' "$work/h")
-	[ "$status" = 307 ] || fail "$path without a session: status $status, want 307"
+	[ "$status" = 404 ] || fail "$path without a session: status $status, want 404"
 done
+fetch "$base/app/queue"
+status=$(sed -n '1s/^[^ ]* \([0-9]*\).*/\1/p' "$work/h")
+[ "$status" = 307 ] || fail "/app/queue without a session: status $status, want 307"
 
 # The page itself says it is not to be indexed.
-fetch -H "Cookie: $SESSION_COOKIE_NAME=$cookie" "$base/queue"
+fetch -H "Cookie: $SESSION_COOKIE_NAME=$cookie" "$base/app/queue"
 grep -q '<meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex"' "$work/b" ||
 	fail "authenticated page: no robots meta tag"
 for forbidden in 'rel="canonical"' 'property="og:' 'name="twitter:' 'name="description"'; do
 	! grep -q "$forbidden" "$work/b" || fail "authenticated page carries $forbidden"
 done
 fetch "$base/sitemap.xml"
-[ "$(sed -n '1s/^[^ ]* \([0-9]*\).*/\1/p' "$work/h")" = 307 ] || fail "sitemap.xml is reachable without a session"
+[ "$(sed -n '1s/^[^ ]* \([0-9]*\).*/\1/p' "$work/h")" = 404 ] || fail "sitemap.xml answers something other than a 404"
 
 # Static assets skip the proxy but keep the static headers.
 chunk=$(grep -o '/_next/static/[^"]*\.js' "$work/b" | head -n 1 || true)

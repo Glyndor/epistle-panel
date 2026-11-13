@@ -27,7 +27,7 @@ describe("proxy matcher", () => {
 		}
 		for (const path of [
 			"/theme.cssx",
-			"/theme.css/queue",
+			"/theme.css/app",
 			"/x/theme.css",
 			"/THEME.CSS",
 			"/theme%2ecss",
@@ -47,11 +47,11 @@ describe("proxy matcher", () => {
 		for (const path of [
 			"/robots.txtx",
 			"/robots.txt/",
-			"/robots.txt/queue",
+			"/robots.txt/app",
 			"/x/robots.txt",
 			"/ROBOTS.TXT",
 			"/robotsxtxt",
-			"/queue/robots.txt",
+			"/app/robots.txt",
 		]) {
 			expect(covered.test(path)).toBe(true);
 		}
@@ -61,7 +61,8 @@ describe("proxy matcher", () => {
 		for (const path of [
 			"/",
 			"/login",
-			"/queue",
+			"/app",
+			"/app/queue",
 			"/loginx",
 			"/login-admin",
 		]) {
@@ -73,7 +74,7 @@ describe("proxy matcher", () => {
 		for (const path of [
 			"/_next/staticx/a.js",
 			"/favicon.icox",
-			"/favicon.ico/queue",
+			"/favicon.ico/app",
 			"/_NEXT/static/a.js",
 		]) {
 			expect(covered.test(path)).toBe(true);
@@ -84,7 +85,7 @@ describe("proxy matcher", () => {
 describe("proxy", () => {
 	// happy-dom's `Headers` drops `cookie` as a forbidden header, so the
 	// cookie is set through the request's own jar instead of a header.
-	const request = (cookie?: string, path = "/queue?x=1") => {
+	const request = (cookie?: string, path = "/app/queue?x=1") => {
 		const req = new NextRequest(`http://panel.test${path}`);
 		if (cookie) {
 			req.cookies.set(SESSION_COOKIE, cookie);
@@ -159,26 +160,54 @@ describe("proxy", () => {
 		}
 	});
 
-	it("gates look-alikes of the login route", async () => {
+	it("gates /app and every path under it, in every spelling", async () => {
 		for (const path of [
-			"/LOGIN",
-			"/Login",
-			"/loginx",
-			"/login-admin",
-			"/logins/x",
-			"/%6cogin",
-			"/%6Cogin/",
-			"//login",
-			"/login%2f..%2fqueue",
-			"/login/../queue",
-			"/./queue",
-			"/%2e%2e/queue",
-			"/login;x",
+			"/app",
+			"/app/",
+			"/app/queue",
+			"/app/accounts/alice",
+			"/app/unknown",
+			"/APP/queue",
+			"/%61pp/queue",
+			"//app/queue",
+			"/app%2fqueue",
+			"/login/../app/queue",
+			"/./app/queue",
+			"/x/../app/queue",
+			"/%2e%2e/app/queue",
+			"/app;x",
 		]) {
 			const response = await proxy(request(undefined, path));
 
 			expect(response.status, path).toBe(307);
 		}
+	});
+
+	it("opens nothing else without a session: the root, the login page and the old paths", async () => {
+		for (const path of [
+			"/",
+			"/login",
+			"/loginx",
+			"/accounts",
+			"/domains",
+			"/queue",
+			"/application",
+			"/x/app",
+		]) {
+			const response = await proxy(request(undefined, path));
+
+			expect(response.status, path).toBe(200);
+			expect(response.headers.get("location")).toBeNull();
+			expectSecurityHeaders(response);
+		}
+	});
+
+	it("lets a valid session through under /app", async () => {
+		const response = await proxy(
+			request(await createSession("admin"), "/app/accounts/alice"),
+		);
+
+		expect(response.status).toBe(200);
 	});
 
 	it("keeps the redirect on the request's own origin and drops the query", async () => {
@@ -187,7 +216,7 @@ describe("proxy", () => {
 		// relative one on the wire. What the proxy owns is that the redirect
 		// never leaves that origin and carries nothing from the request.
 		const req = new NextRequest(
-			"http://panel.test/queue?next=http://evil.test",
+			"http://panel.test/app/queue?next=http://evil.test",
 			{
 				headers: { "x-forwarded-host": "evil.test" },
 			},
@@ -229,7 +258,7 @@ describe("proxy script policy per environment", () => {
 			.find((part) => part.startsWith("script-src ")) ?? "";
 
 	const signedIn = async () => {
-		const req = new NextRequest("http://panel.test/queue");
+		const req = new NextRequest("http://panel.test/app/queue");
 		req.cookies.set(SESSION_COOKIE, await cookie());
 		return req;
 	};
@@ -239,7 +268,7 @@ describe("proxy script policy per environment", () => {
 			await underNodeEnv(value, async () => {
 				const allowed = await proxy(await signedIn());
 				const redirected = await proxy(
-					new NextRequest("http://panel.test/queue"),
+					new NextRequest("http://panel.test/app/queue"),
 				);
 
 				for (const response of [allowed, redirected]) {
@@ -260,7 +289,7 @@ describe("proxy script policy per environment", () => {
 		await underNodeEnv("development", async () => {
 			const allowed = await proxy(await signedIn());
 			const redirected = await proxy(
-				new NextRequest("http://panel.test/queue"),
+				new NextRequest("http://panel.test/app/queue"),
 			);
 
 			expect(scriptSrc(allowed)).toEndWith(
@@ -322,8 +351,8 @@ describe("proxy with a CAPTCHA provider enabled", () => {
 	it("widens no other response: a page, a redirect, and look-alikes of the login path", async () => {
 		const session = await createSession("admin");
 		for (const response of [
-			await get("/queue", session),
-			await get("/queue"),
+			await get("/app/queue", session),
+			await get("/app/queue"),
 			await get("/loginx"),
 			await get("/x/login"),
 		]) {

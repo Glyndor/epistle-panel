@@ -18,6 +18,7 @@ import { BrandMark } from "@/features/branding/components/brand-mark";
 import { CopyrightNotice } from "@/features/branding/components/copyright-notice";
 import { getBrand } from "@/features/branding/queries/brand";
 import type { NavGroup } from "@/features/navigation/schemas/nav-item";
+import { ROUTES } from "@/lib/routes";
 
 /**
  * The application sidebar: brand, primary navigation and the signed-in user.
@@ -48,7 +49,7 @@ export async function AppSidebar({
 							tooltip={brand.name}
 							className="min-h-10"
 						>
-							<Link href="/">
+							<Link href={ROUTES.home}>
 								<BrandMark hasLogo={brand.hasLogo} />
 								<span className="grid flex-1 text-left leading-tight">
 									<span className="truncate font-semibold">

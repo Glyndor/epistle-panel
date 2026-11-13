@@ -10,16 +10,17 @@ import { config, proxy } from "./proxy";
 // run as a regular expression here to see which paths reach the proxy.
 const reachesProxy = new RegExp(`^${config.matcher[0]}$`);
 
-type Verdict = "static" | "login" | "gated";
+type Verdict = "static" | "open" | "gated";
 
 const isDot = (segment: string) => /^(\.|%2e)$/i.test(segment);
 const isDotDot = (segment: string) => /^(\.|%2e)(\.|%2e)$/i.test(segment);
 
 /**
  * Reference model of the gate, written from the intent and not from the code:
- * what a URL parser leaves of a request path, then which routes are open.
- * Only the exact login route, the static assets and `/robots.txt` need no session; every
- * other path, however it is spelled, is gated.
+ * what a URL parser leaves of a request path, then which routes are gated.
+ * Only `/app` and what is under it need a session, in any spelling a router
+ * may read as that (percent-encoded, any case, backslashes, repeated slashes,
+ * a `;` parameter, an undecodable escape); the static assets and everything else are open.
  */
 function expectedVerdict(rawPath: string): Verdict {
 	// A parser drops tabs and newlines anywhere and trailing control characters
@@ -56,7 +57,19 @@ function expectedVerdict(rawPath: string): Verdict {
 	) {
 		return "static";
 	}
-	return path === "/login" || path === "/login/" ? "login" : "gated";
+	let decoded: string;
+	try {
+		decoded = decodeURIComponent(path);
+	} catch {
+		return "gated";
+	}
+	const first = decoded
+		.replaceAll("\\", "/")
+		.split("/")
+		.filter((part) => part !== "")[0];
+	return first !== undefined && first.split(";")[0]?.toLowerCase() === "app"
+		? "gated"
+		: "open";
 }
 
 /** What the real matcher and proxy do with a request for `rawPath`, no cookie. */
@@ -68,7 +81,7 @@ async function observedVerdict(rawPath: string): Promise<Verdict> {
 	const response = await proxy(request);
 	if (response.status === 307) {
 		// The target is the login route of the same origin with no query. Next
-		// keeps a trailing slash or fragment the request had; neither is sent.
+		// keeps a trailing slash the request had; it is not sent on.
 		const target = new URL(response.headers.get("location") ?? "");
 		expect(target.origin).toBe("http://panel.test");
 		expect(["/login", "/login/"]).toContain(target.pathname);
@@ -76,10 +89,10 @@ async function observedVerdict(rawPath: string): Promise<Verdict> {
 		return "gated";
 	}
 	expect(response.status).toBe(200);
-	return "login";
+	return "open";
 }
 
-/** `/login` with the character at each chosen index percent-encoded. */
+/** `text` with each character percent-encoded with probability `p`. */
 function encodeSome(text: string, rng: Rng, p: number): string {
 	return Array.from(text, (c) =>
 		rng.chance(p) ? `%${c.charCodeAt(0).toString(16).padStart(2, "0")}` : c,
@@ -96,7 +109,20 @@ const BASES = [
 	"/logi",
 	"/",
 	"/queue",
+	"/accounts",
 	"/domains/x",
+	"/app",
+	"/app/",
+	"/App",
+	"/APP/queue",
+	"/app/queue",
+	"/app/accounts/alice",
+	"/app/unknown/deep",
+	"/apps",
+	"/application",
+	"/x/app",
+	"/%61pp",
+	"/app%",
 	"/_next/static/a.js",
 	"/_next/static",
 	"/_next/image",
@@ -229,8 +255,8 @@ function variant(rng: Rng): string {
 }
 
 describe("proxy gate on generated paths", () => {
-	it("opens only the exact login route and the static assets, whatever the spelling", async () => {
-		const seen: Record<Verdict, number> = { static: 0, login: 0, gated: 0 };
+	it("gates /app and what is under it and opens the rest, whatever the spelling", async () => {
+		const seen: Record<Verdict, number> = { static: 0, open: 0, gated: 0 };
 		await runCases("path variants", 4000, async (rng) => {
 			const path = variant(rng);
 			const want = expectedVerdict(path);
@@ -242,28 +268,25 @@ describe("proxy gate on generated paths", () => {
 		});
 		// Each outcome must be exercised, or the model is vacuous.
 		expect(seen.static).toBeGreaterThan(50);
-		expect(seen.login).toBeGreaterThan(50);
+		expect(seen.open).toBeGreaterThan(50);
 		expect(seen.gated).toBeGreaterThan(500);
 	});
 
-	it("gates every spelling of /login with one character percent-encoded", async () => {
-		for (let i = 1; i < "/login".length; i++) {
+	it("gates every spelling of /app with one character percent-encoded", async () => {
+		for (let i = 1; i < "/app".length; i++) {
 			for (const hexCase of [true, false]) {
-				const code = "/login".charCodeAt(i).toString(16);
+				const code = "/app".charCodeAt(i).toString(16);
 				const encoded = `%${hexCase ? code : code.toUpperCase()}`;
-				const path = `${"/login".slice(0, i)}${encoded}${"/login".slice(i + 1)}`;
+				const path = `${"/app".slice(0, i)}${encoded}${"/app".slice(i + 1)}/queue`;
 				expect([path, await observedVerdict(path)]).toEqual([
 					path,
 					"gated",
 				]);
-				expect([`${path}/`, await observedVerdict(`${path}/`)]).toEqual(
-					[`${path}/`, "gated"],
-				);
 			}
 		}
 	});
 
-	it("keeps look-alikes of the skipped assets inside the gate", async () => {
+	it("keeps look-alikes of the skipped assets inside the proxy, and gates them under /app", async () => {
 		for (const path of [
 			"/faviconxico",
 			"/favicon-ico",
@@ -275,8 +298,10 @@ describe("proxy gate on generated paths", () => {
 			"/_next/staticx/a.js",
 			"/_next/static",
 		]) {
-			expect([path, await observedVerdict(path)]).toEqual([
-				path,
+			expect([path, await observedVerdict(path)]).toEqual([path, "open"]);
+			const under = `/app${path}`;
+			expect([under, await observedVerdict(under)]).toEqual([
+				under,
 				"gated",
 			]);
 		}

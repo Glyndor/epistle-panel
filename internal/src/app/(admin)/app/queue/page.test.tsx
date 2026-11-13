@@ -92,7 +92,7 @@ describe("QueuePage", () => {
 		expect(screen.getByText(/<>/)).toBeInTheDocument();
 		expect(screen.getByRole("link", { name: "next" })).toHaveAttribute(
 			"href",
-			`/queue?cursor=${NEXT}`,
+			`/app/queue?cursor=${NEXT}`,
 		);
 	});
 

@@ -17,7 +17,7 @@ import { TotpSection } from "@/features/account-detail/components/totp-section";
 import { getAccountsAction } from "@/features/accounts/actions/get-accounts";
 import { accountsQueryOptions } from "@/features/accounts/queries/accounts-query";
 import { unwrap } from "@/lib/query/action-result";
-import { LEGACY_ROUTES } from "@/lib/routes";
+import { ROUTES } from "@/lib/routes";
 
 const fetchAccounts = async () => unwrap(await getAccountsAction());
 
@@ -35,7 +35,7 @@ export function AccountDetail({ name }: { name: string }) {
 
 	const back = (
 		<Link
-			href={LEGACY_ROUTES.accounts}
+			href={ROUTES.accounts}
 			className="inline-flex w-fit items-center gap-1 text-primary text-sm underline underline-offset-4 hover:no-underline"
 		>
 			<ArrowLeftIcon aria-hidden="true" className="size-4" />

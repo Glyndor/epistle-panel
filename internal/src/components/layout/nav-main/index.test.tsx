@@ -5,7 +5,7 @@ import { useSidebar } from "@/components/ui/sidebar/context";
 import { SidebarProvider } from "@/components/ui/sidebar/provider";
 import { navForRole } from "@/features/navigation/queries/nav-for-role";
 
-let pathname = "/domains";
+let pathname = "/app/domains";
 mock.module("next/navigation", () => ({
 	usePathname: () => pathname,
 	redirect: () => {
@@ -44,10 +44,10 @@ describe("NavMain", () => {
 		const nav = screen.getByRole("navigation", { name: "label" });
 		const links = Array.from(nav.querySelectorAll("a"));
 		expect(links.map((link) => link.getAttribute("href"))).toEqual([
-			"/",
-			"/domains",
-			"/accounts",
-			"/queue",
+			"/app",
+			"/app/domains",
+			"/app/accounts",
+			"/app/queue",
 			"/app/deliveries",
 			"/app/suppression",
 		]);
@@ -57,7 +57,7 @@ describe("NavMain", () => {
 	});
 
 	it("marks only the current page with aria-current", () => {
-		pathname = "/domains";
+		pathname = "/app/domains";
 		renderNav();
 
 		expect(screen.getByRole("link", { name: "domains" })).toHaveAttribute(
@@ -94,7 +94,7 @@ describe("NavMain", () => {
 	});
 
 	it("keeps a section current below its own path, but not for look-alikes", () => {
-		pathname = "/queue/anything";
+		pathname = "/app/queue/anything";
 		renderNav();
 		expect(screen.getByRole("link", { name: "queue" })).toHaveAttribute(
 			"aria-current",
@@ -102,14 +102,14 @@ describe("NavMain", () => {
 		);
 		cleanup();
 
-		pathname = "/queuex";
+		pathname = "/app/queuex";
 		renderNav();
 		expect(screen.getByRole("link", { name: "queue" })).not.toHaveAttribute(
 			"aria-current",
 		);
 		cleanup();
 
-		pathname = "/";
+		pathname = "/app";
 		renderNav();
 		expect(screen.getByRole("link", { name: "status" })).toHaveAttribute(
 			"aria-current",
@@ -128,7 +128,7 @@ describe("NavMain data", () => {
 							label: "manage",
 							items: [
 								{
-									href: "/queue",
+									href: "/app/queue",
 									label: "queue",
 									icon: "inbox",
 								},

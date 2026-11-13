@@ -13,10 +13,10 @@ describe("NAV_ITEMS", () => {
 
 	it("keeps the admin pages at their URLs, in order", () => {
 		expect(NAV_ITEMS.map((item) => item.href)).toEqual([
-			"/",
-			"/domains",
-			"/accounts",
-			"/queue",
+			"/app",
+			"/app/domains",
+			"/app/accounts",
+			"/app/queue",
 			"/app/deliveries",
 			"/app/suppression",
 		]);

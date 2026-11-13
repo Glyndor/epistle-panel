@@ -54,7 +54,7 @@ scenario_headers() {
 	assert_absent "cookie has no Domain" "${set_cookie,,}" "domain="
 
 	local path
-	for path in / /accounts /domains /queue /app/suppression /app/deliveries; do
+	for path in /app /app/accounts /app/domains /app/queue /app/suppression /app/deliveries; do
 		fetch "$path" "$cookie"
 		assert_eq "GET $path with a session" "$status" 200
 		nonce1=$(nonce_of_csp "$(header content-security-policy)")
