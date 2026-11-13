@@ -14,7 +14,7 @@
 # exercises.
 #
 # Usage: scripts/e2e/run.sh [scenario...]
-#   scenarios: headers logout limiter limiter-global noauth degraded rotation idle theme theme-choice body-limit captcha csrf set-locale unknown-variable suppression deliveries account-detail accounts breadcrumbs admin-id mail streaming
+#   scenarios: headers logout limiter limiter-global noauth degraded rotation idle theme theme-choice profile-menu body-limit captcha csrf set-locale unknown-variable suppression deliveries account-detail accounts breadcrumbs admin-id mail streaming
 # With no argument every scenario runs. Exit status is non-zero when any check
 # fails. Override the ports with PANEL_PORT and STAND_IN_PORT.
 set -euo pipefail
@@ -120,6 +120,8 @@ cp -R "$internal/.next/static" "$standalone/.next/static"
 . "$root/scripts/e2e/scenarios/theme.sh"
 # shellcheck source=scripts/e2e/scenarios/theme-choice.sh
 . "$root/scripts/e2e/scenarios/theme-choice.sh"
+# shellcheck source=scripts/e2e/scenarios/profile-menu.sh
+. "$root/scripts/e2e/scenarios/profile-menu.sh"
 # shellcheck source=scripts/e2e/scenarios/body-limit.sh
 . "$root/scripts/e2e/scenarios/body-limit.sh"
 # shellcheck source=scripts/e2e/scenarios/csrf.sh
@@ -150,7 +152,7 @@ cp -R "$internal/.next/static" "$standalone/.next/static"
 
 # ---------------------------------------------------------------- main
 
-all=(headers logout limiter limiter-global noauth degraded rotation idle theme theme-choice body-limit captcha csrf set-locale unknown-variable suppression deliveries account-detail accounts breadcrumbs admin-id mail streaming)
+all=(headers logout limiter limiter-global noauth degraded rotation idle theme theme-choice profile-menu body-limit captcha csrf set-locale unknown-variable suppression deliveries account-detail accounts breadcrumbs admin-id mail streaming)
 selected=("$@")
 ((${#selected[@]})) || selected=("${all[@]}")
 
@@ -166,6 +168,7 @@ for name in "${selected[@]}"; do
 	idle) scenario_idle ;;
 	theme) scenario_theme ;;
 	theme-choice) scenario_theme_choice ;;
+	profile-menu) scenario_profile_menu ;;
 	body-limit) scenario_body_limit ;;
 	captcha) scenario_captcha ;;
 	csrf) scenario_csrf ;;
