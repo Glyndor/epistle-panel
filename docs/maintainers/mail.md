@@ -33,8 +33,9 @@ acts for and which bearer it presents. Everything else gets a `MailSession`
 (`accountId`, `bearer`) and never reads a cookie or a secret.
 
 Today the provider is **interim**: the panel session's name is the account and
-`EPISTLE_API_TOKEN` is the bearer. That token is the operator's, so this only
-fits an account whose owner is the operator. Replace the provider with
+`EPISTLE_API_TOKEN` is the bearer. That token is the operator's, so the provider
+gives it only to a session with the admin role: a session of any other role has no mail
+until a per-user credential exists. Replace the provider with
 `setMailCredentialProvider` once the end-user sign-in exists. What is missing:
 
 - the end-user sign-in: `/` is one sign-in for every role and the session carries the role, but the account still signs in against the panel's own check; what is missing is the per-user JMAP credential;
