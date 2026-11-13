@@ -4,9 +4,8 @@ import { z } from "zod";
 export const accountCreatedSchema = z.object({ created: z.string() });
 export type AccountCreated = z.infer<typeof accountCreatedSchema>;
 
-/** What the API does with the mail an account has queued when the account is deleted. */
-export const QUEUE_CHOICES = ["drain", "discard"] as const;
-export type QueueChoice = (typeof QUEUE_CHOICES)[number];
+// The values live in a file without the schema library, for the browser.
+export { QUEUE_CHOICES, type QueueChoice } from "@/lib/api/queue-choices";
 
 /**
  * `DELETE /api/v1/accounts/{name}`: what went with the account. Only the two
