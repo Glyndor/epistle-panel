@@ -174,10 +174,24 @@ editor and no signature.
 - **Attachments** are uploaded as soon as they are chosen, up to 20 files of 25 MiB,
   and sent by blob id. The name is reduced on the server by the same `safeFilename` as a download (it ends up in MIME headers). The type is the declared one when it is a plain
   `type/subtype` (parameters dropped), else `application/octet-stream`; the name is
-  cleaned like a download's. Next's proxy buffers a request body and cuts it at 10 MB
-  by default (its documentation; not measured here), so `proxyClientMaxBodySize` is
-  set to 26 MB; Server Actions keep their 16 KB limit. The e2e scenario uploads a
-  12 MB file whole and refuses 27 MB.
+  cleaned like a download's.
+- **The upload route is outside the proxy, and is its own only gate.** Next's proxy
+  holds in memory the body of every request it covers, before it decides anything
+  (read in `next/dist/server/body-streams.js`, and measured on the built server: a
+  request with no session got no answer until its whole body had arrived, and eight
+  of them held at 26 MB took the server from 97 MB to 306 MB). So
+  `proxyClientMaxBodySize` is 2 MB, enough for the largest body a covered route
+  reads (the composer's message, 1.5 MB), and `/app/mail/upload` is skipped by the
+  proxy's matcher as that exact path. The route does every check itself before it
+  reads a byte: same origin, the session and its role, and the size from
+  `Content-Length`, which is required. It then hands the body to the mail server as
+  it arrives, counted against that size, and never buffers it; a body that is not
+  the size it declared breaks the call off and is answered `invalid`. Its answers
+  carry their own policy (`default-src 'none'`), since the proxy's headers are not
+  laid over them. The mail server takes four uploads at a time for one caller and
+  answers 429 past that, which the route passes on as `busy`. The e2e scenario
+  declares a body and sends none of it (the route refuses at once, with and without
+  a session), uploads a 12 MB file whole and refuses 27 MB.
 - **Reply and forward** prefill on the server from cleaned text: the quoted original
   is the text part, or the sanitised HTML reduced to text, cut at 20 000 characters,
   put in a text area and never inserted as markup. A reply goes to the reply-to
