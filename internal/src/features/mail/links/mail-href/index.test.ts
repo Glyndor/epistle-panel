@@ -40,6 +40,15 @@ describe("attachmentHref and bodyHref", () => {
 			`/app/mail/body/${ID}?images=1`,
 		);
 		expect<string>(bodyHref("a/b", false)).toBe("/app/mail/body/a%2Fb");
+		expect<string>(bodyHref(ID, false, "dark")).toBe(
+			`/app/mail/body/${ID}?theme=dark`,
+		);
+		expect<string>(bodyHref(ID, true, "light")).toBe(
+			`/app/mail/body/${ID}?images=1&theme=light`,
+		);
+		expect<string>(bodyHref(ID, false, undefined)).toBe(
+			`/app/mail/body/${ID}`,
+		);
 	});
 });
 
