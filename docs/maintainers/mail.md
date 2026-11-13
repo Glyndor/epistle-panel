@@ -197,3 +197,22 @@ editor and no signature.
   by `select`, `collapsible` and `kbd` when those land.
 - The real JMAP was not run; the stand-in follows the source. Measure against a
   running epistle before relying on any row above.
+
+## How the page is sent
+
+`/app/mail` sends the frame of its three panes at once and each pane streams
+its own data inside `Suspense`: `FoldersBoundary` (the tree; rendered twice, for
+the side pane and for the sheet of a narrow screen), `ListBoundary` (the search,
+the filters and the page of the open folder) and `ReaderBoundary` (the open
+message). Each boundary reads on the server and hands the result to its client
+component, which owns the data from then on; the fallback of each is the same
+skeleton its client component shows while it fetches.
+
+`queries/request-mail` holds what the panes share within one request: the mail
+session and the folders, each read once (`cache` from React), and `resolveBox`.
+A view whose address names a folder never waits for the folder tree; one that
+names none waits for it, to open the inbox by its role. The mail session stays
+in server components: it is never a prop of a client component.
+
+The list costs two JMAP calls in a row (the ids, then the messages), because
+`Email/query` has no paging on the server yet.

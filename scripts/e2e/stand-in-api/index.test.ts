@@ -119,6 +119,22 @@ describe("log", () => {
 		expect(dump).not.toContain("correct-horse");
 	});
 
+	test("a JMAP request is logged with its method names and none of its arguments", async () => {
+		await fetch(`${base}/jmap/api`, {
+			method: "POST",
+			headers: auth,
+			body: JSON.stringify({
+				methodCalls: [
+					["Mailbox/get", { accountId: "admin", ids: ["secret-id"] }, "a"],
+					["Email/query", { accountId: "admin" }, "b"],
+				],
+			}),
+		});
+		const entry = (await logged()).at(-1);
+		expect(entry?.jmap).toEqual(["Mailbox/get", "Email/query"]);
+		expect(JSON.stringify(entry)).not.toContain("secret-id");
+	});
+
 	test("control paths are not logged", async () => {
 		await logged();
 		expect(await logged()).toEqual([]);
