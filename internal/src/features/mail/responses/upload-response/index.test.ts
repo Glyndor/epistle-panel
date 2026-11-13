@@ -21,11 +21,48 @@ afterEach(() => {
 	globalThis.fetch = originalFetch;
 });
 
-type Seen = { url: string; init: RequestInit };
+type Seen = {
+	url: string;
+	init: RequestInit;
+	/** What the mail server got of the body before it ended or broke off. */
+	received: Uint8Array;
+	/** The body broke off before its end. */
+	brokeOff: boolean;
+};
+/**
+ * The mail server: it reads the body it is sent, as a server does, and answers.
+ * A body that breaks off fails the call, as `fetch` does.
+ */
 function jmap(answer: Response): Seen[] {
 	const seen: Seen[] = [];
 	globalThis.fetch = mock(async (url: string | URL, init?: RequestInit) => {
-		seen.push({ url: String(url), init: init ?? {} });
+		const entry: Seen = {
+			url: String(url),
+			init: init ?? {},
+			received: new Uint8Array(0),
+			brokeOff: false,
+		};
+		seen.push(entry);
+		const reader = (
+			entry.init.body as ReadableStream<Uint8Array>
+		).getReader();
+		try {
+			for (;;) {
+				const { done, value } = await reader.read();
+				if (done) {
+					break;
+				}
+				const joined = new Uint8Array(
+					entry.received.byteLength + value.byteLength,
+				);
+				joined.set(entry.received);
+				joined.set(value, entry.received.byteLength);
+				entry.received = joined;
+			}
+		} catch (cause) {
+			entry.brokeOff = true;
+			throw new TypeError("fetch failed", { cause });
+		}
 		return answer.clone();
 	}) as unknown as typeof fetch;
 	return seen;
@@ -52,6 +89,24 @@ const upload = (extra = {}) =>
 		body: "hello",
 		...extra,
 	});
+/** The same request, counting every time its body is touched. */
+function watched(request: Request) {
+	const touched = { times: 0 };
+	const body = request.body;
+	const watchedRequest = {
+		url: request.url,
+		headers: request.headers,
+		get body() {
+			touched.times += 1;
+			return body;
+		},
+		arrayBuffer: async () => {
+			touched.times += 1;
+			return new ArrayBuffer(0);
+		},
+	} as unknown as Request;
+	return { request: watchedRequest, touched };
+}
 
 describe("uploadResponse", () => {
 	it("stores the file for the session's account with its declared type and answers the blob id and a clean name", async () => {
@@ -70,6 +125,23 @@ describe("uploadResponse", () => {
 		expect(sentHeader(seen, "Authorization")).toBe("Bearer t");
 		expect(sentHeader(seen, "Content-Type")).toBe("application/pdf");
 		expect(seen[0]?.init.redirect).toBe("error");
+	});
+
+	it("hands the body on as a stream of the declared length, whole, and never reads it into memory", async () => {
+		const seen = jmap(stored());
+		const bytes = new Uint8Array(100_000).map((_, at) => at % 251);
+		const { request, touched } = watched(upload({ body: bytes }));
+
+		expect((await uploadResponse(request)).status).toBe(200);
+
+		expect(seen[0]?.init.body).toBeInstanceOf(ReadableStream);
+		expect((seen[0]?.init as { duplex?: string } | undefined)?.duplex).toBe(
+			"half",
+		);
+		expect(sentHeader(seen, "Content-Length")).toBe("100000");
+		expect(seen[0]?.received).toEqual(bytes);
+		// Its `body` is taken once, to pass on; `arrayBuffer` would be a second touch.
+		expect(touched.times).toBe(2);
 	});
 
 	it("cleans the name and drops the parameters of the type and falls back to octet-stream for one that is not plain type/subtype", async () => {
@@ -103,55 +175,137 @@ describe("uploadResponse", () => {
 		});
 	});
 
-	it("refuses a request from another origin and one without a session, before any upload", async () => {
+	it("refuses another origin, a missing session and a size it will not take without touching the body or the mail server", async () => {
 		const seen = jmap(stored());
-		expect(
-			(await uploadResponse(upload({ origin: "https://evil.test" })))
-				.status,
-		).toBe(403);
-		expect((await uploadResponse(upload({ origin: null }))).status).toBe(
-			403,
-		);
-		cookies.reset();
-		expect((await uploadResponse(upload())).status).toBe(401);
+		const refused = async (extra: object, signedIn = true) => {
+			if (!signedIn) {
+				cookies.reset();
+			}
+			const { request, touched } = watched(upload(extra));
+			const response = await uploadResponse(request);
+			return [response.status, touched.times];
+		};
+
+		expect(await refused({ origin: "https://evil.test" })).toEqual([
+			403, 0,
+		]);
+		expect(await refused({ origin: null })).toEqual([403, 0]);
+		expect(await refused({ length: 0 })).toEqual([411, 0]);
+		expect(await refused({ length: Number.NaN })).toEqual([411, 0]);
+		expect(await refused({ length: 4.5 })).toEqual([411, 0]);
+		expect(await refused({ length: null })).toEqual([411, 0]);
+		// One byte over 25 MiB.
+		expect(await refused({ length: 26_214_401 })).toEqual([413, 0]);
+		expect(await refused({}, false)).toEqual([401, 0]);
 		expect(seen).toHaveLength(0);
 	});
 
-	it("needs a declared size, refuses an empty body and one over 25 MiB, by what is declared and what arrives", async () => {
+	it("takes a file of exactly 25 MiB by its declared size", async () => {
+		expect(MAX_UPLOAD_BYTES).toBe(26_214_400);
 		const seen = jmap(stored());
-		expect((await uploadResponse(upload({ length: 0 }))).status).toBe(411);
-		expect(
-			(await uploadResponse(upload({ length: Number.NaN }))).status,
-		).toBe(411);
-		const big = await uploadResponse(
-			upload({ length: MAX_UPLOAD_BYTES + 1 }),
+		// The declared size is what is checked; the body here is short on purpose,
+		// so the case does not move 25 MiB: it ends as a mismatch, past the check.
+		const response = await uploadResponse(
+			upload({ body: "hello", length: 26_214_400 }),
 		);
-		expect(big.status).toBe(413);
-		expect(await big.json()).toEqual({ ok: false, reason: "tooLarge" });
-		expect(
-			(await uploadResponse(upload({ body: "", length: 5 }))).status,
-		).toBe(400);
-		expect(
-			(
-				await uploadResponse(
-					upload({
-						body: new Uint8Array(MAX_UPLOAD_BYTES + 1),
-						length: 5,
-					}),
-				)
-			).status,
-		).toBe(413);
+		expect(response.status).toBe(400);
+		expect(seen).toHaveLength(1);
+	});
+
+	it("says invalid when the body is not the size it declared, and hands on no byte past that size", async () => {
+		let seen = jmap(stored());
+		const short = await uploadResponse(upload({ body: "hel", length: 5 }));
+		expect(short.status).toBe(400);
+		expect(await short.json()).toEqual({ ok: false, reason: "invalid" });
+		expect(seen[0]?.brokeOff).toBe(true);
+
+		seen = jmap(stored());
+		const long = await uploadResponse(
+			upload({ body: new Uint8Array(50_000), length: 20_000 }),
+		);
+		expect(long.status).toBe(400);
+		expect(seen[0]?.brokeOff).toBe(true);
+		expect(seen[0]?.received.byteLength).toBeLessThanOrEqual(20_000);
+
+		seen = jmap(stored());
+		const empty = await uploadResponse(upload({ body: "", length: 5 }));
+		expect(empty.status).toBe(400);
+		expect(seen[0]?.brokeOff).toBe(true);
+	});
+
+	it("stops reading the file when the mail server stops taking it", async () => {
+		let stopped: unknown;
+		const source = new ReadableStream<Uint8Array>({
+			pull(controller) {
+				controller.enqueue(new Uint8Array(16_384));
+			},
+			cancel(reason) {
+				stopped = reason;
+			},
+		});
+		// A server that refuses at the headers and lets go of the body.
+		globalThis.fetch = mock(
+			async (_url: string | URL, init?: RequestInit) => {
+				await (
+					init?.body as ReadableStream<Uint8Array> | undefined
+				)?.cancel("refused");
+				return new Response("{}", { status: 413 });
+			},
+		) as unknown as typeof fetch;
+		const request = {
+			...upload({ length: 1_000_000 }),
+			body: source,
+		} as unknown as Request;
+
+		expect((await uploadResponse(request)).status).toBe(413);
+		expect(stopped).toBe("refused");
+	});
+
+	it("refuses a request with no body at all", async () => {
+		const seen = jmap(stored());
+		const request = { ...upload(), body: null } as unknown as Request;
+		expect((await uploadResponse(request)).status).toBe(400);
 		expect(seen).toHaveLength(0);
 	});
 
-	it("says too large when the mail server refuses for size or quota and 502 for any other failure", async () => {
+	it("says too large when the mail server refuses for size or quota, busy when it has its fill of uploads, and 502 for any other failure", async () => {
 		jmap(new Response("{}", { status: 413 }));
 		expect((await uploadResponse(upload())).status).toBe(413);
 		jmap(new Response("{}", { status: 507 }));
 		expect((await uploadResponse(upload())).status).toBe(413);
+		jmap(new Response("{}", { status: 429 }));
+		const busy = await uploadResponse(upload());
+		expect(busy.status).toBe(429);
+		expect(await busy.json()).toEqual({ ok: false, reason: "busy" });
 		jmap(new Response("{}", { status: 500 }));
 		expect((await uploadResponse(upload())).status).toBe(502);
 		jmap(new Response(JSON.stringify({ nope: 1 })));
 		expect((await uploadResponse(upload())).status).toBe(502);
+	});
+
+	it("sends its own headers on every answer, since the proxy does not cover this route", async () => {
+		jmap(stored());
+		cookies.reset();
+		const answers = [
+			await uploadResponse(upload({ origin: "https://evil.test" })),
+			await uploadResponse(upload()),
+		];
+		await cookies.signIn("admin");
+		answers.push(await uploadResponse(upload()));
+		expect(answers.map((r) => r.status)).toEqual([403, 401, 200]);
+		for (const response of answers) {
+			expect(response.headers.get("content-security-policy")).toBe(
+				"default-src 'none'; frame-ancestors 'none'",
+			);
+			expect(response.headers.get("x-content-type-options")).toBe(
+				"nosniff",
+			);
+			expect(response.headers.get("cache-control")).toBe(
+				"private, no-store",
+			);
+			expect(response.headers.get("content-type")).toBe(
+				"application/json",
+			);
+		}
 	});
 });

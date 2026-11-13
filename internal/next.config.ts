@@ -14,11 +14,15 @@ const nextConfig: NextConfig = {
 	typedRoutes: true,
 	experimental: {
 		serverActions: { bodySizeLimit: "16kb" },
-		// The proxy buffers a request body to hand it on, and cuts it at this size
-		// (10 MB by default). The webmail uploads an attachment of up to 25 MiB to
-		// `/app/mail/upload`, so the buffer is a little above it; Server Actions keep
-		// their own 16 KB limit above.
-		proxyClientMaxBodySize: "26mb",
+		// The proxy buffers the body of every request it covers, in memory, before
+		// it decides anything: measured, a request with no session was not answered
+		// until its whole body had arrived, and eight of them held at 26 MB took the
+		// server from 97 MB to 306 MB. So the buffer is as small as the largest body
+		// a covered route reads (the composer's message, 1.5 MB), and the one route
+		// that takes a file, `/app/mail/upload`, is outside the proxy and reads its
+		// body as a stream after its own checks. Server Actions keep their own
+		// 16 KB limit above.
+		proxyClientMaxBodySize: "2mb",
 	},
 	// Do not announce the framework on every response.
 	poweredByHeader: false,
