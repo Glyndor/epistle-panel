@@ -1,5 +1,3 @@
-"use client";
-
 import { useQuery } from "@tanstack/react-query";
 import { FolderInputIcon } from "lucide-react";
 import { useTranslations } from "next-intl";

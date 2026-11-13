@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { cleanup, render, screen } from "@testing-library/react";
-
 import {
 	sentRequests,
 	stubFetchJson,
@@ -10,8 +9,8 @@ import {
 	mockRequestCookies,
 	NotFoundSignal,
 } from "@/lib/auth/test-support/cookies";
-
 import { withAdminArea } from "@/test/admin-routes";
+import { resolveServerTree } from "@/test/server-tree";
 
 const originalFetch = globalThis.fetch;
 const cookies = mockRequestCookies();
@@ -40,7 +39,7 @@ describe("AccountsPage", () => {
 			],
 		});
 
-		render(withAdminArea(await AccountsPage()));
+		render(withAdminArea(await resolveServerTree(await AccountsPage())));
 
 		expect(screen.getByText("alice")).toBeInTheDocument();
 		expect(
@@ -66,7 +65,7 @@ describe("AccountsPage", () => {
 			],
 		});
 
-		render(withAdminArea(await AccountsPage()));
+		render(withAdminArea(await resolveServerTree(await AccountsPage())));
 
 		expect(screen.getByRole("table")).toBeInTheDocument();
 		const headers = screen.getAllByRole("columnheader");
@@ -80,7 +79,7 @@ describe("AccountsPage", () => {
 	it("shows the empty state when there are no accounts", async () => {
 		stubFetchJson({ accounts: [] });
 
-		render(withAdminArea(await AccountsPage()));
+		render(withAdminArea(await resolveServerTree(await AccountsPage())));
 
 		expect(screen.getByText("empty")).toBeInTheDocument();
 	});
@@ -88,7 +87,7 @@ describe("AccountsPage", () => {
 	it("shows the unreachable notice when the API errors", async () => {
 		stubFetchReject();
 
-		render(withAdminArea(await AccountsPage()));
+		render(withAdminArea(await resolveServerTree(await AccountsPage())));
 
 		const alert = await screen.findByRole("alert");
 		expect(alert).toHaveTextContent("unreachable");

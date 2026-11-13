@@ -42,6 +42,11 @@ export interface StandInOptions {
 	port?: number;
 	/** Bearer token the API accepts. */
 	token: string;
+	/**
+	 * How a data answer waits for the delay set at `/__control/delay`. Tests pass
+	 * a recorder so they assert the requested wait, not a wall-clock time.
+	 */
+	sleep?: (ms: number) => Promise<void>;
 }
 
 /** Accounts the stand-in knows: name to password and admin flag. */
@@ -93,6 +98,12 @@ const CAPTCHA_WIDGET_JS = `(() => {
 /** Entries per queue page when the caller gives no `limit`. */
 const DEFAULT_PAGE = 2;
 
+/**
+ * Longest delay the control path accepts. Above the panel's 10 s API budget on
+ * purpose, so a run can also show the page's timeout notice.
+ */
+const MAX_DELAY_MS = 30_000;
+
 /** Bytes the `huge` mode streams: well over the panel's 5 MiB cap. */
 const HUGE_BYTES = 64 * 1024 * 1024;
 
@@ -123,6 +134,9 @@ function hugeBody(): Response {
 export function createStandIn(options: StandInOptions) {
 	const log: LoggedRequest[] = [];
 	let mode: Mode = "ok";
+	/** Milliseconds every data answer waits, so a page that streams shows its skeleton. */
+	let delayMs = 0;
+	const sleep = options.sleep ?? ((ms: number) => Bun.sleep(ms));
 	let queue = [...SEED_IDS];
 	const suppression = createSuppressionStore();
 	const deliveries = createDeliveriesStore();
@@ -147,6 +161,7 @@ export function createStandIn(options: StandInOptions) {
 		if (path === "/__control/reset") {
 			log.length = 0;
 			mode = "ok";
+			delayMs = 0;
 			queue = [...SEED_IDS];
 			suppression.reset();
 			accounts.reset();
@@ -169,6 +184,19 @@ export function createStandIn(options: StandInOptions) {
 			}
 			mode = body.mode;
 			return json({ mode });
+		}
+		if (path === "/__control/delay" && request.method === "POST") {
+			const body = (await request.json()) as { ms?: unknown };
+			if (
+				typeof body.ms !== "number" ||
+				!Number.isInteger(body.ms) ||
+				body.ms < 0 ||
+				body.ms > MAX_DELAY_MS
+			) {
+				return json({ error: "ms must be an integer from 0 to 30000" }, 400);
+			}
+			delayMs = body.ms;
+			return json({ delayMs });
 		}
 		return json({ error: "unknown control path" }, 404);
 	}
@@ -259,6 +287,9 @@ export function createStandIn(options: StandInOptions) {
 
 		if (mode === "hang") {
 			return new Promise<Response>(() => {});
+		}
+		if (delayMs > 0) {
+			await sleep(delayMs);
 		}
 		if (mode === "huge") {
 			return hugeBody();

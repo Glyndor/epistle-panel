@@ -5,8 +5,8 @@ import { useFormatter, useTranslations } from "next-intl";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { getStatusAction } from "@/features/status/actions/get-status";
+import { StatusCardsSkeleton } from "@/features/status/components/status-cards-skeleton";
 import { statusQueryOptions } from "@/features/status/queries/status-query";
 import { unwrap } from "@/lib/query/action-result";
 
@@ -34,18 +34,7 @@ export function StatusCards() {
 	const { data, isPending } = useQuery(statusQueryOptions(fetchStatus));
 
 	if (isPending) {
-		return (
-			<div className="@container">
-				<div
-					className="grid grid-cols-2 gap-3 @xl:grid-cols-4"
-					aria-busy="true"
-				>
-					{["version", "domains", "accounts", "queue"].map((key) => (
-						<Skeleton key={key} className="h-16" />
-					))}
-				</div>
-			</div>
-		);
+		return <StatusCardsSkeleton />;
 	}
 	if (data === undefined) {
 		return (

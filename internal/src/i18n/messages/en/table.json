@@ -3,5 +3,6 @@
 	"noMatches": "No row matches the filter.",
 	"sortable": "sortable",
 	"sortedAscending": "sorted ascending",
-	"sortedDescending": "sorted descending"
+	"sortedDescending": "sorted descending",
+	"loading": "Loading"
 }

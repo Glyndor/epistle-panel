@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { cleanup, render, screen } from "@testing-library/react";
-
 import {
 	sentRequests,
 	stubFetchJson,
@@ -11,6 +10,7 @@ import {
 	NotFoundSignal,
 } from "@/lib/auth/test-support/cookies";
 import { withAdminArea } from "@/test/admin-routes";
+import { resolveServerTree } from "@/test/server-tree";
 
 const originalFetch = globalThis.fetch;
 const cookies = mockRequestCookies();
@@ -41,9 +41,11 @@ const record = {
 const open = async (searchParams: Record<string, string | string[]> = {}) =>
 	render(
 		withAdminArea(
-			await DeliveriesPage({
-				searchParams: Promise.resolve(searchParams),
-			}),
+			await resolveServerTree(
+				await DeliveriesPage({
+					searchParams: Promise.resolve(searchParams),
+				}),
+			),
 		),
 	);
 

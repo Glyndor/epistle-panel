@@ -5,8 +5,8 @@ import { useTranslations } from "next-intl";
 
 import { columnHelper, DataTable } from "@/components/data-table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Skeleton } from "@/components/ui/skeleton";
 import { getDomainsAction } from "@/features/domains/actions/get-domains";
+import { DomainsTableSkeleton } from "@/features/domains/components/domains-table-skeleton";
 import { domainsQueryOptions } from "@/features/domains/queries/domains-query";
 import type { DomainRow } from "@/features/domains/schemas/domains-view";
 import { unwrap } from "@/lib/query/action-result";
@@ -29,7 +29,7 @@ export function DomainsTable() {
 	]);
 
 	if (isPending) {
-		return <Skeleton className="h-24" aria-busy="true" />;
+		return <DomainsTableSkeleton />;
 	}
 	if (data === undefined) {
 		return (

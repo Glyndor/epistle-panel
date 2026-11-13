@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 
 import type { ComposeRefusal } from "@/features/mail/queries/compose-message";

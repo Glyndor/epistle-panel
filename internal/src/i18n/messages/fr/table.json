@@ -3,5 +3,6 @@
 	"noMatches": "Aucune ligne ne correspond au filtre.",
 	"sortable": "triable",
 	"sortedAscending": "tri croissant",
-	"sortedDescending": "tri décroissant"
+	"sortedDescending": "tri décroissant",
+	"loading": "Chargement"
 }

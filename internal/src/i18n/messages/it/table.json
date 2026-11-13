@@ -3,5 +3,6 @@
 	"noMatches": "Nessuna riga corrisponde al filtro.",
 	"sortable": "ordinabile",
 	"sortedAscending": "ordine crescente",
-	"sortedDescending": "ordine decrescente"
+	"sortedDescending": "ordine decrescente",
+	"loading": "Caricamento"
 }
