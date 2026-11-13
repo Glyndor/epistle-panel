@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { emailFixture, stubJmap } from "@/features/mail/test-support/jmap-stub";
 import {
 	mockRequestCookies,
 	RedirectSignal,
 } from "@/lib/auth/test-support/cookies";
 import { clearSecretCache } from "@/lib/config/secret";
-import { testQueryClient, withQuery } from "@/test/query-wrapper";
+import { settled, withQuery } from "@/test/query-wrapper";
 import { firstPaint, resolveServerTree } from "@/test/server-tree";
 
 const originalFetch = globalThis.fetch;
@@ -64,31 +64,12 @@ beforeEach(async () => {
 	process.env["EPISTLE_API_TOKEN"] = "t";
 	await cookies.signIn("admin");
 });
-/**
- * The query clients of the case under way. A pane whose data did not come from
- * the server asks for it in the browser as soon as it mounts; a case that ended
- * with that call on its way left it to land in the next case's stub, with the
- * next case's token (it is read when the call is made). So a case ends only
- * when its clients have nothing in flight.
- */
-let clients: Array<ReturnType<typeof testQueryClient>> = [];
-const page = (tree: Parameters<typeof withQuery>[0]) => {
-	const client = testQueryClient();
-	clients.push(client);
-	return withQuery(tree, client);
-};
-
 afterEach(async () => {
-	await waitFor(() =>
-		expect(
-			clients.reduce(
-				(busy, client) =>
-					busy + client.isFetching() + client.isMutating(),
-				0,
-			),
-		).toBe(0),
-	);
-	clients = [];
+	// A pane whose data did not come from the server asks for it in the browser
+	// as soon as it mounts. That call is let finish against this case's stub:
+	// left on its way it lands in the next case's, with the next case's token
+	// (the token is read when the call is made).
+	await settled();
 	process.env = { ...savedEnv };
 	cleanup();
 	globalThis.fetch = originalFetch;
@@ -98,7 +79,7 @@ async function renderPage(
 	params: Record<string, string | string[] | undefined> = {},
 ) {
 	return render(
-		page(
+		withQuery(
 			await resolveServerTree(
 				await MailPage({ searchParams: Promise.resolve(params) }),
 			),
@@ -169,7 +150,7 @@ describe("MailPage", () => {
 		// Every boundary gives way to its fallback and is not run; what is left of
 		// the frame (it has server components of its own) is then resolved.
 		const { container } = render(
-			page(await resolveServerTree(firstPaint(tree))),
+			withQuery(await resolveServerTree(firstPaint(tree))),
 		);
 		expect(
 			screen.getByRole("region", { name: "listLabel" }),
@@ -188,7 +169,7 @@ describe("MailPage", () => {
 
 		// The control: run the boundaries and the same counter sees their calls.
 		cleanup();
-		render(page(await resolveServerTree(tree)));
+		render(withQuery(await resolveServerTree(tree)));
 		expect(asked().length).toBeGreaterThan(0);
 	});
 

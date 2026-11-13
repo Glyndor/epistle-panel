@@ -1,10 +1,11 @@
-import { expect, mock } from "bun:test";
+import { beforeEach, expect, mock } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
 
 import { TEST_ADMIN_ID } from "../../lib/config/test-support/admin-id";
 import { installBrowserPattern } from "../browser-pattern";
 import { installNextIntlMocks, registerStandIn } from "../next-intl";
 import { headersStandIn, navigationStandIn } from "../next-navigation";
+import { betweenCases } from "../query-wrapper";
 import { installShortNodePrint } from "../short-node-print";
 
 // Provide `document`/`window` for component tests, then extend `expect` with
@@ -49,3 +50,9 @@ process.env["EPISTLE_API_TOKEN"] ??= "test-token";
 process.env["EPISTLE_PANEL_SESSION_SECRET"] ??=
 	"test-session-secret-at-least-32-bytes-long";
 process.env["EPISTLE_PANEL_ADMIN_ID"] ??= TEST_ADMIN_ID;
+
+// A request that outlives its case finishes before the next case begins, so it
+// reaches no stub that counts: see `betweenCases`.
+beforeEach(async () => {
+	await betweenCases();
+});

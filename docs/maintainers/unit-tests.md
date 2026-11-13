@@ -94,7 +94,38 @@ which node. Its test fails, in seconds, if the print is not installed.
 
 Do not raise a timeout to cure a test that fails now and then. Look for what a
 failed poll costs, or for a test that ends while its action is still on its way
-to the stubbed `fetch`: the request then lands in the next test's stub.
+to the stubbed `fetch` (the next section).
+
+## A request that outlives its case
+
+A request that outlives its case lands in the next case's `fetch` stub, with
+whatever the next case set: the API token is read when the call is made, so
+even a case that counts only requests carrying its own token counted one it
+did not make. Of 40 random orders of the mail page's file, 8 failed that way.
+It comes from a component that asks for data as it mounts, a reader that marks
+a message as read when it opens, or a mutation that reads the list again once
+it settles.
+
+Whether a case ends with a request on its way depends on the moment it ends:
+the same case leaves one in one run and none in the next. So it is not held as
+a rule after the case (a check there failed now and then in files nobody had
+touched). It is contained before the next one. The preload's `beforeEach` runs
+ahead of the file's own (measured), when the next stub is not in place yet, and
+waits there for the clients of the case before to have nothing on its way
+(`betweenCases` in `src/test/query-wrapper`). What was left finishes against
+whatever the last case left behind and reaches no stub that counts. With that
+alone the mail page's file fails in 0 of 40 orders; without it, in 5.
+
+It covers the clients made by `testQueryClient`, which is every one
+`withQuery` makes. Two things a file still does itself:
+
+- to have a request counted by the case that made it, end the file's
+  `afterEach` with `await settled()` **before** `fetch` is put back
+  (`useActionEnvironment` does it for the files that use it);
+- a request held open on purpose, to look at a pending state, is answered by
+  the case once it has looked: keep the promise's `resolve`, call it, then
+  `await settled()`. One left open for ever costs the next case a quarter of a
+  second.
 
 ## Pinning limits
 
