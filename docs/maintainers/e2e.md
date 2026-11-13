@@ -40,7 +40,7 @@ the line limit:
 | `scripts/e2e/lib/reporting.sh` | the pass and fail counters and the `assert_*` helpers |
 | `scripts/e2e/lib/processes.sh` | secrets, start and restart of the stand-in and the panel, its control calls |
 | `scripts/e2e/lib/http.sh` | `fetch`, `login`, the form-field readers, memory and CPU counters |
-| `scripts/e2e/scenarios/<name>.sh` | one scenario each: `headers`, `logout`, `limiter`, `limiter-global`, `noauth`, `degraded`, `rotation`, `idle`, `theme`, `body-limit`, `captcha`, `csrf`, `set-locale`, `unknown-variable`, `suppression`, `deliveries` |
+| `scripts/e2e/scenarios/<name>.sh` | one scenario each: `headers`, `logout`, `limiter`, `limiter-global`, `noauth`, `degraded`, `rotation`, `idle`, `theme`, `body-limit`, `captcha`, `csrf`, `set-locale`, `unknown-variable`, `suppression`, `deliveries`, `account-detail` |
 
 A new scenario is a new file in `scenarios/`, a `source` line and a `case` entry
 in `run.sh`, and a row in the table below.
@@ -60,7 +60,12 @@ and `ops` (admins) and `user` (not an admin), keeps a suppression list
 address) and a delivery log (`stand-in-api/deliveries.ts`, filters and
 limit as the API takes them, no cursor), logs every request without any
 secret, and switches the data endpoints to `hang` or `huge` through
-`POST /__control/mode`.
+`POST /__control/mode`. The per-account endpoints (`stand-in-api/accounts/`)
+follow epistle's OpenAPI document: the display name, the password policy, TOTP,
+masked addresses with a cap of three, the archive (only `admin` has one, the
+others answer `404` like a server with retention off) and mailboxes. It keeps
+its state in memory, `GET /__control/accounts` reports it, and it never keeps a
+secret: a password is only counted.
 
 ## What the script proves
 
@@ -81,6 +86,7 @@ secret, and switches the data endpoints to `hang` or `huge` through
 | `unknown-variable` | a misspelt `EPISTLE_PANEL_` name is warned about in the startup log by name, the value is never printed, a name the panel reads (and the `_FILE` form of a secret) is not warned about, and the panel still serves |
 | `suppression` | `/app/suppression` and its Server Action are denied without a session and the stand-in sees nothing; the first page, the encoded `after` cursor and the next link; a hostile `?after=` (`../`, `%2e%2e%2f`, line breaks, a bidi override, 300 characters, an injected parameter) is dropped and the first page is fetched; hostile action arguments (the same, an extra field, an empty or non-object argument) reach no `DELETE`; a valid removal sends the address as one percent-encoded path segment (the stand-in's seed holds a `/` and a `+`) and the address leaves the page |
 | `deliveries` | `/app/deliveries` is denied without a session and the stand-in sees nothing; the unfiltered page asks the API once for 100 records; a reply with markup is printed as text; filters (`outcome`, `since`, `recipient`) reach the API encoded and narrow the page; hostile parameters (an unknown outcome, `../`, `1e9d`, a line break, an injected parameter, a bidi override, 300 characters, `limit`, `account`) are dropped and the unfiltered log is fetched; nothing but `GET` reaches the API |
+| `account-detail` | `/app/accounts/[name]` and its actions: without a session every route and action is redirected and the stand-in sees nothing; with one the page is rendered from the API (list, mailboxes, masked addresses, archive, each asked once, for that account only), carries no inline style and is `no-store`; an archive the server does not keep is a plain notice and no logged failure; hostile and unknown names (`..`, `%2f`, an encoded `..`, CR/LF, a look-alike or accented letter, upper case, `%00`) show the not-found page and reach no per-account endpoint; actions refuse a hostile name, address, id, password or display name before the API; display name, password, two-factor, masked create and remove (with the address percent-encoded), the masked cap and archive restore work; the password and the TOTP secret appear in no log, the secret only in the one answer that is `no-store`, and not in the page afterwards |
 | `theme` | `/theme.css`, `/brand/logo` and `/brand/favicon` answer without a session when configured and 404 when not; the sign-in page links the stylesheet and shows the name, the logo and the original copyright notice; the CSP is the same with and without a theme; look-alike paths stay behind the gate; a symlink, an oversized or a missing file is a 404 and a log line with no path, and a symlink or a FIFO as the logo is refused the same way; an SVG with script is refused, also when `javascript:` is written with numeric character references |
 
 ## Origin check of Server Actions, measured
@@ -108,6 +114,11 @@ The `csrf` scenario pins the foreign `Origin`, `Origin: null`, own `Origin` and
 foreign `Origin` with `X-Forwarded-Host` rows, so a change in Next or in the
 panel shows up as a failing check rather than as a surprise. The other two
 rows were only measured.
+
+A hostile account name answers the panel's not-found page with status 200, not
+404. The admin shell is streamed before the page resolves (`loading.tsx`), so a
+`notFound()` thrown by the page cannot change the status (measured on Next
+16.4.6). The scenario tells it apart by the body and by the stand-in log.
 
 ## What it does not cover
 

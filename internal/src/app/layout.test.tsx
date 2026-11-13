@@ -96,6 +96,7 @@ describe("RootLayout", () => {
 		await renderLayout();
 
 		expect(Object.keys(intl.providerMessages ?? {}).sort()).toEqual([
+			"accountDetail",
 			"accounts",
 			"auth",
 			"dashboard",

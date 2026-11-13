@@ -59,8 +59,20 @@ export const responseModels: Record<string, ResponseModel> = {
 								isString(s) ? s : undefined,
 							)
 						: undefined;
-					return isObj(a) && isString(a["name"]) && addresses
-						? { name: a["name"], addresses }
+					const displayName = isObj(a)
+						? a["display_name"]
+						: undefined;
+					return isObj(a) &&
+						isString(a["name"]) &&
+						(displayName === null || isString(displayName)) &&
+						typeof a["dynamic"] === "boolean" &&
+						addresses
+						? {
+								name: a["name"],
+								display_name: displayName,
+								addresses,
+								dynamic: a["dynamic"],
+							}
 						: undefined;
 				})
 			: undefined;
@@ -211,7 +223,9 @@ export const responseGenerators: Record<string, (rng: Rng) => Json> = {
 	accounts: (rng) => ({
 		accounts: Array.from({ length: rng.int(0, 4) }, () => ({
 			name: word(rng),
+			display_name: rng.chance() ? word(rng) : null,
 			addresses: Array.from({ length: rng.int(0, 3) }, () => word(rng)),
+			dynamic: rng.chance(),
 		})),
 	}),
 	apiError: (rng) => ({ error: { code: word(rng), message: word(rng) } }),

@@ -10,13 +10,37 @@ afterEach(() => {
 });
 
 describe("loadAccounts", () => {
-	it("keeps the name and the addresses of each account", async () => {
+	it("keeps the name, the person's name, the addresses and whether the API manages it", async () => {
 		stubFetchJson({
-			accounts: [{ name: "ops", addresses: ["ops@example.org"] }],
+			accounts: [
+				{
+					name: "ops",
+					display_name: "Ops Team",
+					addresses: ["ops@example.org"],
+					dynamic: true,
+				},
+				{
+					name: "legacy",
+					display_name: null,
+					addresses: [],
+					dynamic: false,
+				},
+			],
 		});
 
 		expect(await loadAccounts()).toEqual([
-			{ name: "ops", addresses: ["ops@example.org"] },
+			{
+				name: "ops",
+				displayName: "Ops Team",
+				addresses: ["ops@example.org"],
+				dynamic: true,
+			},
+			{
+				name: "legacy",
+				displayName: null,
+				addresses: [],
+				dynamic: false,
+			},
 		]);
 	});
 });

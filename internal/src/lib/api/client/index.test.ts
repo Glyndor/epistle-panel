@@ -46,7 +46,11 @@ describe("client getters", () => {
 	it("fetches domains and accounts", async () => {
 		stubFetchJson({ domains: ["example.org"] });
 		expect((await getDomains()).domains).toEqual(["example.org"]);
-		stubFetchJson({ accounts: [{ name: "a", addresses: [] }] });
+		stubFetchJson({
+			accounts: [
+				{ name: "a", display_name: null, dynamic: true, addresses: [] },
+			],
+		});
 		expect((await getAccounts()).accounts[0]?.name).toBe("a");
 	});
 

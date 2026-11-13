@@ -19,6 +19,13 @@ export class RedirectSignal extends Error {
 	}
 }
 
+/** Thrown by the stubbed `notFound`, as the real one throws to render the 404 page. */
+export class NotFoundSignal extends Error {
+	constructor() {
+		super("NEXT_NOT_FOUND");
+	}
+}
+
 /**
  * Await an action that ends in `redirect()` and return the signal it threw.
  * Any other rejection (a TypeError from the action, say) is rethrown, and an
@@ -71,6 +78,9 @@ export function mockRequestCookies() {
 	mock.module("next/navigation", () => ({
 		redirect: (target: string) => {
 			throw new RedirectSignal(target);
+		},
+		notFound: () => {
+			throw new NotFoundSignal();
 		},
 		usePathname: () => "/",
 	}));

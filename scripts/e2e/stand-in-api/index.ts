@@ -16,6 +16,7 @@
 import { apiError, json } from "./responses";
 import { createDeliveriesStore } from "./deliveries";
 import { createSuppressionStore } from "./suppression";
+import { createAccountsStore } from "./accounts";
 
 /** Behaviour of the data endpoints, switched at run time through the control path. */
 export type Mode = "ok" | "hang" | "huge";
@@ -124,6 +125,7 @@ export function createStandIn(options: StandInOptions) {
 	let queue = [...SEED_IDS];
 	const suppression = createSuppressionStore();
 	const deliveries = createDeliveriesStore();
+	const accounts = createAccountsStore(Object.keys(ACCOUNTS));
 
 	const bearerOf = (request: Request): LoggedRequest["bearer"] => {
 		const header = request.headers.get("authorization");
@@ -145,7 +147,11 @@ export function createStandIn(options: StandInOptions) {
 			mode = "ok";
 			queue = [...SEED_IDS];
 			suppression.reset();
+			accounts.reset();
 			return json({ ok: true });
+		}
+		if (path === "/__control/accounts") {
+			return json(accounts.snapshot());
 		}
 		if (path === "/__control/mode" && request.method === "POST") {
 			const body = (await request.json()) as { mode?: string };
@@ -264,9 +270,14 @@ export function createStandIn(options: StandInOptions) {
 			return json({
 				accounts: Object.keys(ACCOUNTS).map((name) => ({
 					name,
+					...accounts.view(name),
 					addresses: [`${name}@example.test`],
 				})),
 			});
+		}
+		const perAccount = await accounts.handle(request, path);
+		if (perAccount !== null) {
+			return perAccount;
 		}
 		if (path === "/api/v1/queue" && request.method === "GET") {
 			return handleQueue(request, url);
