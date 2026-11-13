@@ -146,6 +146,48 @@ describe("ComposeForm", () => {
 		expect(sent[1]?.["draftId"]).toBe("d2");
 	});
 
+	it("says the message is too large and sends nothing when its request is over what the route reads, though its characters fit", async () => {
+		const sent = server({ ok: true, result: { kind: "draft", id: "d" } });
+		render(<ComposeForm initial={empty} />);
+		// 800 000 characters are under the body's 1 000 000, and 1.6 MB as UTF-8:
+		// over the 1.5 MB the route reads.
+		const long = "я".repeat(800_000);
+		type("fieldBody", long);
+		fireEvent.click(screen.getByRole("button", { name: "saveDraft" }));
+
+		expect(await screen.findByRole("alert")).toHaveTextContent(
+			"refusal_tooLarge",
+		);
+		expect(screen.queryByText("bodyTooLong")).toBeNull();
+		expect(sent).toHaveLength(0);
+		expect(screen.getByLabelText("fieldBody")).toHaveValue(long);
+	});
+
+	it("sends a message just under what the route reads", async () => {
+		const sent = server({ ok: true, result: { kind: "draft", id: "d" } });
+		render(<ComposeForm initial={empty} />);
+		// 740 000 two-byte characters: 1.48 MB with the JSON around them.
+		type("fieldBody", "я".repeat(740_000));
+		fireEvent.click(screen.getByRole("button", { name: "saveDraft" }));
+
+		await waitFor(() => expect(sent).toHaveLength(1));
+		expect(screen.queryByRole("alert")).toBeNull();
+	});
+
+	it("says too large, not unreachable, when the route refuses the request for its size", async () => {
+		const sent = server({ ok: false, reason: "invalid" }, 413);
+		render(<ComposeForm initial={empty} />);
+		type("fieldBody", "short");
+		fireEvent.click(screen.getByRole("button", { name: "saveDraft" }));
+
+		expect(await screen.findByRole("alert")).toHaveTextContent(
+			"refusal_tooLarge",
+		);
+		expect(screen.queryByText("unavailableCompose")).toBeNull();
+		expect(sent).toHaveLength(1);
+		expect(screen.getByLabelText("fieldBody")).toHaveValue("short");
+	});
+
 	it("says so when the account has no sender, and when the server cannot be reached or answers badly", async () => {
 		server({ ok: true, result: { kind: "noSender" } });
 		render(<ComposeForm initial={{ ...empty, to: "a@x.org" }} />);
