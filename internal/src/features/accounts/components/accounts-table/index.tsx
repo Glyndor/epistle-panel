@@ -8,6 +8,7 @@ import { columnHelper, DataTable } from "@/components/data-table";
 import { useAdminRoutes } from "@/components/layout/admin-routes";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { getAccountsAction } from "@/features/accounts/actions/get-accounts";
+import { AccountRowActions } from "@/features/accounts/components/account-row-actions";
 import { AccountsTableSkeleton } from "@/features/accounts/components/accounts-table-skeleton";
 import { accountsQueryOptions } from "@/features/accounts/queries/accounts-query";
 import type { AccountRow } from "@/features/accounts/schemas/accounts-view";
@@ -36,7 +37,7 @@ function AccountName({ name }: { name: string }) {
 	);
 }
 
-/** The accounts table: sortable by account, filterable over names and addresses. */
+/** The accounts table: sortable by account, filterable over names and addresses, with the actions of each account at the end of its row. */
 export function AccountsTable() {
 	const t = useTranslations("accounts");
 	const { data, isPending } = useQuery(accountsQueryOptions(fetchAccounts));
@@ -53,6 +54,15 @@ export function AccountsTable() {
 				<span className="break-all font-mono text-muted-foreground">
 					{info.getValue()}
 				</span>
+			),
+		}),
+		helper.display({
+			id: "actions",
+			header: () => <span className="sr-only">{t("actions")}</span>,
+			cell: (info) => (
+				<div className="flex justify-end">
+					<AccountRowActions row={info.row.original} />
+				</div>
 			),
 		}),
 	]);

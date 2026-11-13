@@ -69,9 +69,11 @@ describe("AccountsPage", () => {
 
 		expect(screen.getByRole("table")).toBeInTheDocument();
 		const headers = screen.getAllByRole("columnheader");
-		expect(headers).toHaveLength(2);
+		expect(headers).toHaveLength(3);
 		expect(headers[0]).toHaveTextContent("name");
 		expect(headers[1]).toHaveTextContent("addresses");
+		// The actions column is named for a screen reader only.
+		expect(headers[2]).toHaveTextContent("actions");
 		// One header row and one row per account.
 		expect(screen.getAllByRole("row")).toHaveLength(3);
 	});

@@ -48,9 +48,17 @@ function DropdownMenuTrigger(
 function DropdownMenuContent({
 	className,
 	sideOffset = 4,
+	container,
 	...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.Content>) {
-	return (
+}: React.ComponentProps<typeof DropdownMenuPrimitive.Content> & {
+	/**
+	 * Where to render the list instead of in place: for a menu inside a box
+	 * that clips what leaves it (a table that scrolls sideways). Give it an
+	 * element inside a landmark, the page's `main`, never `body`.
+	 */
+	container?: HTMLElement | null;
+}) {
+	const content = (
 		<DropdownMenuPrimitive.Content
 			data-slot="dropdown-menu-content"
 			sideOffset={sideOffset}
@@ -60,6 +68,13 @@ function DropdownMenuContent({
 			)}
 			{...props}
 		/>
+	);
+	return container ? (
+		<DropdownMenuPrimitive.Portal container={container}>
+			{content}
+		</DropdownMenuPrimitive.Portal>
+	) : (
+		content
 	);
 }
 
@@ -131,9 +146,35 @@ function DropdownMenuRadioItem({
 	);
 }
 
+/**
+ * An action of the menu. `variant="destructive"` is for one that removes
+ * something; it still opens a confirmation, the colour only says what it is.
+ * With `asChild` the item is the link or the button given as its child.
+ */
+function DropdownMenuItem({
+	className,
+	variant = "default",
+	...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.Item> & {
+	variant?: "default" | "destructive";
+}) {
+	return (
+		<DropdownMenuPrimitive.Item
+			data-slot="dropdown-menu-item"
+			data-variant={variant}
+			className={cn(
+				"relative flex min-h-8 cursor-default select-none items-center gap-2 rounded-lg px-2 text-sm focus:bg-accent focus:text-accent-foreground focus:outline-2 focus:-outline-offset-2 focus:outline-ring data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:bg-destructive-soft data-[variant=destructive]:focus:text-destructive pointer-coarse:min-h-11 [&_svg]:size-4 [&_svg]:shrink-0",
+				className,
+			)}
+			{...props}
+		/>
+	);
+}
+
 export {
 	DropdownMenu,
 	DropdownMenuContent,
+	DropdownMenuItem,
 	DropdownMenuLabel,
 	DropdownMenuRadioGroup,
 	DropdownMenuRadioItem,

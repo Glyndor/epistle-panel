@@ -11,6 +11,7 @@ import { Sheet } from "@/components/ui/sheet";
 import { SidebarProvider } from "@/components/ui/sidebar/provider";
 import { queueEntryIdSchema } from "@/features/queue/schemas/queue-input";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
+import { withAdminArea } from "@/test/admin-routes";
 import { testQueryClient, withQuery } from "@/test/query-wrapper";
 
 /**
@@ -27,6 +28,12 @@ const cookies = mockRequestCookies();
 const { LanguageMenu } = await import("@/components/layout/language-menu");
 const { RemoveEntryButton } = await import(
 	"@/features/queue/components/remove-entry-button"
+);
+const { CreateAccountDialog } = await import(
+	"@/features/accounts/components/create-account-dialog"
+);
+const { AccountRowActions } = await import(
+	"@/features/accounts/components/account-row-actions"
 );
 
 afterEach(() => {
@@ -129,6 +136,45 @@ describe("overlays and the CSP", () => {
 
 		const styles = [...document.head.querySelectorAll("style")];
 		expect(styles.some((style) => !style.getAttribute("nonce"))).toBe(true);
+	});
+
+	it("the new-account dialog injects a style element only with the request's nonce", async () => {
+		await cookies.signIn();
+		setNonce("request-nonce");
+		render(withQuery(<CreateAccountDialog />, testQueryClient()));
+		fireEvent.click(screen.getByRole("button", { name: "create" }));
+		await screen.findByRole("dialog");
+
+		const styles = [...document.head.querySelectorAll("style")];
+		expect(styles.length).toBeGreaterThan(0);
+		for (const style of styles) {
+			expect(style.getAttribute("nonce")).toBe("request-nonce");
+		}
+	});
+
+	it("the actions menu of an account row adds no style element when opened", async () => {
+		const before = styleElements();
+		render(
+			withAdminArea(
+				<main id="main-content">
+					<AccountRowActions
+						row={{
+							name: "alice",
+							displayName: null,
+							addresses: [],
+							dynamic: true,
+						}}
+					/>
+				</main>,
+			),
+		);
+		fireEvent.keyDown(screen.getByRole("button", { name: "actionsFor" }), {
+			key: "Enter",
+		});
+		await screen.findByRole("menu");
+
+		expect(styleElements()).toBe(before);
+		expect(document.body).not.toHaveAttribute("data-scroll-locked");
 	});
 
 	it("control: a modal Radix menu does inject one, so the checks above can fail", async () => {

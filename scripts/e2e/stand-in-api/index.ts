@@ -17,6 +17,7 @@ import { apiError, json } from "./responses";
 import { createDeliveriesStore } from "./deliveries";
 import { createSuppressionStore } from "./suppression";
 import { createAccountsStore } from "./accounts";
+import { handleLifecycle } from "./accounts/lifecycle";
 import { createJmapStore } from "./jmap";
 
 /** Behaviour of the data endpoints, switched at run time through the control path. */
@@ -299,21 +300,19 @@ export function createStandIn(options: StandInOptions) {
 			return json({
 				version: "0.0.0-stand-in",
 				domains: 1,
-				accounts: Object.keys(ACCOUNTS).length,
+				accounts: accounts.list().length,
 				queue_size: queue.length,
 			});
 		}
 		if (path === "/api/v1/domains") {
 			return json({ domains: ["example.test"] });
 		}
-		if (path === "/api/v1/accounts") {
-			return json({
-				accounts: Object.keys(ACCOUNTS).map((name) => ({
-					name,
-					...accounts.view(name),
-					addresses: [`${name}@example.test`],
-				})),
-			});
+		if (path === "/api/v1/accounts" && request.method === "GET") {
+			return json({ accounts: accounts.list() });
+		}
+		const lifecycle = await handleLifecycle(request, url, accounts);
+		if (lifecycle !== null) {
+			return lifecycle;
 		}
 		const mail = await jmap.handle(request, url);
 		if (mail !== null) {

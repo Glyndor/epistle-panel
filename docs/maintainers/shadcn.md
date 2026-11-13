@@ -112,14 +112,17 @@ kept.
 | Card | status counters | no violation |
 | Table | queue, deliveries, suppression, domains, accounts | no violation; rows striped by tone, no lines |
 | AlertDialog (`ConfirmAction`) | the six confirmations: remove queue entry, suppressed address, masked address, enrol and turn off two-factor, delete a message for good from the trash (the button, or the Delete and # keys through `open` and `onOpenChange`) | **needs the nonce**: one `style-src-elem` violation without `StyleNonce`, none with it (built server, light and dark). Focus lands on Cancel, Tab cycles inside, Escape closes, the focus returns to the control, page scroll is locked and released |
+| Dialog | the new-account form | **needs the nonce**, like AlertDialog, and is hosted by the shell that mounts `StyleNonce`. Measured in the built server at 1280 px light and 360 px dark: no console error, axe clean with it open, it fits a 360 px window and scrolls inside; Escape and the close button close it and the focus returns to the button. Its form is loaded when it first opens (`next/dynamic`) |
+| Textarea | addresses of a new account, the composer's body | no violation; the shared field look, taller |
 | Badge | delivery outcome | no violation; static, the label always says the outcome |
 | Empty | empty tables and the empty sections of the account page | no violation; static |
 | Breadcrumb | account page | no violation; static |
 | Sidebar (provider, rail, menu, trigger) | every signed-in page | none at first paint, after hydration, collapsed or expanded; width variables are classes |
 | Sidebar tooltip (own, no popper) | collapsed sidebar icons | none after hover or keyboard focus (placed through the CSSOM); Escape dismisses it |
+| DropdownMenu item, rendered in `main` | the actions of an account row (open, delete) | no violation. A table scrolls sideways, which clips what leaves it, so the list is rendered in the page's `main` (`container`), found when the menu opens: inside a landmark, never on `body`. Measured on the last row at 1280 and 360 px: whole, on top, focus on the first item, Escape returns it to the button |
 | DropdownMenu, non-modal, loaded on demand | language menu | none after opening; the modal default injects a style element and was replaced. Its code loads on hover, focus or press of a placeholder button |
 | Sheet, native `<dialog>` | sidebar below 768 px | none after opening; Radix Dialog violated and was replaced |
-| Form (react-hook-form) | sign-in | no violation; classes only |
+| Form (react-hook-form) | sign-in, the account forms; `FormDescription` for a help text | no violation; classes only |
 | Toaster (own) | mutation outcomes, one region in the shell | none; classes only |
 | Native `<select>` | delivery log filters | no violation. Radix Select was measured and kept out: its `SelectValue` puts `style="pointer-events:none"` in the server HTML (a `style-src` violation, and a nonce cannot cover an attribute), its viewport injects a `<style>` element with no nonce prop wired, and the filter form is a plain GET form that works without script |
 | Skeleton | loading states | no violation; static, never pulses |
