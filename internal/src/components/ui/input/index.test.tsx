@@ -49,7 +49,7 @@ describe("Input", () => {
 		expect(screen.getByLabelText("Name")).not.toHaveAttribute("style");
 	});
 
-	it("is a tonal well with no border at rest, and shows a destructive border only when invalid", () => {
+	it("is a tonal well with a bottom line and no box, and the line and an outline turn destructive when invalid", () => {
 		render(
 			<>
 				<Input aria-label="Name" />
@@ -60,13 +60,13 @@ describe("Input", () => {
 		const rest = screen.getByLabelText("Name");
 		expect(rest).toHaveClass(
 			"bg-field",
-			"border-transparent",
+			"shadow-[inset_0_-2px_0_0_var(--field-edge)]",
 			"hover:bg-accent",
 		);
-		expect(rest).not.toHaveClass("border-input");
+		expect(rest.className).not.toMatch(/(^|\s)border/);
 		const bad = screen.getByLabelText("Bad");
 		expect(bad).toHaveClass(
-			"aria-invalid:border-destructive",
+			"aria-invalid:shadow-[inset_0_0_0_1px_var(--destructive),inset_0_-2px_0_0_var(--destructive)]",
 			"hover:bg-accent",
 		);
 	});

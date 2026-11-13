@@ -134,7 +134,7 @@ describe("PasswordSection", () => {
 			expect(screen.getByRole("alert")).toHaveTextContent("refusedGone"),
 		);
 
-		clearToasts();
+		act(() => clearToasts());
 		const errors = spyOn(console, "error").mockImplementation(() => {});
 		stubFetchReject();
 		await type(PASSWORD);

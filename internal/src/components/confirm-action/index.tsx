@@ -24,6 +24,8 @@ export function ConfirmAction({
 	description,
 	destructive = true,
 	onConfirm,
+	open,
+	onOpenChange,
 	children,
 }: {
 	/** What the action does, as a full sentence. */
@@ -31,11 +33,20 @@ export function ConfirmAction({
 	/** Whether the confirming button looks destructive; true by default. */
 	destructive?: boolean;
 	onConfirm: () => void;
+	/**
+	 * Controlled use: a key shortcut that must open the same dialog as the
+	 * control does. Leave both out and the control opens it by itself.
+	 */
+	open?: boolean;
+	onOpenChange?: (open: boolean) => void;
 	children: React.ReactElement;
 }) {
 	const t = useTranslations("confirm");
 	return (
-		<AlertDialog>
+		<AlertDialog
+			{...(open === undefined ? {} : { open })}
+			{...(onOpenChange === undefined ? {} : { onOpenChange })}
+		>
 			<AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
 			<AlertDialogContent>
 				<AlertDialogHeader>

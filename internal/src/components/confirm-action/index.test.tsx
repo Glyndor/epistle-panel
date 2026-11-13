@@ -62,4 +62,29 @@ describe("ConfirmAction", () => {
 			await screen.findByRole("button", { name: "proceed" }),
 		).toHaveClass("bg-primary");
 	});
+
+	it("can be opened and closed from outside, for a key shortcut", async () => {
+		const onConfirm = mock(() => {});
+		const changes: boolean[] = [];
+		const view = (open: boolean) => (
+			<ConfirmAction
+				description="Remove it?"
+				onConfirm={onConfirm}
+				open={open}
+				onOpenChange={(next) => changes.push(next)}
+			>
+				<button type="button">Remove</button>
+			</ConfirmAction>
+		);
+		const { rerender } = render(view(false));
+		expect(screen.queryByRole("alertdialog")).toBeNull();
+
+		rerender(view(true));
+		expect(await screen.findByRole("alertdialog")).toHaveTextContent(
+			"Remove it?",
+		);
+		fireEvent.click(screen.getByRole("button", { name: "cancel" }));
+		expect(changes).toEqual([false]);
+		expect(onConfirm).not.toHaveBeenCalled();
+	});
 });

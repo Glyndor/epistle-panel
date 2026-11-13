@@ -27,8 +27,8 @@ the session stay on the server; the browser never calls the API.
 Removing a queue entry is a mutation with an optimistic update: the row leaves
 the cached page at once, the snapshot is restored on failure, and the queue and
 status are refetched either way. Its outcome is a toast (`components/ui/toaster`).
-The browser's own `confirm` stays: a modal Radix dialog injects a style element
-that the CSP refuses.
+It asks first with `ConfirmAction` (an alert dialog; its style element carries
+the request's nonce, see shadcn.md).
 
 ## The suppression list
 
@@ -112,7 +112,7 @@ differences that matter:
   is no QR code: drawing one needs a library, and the secret and URI are shown
   as text.
 - Destructive actions (turning two-factor off, enrolling a new secret, removing
-  a masked address) use the browser's `confirm`.
+  a masked address) ask with `ConfirmAction`.
 - The archive answers 404 when the server keeps no deleted mail; that is a
   state of the section, not an error, and it is not logged.
 

@@ -32,6 +32,14 @@ describe("LanguageSelect", () => {
 		).toEqual(SUPPORTED_LOCALES.map((code) => LOCALE_NAMES[code]));
 	});
 
+	it("wears the shared field look, sized to its content", () => {
+		render(<LanguageSelect />);
+		const select = screen.getByRole("combobox");
+		expect(select).toHaveClass("bg-field", "min-h-8", "w-auto");
+		expect(select).not.toHaveClass("w-full");
+		expect(select.className).not.toMatch(/(^|\s)border/);
+	});
+
 	it("stores the chosen language through the action", async () => {
 		await cookies.signIn("admin");
 		render(<LanguageSelect />);

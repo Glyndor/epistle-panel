@@ -18,15 +18,15 @@ new image.
 
 All the variables live in one file, `internal/src/styles/theme.css`: the colour
 roles (`--background`, `--foreground`, `--primary`, `--muted`, `--accent`,
-`--destructive`, `--destructive-soft`, `--warning`, `--field`, `--input` (the
-drawn edge of a field that has not moved to `--field`, the webmail's for now), `--ring`,
+`--destructive`, `--destructive-soft`, `--warning`, `--field`, `--field-edge` (the
+2px line under a field), `--ring`,
 `--overlay`, and the `--sidebar-*` family), the four surface roles
 (`--background` the canvas, `--surface` a card or table, `--surface-sunken` a
 stripe or quiet callout, `--surface-raised` a menu, toast or dialog, with its
 shadow `--elevation`; `--card` and `--popover` follow them), `--radius`, the
-fonts and `--spacing`. The panel draws no line between things, so there is no
-border token: the tone steps between surfaces and the field fill are what the
-operator tunes. A component reads a role (`bg-primary`, `rounded-md`) and never a
+fonts and `--spacing`. The panel draws no box around things, so there is no
+border token: the tone steps between surfaces, the field fill and the field's
+bottom line are what the operator tunes. A component reads a role (`bg-primary`, `rounded-md`) and never a
 palette value, which is what makes the override work.
 
 Example override, mounted read-only and named in the environment:
@@ -56,7 +56,42 @@ scenario assert it). The file is read on every request, so an edit shows within
 a minute.
 
 You own the contrast: the panel's own pairs were measured, an override is not.
-Check label, ring and field pairs in light and dark after a change. The field boundary is a tonal step, not a line: its contrast against the surface is low by design and the focus ring carries the state, so keep the ring at 3:1 or more against every surface.
+Check label, ring and field pairs in light and dark after a change.
+
+### The field boundary
+
+A field is a tonal well (`--field`) whose fill is only 1.01 to 1.27:1 against
+the surface it sits on, so the fill alone does not identify it (WCAG 1.4.11
+asks 3:1 for the boundary of a control). The boundary is a 2px line along the
+bottom edge, drawn as an inset shadow (`shadow-[inset_0_-2px_0_0_var(--field-edge)]`
+in `FIELD_CLASS`, so it follows the rounded corners and adds no height), in
+`--field-edge`. When the value is invalid the line and a 1px inset outline turn
+`--destructive`, so the state is not colour alone. If you override `--field`,
+`--accent` (the hover fill) or `--field-edge`, keep the line at 3:1 or more
+against the surface, the well and the hover fill.
+
+Measured in the built panel on 2026-11-13 (Chromium, 33 fields per theme: the
+sign-in excluded, the composer, the deliveries filters and the account page, at
+360, 768 and 1280 px; real keyboard for focus, real pointer for hover; colours
+read from painted pixels, so they include 8-bit quantisation). Smallest ratio:
+
+| Pair | Before (field with a transparent border; 1.19 and 1.17 are the figures reported for the previous release) | After |
+|---|---|---|
+| Field fill against surface, light / dark | 1.19 / 1.17 | 1.02 / 1.03 (unchanged by design) |
+| Boundary against surface, rest, light / dark | none painted | 3.55 / 4.53 |
+| Boundary against the field fill, rest, light / dark | none painted | 3.62 / 4.64 |
+| Boundary against the hover fill, light / dark | none painted | 3.46 / 3.62 |
+| Invalid line against surface, light / dark | 1px destructive border, not measured | 5.34 / 7.9 |
+| Focus outline against surface and fill, light / dark | not measured | 4.03 / 6.11 |
+| Disabled (exempt from the floor; opacity 0.5 on the control) | | 1.72 / 2.15 |
+
+Two shapes were compared on the same fields before choosing, both in
+`--field-edge`: a 1px inset outline all round, and the 2px bottom line. Both
+reach 3:1 (outline: 3.55 / 4.53 against the surface). The outline reads as a
+frame around the control, which is the box the panel avoids, so the bottom line
+was kept. The lightness of `--field-edge` (0.58 light, 0.64 dark, OKLCH) is the
+smallest step that holds 3:1 against the hover fill with a margin of 0.4; it is
+a measured choice for this palette, not a rule for another one.
 
 The original copyright notice stays in the sidebar and on the sign-in page. It is
 a constant in `features/branding/copyright`, not configuration.
