@@ -164,6 +164,7 @@ for name in "${selected[@]}"; do
 	suppression) scenario_suppression ;;
 	deliveries) scenario_deliveries ;;
 	account-detail) scenario_account_detail ;;
+	mail) scenario_mail ;;
 	admin-id) scenario_admin_id ;;
 	*)
 		echo "error: unknown scenario '$name'" >&2
