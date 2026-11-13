@@ -104,7 +104,9 @@ describe("applySecurityHeaders", () => {
 		);
 		expect(headers.get("x-frame-options")).toBe("DENY");
 		expect(headers.get("x-content-type-options")).toBe("nosniff");
-		expect(headers.get("referrer-policy")).toBe("no-referrer");
+		// A form the browser posts itself carries the panel's own `Origin` only
+		// under a policy that names the same origin; `no-referrer` made it `null`.
+		expect(headers.get("referrer-policy")).toBe("same-origin");
 	});
 
 	it("denies every browser feature the panel does not use", () => {

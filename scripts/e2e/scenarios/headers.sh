@@ -21,7 +21,9 @@ scenario_headers() {
 	assert_eq "no script tag without the nonce, whatever its attributes" "$(unnonced_scripts "$work/b" "$nonce1")" 0
 	assert_eq "x-frame-options" "$(header x-frame-options)" DENY
 	assert_eq "x-content-type-options" "$(header x-content-type-options)" nosniff
-	assert_eq "referrer-policy" "$(header referrer-policy)" no-referrer
+	# Not `no-referrer`: under it a browser posts its own forms with `Origin: null`
+	# and the sign-in without script is refused (see docs/maintainers/e2e.md).
+	assert_eq "referrer-policy" "$(header referrer-policy)" same-origin
 	assert_eq "x-robots-tag on the login page" "$(header x-robots-tag)" "noindex, nofollow, noarchive, nosnippet, noimageindex"
 	assert_contains "permissions-policy denies the camera" "$(header permissions-policy)" "camera=()"
 	assert_eq "x-powered-by is absent" "$(header x-powered-by)" ""

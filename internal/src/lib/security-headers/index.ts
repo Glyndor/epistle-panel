@@ -102,7 +102,12 @@ export const STATIC_SECURITY_HEADERS: ReadonlyArray<
 > = [
 	["X-Frame-Options", "DENY"],
 	["X-Content-Type-Options", "nosniff"],
-	["Referrer-Policy", "no-referrer"],
+	// `same-origin`, not `no-referrer`: nothing of the panel's address goes to
+	// another site either way, but under `no-referrer` a browser sends
+	// `Origin: null` with a form it posts itself, and the sign-in and sign-out
+	// forms, which work without script, were refused as cross-site (measured in
+	// Chromium with script off: 500).
+	["Referrer-Policy", "same-origin"],
 	["X-Robots-Tag", ROBOTS_DIRECTIVES],
 	["Permissions-Policy", DENIED_FEATURES.map((f) => `${f}=()`).join(", ")],
 ];

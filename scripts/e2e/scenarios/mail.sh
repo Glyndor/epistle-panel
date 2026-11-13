@@ -94,6 +94,7 @@ scenario_mail() {
 	assert_contains "its policy sandboxes the response" "$(header content-security-policy)" "sandbox allow-popups allow-popups-to-escape-sandbox"
 	assert_absent "its policy has no script allowance" "$(header content-security-policy)" "allow-scripts"
 	assert_eq "it may be framed by the panel only" "$(header x-frame-options)" "SAMEORIGIN"
+	assert_eq "what came from outside sends no referrer at all, unlike the panel's own pages" "$(header referrer-policy)" "no-referrer"
 	assert_eq "it is never cached" "$(header cache-control)" "private, no-store"
 	assert_eq "it is never sniffed" "$(header x-content-type-options)" "nosniff"
 	assert_contains "it is HTML" "$(header content-type)" "text/html"

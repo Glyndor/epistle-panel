@@ -86,7 +86,7 @@ expect_secure_headers() {
 	label=$1
 	expect_header x-frame-options DENY "$label"
 	expect_header x-content-type-options nosniff "$label"
-	expect_header referrer-policy no-referrer "$label"
+	expect_header referrer-policy same-origin "$label"
 	expect_header x-robots-tag "noindex, nofollow, noarchive, nosnippet, noimageindex" "$label"
 	[ -n "$(header permissions-policy)" ] || fail "$label: no Permissions-Policy"
 	[ -z "$(header x-powered-by)" ] || fail "$label: X-Powered-By is present"
