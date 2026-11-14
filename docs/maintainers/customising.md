@@ -125,6 +125,15 @@ read from painted pixels, so they include 8-bit quantisation). Smallest ratio:
 | Focus outline against surface and fill, light / dark | not measured | 4.03 / 6.11 |
 | Disabled (exempt from the floor; opacity 0.5 on the control) | | 1.72 / 2.15 |
 
+The dark `--surface` rose from a lightness of 0.2 to 0.21 on 2026-11-14, so
+that a panel stands 1.11 from the canvas, as the zones of the shell do (it
+stood 1.09). The dark figures against the surface in the table are from the
+day before. Read again from the computed colours of the built panel, the same
+way before and after the change: the boundary against the surface 5.36 then
+and 5.26 now, the focus outline against the surface 7.23 and 7.09, and the
+well against the surface 1.17 and 1.15. `theme.test.ts` holds `--surface` to
+1.1 from `--background`, and what is drawn on it to its floor, in every list.
+
 Two shapes were compared on the same fields before choosing, both in
 `--field-edge`: a 1px inset outline all round, and the 2px bottom line. Both
 reach 3:1 (outline: 3.55 / 4.53 against the surface). The outline reads as a

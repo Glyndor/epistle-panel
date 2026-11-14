@@ -13,7 +13,11 @@
    own around the canvas, the rail (`--sidebar`) and the bar (`--header`):
 
    - `--background`      the page canvas, the deepest light surface;
-   - `--surface`         a card or a table, one step above the canvas;
+   - `--surface`         a card or a table, one step above the canvas: keep it
+                         1.1 or more from `--background` in luminance in each
+                         of the three lists, as the zones of the shell are
+                         kept apart, and every text, mark and ring drawn on
+                         it at its floor (`theme.test.ts` computes both);
    - `--surface-sunken`  a well inside a surface: striped rows, a field's fill,
                          a quiet callout;
    - `--surface-raised`  a menu, a toast or a sheet, the only surfaces that also
@@ -120,7 +124,7 @@
 	:root:where(:not([data-theme="light"])) {
 		--background: oklch(0.15 0.004 286);
 		--foreground: #ededed;
-		--surface: oklch(0.2 0.005 286);
+		--surface: oklch(0.21 0.005 286);
 		--surface-raised: oklch(0.255 0.006 286);
 		--surface-sunken: oklch(0.175 0.005 286);
 		--card-foreground: #ededed;
@@ -162,7 +166,7 @@
 	color-scheme: dark;
 	--background: oklch(0.15 0.004 286);
 	--foreground: #ededed;
-	--surface: oklch(0.2 0.005 286);
+	--surface: oklch(0.21 0.005 286);
 	--surface-raised: oklch(0.255 0.006 286);
 	--surface-sunken: oklch(0.175 0.005 286);
 	--card-foreground: #ededed;
