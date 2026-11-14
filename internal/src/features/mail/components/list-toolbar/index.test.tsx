@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
 import { ListToolbar } from ".";
 
@@ -25,6 +25,20 @@ describe("ListToolbar", () => {
 		expect(search).toHaveAttribute("name", "q");
 		expect(search).toHaveAttribute("aria-keyshortcuts", "/");
 		expect(search).toHaveAttribute("maxlength", "200");
+	});
+
+	it("names the search button, an icon alone, in a tooltip", () => {
+		render(
+			<ListToolbar box="INBOX" folderRole="inbox" filter="all" q="" />,
+		);
+
+		fireEvent.pointerEnter(
+			screen.getByRole("button", { name: "searchSubmit" }),
+		);
+
+		expect(
+			document.querySelector("[data-slot='tooltip']"),
+		).toHaveTextContent("searchSubmit");
 	});
 
 	it("posts the search of a folder with a role to the role's page", () => {

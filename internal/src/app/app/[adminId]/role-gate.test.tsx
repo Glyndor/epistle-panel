@@ -17,6 +17,16 @@ const { default: QueuePage } = await import("./queue/page");
 const { default: SuppressionPage } = await import("./suppression/page");
 const { default: DeliveriesPage } = await import("./deliveries/page");
 
+const trails = {
+	status: (await import("./@trail/page")).default,
+	domains: (await import("./@trail/domains/page")).default,
+	accounts: (await import("./@trail/accounts/page")).default,
+	account: (await import("./@trail/accounts/[name]/page")).default,
+	queue: (await import("./@trail/queue/page")).default,
+	suppression: (await import("./@trail/suppression/page")).default,
+	deliveries: (await import("./@trail/deliveries/page")).default,
+};
+
 const search = { searchParams: Promise.resolve({}) };
 
 /** Each admin page by its file, relative to this folder, with a way to render it. */
@@ -32,6 +42,27 @@ const PAGES: Array<[string, string, () => Promise<unknown>]> = [
 	["queue", "queue/page.tsx", () => QueuePage(search)],
 	["suppression", "suppression/page.tsx", () => SuppressionPage(search)],
 	["deliveries", "deliveries/page.tsx", () => DeliveriesPage(search)],
+	// The trail of the header is a page beside each page (the layout's
+	// `trail` slot), reached by the same addresses: it checks the role too.
+	["status trail", "@trail/page.tsx", () => trails.status()],
+	["domains trail", "@trail/domains/page.tsx", () => trails.domains()],
+	["accounts trail", "@trail/accounts/page.tsx", () => trails.accounts()],
+	[
+		"account detail trail",
+		"@trail/accounts/[name]/page.tsx",
+		() => trails.account({ params: Promise.resolve({ name: "alice" }) }),
+	],
+	["queue trail", "@trail/queue/page.tsx", () => trails.queue()],
+	[
+		"suppression trail",
+		"@trail/suppression/page.tsx",
+		() => trails.suppression(),
+	],
+	[
+		"deliveries trail",
+		"@trail/deliveries/page.tsx",
+		() => trails.deliveries(),
+	],
 ];
 
 beforeEach(() => cookies.reset());

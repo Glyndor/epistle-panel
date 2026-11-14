@@ -2,14 +2,15 @@
 # Scenario breadcrumbs of scripts/e2e/run.sh.
 # Sourced by the runner, which provides the helpers in scripts/e2e/lib.
 
-# trails_html: every breadcrumb navigation of the last page, one per line. A
-# streamed page holds two: the one of its loading state, sent first, and the
-# one of the page itself.
+# trails_html: every breadcrumb navigation of the last page, one per line. The
+# trail is drawn in the header, by a page of its own beside each page. A trail
+# that waits for the API holds two: the one sent first, with a bar in the place
+# of the name it does not know yet, and the one streamed in after it.
 trails_html() {
 	perl -0777 -ne 'while (/(<nav aria-label="Breadcrumb".*?<\/nav>)/sg) { (my $t = $1) =~ s/\n/ /g; print "$t\n" }' "$work/b"
 }
 
-# trail_html: the trail of the page itself, the last one in the response.
+# trail_html: the trail once it knows everything, the last one in the response.
 trail_html() {
 	trails_html | tail -1
 }
@@ -20,7 +21,7 @@ count_in() {
 }
 
 scenario_breadcrumbs() {
-	echo "# breadcrumbs: every admin page is served with the trail to itself, built from the admin routes"
+	echo "# breadcrumbs: every admin page is served with the trail to itself in its header, built from the admin routes"
 	fresh
 	login admin correct-horse
 	local good=$cookie trail entry path label
@@ -30,8 +31,10 @@ scenario_breadcrumbs() {
 		fetch "$adm$path" "$good"
 		assert_eq "GET $adm$path" "$status" 200
 		trail=$(trail_html)
-		assert_eq "$label: the loading state sent first and the page draw the same trail" "$(trails_html | sort -u | wc -l | tr -d ' ')" 1
-		assert_contains "$label: the trail starts at the administration, linked with the id" "$trail" "href=\"$adm\">Administration</a>"
+		assert_eq "$label: one trail, in the header, and none in the page below it" "$(trails_html | wc -l | tr -d ' ')" 1
+		assert_contains "$label: the trail is in the header" "$(perl -0777 -ne 'print $1 if /(<header\b.*?<\/header>)/s' "$work/b")" 'aria-label="Breadcrumb"'
+		assert_contains "$label: the trail starts at the administration, linked with the id" "$trail" "href=\"$adm\""
+		assert_contains "$label: and names it" "$trail" ">Administration</span></a>"
 		assert_eq "$label: one link in the trail" "$(count_in "$trail" '<a ')" 1
 		assert_eq "$label: one current page" "$(count_in "$trail" 'aria-current="page"')" 1
 		assert_contains "$label: the current page is this one" "$trail" ">$label</span>"
@@ -47,14 +50,15 @@ scenario_breadcrumbs() {
 	fetch "$adm/accounts/admin" "$good"
 	assert_eq "GET the account page" "$status" 200
 	trail=$(trail_html)
-	assert_contains "account: the administration is linked" "$trail" "href=\"$adm\">Administration</a>"
-	assert_contains "account: the accounts list is linked" "$trail" "href=\"$adm/accounts\">Accounts</a>"
+	assert_contains "account: the administration is linked" "$trail" "href=\"$adm\""
+	assert_contains "account: the accounts list is linked" "$trail" "href=\"$adm/accounts\""
+	assert_contains "account: and named" "$trail" ">Accounts</span></a>"
 	assert_eq "account: two links" "$(count_in "$trail" '<a ')" 2
 	assert_eq "account: one current page" "$(count_in "$trail" 'aria-current="page"')" 1
 	assert_contains "account: the current step is the account" "$trail" ">admin</span>"
 	trail=$(trails_html | head -1)
-	assert_eq "account: its loading state, sent first, links the same two steps" "$(count_in "$trail" '<a ')" 2
-	assert_eq "account: and names no current page, not knowing the account yet" "$(count_in "$trail" 'aria-current="page"')" 0
+	assert_eq "account: the trail sent first links the same two steps" "$(count_in "$trail" '<a ')" 2
+	assert_eq "account: and names no current page, not knowing yet whether the name is an account" "$(count_in "$trail" 'aria-current="page"')" 0
 	assert_absent "account: the loading state is the account's own, not the list's" "$(cat "$work/b")" '>Accounts</h1>'
 
 	# A hostile account name reaches no trail: the page is the not-found one.

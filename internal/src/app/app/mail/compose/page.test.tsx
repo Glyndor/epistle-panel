@@ -69,7 +69,7 @@ describe("ComposePage", () => {
 		const seen = stubJmap({});
 		await page();
 		expect(
-			screen.getByRole("heading", { level: 2, name: "composeTitle" }),
+			screen.getByRole("heading", { level: 1, name: "composeTitle" }),
 		).toBeInTheDocument();
 		expect(screen.getByLabelText("fieldTo")).toHaveValue("");
 		expect(
@@ -82,7 +82,7 @@ describe("ComposePage", () => {
 		stubJmap(known);
 		await page({ mode: "reply", msg: ID });
 		expect(
-			screen.getByRole("heading", { level: 2, name: "replyTitle" }),
+			screen.getByRole("heading", { level: 1, name: "replyTitle" }),
 		).toBeInTheDocument();
 		expect(screen.getByLabelText("fieldTo")).toHaveValue("Ana <ana@x.org>");
 		expect(screen.getByLabelText("fieldSubject")).toHaveValue("Re: Plans");
@@ -98,13 +98,13 @@ describe("ComposePage", () => {
 		cleanup();
 		await page({ mode: "forward", msg: ID });
 		expect(
-			screen.getByRole("heading", { level: 2, name: "forwardTitle" }),
+			screen.getByRole("heading", { level: 1, name: "forwardTitle" }),
 		).toBeInTheDocument();
 		expect(screen.getByLabelText("fieldSubject")).toHaveValue("Fwd: Plans");
 		cleanup();
 		await page({ mode: "draft", msg: ID });
 		expect(
-			screen.getByRole("heading", { level: 2, name: "editDraftTitle" }),
+			screen.getByRole("heading", { level: 1, name: "editDraftTitle" }),
 		).toBeInTheDocument();
 		expect(screen.getByLabelText("fieldSubject")).toHaveValue("Plans");
 	});
@@ -113,7 +113,7 @@ describe("ComposePage", () => {
 		const seen = stubJmap(known);
 		await page({ mode: "delete", msg: ID });
 		expect(
-			screen.getByRole("heading", { level: 2, name: "composeTitle" }),
+			screen.getByRole("heading", { level: 1, name: "composeTitle" }),
 		).toBeInTheDocument();
 		cleanup();
 		await page({ mode: "reply", msg: "../x" });
@@ -139,7 +139,7 @@ describe("ComposePage", () => {
 		stubJmap(known);
 		await page({ mode: "draft", msg: ID });
 		expect(
-			screen.getByRole("heading", { level: 2, name: "editDraftTitle" }),
+			screen.getByRole("heading", { level: 1, name: "editDraftTitle" }),
 		).toBeInTheDocument();
 		expect(screen.getByLabelText("fieldSubject")).toHaveValue("Plans");
 		cleanup();

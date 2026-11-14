@@ -48,8 +48,9 @@ export function SidebarContent({
 }
 
 /**
- * The area that sits beside the sidebar. It is a plain `div`: the page's single
- * `main` landmark is rendered by the app layout, so there are never two.
+ * The area that sits beside the sidebar: a column as tall as the window, whose
+ * parts decide what scrolls. It is a plain `div`: the page's single `main`
+ * landmark is rendered by the app layout, so there are never two.
  */
 export function SidebarInset({
 	className,
@@ -59,7 +60,7 @@ export function SidebarInset({
 		<div
 			data-slot="sidebar-inset"
 			className={cn(
-				"relative flex min-w-0 flex-1 flex-col bg-background",
+				"relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background",
 				className,
 			)}
 			{...props}

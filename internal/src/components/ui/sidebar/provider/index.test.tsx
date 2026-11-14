@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-
+import { NavSection } from "@/components/layout/nav-section";
 import { captureCookieWrites } from "@/test/cookie-capture";
 import { useSidebar } from "../context";
-import { SIDEBAR_COOKIE, SidebarProvider } from ".";
+import { SidebarTrigger } from "../trigger";
+import { SidebarProvider } from ".";
 
 function Probe() {
 	const { state, toggleSidebar } = useSidebar();
@@ -46,10 +47,51 @@ describe("SidebarProvider", () => {
 		fireEvent.click(screen.getByRole("button"));
 
 		expect(screen.getByRole("button")).toHaveTextContent("expanded");
+		// The whole panel: the choice made in one area holds in the other.
 		expect(writes.at(-1)).toStartWith(
-			`${SIDEBAR_COOKIE}=true; path=/; max-age=`,
+			"sidebar_state=true; path=/; max-age=",
 		);
 		expect(writes.at(-1)).toContain("SameSite=Lax");
+	});
+
+	it("hands the focus to the toggle when the rail collapses under a group's heading, which is then not drawn", () => {
+		render(
+			<SidebarProvider>
+				<NavSection label="Manage">
+					<a href="/domains">Domains</a>
+				</NavSection>
+				<SidebarTrigger label="Toggle sidebar" />
+			</SidebarProvider>,
+		);
+		const heading = screen.getByRole("button", { name: "Manage" });
+		const toggle = screen.getByRole("button", { name: "Toggle sidebar" });
+		heading.focus();
+		expect(document.activeElement).toBe(heading);
+
+		fireEvent.keyDown(window, { key: "b", ctrlKey: true });
+
+		expect(document.activeElement).toBe(toggle);
+		// Expanding again moves nothing: the heading is back and the focus
+		// stays where the person is.
+		fireEvent.keyDown(window, { key: "b", ctrlKey: true });
+		expect(document.activeElement).toBe(toggle);
+	});
+
+	it("leaves the focus alone when the rail collapses under anything that stays drawn", () => {
+		render(
+			<SidebarProvider>
+				<NavSection label="Manage">
+					<a href="/domains">Domains</a>
+				</NavSection>
+				<SidebarTrigger label="Toggle sidebar" />
+			</SidebarProvider>,
+		);
+		const entry = screen.getByRole("link", { name: "Domains" });
+		entry.focus();
+
+		fireEvent.keyDown(window, { key: "b", ctrlKey: true });
+
+		expect(document.activeElement).toBe(entry);
 	});
 
 	it("toggles with Ctrl+B and ignores the plain letter", () => {

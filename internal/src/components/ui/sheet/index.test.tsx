@@ -64,6 +64,16 @@ describe("Sheet", () => {
 		expect(onOpenChange).toHaveBeenCalledWith(false);
 	});
 
+	it("names its close button, an icon alone, in a tooltip", () => {
+		renderSheet(true);
+
+		fireEvent.pointerEnter(screen.getByRole("button", { name: "Shut" }));
+
+		const tip = document.querySelector("[data-slot='tooltip']");
+		expect(tip).toHaveTextContent("Shut");
+		expect(tip).toHaveAttribute("aria-hidden", "true");
+	});
+
 	it("closes on a click on the backdrop but not on its content", () => {
 		const { onOpenChange, view } = renderSheet(true);
 

@@ -152,6 +152,7 @@ describe("SidebarMenuButton", () => {
 			selector === ":focus-visible"
 				? true
 				: original(selector)) as typeof button.matches;
+		fireEvent.keyDown(document.body, { key: "Tab" });
 		fireEvent.focus(button);
 		expect(tip()).toHaveTextContent("Domains");
 
@@ -191,5 +192,42 @@ describe("SidebarMenuButton", () => {
 		expect(
 			screen.getByRole("button", { name: "Plain" }),
 		).toBeInTheDocument();
+	});
+
+	it("answers the pointer on the current entry too, with a fill of its own and its name underlined", () => {
+		renderMenu();
+
+		// The current entry is still a link: with a message open it is the
+		// way back to the list. Its own fill hid the hover and the press of
+		// every other entry, so it has both of its own.
+		const current = screen.getByRole("button", { name: "Domains" });
+		expect(current).toHaveClass(
+			"data-[active=true]:bg-sidebar-accent",
+			"data-[active=true]:hover:bg-sidebar-foreground/10",
+			"data-[active=true]:hover:[&>span:first-of-type]:underline",
+			"data-[active=true]:active:bg-sidebar-foreground/12",
+		);
+		// And the entries that are not current keep theirs.
+		expect(current).toHaveClass(
+			"hover:bg-sidebar-accent/60",
+			"active:bg-sidebar-accent/80",
+		);
+	});
+
+	it("marks the current entry on the rail by more than its fill: a bar on its starting edge", () => {
+		renderMenu(false);
+
+		const current = screen.getByRole("button", { name: "Domains" });
+		expect(current).toHaveClass(
+			"relative",
+			"before:absolute",
+			"before:inset-y-2",
+			"before:start-0",
+			"before:w-1",
+			"before:bg-sidebar-foreground",
+			// Not drawn unless the rail is collapsed and the entry current.
+			"before:hidden",
+			"group-data-[collapsible=icon]:data-[active=true]:before:block",
+		);
 	});
 });

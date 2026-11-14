@@ -11,6 +11,9 @@ type Call = [string, Record<string, unknown>, string];
 /** Size of the blob the stand-in sends in its oversize mode, in MiB: over the 25 the panel relays. */
 export const OVERSIZE_MEGABYTES = 27;
 
+/** The limit `Quota/get` reports, in bytes: small, so the seeded mailbox reads as a visible share of it. */
+export const QUOTA_LIMIT = 100_000;
+
 /** A stream of `count` chunks of 1 MiB, sent as they are asked for, with no total declared. */
 function megabytes(count: number): ReadableStream<Uint8Array> {
 	let sent = 0;
@@ -53,6 +56,17 @@ export function createJmapStore() {
 				totalEmails: byMailbox(box.id).length,
 				unreadEmails: byMailbox(box.id).filter((m) => !m.keywords["$seen"]).length,
 			})),
+		};
+	}
+
+	/** `Quota/get` as epistle answers it: one quota for the account, in octets, with what the seeded messages weigh. */
+	function quotaGet() {
+		const used = messages.reduce((sum, m) => sum + (m.text?.length ?? 0) + (m.html?.length ?? 0) + (m.attachments ?? []).reduce((all, a) => all + a.content.length, 0), 0);
+		return {
+			accountId: MAIL_ACCOUNT,
+			state: "0",
+			notFound: [],
+			list: [{ id: "mail", resourceType: "octets", used, scope: "account", name: "Mail storage", types: ["Mail"], limit: QUOTA_LIMIT }],
 		};
 	}
 
@@ -123,7 +137,7 @@ export function createJmapStore() {
 			return ["error", { type: "accountNotFound" }, id];
 		}
 		const result =
-			name === "Mailbox/get" ? mailboxGet(args) : name === "Email/query" ? emailQuery(args) : name === "Email/get" ? emailGet(args) : name === "Email/set" ? (args["create"] ? compose.emailCreate(args, emailSet) : emailSet(args)) : name === "Identity/get" ? compose.identities() : name === "EmailSubmission/set" ? compose.submit(args) : undefined;
+			name === "Mailbox/get" ? mailboxGet(args) : name === "Email/query" ? emailQuery(args) : name === "Email/get" ? emailGet(args) : name === "Email/set" ? (args["create"] ? compose.emailCreate(args, emailSet) : emailSet(args)) : name === "Identity/get" ? compose.identities() : name === "Quota/get" ? quotaGet() : name === "EmailSubmission/set" ? compose.submit(args) : undefined;
 		if (result === undefined) {
 			return ["error", { type: "unknownMethod" }, id];
 		}

@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
 import { SidebarProvider } from "../provider";
+import { SidebarTrigger } from "../trigger";
 import { Sidebar } from ".";
 
 afterEach(() => {
@@ -69,5 +70,50 @@ describe("Sidebar", () => {
 		expect(
 			container.querySelector("[data-slot='sidebar-container']"),
 		).toBeNull();
+	});
+
+	it("closes the sheet when a link inside it is followed, whoever drew the link, and not for anything else", () => {
+		window.innerWidth = 400;
+		const { container } = render(
+			<SidebarProvider>
+				<Sidebar
+					title="Navigation"
+					description="Pages"
+					closeLabel="Close"
+				>
+					<p>Inside</p>
+					<a href="#somewhere">
+						<span>Somewhere</span>
+					</a>
+				</Sidebar>
+				<SidebarTrigger label="Toggle" />
+			</SidebarProvider>,
+		);
+		const dialog = container.querySelector("dialog") as HTMLDialogElement;
+		const toggle = screen.getByRole("button", { name: "Toggle" });
+
+		fireEvent.click(toggle);
+		expect(dialog.open).toBe(true);
+
+		// A click on what is no link leaves it open.
+		fireEvent.click(screen.getByText("Inside"));
+		expect(dialog.open).toBe(true);
+
+		// A click anywhere in a link, also on what the link holds, closes it.
+		fireEvent.click(screen.getByText("Somewhere"));
+		expect(dialog.open).toBe(false);
+	});
+
+	it("does not animate its width for someone who asked for less motion", () => {
+		const { container } = renderSidebar();
+
+		for (const slot of ["sidebar-gap", "sidebar-container"]) {
+			expect(
+				container.querySelector(`[data-slot='${slot}']`),
+			).toHaveClass(
+				"transition-[width]",
+				"motion-reduce:transition-none",
+			);
+		}
 	});
 });

@@ -1,14 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 
-import { stubJmap } from "@/features/mail/test-support/jmap-stub";
+import { emailFixture, stubJmap } from "@/features/mail/test-support/jmap-stub";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
 import { clearSecretCache } from "@/lib/config/secret";
 
 const originalFetch = globalThis.fetch;
 const savedEnv = { ...process.env };
 const cookies = mockRequestCookies();
-const { FALLBACK_BOX, requestMailboxes, requestMailSession, resolvePlace } =
-	await import(".");
+const {
+	FALLBACK_BOX,
+	requestMailboxes,
+	requestMailSession,
+	requestMessage,
+	requestQuota,
+	resolvePlace,
+} = await import(".");
 
 const boxes = {
 	"Mailbox/get": {
@@ -79,6 +85,49 @@ describe("requestMailboxes", () => {
 			expect(String(logged.mock.calls[0]?.[0])).toContain(
 				"mail mailboxes",
 			);
+		} finally {
+			logged.mockRestore();
+		}
+	});
+});
+
+describe("requestQuota", () => {
+	const quota = {
+		"Quota/get": {
+			list: [{ resourceType: "octets", used: 40, limit: 100 }],
+		},
+	};
+
+	it("reads the account's storage", async () => {
+		stubJmap(quota);
+		expect(await requestQuota()).toEqual({ used: 40, limit: 100 });
+	});
+
+	it("is null for an account with no quota in octets, which is not a failure", async () => {
+		const logged = spyOn(console, "error").mockImplementation(() => {});
+		try {
+			stubJmap({ "Quota/get": { list: [] } });
+			expect(await requestQuota()).toBeNull();
+			expect(logged).toHaveBeenCalledTimes(0);
+		} finally {
+			logged.mockRestore();
+		}
+	});
+
+	it("asks nothing without a mail session", async () => {
+		cookies.reset();
+		const seen = stubJmap(quota);
+		expect(await requestQuota()).toBeUndefined();
+		expect(seen).toHaveLength(0);
+	});
+
+	it("logs a failure under its operation name and answers undefined", async () => {
+		const logged = spyOn(console, "error").mockImplementation(() => {});
+		stubJmap({});
+		try {
+			expect(await requestQuota()).toBeUndefined();
+			expect(logged).toHaveBeenCalledTimes(1);
+			expect(String(logged.mock.calls[0]?.[0])).toContain("mail quota");
 		} finally {
 			logged.mockRestore();
 		}
@@ -165,5 +214,44 @@ describe("resolvePlace", () => {
 		} finally {
 			logged.mockRestore();
 		}
+	});
+});
+
+describe("requestMessage", () => {
+	const ID = "00000000-0000-4000-8000-0000000000e1";
+
+	it("reads one message, with its subject as safe text", async () => {
+		stubJmap({
+			"Email/get": {
+				list: [emailFixture({ id: ID, subject: "Hello\u202e there" })],
+			},
+		});
+
+		const message = await requestMessage(ID);
+
+		expect(message?.id).toBe(ID);
+		expect(message?.subject).toBe("Hello there");
+	});
+
+	it("is null for a message the server does not have", async () => {
+		stubJmap({ "Email/get": { list: [] } });
+
+		expect(await requestMessage(ID)).toBeNull();
+	});
+
+	it("asks nothing without a mail session", async () => {
+		cookies.reset();
+		const seen = stubJmap({ "Email/get": { list: [] } });
+
+		expect(await requestMessage(ID)).toBeUndefined();
+		expect(seen).toHaveLength(0);
+	});
+
+	it("rejects when the server fails, for its callers to answer each in its way", async () => {
+		stubJmap({});
+
+		expect(await requestMessage(ID).catch(() => "rejected")).toBe(
+			"rejected",
+		);
 	});
 });

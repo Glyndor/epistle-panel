@@ -22,6 +22,21 @@ export const mailboxGetSchema = z.object({
 	),
 });
 
+/**
+ * `Quota/get` (RFC 9425): what the storage meter needs. epistle sends one
+ * quota for the account, in octets, and a `limit` of `null` when the account
+ * has none.
+ */
+export const quotaGetSchema = z.object({
+	list: z.array(
+		z.object({
+			resourceType: z.string(),
+			used: z.number().nonnegative(),
+			limit: z.number().nonnegative().nullable().optional(),
+		}),
+	),
+});
+
 /** `Mailbox/get` asked for the roles only, to find a system folder by its role. */
 export const mailboxRolesSchema = z.object({
 	list: z.array(

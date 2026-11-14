@@ -3,7 +3,6 @@ import "server-only";
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 
 import { MessageReader } from "@/features/mail/components/message-reader";
-import { loadMessage } from "@/features/mail/queries/load-message";
 import { mailKeys } from "@/features/mail/queries/mail-query-keys";
 import { messageQueryOptions } from "@/features/mail/queries/mail-query-options";
 import {
@@ -11,6 +10,7 @@ import {
 	type PlaceRef,
 	requestMailboxes,
 	requestMailSession,
+	requestMessage,
 	resolvePlace,
 } from "@/features/mail/queries/request-mail";
 import type { ListFilter } from "@/features/mail/schemas/mail-input";
@@ -43,8 +43,12 @@ export async function ReaderBoundary({
 			? undefined
 			: prefetch(
 					client,
-					messageQueryOptions(id, (message) =>
-						loadMessage(session, message),
+					// Read through the request's own cache: the trail of the bar
+					// names the same message and must not ask for it again.
+					messageQueryOptions(
+						id,
+						async (message) =>
+							(await requestMessage(message)) ?? null,
 					),
 					"mail message",
 				),

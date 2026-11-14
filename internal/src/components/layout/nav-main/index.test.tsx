@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { renderToString } from "react-dom/server";
 import { useSidebar } from "@/components/ui/sidebar/context";
 import { SidebarProvider } from "@/components/ui/sidebar/provider";
 import {
@@ -154,5 +155,65 @@ describe("NavMain data", () => {
 		);
 
 		expect(screen.queryByRole("link")).toBeNull();
+	});
+});
+
+describe("NavMain groups", () => {
+	it("puts the pages under a heading that opens and closes them and says which it is", () => {
+		renderNav();
+		const heading = screen.getByRole("button", { name: "manage" });
+		expect(heading).toHaveAttribute("aria-expanded", "true");
+
+		fireEvent.click(heading);
+
+		expect(heading).toHaveAttribute("aria-expanded", "false");
+		expect(
+			screen
+				.getByRole("navigation", { name: "label" })
+				.querySelectorAll("a"),
+		).toHaveLength(0);
+
+		fireEvent.click(heading);
+		expect(
+			screen
+				.getByRole("navigation", { name: "label" })
+				.querySelectorAll("a"),
+		).toHaveLength(6);
+	});
+
+	it("is served with its pages and no style attribute", () => {
+		const html = renderToString(
+			<SidebarProvider>
+				<NavMain groups={adminNav()} />
+			</SidebarProvider>,
+		);
+
+		expect(html).toContain(`href="/app/${TEST_ADMIN_ID}/domains"`);
+		expect(html).not.toContain("style=");
+		expect(html).not.toContain("<style");
+	});
+});
+
+describe("NavMain on the rail", () => {
+	it("says in the tooltip of the current page that it is the current one, and only there", () => {
+		render(
+			<SidebarProvider defaultOpen={false}>
+				<NavMain groups={adminNav()} />
+			</SidebarProvider>,
+		);
+		const tip = () =>
+			document.querySelector("[data-slot='sidebar-tooltip']");
+		const nav = screen.getByRole("navigation", { name: "label" });
+		const current = nav.querySelector(
+			'a[aria-current="page"]',
+		) as HTMLElement;
+		const other = nav.querySelector("a:not([aria-current])") as HTMLElement;
+
+		fireEvent.pointerEnter(current);
+		expect(tip()).toHaveTextContent("currentEntry");
+		fireEvent.keyDown(current, { key: "Escape" });
+
+		fireEvent.pointerEnter(other);
+		expect(tip()).not.toHaveTextContent("currentEntry");
 	});
 });

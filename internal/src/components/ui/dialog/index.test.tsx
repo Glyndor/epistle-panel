@@ -80,6 +80,48 @@ describe("Dialog", () => {
 
 		expect(close.className).toContain("pointer-coarse:size-11");
 		expect(close.className).toContain("focus-visible:outline-2");
+		// Brought into view with room for its ring, not flush with the box's edge.
+		expect(close.className).toContain("scroll-m-2");
 		expect(close.className).not.toContain("outline-none");
+	});
+
+	it("brings its close button into view when it takes the focus", async () => {
+		setup();
+		fireEvent.click(screen.getByRole("button", { name: "Open" }));
+		const close = await screen.findByRole("button", { name: "Shut" });
+		const asked: unknown[] = [];
+		close.scrollIntoView = ((options: unknown) => {
+			asked.push(options);
+		}) as typeof close.scrollIntoView;
+
+		// The box scrolls when it is taller than the window, and the button
+		// is at its top: reached from below, it must not stay out of view.
+		fireEvent.focus(close);
+
+		expect(asked).toEqual([{ block: "nearest" }]);
+	});
+
+	it("names its close button, an icon alone, in a tooltip", async () => {
+		setup();
+		fireEvent.click(screen.getByRole("button", { name: "Open" }));
+		const close = await screen.findByRole("button", { name: "Shut" });
+
+		fireEvent.pointerEnter(close);
+
+		const tip = document.querySelector("[data-slot='tooltip']");
+		expect(tip).toHaveTextContent("Shut");
+		expect(tip).toHaveAttribute("aria-hidden", "true");
+		// Inside the dialog: the page behind a modal is out of reach.
+		expect(screen.getByRole("dialog")).toContainElement(tip as HTMLElement);
+	});
+
+	it("is centred with its margins and no transform, which a tooltip inside it would be placed against", async () => {
+		setup();
+		fireEvent.click(screen.getByRole("button", { name: "Open" }));
+		const dialog = await screen.findByRole("dialog");
+
+		expect(dialog).toHaveClass("fixed", "inset-0", "m-auto", "h-fit");
+		expect(dialog.className).not.toMatch(/translate|rotate|scale|skew/);
+		expect(dialog.className).not.toMatch(/(^|\s)(top|left)-1\/2/);
 	});
 });

@@ -12,12 +12,8 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { NavSection } from "@/components/layout/nav-section";
 import { useSidebar } from "@/components/ui/sidebar/context";
-import {
-	SidebarGroup,
-	SidebarGroupContent,
-	SidebarGroupLabel,
-} from "@/components/ui/sidebar/group";
 import {
 	SidebarMenu,
 	SidebarMenuButton,
@@ -49,8 +45,9 @@ function isActive(href: string, pathname: string, exact?: boolean): boolean {
 }
 
 /**
- * A surface's primary navigation: icon and label per entry, grouped, the
- * current page marked. It draws what the config gave it, so it knows no route.
+ * A surface's primary navigation: icon and label per entry, in groups that
+ * open and close under their heading, the current page marked. It draws what
+ * the config gave it, so it knows no route.
  */
 export function NavMain({ groups }: { groups: readonly NavGroup[] }) {
 	const t = useTranslations("nav");
@@ -60,39 +57,43 @@ export function NavMain({ groups }: { groups: readonly NavGroup[] }) {
 	return (
 		<nav aria-label={t("label")}>
 			{groups.map((group) => (
-				<SidebarGroup key={group.label}>
-					<SidebarGroupLabel>{t(group.label)}</SidebarGroupLabel>
-					<SidebarGroupContent>
-						<SidebarMenu>
-							{group.items.map(({ href, label, icon, exact }) => {
-								const Icon = ICONS[icon];
-								const active = isActive(href, pathname, exact);
-								return (
-									<SidebarMenuItem key={href}>
-										<SidebarMenuButton
-											asChild
-											isActive={active}
-											tooltip={t(label)}
+				<NavSection key={group.label} label={t(group.label)}>
+					<SidebarMenu>
+						{group.items.map(({ href, label, icon, exact }) => {
+							const Icon = ICONS[icon];
+							const active = isActive(href, pathname, exact);
+							return (
+								<SidebarMenuItem key={href}>
+									<SidebarMenuButton
+										asChild
+										isActive={active}
+										// On the rail the fill and the mark say
+										// which page this is; the tooltip says
+										// it in words.
+										tooltip={
+											active
+												? t("currentEntry", {
+														name: t(label),
+													})
+												: t(label)
+										}
+									>
+										<Link
+											href={href}
+											aria-current={
+												active ? "page" : undefined
+											}
+											onClick={() => setOpenMobile(false)}
 										>
-											<Link
-												href={href}
-												aria-current={
-													active ? "page" : undefined
-												}
-												onClick={() =>
-													setOpenMobile(false)
-												}
-											>
-												<Icon aria-hidden="true" />
-												<span>{t(label)}</span>
-											</Link>
-										</SidebarMenuButton>
-									</SidebarMenuItem>
-								);
-							})}
-						</SidebarMenu>
-					</SidebarGroupContent>
-				</SidebarGroup>
+											<Icon aria-hidden="true" />
+											<span>{t(label)}</span>
+										</Link>
+									</SidebarMenuButton>
+								</SidebarMenuItem>
+							);
+						})}
+					</SidebarMenu>
+				</NavSection>
 			))}
 		</nav>
 	);

@@ -44,6 +44,18 @@ describe("LanguageOptions", () => {
 		).toBeInTheDocument();
 	});
 
+	it("puts the icon on the heading, hidden from assistive tech, and none on a language", async () => {
+		renderOptions("en");
+
+		const items = await screen.findAllByRole("menuitemradio");
+		expect(
+			screen.getByText("language").querySelector("svg"),
+		).toHaveAttribute("aria-hidden", "true");
+		for (const item of items) {
+			expect(item.querySelector("svg")).toBeNull();
+		}
+	});
+
 	it("reports the code of the language that is picked", async () => {
 		const onChoose = mock((_value: string) => {});
 		renderOptions("en", onChoose);

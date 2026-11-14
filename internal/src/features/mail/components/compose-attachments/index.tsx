@@ -4,6 +4,7 @@ import { useId, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toaster";
+import { Tooltip } from "@/components/ui/tooltip";
 import {
 	MAX_ATTACHMENT_BYTES,
 	MAX_COMPOSE_ATTACHMENTS,
@@ -97,10 +98,17 @@ export function ComposeAttachments({
 					id={inputId}
 					type="file"
 					multiple
-					className="sr-only"
+					// The field is what takes the focus and it is not drawn: its
+					// label, right after it, shows the ring in its place.
+					className="peer sr-only"
 					onChange={(event) => void upload(event.target.files)}
 				/>
-				<Button asChild variant="ghost" size="sm">
+				<Button
+					asChild
+					variant="ghost"
+					size="sm"
+					className="peer-focus-visible:outline-2 peer-focus-visible:outline-ring peer-focus-visible:outline-offset-2"
+				>
 					<label htmlFor={inputId} className="cursor-pointer">
 						<PaperclipIcon aria-hidden="true" />
 						{t("attach")}
@@ -126,26 +134,33 @@ export function ComposeAttachments({
 							<bdi className="max-w-48 truncate">
 								{attachment.name}
 							</bdi>
-							<Button
-								type="button"
-								variant="ghost"
-								size="icon"
-								onClick={() =>
-									onChange(
-										attachments.filter(
-											(a) =>
-												a.blobId !== attachment.blobId,
-										),
-									)
-								}
+							<Tooltip
+								label={t("removeAttachment", {
+									name: attachment.name,
+								})}
 							>
-								<XIcon aria-hidden="true" />
-								<span className="sr-only">
-									{t("removeAttachment", {
-										name: attachment.name,
-									})}
-								</span>
-							</Button>
+								<Button
+									type="button"
+									variant="ghost"
+									size="icon"
+									onClick={() =>
+										onChange(
+											attachments.filter(
+												(a) =>
+													a.blobId !==
+													attachment.blobId,
+											),
+										)
+									}
+								>
+									<XIcon aria-hidden="true" />
+									<span className="sr-only">
+										{t("removeAttachment", {
+											name: attachment.name,
+										})}
+									</span>
+								</Button>
+							</Tooltip>
 						</li>
 					))}
 				</ul>

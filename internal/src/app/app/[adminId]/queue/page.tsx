@@ -2,7 +2,6 @@ import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
 import { PrefetchBoundary } from "@/components/prefetch-boundary";
-import { AdminBreadcrumbs } from "@/features/navigation/components/admin-breadcrumbs";
 import { QueueTable } from "@/features/queue/components/queue-table";
 import { QueueTableSkeleton } from "@/features/queue/components/queue-table-skeleton";
 import { loadQueue } from "@/features/queue/queries/load-queue";
@@ -20,13 +19,12 @@ export default async function QueuePage({
 }: {
 	searchParams: Promise<{ cursor?: string | string[] }>;
 }) {
-	const { routes } = await requireAdmin();
+	await requireAdmin();
 	const t = await getTranslations("queue");
 	const cursor = parseCursorParam((await searchParams).cursor);
 
 	return (
 		<>
-			<AdminBreadcrumbs routes={routes} page="queue" />
 			<h1 className="font-semibold text-lg">{t("heading")}</h1>
 			<Suspense key={cursor ?? ""} fallback={<QueueTableSkeleton />}>
 				<PrefetchBoundary

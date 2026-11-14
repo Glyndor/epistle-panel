@@ -4,6 +4,7 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import { navLabelKeySchema } from "@/features/navigation/schemas/nav-item";
 import { TEST_ADMIN_ID } from "@/lib/config/test-support/admin-id";
 import { adminRoutes } from "@/lib/routes";
+import { stepText } from "@/test/trail-steps";
 import { AdminBreadcrumbs } from ".";
 
 afterEach(cleanup);
@@ -11,19 +12,13 @@ afterEach(cleanup);
 const routes = adminRoutes(TEST_ADMIN_ID);
 const base = `/app/${TEST_ADMIN_ID}`;
 const trail = () => screen.getByRole("navigation", { name: "breadcrumb" });
-const steps = () =>
-	within(trail())
-		.getAllByRole("listitem")
-		.map((item) => item.textContent);
+const steps = () => within(trail()).getAllByRole("listitem").map(stepText);
 
 describe("AdminBreadcrumbs", () => {
 	it("is a named navigation landmark with an ordered list", () => {
 		render(<AdminBreadcrumbs routes={routes} page="queue" />);
 
 		expect(trail().querySelector("ol")).not.toBeNull();
-		// Its text lines up with the heading below: the list gives back the
-		// padding each step keeps for its hover fill.
-		expect(trail().querySelector("ol")).toHaveClass("-ms-1");
 		expect(steps()).toEqual(["administration", "queue"]);
 	});
 
@@ -126,11 +121,17 @@ describe("AdminBreadcrumbs", () => {
 			const items = [
 				...list.querySelectorAll('[data-slot="breadcrumb-item"]'),
 			];
-			// The steps before the last keep their width; the last gives way.
+			// The steps before the last are written whole; the last takes
+			// what is left and gives way.
 			expect(
-				items.map((item) => item.className.includes("shrink-0")),
-			).toEqual([true, true, false]);
-			expect(items[2]).toHaveClass("min-w-0");
+				items.map((item) => item.className.includes("basis-0")),
+			).toEqual([false, false, true]);
+			expect(items[2]).toHaveClass("min-w-6", "flex-1");
+			// Where the bar is narrow the administration itself is not
+			// drawn; the page and the account are.
+			expect(
+				items.map((item) => item.className.includes("max-md:sr-only")),
+			).toEqual([true, false, false]);
 			const bar = list.querySelector('[data-slot="skeleton"]');
 			if (leaf === null) {
 				expect(bar).toHaveClass("max-w-full");
@@ -141,12 +142,29 @@ describe("AdminBreadcrumbs", () => {
 		}
 	});
 
-	it("draws nothing without routes", () => {
-		const { container } = render(
-			<AdminBreadcrumbs routes={undefined} page="queue" />,
+	it("names nothing for an address that turned out to be no thing: the page stays a link and no step is current", () => {
+		render(
+			<AdminBreadcrumbs routes={routes} page="accounts" leaf={false} />,
 		);
 
-		expect(container.innerHTML).toBe("");
+		expect(steps()).toEqual(["administration", "accounts"]);
+		expect(trail().querySelector('[aria-current="page"]')).toBeNull();
+		expect(trail().querySelector('[data-slot="skeleton"]')).toBeNull();
+		expect(
+			within(trail())
+				.getAllByRole("link")
+				.map((link) => link.getAttribute("href")),
+		).toEqual([base, `${base}/accounts`]);
+	});
+
+	it("writes an account's name straight into the step that names it", () => {
+		render(
+			<AdminBreadcrumbs routes={routes} page="accounts" leaf="alice" />,
+		);
+
+		const current = trail().querySelector('[aria-current="page"]');
+		expect(current?.childElementCount).toBe(0);
+		expect(current?.textContent).toBe("alice");
 	});
 
 	it("uses no inline style", () => {

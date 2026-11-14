@@ -56,6 +56,33 @@ describe("AccountRowActions", () => {
 		expect(screen.queryByRole("menu")).toBeNull();
 	});
 
+	it("names its icon in a tooltip, which stays away while the menu is open", async () => {
+		setup(row());
+		const trigger = screen.getByRole("button", { name: "actionsFor" });
+		const tip = () => document.querySelector("[data-slot='tooltip']");
+
+		fireEvent.pointerEnter(trigger);
+		expect(tip()).toHaveTextContent("actionsFor");
+
+		await open();
+		expect(tip()).toBeNull();
+		fireEvent.pointerEnter(trigger);
+		expect(tip()).toBeNull();
+	});
+
+	it("gives each action of the menu its icon, hidden from assistive tech", async () => {
+		setup(row());
+		await open();
+
+		for (const name of ["open", "delete"]) {
+			const icons = screen
+				.getByRole("menuitem", { name })
+				.querySelectorAll("svg");
+			expect([name, icons.length]).toEqual([name, 1]);
+			expect(icons[0]).toHaveAttribute("aria-hidden", "true");
+		}
+	});
+
 	it("offers to open the account and to delete it when the API manages it", async () => {
 		setup(row());
 		await open();

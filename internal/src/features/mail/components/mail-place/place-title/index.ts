@@ -3,11 +3,8 @@ import "server-only";
 import { getTranslations } from "next-intl/server";
 
 import { getBrand } from "@/features/branding/queries/brand";
+import { folderName } from "@/features/mail/components/mail-place/place-name";
 import type { PlaceRef } from "@/features/mail/queries/request-mail";
-import { safeLine } from "@/features/mail/sanitize/safe-text";
-
-/** Longest folder name put in a page title. */
-const TITLE_TEXT = 80;
 
 /**
  * The title of a folder's page: the folder and the panel's name. A folder the
@@ -21,7 +18,6 @@ export async function placeTitle(place: PlaceRef): Promise<string> {
 		const t = await getTranslations("mail");
 		return `${t(`role_${place.role}`)} · ${brand}`;
 	}
-	const last = place.box.split("/").at(-1) ?? "";
-	const name = safeLine(last, TITLE_TEXT) || safeLine(place.box, TITLE_TEXT);
+	const name = folderName(place.box);
 	return name === "" ? brand : `${name} · ${brand}`;
 }

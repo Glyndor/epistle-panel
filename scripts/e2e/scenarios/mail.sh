@@ -66,6 +66,8 @@ scenario_mail() {
 	assert_eq "GET /app/mail/inbox" "$status" 200
 	assert_contains "the inbox by its own path lists the same message" "$(cat "$work/b")" "Welcome to your mailbox"
 	assert_contains "its title names the folder" "$(cat "$work/b")" "<title>Inbox · "
+	assert_contains "the header draws the trail to the folder" "$(perl -0777 -ne 'print $1 if /(<header\b.*?<\/header>)/s' "$work/b")" 'aria-label="Breadcrumb"'
+	assert_contains "which starts at the mail area" "$(perl -0777 -ne 'print $1 if /(<header\b.*?<\/header>)/s' "$work/b")" 'href="/app/mail"'
 	assert_contains "a row links to the message under the folder's path" "$(cat "$work/b")" "href=\"/app/mail/inbox/$MAIL_HOSTILE_HEADERS\""
 	assert_contains "the folder tree links a folder with a role by the role" "$(cat "$work/b")" 'href="/app/mail/archive"'
 	assert_contains "and any other folder by its name as one segment" "$(cat "$work/b")" 'href="/app/mail/folder/Work_2FQ4"'

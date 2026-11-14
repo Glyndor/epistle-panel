@@ -1,7 +1,6 @@
 import type { Route } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { NavMain } from "@/components/layout/nav-main";
 import {
 	SidebarMenu,
 	SidebarMenuButton,
@@ -16,28 +15,43 @@ import { Sidebar } from "@/components/ui/sidebar/sidebar";
 import { BrandMark } from "@/features/branding/components/brand-mark";
 import { CopyrightNotice } from "@/features/branding/components/copyright-notice";
 import { getBrand } from "@/features/branding/queries/brand";
-import type { NavGroup } from "@/features/navigation/schemas/nav-item";
+import { PANEL_VERSION } from "@/lib/panel-version";
 
 /**
- * The application sidebar: brand, primary navigation and the copyright notice.
- * Who is signed in, the language and sign out are in the header's profile menu.
+ * The sidebar of an area: the brand, the area's own navigation and a foot
+ * that stays in place. The panel has no page footer; what one would hold is
+ * here: what the area adds (the mail area's storage), the version of the
+ * panel and the copyright notice. Who is signed in, the language and sign out
+ * are in the header's profile menu.
+ *
  * A Server Component that hands translated strings to the client parts, so the
- * sheet title and the close label are in the user's language.
+ * sheet title and the close label are in the user's language. Collapsed to
+ * icons, the foot's words are kept for a screen reader and not drawn.
  */
 export async function AppSidebar({
-	groups,
 	homeHref,
+	subtitle,
+	sheet,
+	footer,
+	children,
 }: {
-	groups: readonly NavGroup[];
 	homeHref: Route;
+	/** What the area is, under the brand's name, already translated. */
+	subtitle: string;
+	/** How the sidebar is named when it is a sheet, already translated. */
+	sheet: { title: string; description: string };
+	/** What the area adds to the foot, above the version. */
+	footer?: React.ReactNode;
+	/** The area's navigation. */
+	children: React.ReactNode;
 }) {
 	const t = await getTranslations("nav");
 	const brand = getBrand();
 
 	return (
 		<Sidebar
-			title={t("sheetTitle")}
-			description={t("sheetDescription")}
+			title={sheet.title}
+			description={sheet.description}
 			closeLabel={t("close")}
 		>
 			<SidebarHeader>
@@ -55,7 +69,7 @@ export async function AppSidebar({
 										{brand.name}
 									</span>
 									<span className="truncate text-muted-foreground text-xs">
-										{t("brandSubtitle")}
+										{subtitle}
 									</span>
 								</span>
 							</Link>
@@ -63,11 +77,16 @@ export async function AppSidebar({
 					</SidebarMenuItem>
 				</SidebarMenu>
 			</SidebarHeader>
-			<SidebarContent>
-				<NavMain groups={groups} />
-			</SidebarContent>
+			<SidebarContent>{children}</SidebarContent>
 			<SidebarFooter>
-				<CopyrightNotice className="px-2 text-muted-foreground text-xs group-data-[collapsible=icon]:sr-only" />
+				{footer}
+				<div className="flex flex-col gap-0.5 px-2 pb-1 text-muted-foreground text-xs group-data-[collapsible=icon]:sr-only">
+					<span data-slot="panel-version">
+						{t("version", { version: PANEL_VERSION })}
+					</span>
+					{/* A `small` is 80% of its parent: named, it is the size of the line above. */}
+					<CopyrightNotice className="text-xs" />
+				</div>
 			</SidebarFooter>
 		</Sidebar>
 	);

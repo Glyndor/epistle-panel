@@ -8,8 +8,11 @@ the JMAP server, how a hostile message is handled and what is still missing.
 
 | Piece | Where |
 |---|---|
-| A page per folder, three panes, one column below 1024 px | `app/app/mail/[role]`, `app/app/mail/folder/[name]`, each with `[id]` for an open message; they all render `features/mail/components/mail-place`. Frame in `app/app/mail/layout.tsx` |
-| Folder tree, list, search, filters, pager, reader | `features/mail/components/*` |
+| A page per folder, two panes (the list and the reader), one column below 1024 px | `app/app/mail/(places)/[role]`, `app/app/mail/(places)/folder/[name]`, each with `[id]` for an open message; they all render `features/mail/components/mail-place`. Frame in `app/app/mail/layout.tsx`, which renders the panel's shell (`layouts.md`) |
+| The sidebar: the way into the composer, the folders under a heading that opens and closes them | `features/mail/components/mail-nav`, `folders-boundary`, `folder-pane`, `folder-tree`; the current folder is read from the address (`links/active-folder`) |
+| The storage at the foot of the sidebar | `features/mail/components/quota-meter`, drawn with `components/ui/meter` |
+| The trail of the header | `app/app/mail/@trail/**`, `features/mail/components/place-trail` and `mail-breadcrumbs` |
+| List, search, filters, pager, reader | `features/mail/components/*` |
 | Server Actions behind each pane | `features/mail/actions/*` (`getMailboxesAction`, `getMessageListAction`, `getMessageAction`) |
 | JMAP client, one credential provider | `features/mail/jmap/call`, `features/mail/jmap/credentials` |
 | Sanitiser and body page | `features/mail/sanitize/*`, `features/mail/responses/body-response` |
@@ -19,6 +22,33 @@ the JMAP server, how a hostile message is handled and what is still missing.
 An admin session sees a link to the administration in the header, built on the
 server with the installation's id (`app/app/mail/layout.tsx`); no other session
 is given the id.
+
+**The trail** leads from the mail to the folder and, with a message open, to
+its subject. The folder is named like its page's title (the role in the
+reader's language, or the last part of the folder's name) and linked on the
+path the folder links use, with what narrows its list. The subject streams in
+behind a bar that holds its place: it is the message the reader shows, read
+once for both (`requestMessage`), and it is cleaned text inside a `bdi`. A
+message that cannot be read names nothing, and the folder stays a link. A
+folder inside another (`Work/Q4`) is preceded by the folders above it, each
+cleaned and inside a `bdi`, as words and not links: a folder's address says
+nothing of whether the one above it can be opened. Below 768 px only the
+folder and the subject are drawn. The composer's trail says what it was opened
+for.
+
+The sidebar is named "Mail navigation" and the list inside it "Folders": two
+landmarks, two names.
+
+**The storage** is `Quota/get`, read once per request: what the account uses
+of its limit as a meter with the two figures, and "almost full" or "full"
+written out from nine tenths of the limit, since a tone alone would not say
+it. An account with no limit is told what it uses and that there is no limit,
+with no meter. Nothing is drawn when the server lists no quota in bytes or
+cannot be asked. Sizes are written in decimal units, like the attachments
+(`format/storage-size`). The box is 76 px tall with a meter and without one,
+and a block of that height holds its place while the mail server is asked, so
+the foot of the sidebar does not move when the answer comes; a session with no
+mail of its own gets neither.
 
 **A folder is a page with a path of its own**, and so is an open message:
 
@@ -302,11 +332,12 @@ editor and no signature.
 
 ## How the page is sent
 
-`/app/mail` sends the frame of its three panes at once and each pane streams
-its own data inside `Suspense`: `FoldersBoundary` (the tree; rendered twice, for
-the side pane and for the sheet of a narrow screen), `ListBoundary` (the search,
-the filters and the page of the open folder) and `ReaderBoundary` (the open
-message). Each boundary reads on the server and hands the result to its client
+`/app/mail` sends its frame at once and each part streams its own data inside
+`Suspense`: in the layout, `FoldersBoundary` (the tree of the sidebar, which is
+a sheet below 768 px) and `QuotaMeter` (the storage, with nothing in its place
+while it waits); in the page, `ListBoundary` (the search, the filters and the
+page of the open folder) and `ReaderBoundary` (the open message); in the
+header, the trail of an open message. Each boundary reads on the server and hands the result to its client
 component, which owns the data from then on; the fallback of each is the same
 skeleton its client component shows while it fetches.
 

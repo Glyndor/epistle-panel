@@ -92,4 +92,28 @@ describe("ThemeOptions", () => {
 		fireEvent.click(items[2] as HTMLElement);
 		expect(onChoose).not.toHaveBeenCalled();
 	});
+
+	it("gives each choice its icon, the one the theme button shows, and the heading one too, all hidden from assistive tech", async () => {
+		renderOptions("light");
+
+		const items = await screen.findAllByRole("menuitemradio");
+		for (const item of items) {
+			const icons = item.querySelectorAll("svg");
+			expect(icons).toHaveLength(1);
+			expect(icons[0]).toHaveAttribute("aria-hidden", "true");
+			expect(item).toHaveClass("[&_svg]:size-4");
+		}
+		expect(
+			items.map((item) =>
+				[...(item.querySelector("svg")?.classList ?? [])].find((name) =>
+					name.startsWith("lucide-"),
+				),
+			),
+		).toEqual(["lucide-monitor", "lucide-sun", "lucide-moon"]);
+		const heading = screen.getByText("theme");
+		expect(heading.querySelector("svg")).toHaveAttribute(
+			"aria-hidden",
+			"true",
+		);
+	});
 });

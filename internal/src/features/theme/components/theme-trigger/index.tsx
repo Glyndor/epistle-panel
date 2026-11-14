@@ -3,6 +3,7 @@ import { useTranslations } from "next-intl";
 import type * as React from "react";
 
 import { Button } from "@/components/ui/button";
+import { Tooltip } from "@/components/ui/tooltip";
 import type { ThemeChoice } from "@/features/theme/config/choices";
 import { cn } from "@/lib/class-names";
 
@@ -14,7 +15,8 @@ const ICONS = {
 
 /**
  * The button of the theme menu: an icon for the current choice and a name
- * that says it ("Theme: Dark"), so the state is not the icon alone. It is the
+ * that says it ("Theme: Dark"), so the state is not the icon alone; a tooltip
+ * shows that name to whoever sees only the icon. It is the
  * same element before and after the menu code loads, so nothing moves. While
  * its menu is loading or the choice is being stored it is marked busy, and
  * looks it: what is inside fades, the button itself does not. With the whole
@@ -30,22 +32,23 @@ export function ThemeTrigger({
 }) {
 	const t = useTranslations("nav");
 	const Icon = ICONS[choice];
+	const name = t("themeCurrent", { theme: t(`theme_${choice}`) });
 
 	return (
-		<Button
-			variant="ghost"
-			size="icon"
-			data-theme-choice={choice}
-			className={cn(
-				"aria-expanded:bg-accent aria-expanded:text-accent-foreground aria-busy:cursor-progress aria-busy:*:opacity-70",
-				className,
-			)}
-			{...props}
-		>
-			<Icon aria-hidden="true" />
-			<span className="sr-only">
-				{t("themeCurrent", { theme: t(`theme_${choice}`) })}
-			</span>
-		</Button>
+		<Tooltip label={name} align="end">
+			<Button
+				variant="ghost"
+				size="icon"
+				data-theme-choice={choice}
+				className={cn(
+					"aria-expanded:bg-accent aria-expanded:text-accent-foreground aria-busy:cursor-progress aria-busy:*:opacity-70",
+					className,
+				)}
+				{...props}
+			>
+				<Icon aria-hidden="true" />
+				<span className="sr-only">{name}</span>
+			</Button>
+		</Tooltip>
 	);
 }

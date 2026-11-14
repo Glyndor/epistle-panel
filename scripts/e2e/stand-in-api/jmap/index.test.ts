@@ -31,6 +31,17 @@ describe("the stand-in JMAP", () => {
 		expect(ids.indexOf(IDS.welcome)).toBeGreaterThan(ids.indexOf(IDS.stateAnswered));
 	});
 
+	it("reports the account's storage as one quota in octets, under its limit", async () => {
+		const { methodResponses } = await call([["Quota/get", { accountId: MAIL_ACCOUNT, ids: null }, "q"]]);
+		expect(methodResponses[0]?.[0]).toBe("Quota/get");
+		const list = methodResponses[0]?.[1]["list"] as Array<{ resourceType: string; used: number; limit: number }>;
+		expect(list).toHaveLength(1);
+		expect(list[0]?.resourceType).toBe("octets");
+		expect(list[0]?.limit).toBe(100_000);
+		expect(list[0]?.used).toBeGreaterThan(1000);
+		expect(list[0]?.used).toBeLessThan(100_000);
+	});
+
 	it("gets emails with body values, attachments and the root headers", async () => {
 		const { methodResponses } = await call([
 			["Email/get", { accountId: MAIL_ACCOUNT, ids: [IDS.attachments, IDS.hostileHtml, "missing"], fetchTextBodyValues: true, fetchHTMLBodyValues: true, maxBodyValueBytes: 10 }, "g"],

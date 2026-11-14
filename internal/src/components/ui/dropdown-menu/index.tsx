@@ -79,7 +79,7 @@ function DropdownMenuContent({
 	);
 }
 
-/** A heading for a run of items. */
+/** A heading for a run of items; an icon given before its words is drawn at the size of a row's. */
 function DropdownMenuLabel({
 	className,
 	...props
@@ -88,7 +88,7 @@ function DropdownMenuLabel({
 		<DropdownMenuPrimitive.Label
 			data-slot="dropdown-menu-label"
 			className={cn(
-				"px-2 py-1.5 font-medium text-muted-foreground text-xs",
+				"flex items-center gap-2 px-2 py-1.5 font-medium text-muted-foreground text-xs [&_svg]:size-4 [&_svg]:shrink-0",
 				className,
 			)}
 			{...props}
@@ -136,7 +136,7 @@ function DropdownMenuRadioItem({
 		<DropdownMenuPrimitive.RadioItem
 			data-slot="dropdown-menu-radio-item"
 			className={cn(
-				"relative flex min-h-8 cursor-default select-none items-center gap-2 rounded-lg ps-7 pe-2 text-sm transition-colors focus:bg-accent focus:text-accent-foreground active:bg-accent/70 focus:outline-2 focus:-outline-offset-2 outline-ring data-[disabled]:pointer-events-none data-[disabled]:opacity-50 pointer-coarse:min-h-11",
+				"relative flex min-h-8 cursor-default select-none items-center gap-2 rounded-lg ps-7 pe-2 text-sm transition-colors focus:bg-accent focus:text-accent-foreground active:bg-accent/70 focus:outline-2 focus:-outline-offset-2 outline-ring data-[disabled]:pointer-events-none data-[disabled]:opacity-50 pointer-coarse:min-h-11 [&_svg]:size-4 [&_svg]:shrink-0",
 				className,
 			)}
 			{...props}

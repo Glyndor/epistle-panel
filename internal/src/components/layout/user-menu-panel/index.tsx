@@ -64,7 +64,7 @@ export function UserMenuPanel({
 				collisionPadding={8}
 				className="max-h-(--radix-dropdown-menu-content-available-height) w-56 max-w-[calc(100vw-1rem)] overflow-y-auto"
 			>
-				<DropdownMenuLabel className="flex flex-col gap-0.5">
+				<DropdownMenuLabel className="flex-col items-start gap-0.5">
 					<span className="break-all font-medium text-foreground text-sm">
 						{name}
 					</span>

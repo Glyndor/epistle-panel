@@ -45,6 +45,24 @@ const choose = (files: File[]) => {
 };
 
 describe("ComposeAttachments", () => {
+	it("shows the keyboard's focus on the label, since the field that takes it is not drawn", () => {
+		const { container } = render(
+			<ComposeAttachments attachments={[]} onChange={() => {}} />,
+		);
+		const field = container.querySelector('input[type="file"]');
+		const label = container.querySelector("label");
+
+		expect(field).toHaveClass("peer", "sr-only");
+		// `peer-focus-visible` reads the field before it: the label must be the next one.
+		expect(field?.nextElementSibling).toBe(label);
+		expect(label).toHaveAttribute("for", field?.id ?? "");
+		expect(label).toHaveClass(
+			"peer-focus-visible:outline-2",
+			"peer-focus-visible:outline-ring",
+			"peer-focus-visible:outline-offset-2",
+		);
+	});
+
 	it("uploads each chosen file to the panel's route with its name and type, and lists what came back", async () => {
 		const calls: Array<{ url: string; init: RequestInit }> = [];
 		globalThis.fetch = mock(
@@ -178,5 +196,22 @@ describe("ComposeAttachments", () => {
 		);
 		expect(changes).toHaveLength(1);
 		expect(changes[0]?.length).toBe(1);
+	});
+
+	it("names the button that removes a file, an icon alone, in a tooltip", () => {
+		render(
+			<ComposeAttachments
+				attachments={[attached(1)]}
+				onChange={() => {}}
+			/>,
+		);
+
+		fireEvent.pointerEnter(
+			screen.getByRole("button", { name: "removeAttachment" }),
+		);
+
+		expect(
+			document.querySelector("[data-slot='tooltip']"),
+		).toHaveTextContent("removeAttachment");
 	});
 });

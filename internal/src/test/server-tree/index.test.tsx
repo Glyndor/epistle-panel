@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 
 import { Suspense } from "react";
 
-import { firstPaint, resolveServerTree } from ".";
+import { firstPaint, resolveFirstPaint, resolveServerTree } from ".";
 
 async function Greeting({ name }: { name: string }) {
 	return <p>{`hello ${name}`}</p>;
@@ -63,5 +63,41 @@ describe("firstPaint", () => {
 			"plain",
 		);
 		expect(firstPaint("text")).toBe("text");
+	});
+});
+
+async function Frame() {
+	return (
+		<Wrapper>
+			<Greeting name="ada" />
+			<Suspense fallback={<Greeting name="waiting" />}>
+				<Slow />
+			</Suspense>
+		</Wrapper>
+	);
+}
+
+describe("resolveFirstPaint", () => {
+	it("runs the server components outside a boundary and stops at each boundary, whose fallback it resolves too", async () => {
+		slowRuns = 0;
+
+		const text = JSON.stringify(await resolveFirstPaint(<Frame />));
+
+		expect(text).toContain("hello ada");
+		expect(text).toContain("hello waiting");
+		expect(text).not.toContain("late");
+		expect(slowRuns).toBe(0);
+	});
+
+	it("keeps strings and arrays, and a boundary without a fallback is nothing", async () => {
+		expect(await resolveFirstPaint("text")).toBe("text");
+		expect(await resolveFirstPaint([<hr key="a" />, "x"])).toHaveLength(2);
+		expect(
+			await resolveFirstPaint(
+				<Suspense>
+					<Slow />
+				</Suspense>,
+			),
+		).toBeNull();
 	});
 });
