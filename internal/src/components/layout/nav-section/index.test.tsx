@@ -44,6 +44,19 @@ describe("NavSection", () => {
 		);
 	});
 
+	it("is a group of the sidebar like any other, which also says whether it is open", () => {
+		render(tree());
+
+		const group = heading().closest("[data-slot='sidebar-group']");
+		expect(group).not.toBeNull();
+		expect(group).toHaveAttribute("data-state", "open");
+		expect(group).toContainElement(
+			screen.getByRole("link", { name: "Domains" }),
+		);
+		fireEvent.click(heading());
+		expect(group).toHaveAttribute("data-state", "closed");
+	});
+
 	it("closes and opens again from its heading, and a closed one keeps its entries out of the page", () => {
 		render(tree());
 

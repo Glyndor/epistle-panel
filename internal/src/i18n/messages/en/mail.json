@@ -3,7 +3,6 @@
 	"folders": "Folders",
 	"foldersTitle": "Folders",
 	"foldersDescription": "The folders of your mailbox.",
-	"close": "Close",
 	"role_inbox": "Inbox",
 	"role_drafts": "Drafts",
 	"role_sent": "Sent",

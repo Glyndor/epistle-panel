@@ -40,7 +40,14 @@ export function NavSection({
 	const rail = state === "collapsed" && !isMobile;
 
 	return (
-		<Collapsible open={open || rail} onOpenChange={setOpen} asChild>
+		<Collapsible
+			open={open || rail}
+			onOpenChange={setOpen}
+			// The root is the sidebar's group, and is named as one: the
+			// collapsible's own name would hide it from whoever looks for groups.
+			data-slot="sidebar-group"
+			asChild
+		>
 			<SidebarGroup>
 				<SidebarGroupLabel asChild>
 					<CollapsibleTrigger className="group/toggle w-full justify-between gap-2 text-left hover:cursor-pointer hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground focus-visible:outline-2 focus-visible:outline-sidebar-ring active:bg-sidebar-accent/80 pointer-coarse:h-11">
