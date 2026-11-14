@@ -173,6 +173,12 @@ scenario_mail() {
 	assert_contains "star keeps the read flag and adds the star" "$(mail_state)" "\"keywords\":{\"\$seen\":true,\"\$flagged\":true}"
 	mail_change "[{\"id\":\"$flagged\",\"op\":\"unstar\"}]" "$good" >/dev/null
 	assert_contains "unstar drops only the star" "$(mail_state)" "\"id\":\"$flagged\",\"mailbox\":\"INBOX\",\"keywords\":{\"\$answered\":true,\"\$seen\":true}"
+	# The fourth message of the state samples is read, answered and labelled; the sixth carries `$Important` as an IMAP client spells it.
+	local labelled=00000000-0000-4000-8000-000000000016 by_imap=00000000-0000-4000-8000-000000000018
+	assert_eq "mark important" "$(mail_change "[{\"id\":\"$labelled\",\"op\":\"important\"}]" "$good")" 200
+	assert_contains "important is added and the label and the other flags stay" "$(mail_state)" "\"id\":\"$labelled\",\"mailbox\":\"INBOX\",\"keywords\":{\"\$seen\":true,\"\$answered\":true,\"Work\":true,\"\$important\":true}"
+	mail_change "[{\"id\":\"$by_imap\",\"op\":\"unimportant\"}]" "$good" >/dev/null
+	assert_contains "the mark goes in the spelling another client set it in" "$(mail_state)" "\"id\":\"$by_imap\",\"mailbox\":\"INBOX\",\"keywords\":{\"\$flagged\":true}"
 	mail_change "[{\"id\":\"$welcome\",\"op\":\"archive\"}]" "$good" >/dev/null
 	assert_contains "archive moves it, with a new id" "$(mail_state)" "\"mailbox\":\"Archive\",\"keywords\":{\"\$seen\":true,\"\$flagged\":true},\"subject\":\"Welcome to your mailbox\""
 	assert_absent "the old id is gone" "$(mail_state)" "\"id\":\"$welcome\""

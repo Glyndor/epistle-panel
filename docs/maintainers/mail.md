@@ -51,6 +51,35 @@ until a per-user credential exists. Replace the provider with
 The bearer never reaches the browser: JMAP is called only from Server Actions and
 Route Handlers, after the session is checked.
 
+## Keywords: labels, important, forwarded
+
+A message's state beyond read and starred is a keyword on it, and the views carry
+it (`features/mail/labels`), though no screen draws it yet:
+
+- **A label is a keyword.** epistle keeps any keyword that is an IMAP atom (ASCII, no
+  space, none of `( ) { % * " ] \`, at most 64 bytes, at most 32 on a message) and
+  matches it without regard to case. `keyword-codec` writes a name into that
+  alphabet and back: a letter, a digit, a dot and a hyphen stand for themselves, any
+  other byte of the name's UTF-8 form is `_` and two hexadecimal digits (`To do` is
+  `To_20do`). A keyword it did not write, or one that would read as a control or a
+  text-direction override, is shown as the keyword itself.
+- **A keyword of the protocol is not a label**: one that starts with `$` or `\`, and
+  `Junk`, `NonJunk` and `NotJunk`, which some clients write without the `$`.
+- **Case.** Only the four JMAP names come back in lower case. Every other keyword
+  comes back as it was set, so `$Important` from an IMAP client and `$important`
+  are read as one (`hasKeyword`), and taking the mark off removes every spelling.
+- **Important is the user's mark** (`$important`, the operations `important` and
+  `unimportant`). What a sender declares in `Importance` or `X-Priority` is not it.
+- **A label's colour** is one of eight tones, chosen from the keyword
+  (`label-tone`), until the server can keep the user's choice.
+- **The list is dated**: its answer carries the UTC day it was read, and
+  `format/date-group` puts a row under today, yesterday, the last six days or its
+  month from that day, so the server and the browser agree.
+
+The stand-in mailbox holds one message in each state and the combinations worth
+seeing (`stateMessages` in `scripts/e2e/stand-in-api/jmap/messages.ts`), dated from
+the day it starts so there is always one of today and one of yesterday.
+
 ## What was measured of epistle's JMAP (source, `src/api/jmap/`)
 
 - `POST /jmap/api` with `using` ignored; limits 16 calls, 500 objects per `/get`,

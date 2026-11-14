@@ -15,9 +15,12 @@ const message = (over: Partial<MessageSummary> = {}): MessageSummary => ({
 	preview: "preview",
 	unread: false,
 	flagged: false,
+	important: false,
 	answered: false,
+	forwarded: false,
 	draft: false,
 	hasAttachment: false,
+	labels: [],
 	...over,
 });
 const view = { box: "INBOX", page: 2, filter: "unread", q: "x" } as const;

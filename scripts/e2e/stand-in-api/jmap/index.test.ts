@@ -18,15 +18,17 @@ describe("the stand-in JMAP", () => {
 	it("lists the mailboxes with counters", async () => {
 		const { methodResponses } = await call([["Mailbox/get", { accountId: MAIL_ACCOUNT, ids: null }, "a"]]);
 		const inbox = methodResponses[0]?.[1]["list"].find((b: { id: string }) => b.id === "INBOX");
-		expect(inbox.totalEmails).toBe(68);
+		expect(inbox.totalEmails).toBe(78);
 		expect(inbox.unreadEmails).toBeGreaterThan(0);
 	});
 
 	it("queries a mailbox newest first with every id, as epistle does", async () => {
 		const { methodResponses } = await call([["Email/query", { accountId: MAIL_ACCOUNT, filter: { inMailbox: "INBOX" } }, "q"]]);
 		const ids = methodResponses[0]?.[1]["ids"] as string[];
-		expect(ids).toHaveLength(68);
-		expect(ids[0]).toBe(IDS.welcome);
+		expect(ids).toHaveLength(78);
+		expect(ids.slice(0, 3)).toEqual([IDS.stateEverything, IDS.stateNew, IDS.stateAnswered]);
+		expect(ids.at(-1)).toBe(IDS.stateLastYear);
+		expect(ids.indexOf(IDS.welcome)).toBeGreaterThan(ids.indexOf(IDS.stateAnswered));
 	});
 
 	it("gets emails with body values, attachments and the root headers", async () => {
@@ -97,8 +99,8 @@ describe("the stand-in JMAP", () => {
 	});
 
 	it("keeps a snapshot and goes back to the seed on reset", () => {
-		expect(store.snapshot()).toHaveLength(69);
+		expect(store.snapshot()).toHaveLength(80);
 		store.reset();
-		expect(store.snapshot()).toHaveLength(69);
+		expect(store.snapshot()).toHaveLength(80);
 	});
 });

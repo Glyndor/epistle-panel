@@ -42,6 +42,11 @@ describe("toSummary", () => {
 				$flagged: true,
 				$answered: true,
 				$draft: true,
+				$Important: true,
+				$forwarded: true,
+				To_20do: true,
+				Work: true,
+				$label1: true,
 			},
 			hasAttachment: true,
 		});
@@ -53,9 +58,15 @@ describe("toSummary", () => {
 			preview: "p q",
 			unread: false,
 			flagged: true,
+			important: true,
 			answered: true,
+			forwarded: true,
 			draft: true,
 			hasAttachment: true,
+			labels: [
+				{ keyword: "To_20do", name: "To do", tone: 7 },
+				{ keyword: "Work", name: "Work", tone: 1 },
+			],
 		});
 	});
 
@@ -65,6 +76,9 @@ describe("toSummary", () => {
 		expect(summary.from).toBeNull();
 		expect(summary.subject).toBe("");
 		expect(summary.hasAttachment).toBe(false);
+		expect(summary.important).toBe(false);
+		expect(summary.forwarded).toBe(false);
+		expect(summary.labels).toEqual([]);
 	});
 });
 

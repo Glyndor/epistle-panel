@@ -39,6 +39,26 @@ const ROLE_OF: Partial<Record<MessageOp, string>> = {
 };
 
 /**
+ * Whether the set holds the keyword in any spelling. epistle returns a keyword
+ * as it was set and matches it without regard to case, so `$Important` from an
+ * IMAP client and `$important` are the one keyword.
+ */
+function holds(keywords: ReadonlySet<string>, name: string): boolean {
+	const wanted = name.toLowerCase();
+	return [...keywords].some((keyword) => keyword.toLowerCase() === wanted);
+}
+
+/** Take the keyword out in every spelling it is held in. */
+function drop(keywords: Set<string>, name: string): void {
+	const wanted = name.toLowerCase();
+	for (const keyword of [...keywords]) {
+		if (keyword.toLowerCase() === wanted) {
+			keywords.delete(keyword);
+		}
+	}
+}
+
+/**
  * Change one message. epistle's `Email/set` `update` replaces `keywords` whole
  * and reads a `mailboxIds` update as "move to the first key set", so this reads
  * the message first, writes the full keyword set it wants, and names the one
@@ -115,6 +135,14 @@ export async function changeMessage(
 			break;
 		case "unstar":
 			next.delete("$flagged");
+			break;
+		case "important":
+			if (!holds(next, "$important")) {
+				next.add("$important");
+			}
+			break;
+		case "unimportant":
+			drop(next, "$important");
 			break;
 		default:
 	}

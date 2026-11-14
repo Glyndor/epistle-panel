@@ -89,6 +89,55 @@ describe("changeMessage: flags", () => {
 		}
 	});
 
+	it("marks important and takes the mark off, whatever case the keyword was set in", async () => {
+		const cases = [
+			// Added once, in the spelling JMAP uses.
+			["important", { $seen: true }, { $seen: true, $important: true }],
+			// Already there as an IMAP client wrote it: nothing is added beside it.
+			[
+				"important",
+				{ $seen: true, $Important: true },
+				{ $seen: true, $Important: true },
+			],
+			["unimportant", { $seen: true, $important: true }, { $seen: true }],
+			// Both spellings go, so the mark cannot survive in the other one.
+			[
+				"unimportant",
+				{ $Important: true, $IMPORTANT: true, Work: true },
+				{ Work: true },
+			],
+			// A label that only looks like it stays.
+			[
+				"unimportant",
+				{ $important: true, important: true, $importants: true },
+				{ important: true, $importants: true },
+			],
+		] as const;
+		for (const [op, before, after] of cases) {
+			const seen = serve("INBOX", before, { updated: { [ID]: null } });
+			const outcome = await changeMessage(SESSION, { id: ID, op });
+			expect(outcome.left).toBe(false);
+			expect(sets(seen).update?.[ID]?.keywords).toEqual(after);
+			expect(sets(seen).update?.[ID]?.mailboxIds).toBeUndefined();
+		}
+	});
+
+	it("keeps every label and keyword it was not asked about", async () => {
+		const seen = serve(
+			"INBOX",
+			{ $seen: true, Work: true, To_20do: true, $Forwarded: true },
+			{ updated: { [ID]: null } },
+		);
+		await changeMessage(SESSION, { id: ID, op: "star" });
+		expect(sets(seen).update?.[ID]?.keywords).toEqual({
+			$seen: true,
+			Work: true,
+			To_20do: true,
+			$Forwarded: true,
+			$flagged: true,
+		});
+	});
+
 	it("drops a keyword the server reports as false", async () => {
 		const seen = serve(
 			"INBOX",

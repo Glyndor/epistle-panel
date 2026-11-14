@@ -39,6 +39,7 @@ function seeded() {
 		total: 2,
 		hasNext: false,
 		partial: false,
+		today: "2026-11-13",
 	});
 	client.setQueryData(mailKeys.list("INBOX", 1, "unread", ""), {
 		items: [summary("a", true)],
@@ -46,6 +47,7 @@ function seeded() {
 		total: 1,
 		hasNext: false,
 		partial: false,
+		today: "2026-11-13",
 	});
 	client.setQueryData(mailKeys.mailboxes, [box("INBOX", 3), box("Sent", 0)]);
 	return client;
@@ -58,8 +60,15 @@ const rows = (client: QueryClient, key: readonly unknown[]) =>
 	).items;
 
 describe("isKeywordOp", () => {
-	it("is true for the four flag operations only", () => {
-		for (const op of ["read", "unread", "star", "unstar"] as const) {
+	it("is true for the flag operations only", () => {
+		for (const op of [
+			"read",
+			"unread",
+			"star",
+			"unstar",
+			"important",
+			"unimportant",
+		] as const) {
 			expect(isKeywordOp(op)).toBe(true);
 		}
 		for (const op of [
@@ -150,6 +159,36 @@ describe("patchFlags", () => {
 			(client.getQueryData(mailKeys.message("a")) as { unread: boolean })
 				.unread,
 		).toBe(true);
+	});
+
+	it("marks important and back in the message and its rows, leaving the other flags and the counter", () => {
+		const client = seeded();
+		const all = mailKeys.list("INBOX", 1, "all", "");
+		const state = () => ({
+			message: client.getQueryData(mailKeys.message("a")),
+			row: rows(client, all)[0],
+			other: rows(client, all)[1],
+			boxes: client.getQueryData(mailKeys.mailboxes),
+		});
+		const before = state();
+		const undo = patchFlags(client, "a", "important", "INBOX");
+		expect(state().message).toMatchObject({
+			important: true,
+			unread: true,
+			flagged: false,
+		});
+		expect(state().row).toMatchObject({
+			important: true,
+			unread: true,
+			flagged: false,
+		});
+		expect(state().other).toEqual(before.other);
+		expect(state().boxes).toEqual(before.boxes);
+		patchFlags(client, "a", "unimportant", "INBOX");
+		expect(state().message).toMatchObject({ important: false });
+		expect(state().row).toMatchObject({ important: false });
+		undo();
+		expect(state()).toEqual(before);
 	});
 
 	it("never takes a counter below zero and leaves other operations alone", () => {
