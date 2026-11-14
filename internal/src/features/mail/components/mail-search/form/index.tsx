@@ -13,7 +13,10 @@ import {
 import { Tooltip } from "@/components/ui/tooltip";
 import { SearchFields } from "@/features/mail/components/mail-search/form/fields";
 import { SearchField } from "@/features/mail/components/mail-search/search-field";
-import type { ListConditions } from "@/features/mail/schemas/list-conditions-model";
+import {
+	type ListConditions,
+	MAX_CONDITION_TEXT,
+} from "@/features/mail/schemas/list-conditions-model";
 import {
 	searchFormSchema,
 	searchFormValues,
@@ -39,46 +42,6 @@ function carried(conditions: ListConditions) {
 			{conditions.order === "newest" ? null : (
 				<input type="hidden" name="order" value={conditions.order} />
 			)}
-		</>
-	);
-}
-
-/**
- * The conditions the fields of the panel carry while it is closed: they are
- * hidden inputs, so a search keeps them even when the panel was never opened.
- * The panel takes them over when it opens.
- */
-function hidden(conditions: ListConditions) {
-	return (
-		<>
-			{conditions.from === "" ? null : (
-				<input type="hidden" name="from" value={conditions.from} />
-			)}
-			{conditions.to === "" ? null : (
-				<input type="hidden" name="to" value={conditions.to} />
-			)}
-			{conditions.subject === "" ? null : (
-				<input
-					type="hidden"
-					name="subject"
-					value={conditions.subject}
-				/>
-			)}
-			{conditions.after === null ? null : (
-				<input type="hidden" name="after" value={conditions.after} />
-			)}
-			{conditions.before === null ? null : (
-				<input type="hidden" name="before" value={conditions.before} />
-			)}
-			{conditions.folder === null ? null : (
-				<input type="hidden" name="folder" value={conditions.folder} />
-			)}
-			{conditions.label === null ? null : (
-				<input type="hidden" name="label" value={conditions.label} />
-			)}
-			{conditions.attachment ? (
-				<input type="hidden" name="attachment" value="1" />
-			) : null}
 		</>
 	);
 }
@@ -136,7 +99,6 @@ export function SearchForm({
 			className="flex min-w-0 flex-1 items-center gap-2"
 		>
 			{carried(conditions)}
-			{open ? null : hidden(conditions)}
 			<Collapsible
 				open={open}
 				onOpenChange={setOpen}
@@ -150,7 +112,7 @@ export function SearchForm({
 					<SearchField
 						name="q"
 						defaultValue={conditions.q}
-						maxLength={fieldLength(200)}
+						maxLength={fieldLength(MAX_CONDITION_TEXT)}
 						placeholder={t("searchPlaceholder")}
 						aria-label={t("searchLabel")}
 						aria-keyshortcuts="/"
@@ -172,7 +134,13 @@ export function SearchForm({
 						</Tooltip>
 					</CollapsibleTrigger>
 				</div>
-				<CollapsibleContent className="absolute inset-x-0 top-full z-30 mt-2 rounded-xl bg-surface-raised p-3 shadow-raised">
+				{/* The fields stay in the page while the panel is closed: the
+				    form carries them, and a search keeps what was typed in
+				    them. */}
+				<CollapsibleContent
+					forceMount
+					className="absolute inset-x-0 top-full z-30 mt-2 rounded-xl bg-surface-raised p-3 shadow-raised"
+				>
 					<SearchFields conditions={conditions} errors={errors} />
 				</CollapsibleContent>
 			</Collapsible>

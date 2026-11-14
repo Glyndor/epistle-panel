@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-
 import { EMPTY_CONDITIONS } from "@/features/mail/schemas/list-conditions-model";
+import { withQuery } from "@/test/query-wrapper";
 
 import { MailSearch } from ".";
 
@@ -10,12 +10,14 @@ afterEach(cleanup);
 /** The search of the header, with what the address holds. */
 async function search(props: Partial<Parameters<typeof MailSearch>[0]> = {}) {
 	return render(
-		await MailSearch({
-			box: "INBOX",
-			role: "inbox",
-			conditions: EMPTY_CONDITIONS,
-			...props,
-		}),
+		withQuery(
+			await MailSearch({
+				box: "INBOX",
+				role: "inbox",
+				conditions: EMPTY_CONDITIONS,
+				...props,
+			}),
+		),
 	);
 }
 
