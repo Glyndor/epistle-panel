@@ -11,6 +11,15 @@ import { unwrap } from "@/lib/query/action-result";
 /** One change: an operation, or a move to a named folder. */
 export type Change = MessageOp | { readonly move: string };
 
+/** How much of a change's outcome is told with a toast: nothing, or only a failure. */
+type Quiet = boolean | "success";
+
+/** What one call asks for. */
+interface Asked {
+	change: Change;
+	quiet?: Quiet;
+}
+
 /**
  * Changes of one open message. A flag change shows at once on the message, its
  * row and the folder counter and is put back if the server refuses; a change
@@ -33,7 +42,13 @@ export function useMessageChange({
 	const client = useQueryClient();
 
 	const mutation = useMutation({
-		mutationFn: async ({ change }: { change: Change; quiet?: boolean }) =>
+		mutationKey: mailKeys.change(id),
+		// One change to a message at a time, in the order they were asked for.
+		// The server replaces a message's whole keyword set, so two changes
+		// written at once would each be built from the set before the other:
+		// the next one starts when the one before has been answered.
+		scope: { id: mailKeys.change(id).join(":") },
+		mutationFn: async ({ change }: Asked) =>
 			unwrap(
 				await changeMessageAction(
 					typeof change === "string"
@@ -41,6 +56,8 @@ export function useMessageChange({
 						: { id, op: "move", box: change.move },
 				),
 			),
+		// Runs when the change is asked for, before its turn comes: a change
+		// that waits already shows.
 		onMutate: async ({ change }) => {
 			if (typeof change !== "string" || !isKeywordOp(change)) {
 				return { undo: undefined };
@@ -50,7 +67,7 @@ export function useMessageChange({
 		},
 		onError: (_error, { quiet }, context) => {
 			context?.undo?.();
-			if (!quiet) {
+			if (quiet !== true) {
 				toast.error(t("actionFailed"));
 			}
 		},
@@ -65,11 +82,17 @@ export function useMessageChange({
 					result.outcome.destroyed ? t("deletedForever") : t("moved"),
 				);
 				onLeft?.();
-			} else if (!quiet) {
+			} else if (quiet === undefined || quiet === false) {
 				toast.success(t("changed"));
 			}
 		},
 		onSettled: () => {
+			// While another change to this message waits, what the server
+			// holds is not yet what the screen shows: reading it now would
+			// take the waiting change off the screen until its own answer.
+			if (client.isMutating({ mutationKey: mailKeys.change(id) }) > 1) {
+				return;
+			}
 			void client.invalidateQueries({ queryKey: mailKeys.lists });
 			void client.invalidateQueries({ queryKey: mailKeys.mailboxes });
 		},
@@ -77,21 +100,14 @@ export function useMessageChange({
 
 	return {
 		/**
-		 * Make one change. `onSettled` is called once the server has answered,
-		 * whatever the answer: a caller that must not send a second change
-		 * before then holds its own lock and opens it there, since `pending`
-		 * only turns true with the next render.
+		 * Ask for one change. It shows at once and is written in its turn.
+		 * `quiet` says how much the outcome is told: `true` nothing at all
+		 * (the read mark of opening a message), `"success"` only a failure (a
+		 * mark set from a row, which already shows the change).
 		 */
-		change: (
-			change: Change,
-			options: { quiet?: boolean; onSettled?: () => void } = {},
-		) => {
-			const { onSettled, ...rest } = options;
-			mutation.mutate(
-				{ change, ...rest },
-				onSettled === undefined ? undefined : { onSettled },
-			);
-		},
+		change: (change: Change, options: { quiet?: Quiet } = {}) =>
+			mutation.mutate({ change, ...options }),
+		/** A change to this message, asked for from here, has not been answered yet. */
 		pending: mutation.isPending,
 	};
 }

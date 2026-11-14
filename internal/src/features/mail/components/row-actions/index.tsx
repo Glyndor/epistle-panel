@@ -2,7 +2,7 @@
 
 import { StarIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { type ReactNode, useRef } from "react";
+import type { ReactNode } from "react";
 
 import { ImportantMark } from "@/components/icons/important-mark";
 import { Button } from "@/components/ui/button";
@@ -16,19 +16,23 @@ import { cn } from "@/lib/class-names";
  * one. A mark that is set is always in view. One that is not shows when the
  * pointer is on the row, when the focus is anywhere in it, and always on a
  * coarse pointer, which has no hover. It is hidden by opacity alone, so the
- * keyboard reaches it either way and the row keeps its width. While a change
- * is on its way the button says so with `aria-disabled` and keeps the focus.
+ * keyboard reaches it either way and the row keeps its width.
  *
- * Its tooltip opens under it and ends where it ends. Beside it, the text lay
- * over the other mark and took the press meant for that one.
+ * While a change to the message is on its way the button says so three ways
+ * that move nothing: `aria-busy`, the pointer's progress cursor, and a dot on
+ * its corner beside a dimmed icon. It stays pressable: a press made meanwhile
+ * waits its turn.
  */
 function Mark({
+	mark,
 	set,
 	label,
 	busy,
 	onPress,
 	children,
 }: {
+	/** Which mark this is, for whoever has to find the same button in another row. */
+	mark: "important" | "star";
 	set: boolean;
 	label: string;
 	busy: boolean;
@@ -41,10 +45,11 @@ function Mark({
 				type="button"
 				variant="ghost"
 				size="sm"
+				data-mark={mark}
 				data-set={set}
-				aria-disabled={busy ? true : undefined}
+				aria-busy={busy ? true : undefined}
 				onClick={onPress}
-				className="size-6 px-0 opacity-0 hover:bg-foreground/10 focus-visible:opacity-100 active:bg-foreground/15 aria-disabled:text-muted-foreground data-[set=true]:opacity-100 group-focus-within/row:opacity-100 group-hover/row:opacity-100 pointer-coarse:size-11 pointer-coarse:px-0 pointer-coarse:opacity-100"
+				className="pointer-events-auto relative size-6 px-0 opacity-0 hover:bg-foreground/10 focus-visible:opacity-100 active:bg-foreground/15 aria-busy:cursor-progress aria-busy:text-muted-foreground aria-busy:after:absolute aria-busy:after:end-0 aria-busy:after:top-0 aria-busy:after:size-1.5 aria-busy:after:rounded-full aria-busy:after:bg-foreground aria-busy:hover:cursor-progress data-[set=true]:opacity-100 group-focus-within/row:opacity-100 group-hover/row:opacity-100 pointer-coarse:size-11 pointer-coarse:px-0 pointer-coarse:opacity-100"
 			>
 				{children}
 				<span className="sr-only">{label}</span>
@@ -55,15 +60,22 @@ function Mark({
 
 /**
  * The two marks a reader sets on a message without opening it: important and
- * the star. They sit over the end of the row's first line, beside the date,
- * as siblings of the row's link and after it, so the page holds no button
- * inside a link and the keyboard goes link, important, star.
+ * the star. They sit over the end of the row, beside the date, as siblings of
+ * the row's link and after it, so the page holds no button inside a link and
+ * the keyboard goes link, important, star.
  *
- * Both write through one mutation. The server replaces a message's whole
- * keyword set, so two changes at once would each be built from the set before
- * the other and the second to land would undo the first: while one is on its
- * way, a press on either button sends nothing. The change shows at once and
- * is put back, with a toast, if the server refuses.
+ * No press is lost. The server replaces a message's whole keyword set, so the
+ * changes to one message are written one after the other (`useMessageChange`),
+ * each on what the one before left; both show at once, and one the server
+ * refuses is taken back on its own, with a toast. A change that worked says
+ * nothing: the row already shows it.
+ *
+ * The box that holds the buttons is centred with its own height, never with
+ * a transform: a transformed box becomes the frame a fixed tooltip is placed
+ * in, and the tooltips of these buttons landed hundreds of pixels away. It
+ * takes no press itself, so the row under it stays a link. On a comfortable
+ * row with a fine pointer it ends where the first line ends: two pixels lower
+ * its buttons lay over the end of the subject's line.
  */
 export function RowActions({
 	id,
@@ -80,27 +92,15 @@ export function RowActions({
 	const t = useTranslations("mail");
 	// No `onLeft`: a flag change leaves the message where it is.
 	const { change, pending } = useMessageChange({ id, mailboxId: box });
-	// `pending` turns true with the next render; the lock is shut in the press
-	// itself, so a second press in the same instant finds it shut.
-	const sending = useRef(false);
-	const press = (op: MessageOp) => {
-		if (sending.current) {
-			return;
-		}
-		sending.current = true;
-		change(op, {
-			onSettled: () => {
-				sending.current = false;
-			},
-		});
-	};
+	const press = (op: MessageOp) => change(op, { quiet: "success" });
 
 	return (
 		<div
 			data-slot="row-actions"
-			className="absolute end-2 top-1.5 flex group-data-[density=compact]/list:top-1/2 group-data-[density=compact]/list:-translate-y-1/2 pointer-coarse:end-1 pointer-coarse:top-1/2 pointer-coarse:-translate-y-1/2"
+			className="pointer-events-none absolute end-2 top-1 flex items-center group-data-[density=compact]/list:inset-y-0 pointer-coarse:inset-y-0 pointer-coarse:end-1"
 		>
 			<Mark
+				mark="important"
 				set={important}
 				label={important ? t("unmarkImportant") : t("markImportant")}
 				busy={pending}
@@ -111,6 +111,7 @@ export function RowActions({
 				/>
 			</Mark>
 			<Mark
+				mark="star"
 				set={flagged}
 				label={flagged ? t("unstar") : t("star")}
 				busy={pending}

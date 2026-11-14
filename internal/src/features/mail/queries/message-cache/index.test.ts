@@ -13,12 +13,19 @@ const summary = (id: string, unread: boolean, flagged = false) => ({
 	preview: "",
 	unread,
 	flagged,
+	important: false,
 	answered: false,
 	draft: false,
 	hasAttachment: false,
 });
 const detail = (id: string, unread: boolean) =>
-	({ id, unread, flagged: false, mailboxId: "INBOX" }) as never;
+	({
+		id,
+		unread,
+		flagged: false,
+		important: false,
+		mailboxId: "INBOX",
+	}) as never;
 const box = (id: string, unread: number) =>
 	({
 		id,
@@ -189,6 +196,47 @@ describe("patchFlags", () => {
 		expect(state().row).toMatchObject({ important: false });
 		undo();
 		expect(state()).toEqual(before);
+	});
+
+	it("takes back one change and leaves the ones made after it", () => {
+		const client = seeded();
+		const flags = () =>
+			client.getQueryData(mailKeys.message("a")) as {
+				flagged: boolean;
+				important: boolean;
+				unread: boolean;
+			};
+		// Two changes wait for the server; the first is refused.
+		const undoStar = patchFlags(client, "a", "star", "INBOX");
+		const undoImportant = patchFlags(client, "a", "important", "INBOX");
+
+		undoStar();
+
+		expect(flags()).toMatchObject({ flagged: false, important: true });
+		expect(
+			rows(client, mailKeys.list("INBOX", 1, "all", ""))[0],
+		).toMatchObject({ flagged: false, important: true });
+
+		undoImportant();
+		expect(flags()).toMatchObject({ flagged: false, important: false });
+	});
+
+	it("takes nothing back for a change that changed nothing", () => {
+		const client = seeded();
+		const flagged = () =>
+			(client.getQueryData(mailKeys.message("a")) as { flagged: boolean })
+				.flagged;
+		patchFlags(client, "a", "star", "INBOX");
+		// Already starred: starring it again is no change.
+		const undo = patchFlags(client, "a", "star", "INBOX");
+
+		undo();
+
+		// Taking the second back must not take the star the first one set.
+		expect(flagged()).toBe(true);
+		expect(
+			rows(client, mailKeys.list("INBOX", 1, "all", ""))[0]?.flagged,
+		).toBe(true);
 	});
 
 	it("never takes a counter below zero and leaves other operations alone", () => {
