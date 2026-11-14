@@ -244,4 +244,14 @@ describe("CreateAccountForm", () => {
 		expect(field("passwordLabel")).toHaveValue("");
 		expect(onDone).not.toHaveBeenCalled();
 	});
+	it("takes the focus in its first field when it comes into the page, only when asked to", () => {
+		const first = render(
+			withQuery(<CreateAccountForm onDone={() => {}} />),
+		);
+		expect(document.activeElement).toBe(document.body);
+		first.unmount();
+
+		render(withQuery(<CreateAccountForm takeFocus onDone={() => {}} />));
+		expect(document.activeElement).toBe(field("nameLabel"));
+	});
 });

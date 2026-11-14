@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import { cleanup, render, screen } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
 
@@ -255,6 +255,53 @@ describe("MailLayout", () => {
 		);
 	});
 
+	it("fills the place it held with a box of the same height whatever the mail server answers: no limit, no quota, or nothing", async () => {
+		await cookies.signIn("ops", "admin");
+		const logged = spyOn(console, "error").mockImplementation(() => {});
+		try {
+			for (const [name, quota] of [
+				[
+					"no limit",
+					{
+						list: [
+							{ resourceType: "octets", used: 5, limit: null },
+						],
+					},
+				],
+				["no quota", { list: [] }],
+				["no answer", undefined],
+			] as const) {
+				stubJmap(
+					quota === undefined
+						? { "Mailbox/get": answers["Mailbox/get"] }
+						: { ...answers, "Quota/get": quota },
+				);
+				const first = render(
+					withQuery(await resolveFirstPaint(await shell())),
+				);
+				expect([
+					name,
+					first.container.querySelector(
+						"[data-slot='quota-placeholder']",
+					) !== null,
+				]).toEqual([name, true]);
+				cleanup();
+
+				const { container } = await renderLayout();
+				const box = container.querySelector("[data-slot='quota']");
+				expect([name, box !== null]).toEqual([name, true]);
+				expect(box).toHaveClass("min-h-19", "rounded-xl");
+				expect(
+					container.querySelector("[data-slot='quota-placeholder']"),
+				).toBeNull();
+				await settled();
+				cleanup();
+			}
+		} finally {
+			logged.mockRestore();
+		}
+	});
+
 	it("holds no place for the storage of a session with no mail of its own", async () => {
 		await cookies.signIn("ana", "user");
 		stubJmap(answers);
@@ -317,6 +364,56 @@ describe("MailLayout", () => {
 		expect(
 			none.container.querySelector("[data-slot='sidebar']"),
 		).toHaveAttribute("data-state", "expanded");
+	});
+
+	it("sends the folders closed, placeholder first and tree after, only when the groups' cookie names the folders", async () => {
+		await cookies.signIn("ana", "admin");
+		stubJmap(answers);
+		/** The frame as it is first sent, then with what it streams. */
+		const states = async () => {
+			const first = render(
+				withQuery(await resolveFirstPaint(await shell())),
+			);
+			const placeholder = first.container
+				.querySelector("[data-slot='folder-skeleton']")
+				?.getAttribute("data-state");
+			cleanup();
+			const whole = await renderLayout();
+			const heading = whole.container
+				.querySelector("[data-slot='sidebar-group-label']")
+				?.getAttribute("aria-expanded");
+			const markup = whole.container.innerHTML;
+			cleanup();
+			return { placeholder, heading, markup };
+		};
+
+		for (const value of ["folders", "manage.folders"]) {
+			cookies.jar.set("sidebar_groups", value);
+			const { placeholder, heading } = await states();
+			expect([value, placeholder, heading]).toEqual([
+				value,
+				"closed",
+				"false",
+			]);
+		}
+		for (const value of [
+			"manage",
+			"",
+			"Folders",
+			"folders.other",
+			'folders"><i data-from-cookie="1">',
+		]) {
+			cookies.jar.set("sidebar_groups", value);
+			const { placeholder, heading, markup } = await states();
+			expect([value, placeholder, heading]).toEqual([
+				value,
+				"open",
+				"true",
+			]);
+			expect(markup).not.toContain("data-from-cookie");
+		}
+		cookies.jar.delete("sidebar_groups");
+		expect((await states()).placeholder).toBe("open");
 	});
 
 	it("gives a session that is not an admin's no way into the administration, in the markup or in what the menu is handed", async () => {

@@ -97,6 +97,11 @@ so. `flood` has 300 records in 24 hours, 620 queued messages and 640
 addresses, more of each than is read. `skew` has hours of 60, 5 (one of each
 outcome), 12, 2 and 8 records, each group ten minutes into an hour of the UTC
 clock, to compare the heights of the columns.
+`POST /__control/quota` with `{"quota":"unlimited"}` makes `Quota/get` answer
+the account's quota with a `limit` of `null`, and `{"quota":"none"}` an empty
+list, as a server that keeps no quota for the account does; `"limited"` is the
+seeded answer, under a limit. They are the three shapes the storage at the
+foot of the mail area's sidebar has to hold its place for (see `mail.md`).
 `POST /__control/reset` puts the seeds back, and `POST /__control/forget`
 empties the request log without touching the data.
 
@@ -129,6 +134,7 @@ empties the request log without touching the data.
 | `streaming` | with the stand-in API taking two seconds per answer (`POST /__control/delay`), every admin list page answers 200, sends its first byte at least a second before its data, carries a loading placeholder in that first part and still has a nonce in its policy; the data arrives later in the same response; with the delay off the page is quick again. A page with no `Suspense` around its data and no `loading.tsx` above it fails the first-byte check. The webmail sends its frame the same way; its folders are asked of the server once for the whole page, however many panes read them, and a view whose address names its folder does not wait for the folder tree (the stand-in logs the method names of a JMAP request, never its arguments) |
 | `tables` | with 132 accounts and 61 domains seeded: the page holds the 25 rows of the first page and not the 26th, the range ("1–25 of 132"), one empty live region and no other, a named filter field, a named landmark with one button per page, the current one marked, previous marked as having nowhere to go, the page in words for a narrow window, the size select on 25 with its four options, the Filters button, and the origin or the state of each row in words, with no inline style; the API was asked for the list once; the queue and the suppression list have the API's own page link and neither page controls nor a Filters menu; the delivery log, whose five records fit one page, has its range and page size, no page controls and no Filters menu; the seed leaves with the reset. Pressing the controls is not covered here: paging and the facets are state in the browser, which curl does not run |
 | `overview` | `/app/{id}` with a period is the 404 without a session and the stand-in sees nothing; with the busy sample the page carries four charts, each one image with a name and a description, drawn with `svg` marks sized by attributes that have no child, and no inline style; the counts and shares of the sample are in the HTML (67 records, 48 delivered at 71.6 %), the description says them in words, an outcome links to the log filtered by it and by the period; the two delivery cards read the log once between them and the queue and the suppression list once each, a page of 100; the status is read once between the counters and the notice of the page; `?since=7d` and `?since=30d` reach the API and the full answer of 30 days says the period may hold more, never that it does, and fills the days it may not have returned with a band of its own colour; with the `skew` sample the columns are as high as their totals on the scale (160, 32 and 21.33 px for 60, 12 and 8 records, and parts of 2.67 px with no gap for 5 and 2) and a column names its split by outcome; a queue and a list of exactly 500 are whole, longer ones count what was read in every sentence; with the API failing every read the page gives one warning with a plain link to the same address and each card says it was not loaded; hostile periods (`1e9d`, a line break, `../`, markup, upper case, a period the log takes but no chart draws, an injected parameter) render the default period and never reach the API; with the API answering in 300 ms, twelve answers carry no style attribute (a chart drawn with `svg` children failed this in about half the answers, see `charts.md`); a log switched off, an empty queue, an empty list and a period with no record each say so in place of a chart; nothing but `GET` reaches the API |
+| `shell-state` | the states the shell keeps between pages, as the server sends them: with no `sidebar_groups` cookie the group of the navigation is served open with every entry; with the group named it is served closed, with the entry of the current page and no other, and no style attribute; a cookie nobody of the panel wrote (a name that is no group, more names than there are groups, markup) is read as none and nothing of it is in the page; the placeholder of the mail's folders is sent closed or open as the cookie says. The storage at the foot of the mail's sidebar: the frame holds its place and the box comes whatever `Quota/get` answers (a limit, a limit of `null`, an empty list) and when the mail server fails |
 | `theme` | `/theme.css`, `/brand/logo` and `/brand/favicon` answer without a session when configured and 404 when not; the sign-in page links the stylesheet and shows the name, the logo and the original copyright notice; the CSP is the same with and without a theme; look-alike paths stay behind the gate; a symlink, an oversized or a missing file is a 404 and a log line with no path, and a symlink or a FIFO as the logo is refused the same way; an SVG with script is refused, also when `javascript:` is written with numeric character references |
 
 ## Origin check of Server Actions, measured
@@ -242,6 +248,18 @@ the console open.
    "Clear filters", which brings the rows back and focuses the filter field.
    The unit tests do not run React Compiler, so this is where a part that
    shows stale rows would be seen.
+9. The shell's states that outlive a page. Close a group of the sidebar from
+   its heading and reload: it is still closed, it never shows open on the way
+   (slow the API with `POST <stand-in>/__control/delay` to see the first
+   paint), the entry of the current page is still drawn, and the cookie
+   `sidebar_groups` names the group; a value nobody of the panel wrote
+   (`other`, markup) leaves every group open and is nowhere in the page. With
+   `POST <stand-in>/__control/quota` set to `unlimited` and to `none`, the
+   box of the storage at the foot of the mail's sidebar is where its
+   placeholder was and as tall. On `accounts`, reload and press New account:
+   the focus is in the first field, on that first opening as on the next.
+   Remove a queued message and point at the toast's cross: a tooltip names
+   it, and Tab reaches it with the same tooltip.
 
 ## Measured on 2026-11-12 (Node 24, Next 16.4.6)
 

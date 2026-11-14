@@ -14,7 +14,7 @@
 # exercises.
 #
 # Usage: scripts/e2e/run.sh [scenario...]
-#   scenarios: headers logout limiter limiter-global noauth degraded rotation idle theme theme-choice profile-menu body-limit captcha csrf set-locale unknown-variable suppression deliveries account-detail accounts breadcrumbs admin-id mail streaming tables overview
+#   scenarios: headers logout limiter limiter-global noauth degraded rotation idle theme theme-choice profile-menu body-limit captcha csrf set-locale unknown-variable suppression deliveries account-detail accounts breadcrumbs admin-id mail streaming tables overview shell-state
 # The name is the same wherever the file lives: the scripts are in
 # scripts/e2e/scenarios/, one folder per concern (accounts, auth, config,
 # limits, locale, mail, rendering, security, theme).
@@ -154,12 +154,14 @@ cp -R "$internal/.next/static" "$standalone/.next/static"
 . "$root/scripts/e2e/scenarios/rendering/streaming.sh"
 # shellcheck source=scripts/e2e/scenarios/rendering/tables.sh
 . "$root/scripts/e2e/scenarios/rendering/tables.sh"
+# shellcheck source=scripts/e2e/scenarios/rendering/shell-state.sh
+. "$root/scripts/e2e/scenarios/rendering/shell-state.sh"
 # shellcheck source=scripts/e2e/scenarios/rendering/overview.sh
 . "$root/scripts/e2e/scenarios/rendering/overview.sh"
 
 # ---------------------------------------------------------------- main
 
-all=(headers logout limiter limiter-global noauth degraded rotation idle theme theme-choice profile-menu body-limit captcha csrf set-locale unknown-variable suppression deliveries account-detail accounts breadcrumbs admin-id mail streaming tables overview)
+all=(headers logout limiter limiter-global noauth degraded rotation idle theme theme-choice profile-menu body-limit captcha csrf set-locale unknown-variable suppression deliveries account-detail accounts breadcrumbs admin-id mail streaming tables overview shell-state)
 selected=("$@")
 ((${#selected[@]})) || selected=("${all[@]}")
 
@@ -190,6 +192,7 @@ for name in "${selected[@]}"; do
 	streaming) scenario_streaming ;;
 	tables) scenario_tables ;;
 	overview) scenario_overview ;;
+	shell-state) scenario_shell_state ;;
 	admin-id) scenario_admin_id ;;
 	*)
 		echo "error: unknown scenario '$name'" >&2

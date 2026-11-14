@@ -63,4 +63,31 @@ describe("MailNav", () => {
 			screen.queryByRole("navigation", { name: "folders" }),
 		).toBeNull();
 	});
+
+	it("draws the skeleton of the folders open or closed, as the folders will come", async () => {
+		const bars = (container: HTMLElement) =>
+			container.querySelectorAll(
+				"[data-slot='folder-skeleton'] [data-slot='skeleton']",
+			).length;
+
+		const open = render(
+			<SidebarProvider>
+				{firstPaint(await MailNav({ foldersOpen: true }))}
+			</SidebarProvider>,
+		);
+		// The heading's place and, under it, the folders'.
+		expect(bars(open.container)).toBe(2);
+		open.unmount();
+
+		const closed = render(
+			<SidebarProvider>
+				{firstPaint(await MailNav({ foldersOpen: false }))}
+			</SidebarProvider>,
+		);
+		// Closed, the tree will be its heading alone: so is its skeleton.
+		expect(bars(closed.container)).toBe(1);
+		expect(
+			closed.container.querySelector("[data-slot='folder-skeleton']"),
+		).toHaveAttribute("data-state", "closed");
+	});
 });

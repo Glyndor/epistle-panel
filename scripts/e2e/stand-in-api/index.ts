@@ -25,7 +25,7 @@ import {
 } from "./seed";
 import { createAccountsStore } from "./accounts";
 import { handleLifecycle } from "./accounts/lifecycle";
-import { createJmapStore } from "./jmap";
+import { createJmapStore, QUOTA_MODES } from "./jmap";
 import { createQueueStore } from "./queue";
 import { buildSample } from "./sample";
 
@@ -200,6 +200,15 @@ export function createStandIn(options: StandInOptions) {
 			}
 			jmap.oversizeBlobs(body.oversize);
 			return json({ oversize: body.oversize });
+		}
+		if (path === "/__control/quota" && request.method === "POST") {
+			const body = (await request.json()) as { quota?: unknown };
+			const wanted = QUOTA_MODES.find((known) => known === body.quota);
+			if (wanted === undefined) {
+				return json({ error: "quota must be limited, unlimited or none" }, 400);
+			}
+			jmap.quota(wanted);
+			return json({ quota: wanted });
 		}
 		if (path === "/__control/seed" && request.method === "POST") {
 			const counts = parseSeed(await request.json());

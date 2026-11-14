@@ -54,7 +54,8 @@ const INDENT = [
  * in the reader's language, the unread counter beside each. The current folder
  * is the one the address shows, marked with `aria-current`. Collapsed to
  * icons, a folder is its icon and a tooltip says its name, what is unread and
- * whether it is the one that is open.
+ * whether it is the one that is open. With the heading closed, the current
+ * folder is the one entry still drawn.
  * It is a `nav` landmark with its own name, so it can be reached from the
  * landmark list as well as by Tab.
  */
@@ -70,84 +71,70 @@ export function FolderTree({ boxes }: { boxes: readonly MailboxView[] }) {
 		}
 	}
 
+	const entry = (box: MailboxView) => {
+		const Icon = box.role === null ? FolderIcon : ICONS[box.role];
+		const active = box.id === activeId;
+		const name = box.role === null ? box.name : t(`role_${box.role}`);
+		const said =
+			box.unread > 0
+				? t("folderWithUnread", { name, count: box.unread })
+				: name;
+		return (
+			<SidebarMenuItem key={box.id}>
+				<SidebarMenuButton
+					asChild
+					isActive={active}
+					// On the rail the fill and the mark say which folder is
+					// open; the tooltip says it in words.
+					tooltip={
+						active ? tNav("currentEntry", { name: said }) : said
+					}
+					className={cn(
+						INDENT[Math.min(box.depth, INDENT.length - 1)],
+					)}
+				>
+					<Link
+						href={mailHref({
+							box: box.id,
+							role:
+								box.role !== null &&
+								byRole.get(box.role) === box.id
+									? box.role
+									: null,
+						})}
+						aria-current={active ? "page" : undefined}
+					>
+						<Icon aria-hidden="true" />
+						<span className="min-w-0 flex-1 truncate">
+							<bdi>{name}</bdi>
+						</span>
+						{box.unread > 0 ? (
+							<span className="shrink-0 rounded-full bg-primary px-2 font-normal text-primary-foreground text-xs">
+								<span aria-hidden="true">{box.unread}</span>
+								<span className="sr-only">
+									{t("unreadCount", { count: box.unread })}
+								</span>
+							</span>
+						) : null}
+					</Link>
+				</SidebarMenuButton>
+			</SidebarMenuItem>
+		);
+	};
+	const current = boxes.find((box) => box.id === activeId);
+
 	return (
 		<nav aria-label={t("folders")}>
-			<NavSection label={t("folders")}>
-				<SidebarMenu>
-					{boxes.map((box) => {
-						const Icon =
-							box.role === null ? FolderIcon : ICONS[box.role];
-						const active = box.id === activeId;
-						const name =
-							box.role === null
-								? box.name
-								: t(`role_${box.role}`);
-						const said =
-							box.unread > 0
-								? t("folderWithUnread", {
-										name,
-										count: box.unread,
-									})
-								: name;
-						return (
-							<SidebarMenuItem key={box.id}>
-								<SidebarMenuButton
-									asChild
-									isActive={active}
-									// On the rail the fill and the mark say
-									// which folder is open; the tooltip
-									// says it in words.
-									tooltip={
-										active
-											? tNav("currentEntry", {
-													name: said,
-												})
-											: said
-									}
-									className={cn(
-										INDENT[
-											Math.min(
-												box.depth,
-												INDENT.length - 1,
-											)
-										],
-									)}
-								>
-									<Link
-										href={mailHref({
-											box: box.id,
-											role:
-												box.role !== null &&
-												byRole.get(box.role) === box.id
-													? box.role
-													: null,
-										})}
-										aria-current={
-											active ? "page" : undefined
-										}
-									>
-										<Icon aria-hidden="true" />
-										<span className="min-w-0 flex-1 truncate">
-											<bdi>{name}</bdi>
-										</span>
-										{box.unread > 0 ? (
-											<span className="shrink-0 rounded-full bg-primary px-2 font-normal text-primary-foreground text-xs">
-												<span aria-hidden="true">
-													{box.unread}
-												</span>
-												<span className="sr-only">
-													{t("unreadCount", {
-														count: box.unread,
-													})}
-												</span>
-											</span>
-										) : null}
-									</Link>
-								</SidebarMenuButton>
-							</SidebarMenuItem>
-						);
-					})}
-				</SidebarMenu>
+			<NavSection
+				id="folders"
+				label={t("folders")}
+				current={
+					current === undefined ? undefined : (
+						<SidebarMenu>{entry(current)}</SidebarMenu>
+					)
+				}
+			>
+				<SidebarMenu>{boxes.map(entry)}</SidebarMenu>
 			</NavSection>
 		</nav>
 	);

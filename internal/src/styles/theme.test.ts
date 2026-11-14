@@ -119,14 +119,59 @@ describe("theme.css", () => {
 		}
 	});
 
-	it("lifts a work panel off the canvas in every list", () => {
-		for (const values of [light, preferredDark, chosenDark]) {
-			expect(
-				contrastRatio(
-					values.get("--surface") ?? "",
-					values.get("--background") ?? "",
-				),
-			).toBeGreaterThan(1.08);
+	it("lifts a work panel off the canvas in every list, as far as the zones are from each other", () => {
+		// A panel is told from the canvas by tone alone, like the zones of the
+		// shell. The dark lists once held it at 1.09 while the zones kept 1.1.
+		for (const [list, values] of [
+			["light", light],
+			["preferred dark", preferredDark],
+			["chosen dark", chosenDark],
+		] as const) {
+			const ratio = contrastRatio(
+				values.get("--surface") ?? "",
+				values.get("--background") ?? "",
+			);
+			expect([list, ratio >= 1.1]).toEqual([list, true]);
+		}
+	});
+
+	it("keeps what is drawn on a panel at its floor in every list", () => {
+		// Lifting `--surface` takes contrast from everything drawn on it. Text
+		// holds 4.5:1; a mark that is not text (the edge of a field, the focus
+		// ring, a series of a chart, the band of missing data) holds 3:1.
+		const floors = [
+			["--foreground", 4.5],
+			["--card-foreground", 4.5],
+			["--muted-foreground", 4.5],
+			["--primary", 4.5],
+			["--destructive", 4.5],
+			["--warning-foreground", 4.5],
+			["--ring", 3],
+			["--field-edge", 3],
+			["--chart-1", 3],
+			["--chart-2", 3],
+			["--chart-3", 3],
+			["--chart-4", 3],
+			["--chart-5", 3],
+			["--chart-missing", 3],
+		] as const;
+		for (const [list, values] of [
+			["light", light],
+			["preferred dark", preferredDark],
+			["chosen dark", chosenDark],
+		] as const) {
+			const surface = values.get("--surface") ?? light.get("--surface");
+			for (const [name, floor] of floors) {
+				const ratio = contrastRatio(
+					values.get(name) ?? "",
+					surface ?? "",
+				);
+				expect([list, name, ratio >= floor]).toEqual([
+					list,
+					name,
+					true,
+				]);
+			}
 		}
 	});
 

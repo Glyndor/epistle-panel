@@ -13,6 +13,7 @@
 	"storage": "Spazio di archiviazione",
 	"storageUsed": "{used} di {limit}",
 	"storageUnlimited": "{used} in uso, senza limite",
+	"storageUnknown": "Utilizzo non disponibile",
 	"storageNear": "Quasi pieno",
 	"storageFull": "Pieno",
 	"folderWithUnread": "{name}: {count} non lette",

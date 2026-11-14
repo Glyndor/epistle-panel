@@ -53,6 +53,54 @@ describe("Toaster", () => {
 		expect(screen.queryByRole("status")).toBeNull();
 	});
 
+	it("names its dismiss button in a tooltip, which is no part of what a screen reader hears", () => {
+		renderToaster();
+		act(() => {
+			toast.success("Removed");
+			toast.error("Failed");
+		});
+
+		for (const button of screen.getAllByRole("button", {
+			name: "Dismiss",
+		})) {
+			// The panel's icon button, the size every other one has.
+			expect(button).toHaveAttribute("data-slot", "button");
+			expect(button).toHaveAttribute("data-size", "icon");
+			expect(document.querySelector("[data-slot='tooltip']")).toBeNull();
+
+			fireEvent.pointerEnter(button, { pointerType: "mouse" });
+
+			const tip = document.querySelector("[data-slot='tooltip']");
+			expect(tip).toHaveTextContent("Dismiss");
+			// The name is the button's own; the tooltip repeats it for the eye.
+			expect(tip).toHaveAttribute("aria-hidden", "true");
+			expect(button).toHaveAccessibleName("Dismiss");
+			// Inside the toast, so the pointer on it still holds the timer.
+			expect(button.closest("[data-kind]")).toContainElement(
+				tip as HTMLElement,
+			);
+
+			fireEvent.keyDown(document, { key: "Escape" });
+			expect(document.querySelector("[data-slot='tooltip']")).toBeNull();
+		}
+	});
+
+	it("takes the tooltip away with the toast its button dismissed", () => {
+		renderToaster();
+		act(() => {
+			toast.success("Removed");
+		});
+		const button = screen.getByRole("button", { name: "Dismiss" });
+		fireEvent.pointerEnter(button, { pointerType: "mouse" });
+		expect(document.querySelector("[data-slot='tooltip']")).not.toBeNull();
+
+		fireEvent.pointerDown(button);
+		fireEvent.click(button);
+
+		expect(screen.queryByRole("status")).toBeNull();
+		expect(document.querySelector("[data-slot='tooltip']")).toBeNull();
+	});
+
 	it("dismisses itself after its time, an error later than a success", async () => {
 		renderToaster();
 		expect(TOAST_DURATION_MS.error).toBeGreaterThan(

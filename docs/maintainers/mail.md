@@ -43,12 +43,19 @@ landmarks, two names.
 of its limit as a meter with the two figures, and "almost full" or "full"
 written out from nine tenths of the limit, since a tone alone would not say
 it. An account with no limit is told what it uses and that there is no limit,
-with no meter. Nothing is drawn when the server lists no quota in bytes or
-cannot be asked. Sizes are written in decimal units, like the attachments
-(`format/storage-size`). The box is 76 px tall with a meter and without one,
-and a block of that height holds its place while the mail server is asked, so
-the foot of the sidebar does not move when the answer comes; a session with no
-mail of its own gets neither.
+with no meter. When the server lists no quota in bytes (`Quota/get` with an
+empty list) or cannot be asked, the box says the usage is not available.
+Sizes are written in decimal units, like the attachments
+(`format/storage-size`). The box is 76 px tall whatever it says, and a block
+of that height holds its place while the mail server is asked, so the foot of
+the sidebar does not move when the answer comes, whichever of the four it is.
+Drawing nothing for an account with no quota took the block away and left the
+foot 80 px shorter; knowing it before the frame is sent would mean holding
+the frame until the mail server answers, and the frame leaves before the
+server is asked (about 20 ms to the first byte with the server two seconds
+slow, measured on the built panel). A session with no mail of its own gets
+neither the box nor the block: the layout knows that from the session alone.
+The stand-in answers each case (`POST /__control/quota`, see `e2e.md`).
 
 **A folder is a page with a path of its own**, and so is an open message:
 
@@ -334,8 +341,8 @@ editor and no signature.
 
 `/app/mail` sends its frame at once and each part streams its own data inside
 `Suspense`: in the layout, `FoldersBoundary` (the tree of the sidebar, which is
-a sheet below 768 px) and `QuotaMeter` (the storage, with nothing in its place
-while it waits); in the page, `ListBoundary` (the search, the filters and the
+a sheet below 768 px) and `QuotaMeter` (the storage, behind a block of its own
+height); in the page, `ListBoundary` (the search, the filters and the
 page of the open folder) and `ReaderBoundary` (the open message); in the
 header, the trail of an open message. Each boundary reads on the server and hands the result to its client
 component, which owns the data from then on; the fallback of each is the same

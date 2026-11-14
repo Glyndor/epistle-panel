@@ -191,7 +191,14 @@ the single `main` landmark, for both areas.
 - **Three zones, no line.** The rail (`bg-sidebar`), the bar (`bg-header`) and
   the canvas (`bg-background`) are told apart by tone; a work panel is a
   raised, rounded surface on the canvas (`bg-surface`). The tones are tokens
-  and a test holds them apart (`customising.md`).
+  and a test holds them apart (`customising.md`): each pair of zones, and a
+  panel and the canvas, stay 1.1 or more apart in luminance in the light list
+  and in both dark ones. The dark `--surface` was 1.09 from the canvas until
+  2026-11-14; it is the tone of the rail now, 1.11. Everything drawn on a
+  panel loses a little contrast when the panel is lifted, so the same test
+  holds text on it to 4.5:1 and the marks that are not text (the edge of a
+  field, the focus ring, the series of a chart, the band of missing data) to
+  3:1.
 - **Nothing of the frame scrolls.** The shell is as tall as the window. The
   sidebar, its foot and the header stay in place. `content="page"` scrolls the
   page as a whole inside `main` (the administration); `content="panes"` leaves
@@ -201,12 +208,46 @@ the single `main` landmark, for both areas.
 - **No page footer.** What one would hold is at the foot of the sidebar: what
   the area adds (the mail's storage), the version of the panel
   (`lib/panel-version`, from the manifest the release workflow holds to the
-  tag) and the copyright notice.
-- **Groups open and close.** A group of the navigation sits under a heading
-  that is a button (`components/layout/nav-section`): it says whether the
-  group is open and what it controls, and a closed group keeps its entries out
-  of the page. Collapsed to icons there is no heading, so every group shows
-  its entries.
+  tag) and the copyright notice. The foot does not move once it is painted:
+  what an area adds either holds its place from the first paint and fills it
+  whatever the answer is, or is known on the server before the frame is sent
+  and is not there at all (`mail.md` has the storage's cases).
+- **Groups open and close, and stay as they were left.** A group of the
+  navigation sits under a heading that is a button
+  (`components/layout/nav-section`): it says whether the group is open and
+  what it controls, and a closed group keeps its entries out of the page.
+  Collapsed to icons there is no heading, so every group shows its entries.
+  Which groups are closed is the `sidebar_groups` cookie, written for the
+  whole panel like the sidebar's own and read by each layout on the server:
+  the first paint has each group as it was left, and so has the placeholder
+  of the mail's folders, which is one bar when they are closed. The state is
+  held by the sidebar's provider, not by the group: the folders arrive in a
+  streamed part that replaces its placeholder, and a note kept by the group
+  would be made anew with it.
+- **A closed group still draws the entry of the current page**, and only that
+  one, so the sidebar never hides where the person is. The saved choice is
+  not overruled for the group that holds the current page: each area has one
+  group today and nearly every page is one of its entries, so a group that
+  opened itself whenever it held the current page would open on every reload
+  and its heading would do nothing that lasts.
+- **The groups' cookie is input.** Anyone can write a cookie, so its value is
+  parsed on the server with a schema (`components/ui/sidebar/closed-groups`):
+  names of the closed list `SIDEBAR_GROUPS`, no more of them than there are
+  groups, and anything else reads as every group open. What goes on to the
+  page are the panel's own names, picked by the cookie, never a character the
+  request sent. The list and the writing of the cookie are in
+  `components/ui/sidebar/groups-cookie`, a module with no `"use client"` and
+  no schema library, since a layout and the provider both import it. A new
+  group joins that list; the type of `NavSection`'s `id` refuses one that did
+  not.
+- **An entry's focus ring has its four sides.** It is 2 px wide and starts at
+  the entry's edge (`outline-offset-0`), which is the 2 px the menu leaves
+  between two entries. An entry is a link, and a browser draws a link's ring
+  1 px away unless told: the third pixel fell on the entry below and, when
+  that one was the current page, under its fill. The entry with the focus is
+  also drawn over its neighbours (`focus-visible:z-10`), and the sidebar's
+  content scrolls an entry to 8 px from its edge (`scroll-py-2`), where the
+  ring is not cut. The composer's ring stands 2 px off its fill, as before.
 - **The rail collapses to icons** from the header's toggle or Ctrl+B (Cmd+B),
   each entry named in a tooltip. The current entry is filled, and a fill alone
   is a colour: on the rail it also has a mark on its starting edge, and its

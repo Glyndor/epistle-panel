@@ -47,54 +47,65 @@ function isActive(href: string, pathname: string, exact?: boolean): boolean {
 /**
  * A surface's primary navigation: icon and label per entry, in groups that
  * open and close under their heading, the current page marked. It draws what
- * the config gave it, so it knows no route.
+ * the config gave it, so it knows no route. A group that is closed still
+ * draws the entry of the current page, so the sidebar always says where the
+ * person is.
  */
 export function NavMain({ groups }: { groups: readonly NavGroup[] }) {
 	const t = useTranslations("nav");
 	const pathname = usePathname();
 	const { setOpenMobile } = useSidebar();
 
+	const entry = ({ href, label, icon, exact }: NavGroup["items"][number]) => {
+		const Icon = ICONS[icon];
+		const active = isActive(href, pathname, exact);
+		return (
+			<SidebarMenuItem key={href}>
+				<SidebarMenuButton
+					asChild
+					isActive={active}
+					// On the rail the fill and the mark say which page this
+					// is; the tooltip says it in words.
+					tooltip={
+						active
+							? t("currentEntry", { name: t(label) })
+							: t(label)
+					}
+				>
+					<Link
+						href={href}
+						aria-current={active ? "page" : undefined}
+						onClick={() => setOpenMobile(false)}
+					>
+						<Icon aria-hidden="true" />
+						<span>{t(label)}</span>
+					</Link>
+				</SidebarMenuButton>
+			</SidebarMenuItem>
+		);
+	};
+
 	return (
 		<nav aria-label={t("label")}>
-			{groups.map((group) => (
-				<NavSection key={group.label} label={t(group.label)}>
-					<SidebarMenu>
-						{group.items.map(({ href, label, icon, exact }) => {
-							const Icon = ICONS[icon];
-							const active = isActive(href, pathname, exact);
-							return (
-								<SidebarMenuItem key={href}>
-									<SidebarMenuButton
-										asChild
-										isActive={active}
-										// On the rail the fill and the mark say
-										// which page this is; the tooltip says
-										// it in words.
-										tooltip={
-											active
-												? t("currentEntry", {
-														name: t(label),
-													})
-												: t(label)
-										}
-									>
-										<Link
-											href={href}
-											aria-current={
-												active ? "page" : undefined
-											}
-											onClick={() => setOpenMobile(false)}
-										>
-											<Icon aria-hidden="true" />
-											<span>{t(label)}</span>
-										</Link>
-									</SidebarMenuButton>
-								</SidebarMenuItem>
-							);
-						})}
-					</SidebarMenu>
-				</NavSection>
-			))}
+			{groups.map((group) => {
+				const current = group.items.find(({ href, exact }) =>
+					isActive(href, pathname, exact),
+				);
+				return (
+					<NavSection
+						key={group.label}
+						id={group.label}
+						label={t(group.label)}
+						current={
+							current === undefined ? undefined : (
+								<SidebarMenu>{entry(current)}</SidebarMenu>
+							)
+						}
+					>
+						<SidebarMenu>{group.items.map(entry)}</SidebarMenu>
+					</NavSection>
+				);
+			})}
 		</nav>
 	);
 }

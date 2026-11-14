@@ -81,6 +81,12 @@ set_oversize_blobs() {
 	curl -s -o /dev/null -X POST "$api/__control/blobs" -d "{\"oversize\":$1}"
 }
 
+# set_quota limited|unlimited|none: how the stand-in answers Quota/get, with a
+# limit, with a limit of null or with an empty list; reset_api puts the limit back.
+set_quota() {
+	curl -s -o /dev/null -X POST "$api/__control/quota" -d "{\"quota\":\"$1\"}"
+}
+
 reset_api() {
 	curl -s -o /dev/null -X POST "$api/__control/reset"
 }

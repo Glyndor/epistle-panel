@@ -5,24 +5,36 @@ import { renderToString } from "react-dom/server";
 import { SidebarProvider } from "@/components/ui/sidebar/provider";
 import { Sidebar } from "@/components/ui/sidebar/sidebar";
 import { SidebarTrigger } from "@/components/ui/sidebar/trigger";
+import { captureCookieWrites } from "@/test/cookie-capture";
 import { NavSection } from ".";
+
+let capture: ReturnType<typeof captureCookieWrites> | undefined;
 
 afterEach(() => {
 	cleanup();
+	capture?.restore();
+	capture = undefined;
 	window.innerWidth = 1024;
 });
 
-function tree(defaultOpen = true, sectionOpen?: boolean) {
+function tree({
+	sidebarOpen = true,
+	closed = false,
+	current,
+}: {
+	sidebarOpen?: boolean;
+	closed?: boolean;
+	current?: React.ReactNode;
+} = {}) {
 	return (
-		<SidebarProvider defaultOpen={defaultOpen}>
+		<SidebarProvider
+			defaultOpen={sidebarOpen}
+			defaultClosedGroups={closed ? ["manage"] : []}
+		>
 			<Sidebar title="Navigation" description="Pages." closeLabel="Close">
-				<NavSection
-					label="Manage"
-					{...(sectionOpen === undefined
-						? {}
-						: { defaultOpen: sectionOpen })}
-				>
+				<NavSection id="manage" label="Manage" current={current}>
 					<a href="/domains">Domains</a>
+					<a href="/accounts">Accounts</a>
 				</NavSection>
 			</Sidebar>
 			<SidebarTrigger label="Toggle sidebar" />
@@ -72,11 +84,78 @@ describe("NavSection", () => {
 		).toBeInTheDocument();
 	});
 
-	it("can start closed", () => {
-		render(tree(true, false));
+	it("starts closed when the shell says the group was left closed", () => {
+		render(tree({ closed: true }));
 
 		expect(heading()).toHaveAttribute("aria-expanded", "false");
 		expect(screen.queryByRole("link", { name: "Domains" })).toBeNull();
+	});
+
+	it("keeps the choice for the next page: closing writes the group's cookie for the whole panel, opening takes it away", () => {
+		capture = captureCookieWrites();
+		const { writes } = capture;
+		render(tree());
+		expect(writes).toEqual([]);
+
+		fireEvent.click(heading());
+		expect(writes).toEqual([
+			"sidebar_groups=manage; path=/; max-age=31536000; SameSite=Lax",
+		]);
+
+		fireEvent.click(heading());
+		expect(writes.at(-1)).toBe(
+			"sidebar_groups=; path=/; max-age=0; SameSite=Lax",
+		);
+	});
+
+	it("closed, still draws the entry of the current page, and nothing else of the group", () => {
+		render(
+			tree({
+				closed: true,
+				current: (
+					<a href="/accounts" aria-current="page">
+						Accounts
+					</a>
+				),
+			}),
+		);
+
+		expect(heading()).toHaveAttribute("aria-expanded", "false");
+		const kept = screen.getByRole("link", { name: "Accounts" });
+		expect(kept).toHaveAttribute("aria-current", "page");
+		expect(
+			kept.closest("[data-slot='sidebar-group-current']"),
+		).not.toBeNull();
+		expect(screen.queryByRole("link", { name: "Domains" })).toBeNull();
+		// It is not part of what the heading opens and closes.
+		expect(kept.closest("[data-slot='collapsible-content']")).toBeNull();
+	});
+
+	it("open, draws each entry once: the current one is not repeated", () => {
+		render(
+			tree({
+				current: (
+					<a href="/accounts" aria-current="page">
+						Accounts
+					</a>
+				),
+			}),
+		);
+
+		expect(screen.getAllByRole("link", { name: "Accounts" })).toHaveLength(
+			1,
+		);
+		expect(
+			document.querySelector("[data-slot='sidebar-group-current']"),
+		).toBeNull();
+
+		fireEvent.click(heading());
+		expect(screen.getAllByRole("link", { name: "Accounts" })).toHaveLength(
+			1,
+		);
+		expect(
+			document.querySelector("[data-slot='sidebar-group-current']"),
+		).not.toBeNull();
 	});
 
 	it("is a real button, as tall as a sidebar entry, with a ring of its own on the rail", () => {
@@ -129,11 +208,35 @@ describe("NavSection", () => {
 		expect(html).not.toContain("<style");
 	});
 
-	it("is served closed with no style attribute either", () => {
-		const html = renderToString(tree(true, false));
+	it("is served closed with no style attribute either, and with the current entry when there is one", () => {
+		const html = renderToString(tree({ closed: true }));
 
 		expect(html).not.toContain('href="/domains"');
 		expect(html).toContain('aria-expanded="false"');
 		expect(html).not.toContain("style=");
+
+		const withCurrent = renderToString(
+			tree({ closed: true, current: <a href="/accounts">Accounts</a> }),
+		);
+		expect(withCurrent).toContain('href="/accounts"');
+		expect(withCurrent).not.toContain('href="/domains"');
+		expect(withCurrent).not.toContain("style=");
+	});
+
+	it("on the rail shows every entry of a group that was left closed, each once", () => {
+		render(
+			tree({
+				sidebarOpen: false,
+				closed: true,
+				current: <a href="/accounts">Accounts</a>,
+			}),
+		);
+
+		expect(
+			screen.getByRole("link", { name: "Domains" }),
+		).toBeInTheDocument();
+		expect(screen.getAllByRole("link", { name: "Accounts" })).toHaveLength(
+			1,
+		);
 	});
 });

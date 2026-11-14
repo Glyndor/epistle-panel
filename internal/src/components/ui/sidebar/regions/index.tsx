@@ -39,7 +39,9 @@ export function SidebarContent({
 		<div
 			data-slot="sidebar-content"
 			className={cn(
-				"flex min-h-0 flex-1 flex-col gap-1 overflow-auto group-data-[collapsible=icon]:overflow-hidden",
+				// The padding of the scroll keeps an entry the keyboard reaches
+				// off the very edge, where a side of its ring would be cut.
+				"flex min-h-0 flex-1 scroll-py-2 flex-col gap-1 overflow-auto group-data-[collapsible=icon]:overflow-hidden",
 				className,
 			)}
 			{...props}

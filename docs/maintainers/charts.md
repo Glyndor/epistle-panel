@@ -158,12 +158,18 @@ also the striped row of a table):
 
 | Colour | Light: card | level, striped row | Dark: card | level, striped row |
 |---|---|---|---|---|
-| `--chart-1` | 4.42 | 4.06 | 4.97 | 5.22 |
-| `--chart-2` | 3.76 | 3.46 | 5.88 | 6.19 |
-| `--chart-3` | 7.47 | 6.87 | 4.03 | 4.24 |
-| `--chart-4` | 8.24 | 7.58 | 3.79 | 3.98 |
-| `--chart-5` | 4.02 | 3.69 | 5.65 | 5.94 |
-| `--chart-missing` | 3.66 | 3.36 | 3.58 | 3.76 |
+| `--chart-1` | 4.42 | 4.06 | 4.87 | 5.22 |
+| `--chart-2` | 3.76 | 3.46 | 5.77 | 6.19 |
+| `--chart-3` | 7.47 | 6.87 | 3.95 | 4.24 |
+| `--chart-4` | 8.24 | 7.58 | 3.71 | 3.98 |
+| `--chart-5` | 4.02 | 3.69 | 5.54 | 5.94 |
+| `--chart-missing` | 3.66 | 3.36 | 3.51 | 3.76 |
+
+The dark card column was measured again on 2026-11-14, when the dark
+`--surface` rose from a lightness of 0.2 to 0.21 so that a panel stands 1.11
+from the canvas (it stood 1.09). Each colour lost about 0.08 against the card;
+the lowest, `--chart-missing` and `--chart-4`, keep 0.5 and 0.7 over the
+floor. `theme.test.ts` holds the six to 3:1 against `--surface` in every list.
 
 The band of a column that may not have been returned is `--chart-missing`, a
 grey of its own. It was `--muted` before, the surface of a skeleton, at 1.21
@@ -175,7 +181,7 @@ where a part would be seen against the grey and not against the card. The key
 of the legend is the same grey.
 
 The quiet grey of a row that gathers the rest is `--muted-foreground`, 7.14 and
-7.23 on the card. Against the tint of a table row under the pointer
+7.09 on the card. Against the tint of a table row under the pointer
 (`--accent`) `--chart-3` falls to 2.73 in the dark theme, which is why a swatch
 sits on its own tile.
 

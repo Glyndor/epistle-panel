@@ -5,6 +5,7 @@ import { AppToaster } from "@/components/layout/app-toaster";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SkipLink } from "@/components/layout/skip-link";
 import { StyleNonce } from "@/components/layout/style-nonce";
+import type { SidebarGroupId } from "@/components/ui/sidebar/groups-cookie";
 import { SidebarProvider } from "@/components/ui/sidebar/provider";
 import { SidebarInset } from "@/components/ui/sidebar/regions";
 import type { SessionRole } from "@/lib/auth/session";
@@ -40,6 +41,7 @@ export function AppShell({
 	user,
 	adminHref,
 	defaultOpen,
+	closedGroups,
 	content = "page",
 	children,
 }: {
@@ -63,11 +65,18 @@ export function AppShell({
 	/** The address of the administration, for an admin session only. */
 	adminHref?: string | undefined;
 	defaultOpen: boolean;
+	/** The groups of the navigation that start closed, as the layout read them from their cookie. */
+	closedGroups?: readonly SidebarGroupId[];
 	content?: "page" | "panes";
 	children: React.ReactNode;
 }) {
 	return (
-		<SidebarProvider defaultOpen={defaultOpen}>
+		<SidebarProvider
+			defaultOpen={defaultOpen}
+			{...(closedGroups === undefined
+				? {}
+				: { defaultClosedGroups: closedGroups })}
+		>
 			<StyleNonce />
 			<SkipLink />
 			<AppSidebar

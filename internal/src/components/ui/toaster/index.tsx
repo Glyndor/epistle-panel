@@ -3,6 +3,9 @@
 import { XIcon } from "lucide-react";
 import { useEffect, useRef, useSyncExternalStore } from "react";
 
+import { Button } from "@/components/ui/button";
+import { Tooltip } from "@/components/ui/tooltip";
+
 /** What a toast reports. An error is announced at once; the rest politely. */
 export type ToastKind = "success" | "error";
 
@@ -72,6 +75,12 @@ export function clearToasts(): void {
  * animation. A success is a polite `status`, an error is an `alert`, each stays
  * until dismissed or timed out, and the timer pauses while the pointer or the
  * keyboard focus is on it.
+ *
+ * The button that dismisses it is an icon alone, so the panel's tooltip names
+ * it, like every other. The toasts sit at the foot of the window, where the
+ * tooltip has no room under its button: it stands over it then. The tooltip
+ * is inside the toast in the document, so the pointer on it still holds the
+ * timer.
  */
 function ToastView({
 	item,
@@ -109,14 +118,18 @@ function ToastView({
 			className="flex items-start gap-2 rounded-xl bg-popover p-3 text-popover-foreground text-sm shadow-raised data-[kind=error]:bg-destructive-soft data-[kind=error]:text-destructive"
 		>
 			<p className="min-w-0 flex-1 break-words">{item.message}</p>
-			<button
-				type="button"
-				onClick={() => dismiss(item.id)}
-				className="-m-1 inline-flex size-8 shrink-0 items-center justify-center rounded-md hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring pointer-coarse:size-11"
-			>
-				<XIcon className="size-4" aria-hidden="true" />
-				<span className="sr-only">{closeLabel}</span>
-			</button>
+			<Tooltip label={closeLabel} align="end">
+				<Button
+					type="button"
+					variant="ghost"
+					size="icon"
+					onClick={() => dismiss(item.id)}
+					className="-m-1"
+				>
+					<XIcon aria-hidden="true" />
+					<span className="sr-only">{closeLabel}</span>
+				</Button>
+			</Tooltip>
 		</div>
 	);
 }
