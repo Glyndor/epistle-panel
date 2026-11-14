@@ -46,6 +46,23 @@ describe("useKeptFocus", () => {
 		);
 	});
 
+	it("gives the focus to the notice of the empty list when the list is drawn again", () => {
+		const view = render(<List ids={["a"]} />);
+		// The reader had a open and the focus: it hands the list the focus
+		// of the row that is about to leave.
+		handFocusToList("a");
+		view.rerender(<List ids={[]} />);
+		expect(document.activeElement).toBe(screen.getByText("nothing here"));
+
+		// The list is drawn again, as the page of the folder is when the
+		// message leaves it: the notice is another node, and the focus is
+		// still its due.
+		view.unmount();
+		render(<List ids={[]} />);
+
+		expect(document.activeElement).toBe(screen.getByText("nothing here"));
+	});
+
 	it("puts the focus back on a row that stayed but was drawn again", () => {
 		const view = render(<List ids={["a", "b", "c"]} redrawn />);
 		const before = control("star b");

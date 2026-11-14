@@ -162,7 +162,10 @@ its way reads nothing and uses nothing up):
 2. When the focus is adrift (on the page, or on an element that is gone) and
    `held` names a row: the same control of that row if it is still listed,
    else of the row after it, else of the row before, else the notice of the
-   empty list. Putting the focus never moves the scroll by itself.
+   empty list. A list drawn anew with no rows at all gives the focus to that
+   notice when `acted` names a row that is not there: the node that had the
+   focus went with the row, and the notice is what the list has left to give
+   it to. Putting the focus never moves the scroll by itself.
 3. It brings a row into view, only as far as needed (`block: "nearest"`):
    drawn anew, the row that got the focus back, or else the row acted on;
    read again in place, a restored focus is also brought into view, whether
@@ -178,7 +181,7 @@ its way reads nothing and uses nothing up):
 | Entry | When |
 |---|---|
 | `held` | the focus goes to a control outside the rows; a press outside its row; another control takes it |
-| `acted` | the next action replaces it; its row is gone and the row after was brought into view; a press outside the list |
+| `acted` | the next action replaces it; its row is gone and the row after was brought into view (a list with no rows has no row after it, so the action waits for one); a press outside the list |
 | `held`, `acted`, `shown`, `heirs` | a list of another address is drawn |
 | `scroll` | never within a page load, but only the 20 most recent addresses are kept |
 | all | `forgetListMemory()`, for tests only, after each case |

@@ -89,7 +89,10 @@ function watchPresses() {
  * 1. drawn anew, the scroll of its address is put back before the paint;
  * 2. a focus that is adrift goes back to the control that had it, or to the
  *    same control of the row after it, or before it, or to the notice of the
- *    empty list. Putting the focus never moves the scroll;
+ *    empty list. A list drawn anew with no rows at all gives the focus to
+ *    that notice when the action of the person is of a row that is not
+ *    there: the node that had the focus went with the row. Putting the focus
+ *    never moves the scroll;
  * 3. a row is brought into view, as little as it takes: drawn anew, the row
  *    that got the focus back or the row acted on; read again in place, a
  *    restored focus is also brought into view, even after a background update;
@@ -271,8 +274,27 @@ export function useKeptFocus(
 			// The row is gone and the focus is the person's, somewhere else.
 			listMemory.held = null;
 		}
+		// The notice of the empty list takes the focus when the list is
+		// drawn anew and the action of the person is of a row that is not
+		// there: the node that had the focus went with the row, and the
+		// notice is what the list has left to give it to.
+		if (
+			first &&
+			ids.length === 0 &&
+			acted !== null &&
+			adrift &&
+			empty.current !== null
+		) {
+			empty.current.focus({ preventScroll: true });
+		}
 		// The action ends with its row, not with a drawing that still has it.
-		if (listMemory.acted !== null && !ids.includes(listMemory.acted)) {
+		// A list with no rows has no row after it to take its place: the
+		// action is not used up until one is there.
+		if (
+			listMemory.acted !== null &&
+			ids.length > 0 &&
+			!ids.includes(listMemory.acted)
+		) {
 			listMemory.acted = null;
 		}
 		if (reveal !== null) {
