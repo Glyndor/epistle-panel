@@ -7,9 +7,11 @@ import {
 	type MailSession,
 } from "@/features/mail/jmap/credentials";
 import { loadMailboxes } from "@/features/mail/queries/load-mailboxes";
+import { loadQuota } from "@/features/mail/queries/load-quota";
 import type {
 	MailboxRole,
 	MailboxView,
+	QuotaView,
 } from "@/features/mail/schemas/mail-view";
 import { logApiFailure } from "@/lib/api/log-failure";
 
@@ -59,6 +61,26 @@ export interface ResolvedPlace {
 	/** With no `box`: the folders could not be read (true), or they were and none has the role (false). */
 	readonly unreadable: boolean;
 }
+
+/**
+ * The account's storage, asked of the server once per request. A failure is
+ * logged once and answered as `undefined`, and an account with no quota in
+ * octets as `null`: the page then shows no meter, and nothing else waits on it.
+ */
+export const requestQuota: () => Promise<QuotaView | null | undefined> = cache(
+	async () => {
+		const session = await requestMailSession();
+		if (session === null) {
+			return undefined;
+		}
+		try {
+			return await loadQuota(session);
+		} catch (error) {
+			logApiFailure("mail quota", error);
+			return undefined;
+		}
+	},
+);
 
 /**
  * The folder a view opens. A place asked for by its id is that folder and

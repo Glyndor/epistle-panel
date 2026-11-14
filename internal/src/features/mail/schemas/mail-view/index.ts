@@ -21,6 +21,12 @@ export interface MailboxView {
 	readonly total: number;
 }
 
+/** The account's storage, in bytes. `limit` is `null` when the account has no limit. */
+export interface QuotaView {
+	readonly used: number;
+	readonly limit: number | null;
+}
+
 /** A sender or recipient. Both fields are already safe text. */
 export interface AddressView {
 	readonly name: string | null;

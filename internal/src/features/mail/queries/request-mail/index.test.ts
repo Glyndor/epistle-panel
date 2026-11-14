@@ -7,8 +7,13 @@ import { clearSecretCache } from "@/lib/config/secret";
 const originalFetch = globalThis.fetch;
 const savedEnv = { ...process.env };
 const cookies = mockRequestCookies();
-const { FALLBACK_BOX, requestMailboxes, requestMailSession, resolvePlace } =
-	await import(".");
+const {
+	FALLBACK_BOX,
+	requestMailboxes,
+	requestMailSession,
+	requestQuota,
+	resolvePlace,
+} = await import(".");
 
 const boxes = {
 	"Mailbox/get": {
@@ -79,6 +84,49 @@ describe("requestMailboxes", () => {
 			expect(String(logged.mock.calls[0]?.[0])).toContain(
 				"mail mailboxes",
 			);
+		} finally {
+			logged.mockRestore();
+		}
+	});
+});
+
+describe("requestQuota", () => {
+	const quota = {
+		"Quota/get": {
+			list: [{ resourceType: "octets", used: 40, limit: 100 }],
+		},
+	};
+
+	it("reads the account's storage", async () => {
+		stubJmap(quota);
+		expect(await requestQuota()).toEqual({ used: 40, limit: 100 });
+	});
+
+	it("is null for an account with no quota in octets, which is not a failure", async () => {
+		const logged = spyOn(console, "error").mockImplementation(() => {});
+		try {
+			stubJmap({ "Quota/get": { list: [] } });
+			expect(await requestQuota()).toBeNull();
+			expect(logged).toHaveBeenCalledTimes(0);
+		} finally {
+			logged.mockRestore();
+		}
+	});
+
+	it("asks nothing without a mail session", async () => {
+		cookies.reset();
+		const seen = stubJmap(quota);
+		expect(await requestQuota()).toBeUndefined();
+		expect(seen).toHaveLength(0);
+	});
+
+	it("logs a failure under its operation name and answers undefined", async () => {
+		const logged = spyOn(console, "error").mockImplementation(() => {});
+		stubJmap({});
+		try {
+			expect(await requestQuota()).toBeUndefined();
+			expect(logged).toHaveBeenCalledTimes(1);
+			expect(String(logged.mock.calls[0]?.[0])).toContain("mail quota");
 		} finally {
 			logged.mockRestore();
 		}
