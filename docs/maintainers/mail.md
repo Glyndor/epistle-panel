@@ -213,11 +213,20 @@ the tooltip of a count.
   out of a row too narrow for them (under 20rem; under 24rem when compact).
   The row is the container these ask (`@container/row`), since its width
   follows the pane and the sidebar, not the window.
-- **The filters stay on one line** in every language: at 360 px they fitted
-  in four of the six and wrapped in Italian and Portuguese, and the list under
-  them stood a line lower than its skeleton. They do not wrap; what does not
-  fit scrolls sideways, with no scrollbar where the browser can hide it
-  (`scrollbar-width`), and the box that clips them has room for a focus ring.
+- **The filters stay on one line** in every language
+  (`components/filter-strip`): a second line put the list a line lower than
+  its skeleton. They do not wrap; what does not fit is out of view at an end
+  and is reached three ways. By the keyboard: a filter that takes the focus
+  from a key is brought into view, clear of the chevrons and with its ring
+  whole (a browser did not do it for a link cut by this box: `scrollLeft`
+  stayed 0). Not for a press, which gives the focus on its way down: the
+  strip moving then would put another filter under the pointer. By a pointer:
+  a chevron on the pane's surface at each end that holds more, down to one
+  pixel, which moves the strip and is the sign that there is more; it is not
+  in the tab order nor in the accessibility tree. By touch or a wheel. Each filter has
+  three fills: at rest, darker under the pointer and darker under a press,
+  and the one in use has its own three. Their side padding is 10 px with a
+  fine pointer: with 12 the four did not fit 360 px in Italian and Portuguese.
 - **A chip is never drawn without a readable name.** Its least width is four
   characters of name, its dot and its padding; a name of four characters or
   fewer is never cut and its pill is as wide as it. Where a row's line cannot hold
@@ -241,19 +250,49 @@ the tooltip of a count.
   changes to one message are written one after the other, each on what the one
   before left (`useMessageChange` gives its mutation a scope by message, which
   also orders a change from the reader's toolbar and one from the row). Each
-  shows at once. One the server refuses is taken back on its own, by the
-  opposite operation on what is cached by then (`patchFlags`), and a toast says
-  so; one that worked says nothing from a row, which already shows it. While a
-  change is on its way both buttons say so without moving anything:
-  `aria-busy`, the progress cursor and a dot on the button's corner.
+  shows at once. `patchFlags` keeps, for each flag of a message with a change
+  on its way, the value the server last confirmed: a refused change leaves the
+  flag at the value of the last change still waiting on it or, with none
+  left, at the confirmed one, and a toast says so. The opposite operation
+  would not do: with a star and its removal both refused it left a star the
+  server did not have. A change that worked says nothing from a row, which
+  already shows it. The lists are read again once, after the last change that
+  waits on any message: read between two, a list came back without the mark
+  that still waited. A message that left its folder is the exception: the
+  lists are read at once, and a change that waited behind the move is dropped
+  without asking the server, since the message has another id by then.
+  While a change is on its way the buttons say so without moving anything
+  (`components/busy-mark`): `aria-busy`, the progress cursor and a dot on the
+  button's corner. So do the star and the read mark of the reader's toolbar,
+  which stay open to a press meanwhile; a move shuts the toolbar until it is
+  answered.
 - **No transform above a control with a tooltip.** The tooltip is
   `position: fixed`, and a transformed ancestor becomes the frame it is placed
   in. The box of the row's buttons is centred with its own height.
 - **The focus stays in the list.** Under the starred filter, taking a star off
   removes the row. The focus goes to the same control of the row after it, to
-  the row before when it was the last, or to the list's heading when none is
-  left (`message-list/use-kept-focus`). A focus the person took elsewhere is
-  not followed.
+  the row before when it was the last, or to the notice of the empty list,
+  which is in view and draws the ring (`message-list/use-kept-focus`). A row
+  that stays but is drawn again gets the focus back on its new control. What
+  the list knows of the focus is kept for the page, not for one drawing of
+  the list: opening or closing a message is another page of the same place,
+  and the whole list is drawn anew between them (measured: archiving the open
+  message with the focus on another row's star left the focus on the page).
+  A message archived or deleted with the focus in the reader leaves it to the
+  row that comes after. A focus the person took elsewhere is not followed. The list's scroll follows
+  the focus only when a press in the row made it leave, never when the list
+  was read again on its own.
+- **A run of rows keeps its key** (`message-groups`): its date group and which
+  run of that group it is. Keyed by its first message, the whole run was drawn
+  again when that message left, and a control with the focus in it was lost.
+- **Opening a message moves the focus to its title** at every width
+  (`components/message-reader`), when the person opened it; the shortcuts
+  listen on the page and carry on from there. A message that comes with the
+  page takes the focus only where the reader is the one pane in view. The
+  title takes it once per message.
+- **The ring of a row's mark is inside the button on a coarse pointer**, where
+  the button is as tall as a compact row: outside, the heading that sticks
+  over the first row of a group covered one side of it.
 - **Date groups** (`components/message-groups`): a real `h3` over each run
   (today, yesterday, last few days, then the month and year through `Intl`, in
   UTC like the grouping), under the list's `h2`, which `MessageList` draws for
