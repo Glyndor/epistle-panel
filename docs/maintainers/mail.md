@@ -8,7 +8,7 @@ the JMAP server, how a hostile message is handled and what is still missing.
 
 | Piece | Where |
 |---|---|
-| A page per folder, two panes (the list and the reader), one column below 1024 px | `app/app/mail/[role]`, `app/app/mail/folder/[name]`, each with `[id]` for an open message; they all render `features/mail/components/mail-place`. Frame in `app/app/mail/layout.tsx`, which renders the panel's shell (`layouts.md`) |
+| A page per folder, two panes (the list and the reader), one column below 1024 px | `app/app/mail/(places)/[role]`, `app/app/mail/(places)/folder/[name]`, each with `[id]` for an open message; they all render `features/mail/components/mail-place`. Frame in `app/app/mail/layout.tsx`, which renders the panel's shell (`layouts.md`) |
 | The sidebar: the way into the composer, the folders under a heading that opens and closes them | `features/mail/components/mail-nav`, `folders-boundary`, `folder-pane`, `folder-tree`; the current folder is read from the address (`links/active-folder`) |
 | The storage at the foot of the sidebar | `features/mail/components/quota-meter`, drawn with `components/ui/meter` |
 | The trail of the header | `app/app/mail/@trail/**`, `features/mail/components/place-trail` and `mail-breadcrumbs` |

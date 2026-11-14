@@ -97,7 +97,13 @@ To add a page, add its navigation entry (the trail reads the same label) and a
 trail of every admin page.
 
 A `loading.tsx` is the first paint of every page in the folders below it, not
-only of the page beside it. So a page that has other pages below it (the status
+only of the page beside it. It also wraps **every slot of its segment**: a
+`loading.tsx` beside a layout that has a parallel route (the `trail` slot of
+the header) puts that slot behind its skeleton too, measured on the built
+server, where the mail area's trail was missing from the header's markup. So
+the folders' pages of the mail area live in a route group, `(places)`, with
+the loading state that is theirs, and a test fails if one comes back beside
+the layout. So a page that has other pages below it (the status
 page at the root of the area, the accounts list above the account page) lives
 in a route group, `(status)` and `accounts/(list)`, with its own `loading.tsx`.
 Before that, measured in Chromium against the built server, a load of the

@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { cleanup, render, screen, within } from "@testing-library/react";
 
 import { emailFixture, stubJmap } from "@/features/mail/test-support/jmap-stub";
@@ -264,5 +266,20 @@ describe("the trail of the composer and of what has none", () => {
 		await show(fallback());
 
 		expect(steps()).toEqual(["heading"]);
+	});
+});
+
+describe("the mail area's loading state and the trail", () => {
+	it("keeps the loading state of the folders' pages out of the folder the trail's slot is in", () => {
+		// A `loading.tsx` wraps every slot of its segment, the trail's too: at
+		// this level the header would wait behind the three panes' skeleton and
+		// show it in the place of the trail. It lives with the pages it is for.
+		expect(existsSync(join(import.meta.dir, "loading.tsx"))).toBe(false);
+		expect(
+			existsSync(join(import.meta.dir, "(places)", "loading.tsx")),
+		).toBe(true);
+		expect(existsSync(join(import.meta.dir, "@trail", "loading.tsx"))).toBe(
+			false,
+		);
 	});
 });
