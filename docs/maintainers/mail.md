@@ -29,8 +29,15 @@ reader's language, or the last part of the folder's name) and linked on the
 path the folder links use, with what narrows its list. The subject streams in
 behind a bar that holds its place: it is the message the reader shows, read
 once for both (`requestMessage`), and it is cleaned text inside a `bdi`. A
-message that cannot be read names nothing, and the folder stays a link. The
-composer's trail says what it was opened for.
+message that cannot be read names nothing, and the folder stays a link. A
+folder inside another (`Work/Q4`) is preceded by the folders above it, each
+cleaned and inside a `bdi`, as words and not links: a folder's address says
+nothing of whether the one above it can be opened. Below 768 px only the
+folder and the subject are drawn. The composer's trail says what it was opened
+for.
+
+The sidebar is named "Mail navigation" and the list inside it "Folders": two
+landmarks, two names.
 
 **The storage** is `Quota/get`, read once per request: what the account uses
 of its limit as a meter with the two figures, and "almost full" or "full"
@@ -38,7 +45,10 @@ written out from nine tenths of the limit, since a tone alone would not say
 it. An account with no limit is told what it uses and that there is no limit,
 with no meter. Nothing is drawn when the server lists no quota in bytes or
 cannot be asked. Sizes are written in decimal units, like the attachments
-(`format/storage-size`).
+(`format/storage-size`). The box is 76 px tall with a meter and without one,
+and a block of that height holds its place while the mail server is asked, so
+the foot of the sidebar does not move when the answer comes; a session with no
+mail of its own gets neither.
 
 **A folder is a page with a path of its own**, and so is an open message:
 

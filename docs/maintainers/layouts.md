@@ -66,9 +66,18 @@ without a second `main` landmark.
 ## Breadcrumbs
 
 The trail to the current page is in the header of both areas, drawn by
-`components/layout/trail`: one line, each step cut short where the header has
-no room (the last one first), and below 768 px the area itself left out. The
-last step is the current page (`aria-current="page"`, not a link).
+`components/layout/trail`: one line. The last step takes the room the others
+leave and is the one cut short; a step before it is written whole (a folder's
+name was cut at 360 px in French and Spanish while it had a width cap), and
+gives way only when it alone is wider than the bar. The last step is the
+current page (`aria-current="page"`, not a link).
+
+A step that only leads up to the page (`collapse`: the area itself, the
+folders above a folder) is not drawn below 768 px. It stays in the list for a
+screen reader: its link is removed there, so Tab never lands on a link that is
+not drawn, and its words are written a second time as plain text that only the
+narrow bar keeps. A test reads a step with `src/test/trail-steps`, which
+leaves that copy out.
 
 A layout cannot know which page it frames, so the trail is a parallel route:
 each layout has a `trail` slot (`@trail`), with a page of its own beside each
@@ -167,10 +176,12 @@ sideways.
 
 `components/layout/site-header` is one row of one least height in both areas
 (48 px, 56 px on a coarse pointer), on a surface of its own: the sidebar
-toggle, the trail, a cell in its middle that an area keeps for its search
-(`reserveSearch`; the mail does, from 1024 px, and the cell is empty until the
-search is built) and the far end below. The trail never takes a second line.
-What may wrap is the far end, on a narrow window without script.
+toggle, the trail, a cell in its middle that an area can keep for its search
+(`reserveSearch`, from 1024 px) and the far end below. No area asks for the
+cell yet: kept empty in the mail, it took two thirds of the bar and cut a
+subject at 152 px beside 563 px of nothing, so it is switched on with the
+search and not before. The trail never takes a second line. What may wrap is
+the far end, on a narrow window without script.
 
 ## The shell and its contract
 
@@ -197,8 +208,21 @@ the single `main` landmark, for both areas.
   of the page. Collapsed to icons there is no heading, so every group shows
   its entries.
 - **The rail collapses to icons** from the header's toggle or Ctrl+B (Cmd+B),
-  each entry named in a tooltip. The state is the `sidebar_state` cookie, read
-  by each layout on the server, so the first paint is the one the person left.
+  each entry named in a tooltip. The current entry is filled, and a fill alone
+  is a colour: on the rail it also has a mark on its starting edge, and its
+  tooltip says it is the current page. The width does not animate for someone
+  who asked for less motion. A group's heading is not drawn on the rail; if it
+  has the focus when the rail collapses, the focus goes to the toggle.
+- **The state is the `sidebar_state` cookie**, written for the whole panel and
+  read by each layout on the server, so the first paint is the one the person
+  left, in both areas. Its name and its reading live in
+  `components/ui/sidebar/cookie`, a module with no `"use client"`: a value
+  exported from a client module is a reference on the server, and the layouts
+  that imported the name from the provider never found the cookie.
+  `src/test/server-reads-no-client-value` fails when a file that only runs on
+  the server imports anything but a component from a client module.
+- **The skip link moves the focus to `main`** in both areas (`tabIndex={-1}`):
+  a `main` that does not scroll, as the mail's, cannot take it on its own.
 
 Every frame keeps these rules:
 
