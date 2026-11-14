@@ -59,6 +59,25 @@ function Group({
 }
 
 /**
+ * Give each run a key that does not change while the run is there: its date
+ * group, and which run of that group it is when a message out of order makes
+ * the group come back. A key taken from the run's first message changed when
+ * that message left, the whole run was drawn again, and a control in it that
+ * had the focus was replaced: the focus fell to the page.
+ */
+function keyed<T extends { readonly group: DateGroup }>(
+	runs: readonly T[],
+): Array<T & { readonly key: string }> {
+	const seen = new Map<string, number>();
+	return runs.map((run) => {
+		const name = dateGroupKey(run.group);
+		const nth = seen.get(name) ?? 0;
+		seen.set(name, nth + 1);
+		return { ...run, key: `${name}#${nth}` };
+	});
+}
+
+/**
  * The messages of a page under the date they arrived on: today, yesterday,
  * the last few days, then one heading a month. The order is the server's and
  * is never changed: a message out of order starts a new run under its own
@@ -81,11 +100,9 @@ export function MessageGroups({
 }) {
 	return (
 		<div className="flex flex-col gap-3 px-2 pb-2">
-			{groupByDate(items, today).map(({ group, rows }) => (
+			{keyed(groupByDate(items, today)).map(({ key, group, rows }) => (
 				<Group
-					// A run is told from the others by its first message: a
-					// group can come back after a message out of order.
-					key={rows[0]?.id ?? dateGroupKey(group)}
+					key={key}
 					group={group}
 					rows={rows}
 					selectedId={selectedId}
