@@ -1,3 +1,4 @@
+import { Slot } from "@radix-ui/react-slot";
 import type * as React from "react";
 
 import { cn } from "@/lib/class-names";
@@ -19,16 +20,22 @@ export function SidebarGroup({
 	);
 }
 
-/** Heading of a group; it fades out when the sidebar collapses to icons. */
+/**
+ * Heading of a group; it is not drawn while the sidebar is collapsed to icons.
+ * With `asChild` it is the element passed as its child: the button that opens
+ * and closes the group.
+ */
 export function SidebarGroupLabel({
+	asChild = false,
 	className,
 	...props
-}: React.ComponentProps<"div">) {
+}: React.ComponentProps<"div"> & { asChild?: boolean }) {
+	const Comp = asChild ? Slot : "div";
 	return (
-		<div
+		<Comp
 			data-slot="sidebar-group-label"
 			className={cn(
-				"flex h-8 shrink-0 items-center rounded-md px-2 font-medium text-sidebar-foreground/80 text-xs group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0",
+				"flex h-8 shrink-0 items-center rounded-md px-2 font-medium text-sidebar-foreground/80 text-xs group-data-[collapsible=icon]:hidden",
 				className,
 			)}
 			{...props}
