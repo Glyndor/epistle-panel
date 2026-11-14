@@ -177,4 +177,58 @@ describe("MessageList", () => {
 			screen.getByRole("button", { name: "unstar" }),
 		).toBeInTheDocument();
 	});
+	it("draws the list's own heading around every state, where the focus can go", async () => {
+		stubJmap({ "Email/query": { ids: [] }, "Email/get": { list: [] } });
+		render(withQuery(<MessageList view={view} selectedId={undefined} />));
+
+		// Waiting, and then empty: the heading is there both times.
+		const heading = () => screen.getByRole("heading", { level: 2 });
+		expect(heading()).toHaveTextContent("listLabel");
+		expect(heading()).toHaveAttribute("tabindex", "-1");
+		expect(await screen.findByText("emptyFolder")).toBeInTheDocument();
+		expect(heading()).toHaveClass("sr-only");
+	});
+
+	it("keeps the focus in the list when taking the star off removes the row under the starred filter", async () => {
+		// The server as it is: a message without its star leaves the starred list.
+		let starred = [A, B];
+		stubJmap({
+			"Email/query": () => ({ ids: starred }),
+			"Email/get": (args: Record<string, unknown>) => ({
+				list: ((args["ids"] as string[] | undefined) ?? starred).map(
+					(id) =>
+						emailFixture({
+							id,
+							subject: id === A ? "First" : "Second",
+							keywords: starred.includes(id)
+								? { $seen: true, $flagged: true }
+								: { $seen: true },
+						}),
+				),
+			}),
+			"Email/set": () => {
+				starred = [B];
+				return { updated: { [A]: null } };
+			},
+		});
+		render(
+			withQuery(
+				<MessageList
+					view={{ ...view, filter: "flagged" }}
+					selectedId={undefined}
+				/>,
+			),
+		);
+		const [first] = await screen.findAllByRole("button", {
+			name: "unstar",
+		});
+		first?.focus();
+
+		fireEvent.click(first as HTMLElement);
+
+		await waitFor(() => expect(screen.queryByText("First")).toBeNull());
+		// One row left: the focus is on its star, not on the page.
+		const left = screen.getByRole("button", { name: "unstar" });
+		await waitFor(() => expect(document.activeElement).toBe(left));
+	});
 });

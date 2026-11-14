@@ -65,9 +65,8 @@ function Group({
  * heading. `today` is the UTC day the server read the list on, so the server
  * render and the browser group alike.
  *
- * The headings are one level under the list's own, which this draws for
- * assistive technology only: the pane is already named for the eye by the
- * folder it shows.
+ * The headings are one level under the list's own, which `MessageList`
+ * draws around every state of the list.
  */
 export function MessageGroups({
 	items,
@@ -80,11 +79,8 @@ export function MessageGroups({
 	selectedId: string | undefined;
 	view: ListAddress;
 }) {
-	const t = useTranslations("mail");
-
 	return (
 		<div className="flex flex-col gap-3 px-2 pb-2">
-			<h2 className="sr-only">{t("listLabel")}</h2>
 			{groupByDate(items, today).map(({ group, rows }) => (
 				<Group
 					// A run is told from the others by its first message: a

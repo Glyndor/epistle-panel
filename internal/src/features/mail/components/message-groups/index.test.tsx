@@ -69,17 +69,16 @@ describe("MessageGroups", () => {
 		).toHaveLength(1);
 	});
 
-	it("names every list by a real heading one level under the list's own", () => {
+	it("names every list by a real heading of the level under the list's own", () => {
 		const { container } = groups([at(1, "2026-11-13T09:00:00Z")]);
-		const own = screen.getByRole("heading", { level: 2 });
 		const heading = screen.getByRole("heading", { level: 3 });
 		const list = container.querySelector("ul");
 
-		expect(own).toHaveTextContent("listLabel");
-		expect(own).toHaveClass("sr-only");
 		expect(heading.tagName).toBe("H3");
 		expect(list).toHaveAttribute("aria-labelledby", heading.id);
 		expect(heading.id).not.toBe("");
+		// The list's own heading belongs to `MessageList`, around every state.
+		expect(screen.queryByRole("heading", { level: 2 })).toBeNull();
 	});
 
 	it("keeps a heading at the top while its run scrolls, on the pane's surface and with no line", () => {
