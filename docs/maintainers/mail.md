@@ -119,7 +119,7 @@ it (`features/mail/labels`), though no screen draws it yet:
   `unimportant`). What a sender declares in `Importance` or `X-Priority` is not it.
 - **Answered and forwarded are written when the reply or the forward is sent**,
   and not before: the composer carries the id of the message it was opened from
-  and which of the two marks it leaves (`origin`), and `composeMessage` adds the
+  and which of the two marks it leaves (`origin`), and `markOrigin` adds the
   keyword to that message after the server has queued the new one. A draft, a
   refused send and a failure to write the mark change nothing. A reply saved as
   a draft and sent later from the drafts folder leaves no mark: the draft does
