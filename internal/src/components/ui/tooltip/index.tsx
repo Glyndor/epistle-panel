@@ -192,8 +192,13 @@ export function Tooltip({
 	children,
 	...props
 }: {
-	/** What the tooltip says: the control's name, already translated. */
-	label: string;
+	/**
+	 * What the tooltip says: the control's name, already translated. Text, or
+	 * nodes when a part of it has to be isolated (a name taken from a message,
+	 * in `<bdi>`). The tooltip is hidden from assistive technology either way:
+	 * the control's accessible name comes from the control.
+	 */
+	label: React.ReactNode;
 	/** The key that does the same, as text ("Ctrl+B"), shown after the name. */
 	shortcut?: string | undefined;
 	side?: TooltipSide;
