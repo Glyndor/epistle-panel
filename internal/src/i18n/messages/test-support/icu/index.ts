@@ -1,16 +1,19 @@
 /**
  * A just-enough reader of ICU message syntax for the parity test: it lists the
  * arguments a message uses, with their type and, for a plural or select, the
- * selectors of its arms, and it throws when the braces do not balance. It is
+ * selectors of its arms, and the tags of rich text (`<names></names>`), and it throws when the braces do not balance. It is
  * not a formatter; `next-intl` does the real parsing at runtime. What it must
  * get right is telling `{name}` (an argument) from `{No rows}` (the text of an
  * arm), which a regular expression over the whole string cannot.
  */
 
-/** One argument of a message: `name`, `name:number`, `total:plural[=0|one|other]`. */
+/** One argument of a message: `name`, `name:number`, `total:plural[=0|one|other]`, or `<name>` for a tag of rich text. */
 export type IcuArgument = string;
 
 const BRANCHING = new Set(["plural", "select", "selectordinal"]);
+
+/** `<name>` or `<name/>` at the start of a string; a closing tag does not match. */
+const OPENING_TAG = /^<([A-Za-z][\w-]*)\s*\/?>/;
 
 /** The arguments of `message` in source order, nested arms included. */
 export function icuArguments(message: string): IcuArgument[] {
@@ -34,6 +37,17 @@ function readText(
 		const char = message[i];
 		if (char === "}") {
 			return i;
+		}
+		if (char === "<") {
+			// An opening tag of rich text is an argument too: the page hands
+			// the formatter what to draw there, and a locale that lost the
+			// tag draws nothing in its place.
+			const tag = OPENING_TAG.exec(message.slice(i));
+			if (tag) {
+				out.push(`<${tag[1]}>`);
+				i += tag[0].length;
+				continue;
+			}
 		}
 		i = char === "{" ? readArgument(message, i + 1, out) : i + 1;
 	}

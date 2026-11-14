@@ -8,6 +8,7 @@ import { ListToolbar } from "@/features/mail/components/list-toolbar";
 import { MailNotice } from "@/features/mail/components/mail-notice";
 import { MessageList } from "@/features/mail/components/message-list";
 import { folderPath } from "@/features/mail/links/mail-href";
+import { readListDensity } from "@/features/mail/queries/list-density";
 import { loadMessageList } from "@/features/mail/queries/load-message-list";
 import { messageListQueryOptions } from "@/features/mail/queries/mail-query-options";
 import {
@@ -22,7 +23,8 @@ import { makeQueryClient } from "@/lib/query/query-client";
 /**
  * The list pane, streamed: the search and the filters of the open folder, and
  * its page of messages, read on the server and then owned by Query in the
- * browser. A folder asked for by its role waits for the folders first; one
+ * browser. The scroll padding of the list is the height of a date heading,
+ * which stays at its top: a row the keyboard reaches is not left under it. A folder asked for by its role waits for the folders first; one
  * asked for by its id does not. An account with no folder of the role asked
  * for is told so. A list that cannot be read is logged and left to the client
  * component, which asks for itself. The caller checks the session first.
@@ -41,10 +43,11 @@ export async function ListBoundary({
 	selectedId: string | undefined;
 }) {
 	const client = makeQueryClient();
-	const [session, resolved, t] = await Promise.all([
+	const [session, resolved, t, density] = await Promise.all([
 		requestMailSession(),
 		resolvePlace(place),
 		getTranslations("mail"),
+		readListDensity(),
 	]);
 	if (resolved.box === null) {
 		// Not being able to read the folders is not the same as having none.
@@ -83,8 +86,9 @@ export async function ListBoundary({
 				folderRole={resolved.role}
 				filter={filter}
 				q={q}
+				density={density}
 			/>
-			<div className="relative min-h-0 flex-1 overflow-y-auto">
+			<div className="relative min-h-0 flex-1 scroll-pt-8 overflow-y-auto">
 				<MessageList
 					view={{ ...input, role: resolved.role }}
 					selectedId={selectedId}

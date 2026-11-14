@@ -57,6 +57,8 @@ told by its name: the icon is on the heading of the run.
 |---|---|---|---|
 | `EpistleMark` | sidebar header | drawn for this panel, `components/icons/epistle-mark` | the repository's own (MIT) |
 | Lucide: `LayoutDashboardIcon`, `GlobeIcon`, `UsersIcon`, `InboxIcon`, `BanIcon`, `HistoryIcon`, `ShieldIcon`, `LogOutIcon`, `SunIcon`, `MoonIcon`, `MonitorIcon`, `PanelLeftIcon`, `XIcon`, `ChevronRightIcon`, `InboxIcon` | navigation, the administration entry and sign out of the profile menu, the theme button, sidebar toggle, sheet close, breadcrumb mark, empty tables | `lucide-react` | ISC |
+| `ImportantMark` | the important mark of a message row | drawn for this panel, `components/icons/important-mark`: Lucide has no importance mark that can be filled | the repository's own (MIT) |
+| Lucide: `StarIcon`, `PaperclipIcon`, `ReplyIcon`, `ForwardIcon`, `Rows2Icon`, `Rows4Icon` | the star, the clip of an attachment and the answered and forwarded icons of a message row, the density switch of the list | `lucide-react` | ISC |
 | Lucide: `ListFilterIcon`, `CheckIcon`, `ChevronLeftIcon`, `ChevronRightIcon`, `MoreHorizontalIcon` | the Filters button of a table, the tick of a menu box, previous and next page, the gap between page numbers | `lucide-react` | ISC |
 | Lucide: `ChevronDownIcon`, `PenLineIcon`, `InboxIcon`, `FileEditIcon`, `SendIcon`, `ArchiveIcon`, `ShieldAlertIcon`, `Trash2Icon`, `FolderIcon` | the heading of a navigation group, the composer and the folders of the mail area's sidebar | `lucide-react` | ISC |
 | Lucide: `PaletteIcon`, `LanguagesIcon`, `UserCogIcon`, `Trash2Icon` | the headings of the theme and language runs of the profile menu, the two actions of an account's row | `lucide-react` | ISC |

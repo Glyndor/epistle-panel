@@ -127,11 +127,28 @@ export function serverStandIn() {
 /** Exports of the `next-intl` stand-in. */
 export function clientStandIn() {
 	return {
-		useTranslations: () => (key: string) => key,
+		useTranslations: () =>
+			Object.assign((key: string) => key, {
+				// The key, then what each tag of the message draws, in order.
+				rich: (
+					key: string,
+					values: Record<string, (chunks: unknown) => unknown> = {},
+				) => [key, ...Object.values(values).map((draw) => draw(""))],
+			}),
 		useLocale: () => intl.locale,
 		useFormatter: () => ({
 			number: (value: number) => String(value),
 			dateTime: (value: Date) => value.toISOString(),
+			// Text when every value is text; with nodes among them, the nodes
+			// with the separators between, as the real one returns parts.
+			list: (values: Iterable<unknown>) => {
+				const all = [...values];
+				return all.every((value) => typeof value === "string")
+					? all.join(", ")
+					: all.flatMap((value, index) =>
+							index === 0 ? [value] : [", ", value],
+						);
+			},
 		}),
 		NextIntlClientProvider: ProviderStandIn,
 	};

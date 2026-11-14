@@ -47,4 +47,21 @@ describe("icuArguments", () => {
 			expect(() => icuArguments(bad)).toThrow();
 		}
 	});
+	it("lists the tags of rich text, once per opening tag, beside the arguments", () => {
+		expect(icuArguments("Labels: <names></names>")).toEqual(["<names>"]);
+		expect(icuArguments("{count} in <b>bold</b> and <br/>")).toEqual([
+			"count",
+			"<b>",
+			"<br>",
+		]);
+		// Inside an arm too, where a translation is as likely to lose one.
+		expect(
+			icuArguments("{n, plural, one {<b>one</b>} other {many}}"),
+		).toEqual(["n:plural[one|other]", "<b>"]);
+	});
+
+	it("does not take a lone less-than sign or a closing tag for a tag", () => {
+		expect(icuArguments("a < b and 1<2")).toEqual([]);
+		expect(icuArguments("stray </names>")).toEqual([]);
+	});
 });
