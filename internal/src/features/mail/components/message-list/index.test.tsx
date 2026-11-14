@@ -86,6 +86,36 @@ describe("MessageList", () => {
 		).toBeInTheDocument();
 	});
 
+	it("offers the way out of a search that matched nothing, and none for a folder that is empty", async () => {
+		stubJmap({ "Email/query": { ids: [] }, "Email/get": { list: [] } });
+		render(
+			withQuery(
+				<MessageList
+					view={{
+						...view,
+						conditions: {
+							...view.conditions,
+							q: "x",
+							starred: true,
+						},
+					}}
+					selectedId={undefined}
+				/>,
+			),
+		);
+
+		// The link that takes every condition off: the clean address.
+		const out = await screen.findByRole("link", { name: "clearAll" });
+		expect(out).toHaveAttribute("href", "/app/mail/inbox");
+		cleanup();
+
+		// A folder with nothing in it is not a search that matched nothing:
+		// there is nothing to take off.
+		render(withQuery(<MessageList view={view} selectedId={undefined} />));
+		await screen.findByText("emptyFolder");
+		expect(screen.queryByRole("link", { name: "clearAll" })).toBeNull();
+	});
+
 	it("shows a waiting state first", () => {
 		stubJmap({ "Email/query": { ids: [] }, "Email/get": { list: [] } });
 		render(withQuery(<MessageList view={view} selectedId={undefined} />));

@@ -79,6 +79,31 @@ scenario_mail() {
 	assert_absent "and leaves the others out" "$(cat "$work/b")" "Weekly newsletter"
 	fetch "/app/mail/inbox?q=newsletter" "$good"
 	assert_contains "a search finds by subject" "$(cat "$work/b")" "Weekly newsletter"
+
+	# The address of a search narrows the list, and nothing of what it carries
+	# becomes markup in the page.
+	fetch "/app/mail/inbox?q=newsletter&folder=INBOX" "$good"
+	assert_eq "GET the address of a search" "$status" 200
+	assert_contains "the search returns the message it found" "$(cat "$work/b")" "Weekly newsletter"
+	assert_absent "and leaves the others out" "$(cat "$work/b")" "Welcome to your mailbox"
+	assert_absent "and no script comes with the words of the address" "$(cat "$work/b")" "<script>alert("
+
+	# A hostile word in the address is text in the page, never markup.
+	fetch "/app/mail/inbox?q=%3Cscript%3Ealert(1)%3C%2Fscript%3E" "$good"
+	assert_eq "GET a search with hostile words" "$status" 200
+	assert_absent "the hostile words are not markup" "$(cat "$work/b")" "<script>alert(1)</script>"
+	assert_contains "they are text in the field of the search" "$(cat "$work/b")" "&lt;script&gt;"
+
+	# A word over the limit is not applied, and the page names the condition
+	# it did not apply.
+	local long_word
+	long_word=$(printf 'a%.0s' {1..201})
+	fetch "/app/mail/inbox?q=$long_word" "$good"
+	assert_eq "GET a search with a word over the limit" "$status" 200
+	assert_contains "the page names the condition it did not apply" "$(cat "$work/b")" "was not valid and was not applied"
+	assert_contains "and says which one it was" "$(cat "$work/b")" "Words"
+	assert_absent "and the word over the limit is not in the field" "$(cat "$work/b")" "$long_word"
+
 	fetch /app/mail/archive "$good"
 	assert_eq "GET a folder by its role" "$status" 200
 	assert_contains "another folder lists its own message" "$(cat "$work/b")" "Old thread"

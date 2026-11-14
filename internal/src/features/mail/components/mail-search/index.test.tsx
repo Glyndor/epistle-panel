@@ -1,11 +1,22 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { forgetListMemory } from "@/features/mail/components/message-list/list-memory";
+import { useMailShortcuts } from "@/features/mail/components/message-list/use-mail-shortcuts";
 import { EMPTY_CONDITIONS } from "@/features/mail/schemas/list-conditions-model";
 import { withQuery } from "@/test/query-wrapper";
 
 import { MailSearch } from ".";
 
-afterEach(cleanup);
+afterEach(() => {
+	cleanup();
+	forgetListMemory();
+});
+
+/** The list's own shortcut hook, the one the mail page mounts. */
+function Shortcuts() {
+	useMailShortcuts({ ids: [], selectedId: undefined });
+	return null;
+}
 
 /** The search of the header, with what the address holds. */
 async function search(props: Partial<Parameters<typeof MailSearch>[0]> = {}) {
@@ -92,5 +103,41 @@ describe("MailSearch", () => {
 		});
 
 		expect(screen.getByRole("searchbox")).toHaveValue("invoice");
+	});
+
+	it("is the field the `/` shortcut reaches, now that it is in the header", async () => {
+		const element = await MailSearch({
+			box: "INBOX",
+			role: "inbox",
+			conditions: EMPTY_CONDITIONS,
+		});
+		render(
+			withQuery(
+				<>
+					<Shortcuts />
+					{element}
+				</>,
+			),
+		);
+
+		fireEvent.keyDown(document.body, { key: "/" });
+
+		// The field of the header, and not a field left somewhere else.
+		expect(document.activeElement).toBe(screen.getByRole("searchbox"));
+		expect(document.activeElement?.getAttribute("data-mail-search")).toBe(
+			"",
+		);
+	});
+
+	it("does not swallow a key typed in it", async () => {
+		await search();
+		const field = screen.getByRole("searchbox");
+		field.focus();
+
+		const notPrevented = fireEvent.keyDown(field, { key: "/" });
+
+		// The key stays in the field: it is not a shortcut while the field
+		// has the focus.
+		expect(notPrevented).toBe(true);
 	});
 });
