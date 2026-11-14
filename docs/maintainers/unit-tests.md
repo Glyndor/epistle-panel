@@ -142,6 +142,25 @@ exist only once `fetch` has been called, and the button is already disabled
 before the action reaches `fetch` (it checks the session first): a case that
 answered in that gap answered nothing, and the request never ended.
 
+## A translation said in another case
+
+The `next-intl` stand-in keeps one list for the whole run: every message a
+server component asked for, in order, with the values it passed (`intl.said` in
+`src/test/next-intl`). A test reads it with `saidWith(key)` and expects to see
+only what its own case asked for.
+
+The list was never emptied between cases. A file that draws the sidebar asks
+for the version once per draw, so the mail layout's file left 43 answers
+behind, and the case that asserts the panel's own version counted 45 that were
+not its own. It showed up at random, because Bun shuffles the cases inside a
+file too: only the first case of a file reads the list before its own
+`afterEach` has cleaned it, and it is the one that fails.
+
+The preload empties it before every case (`resetIntl` in `src/test/setup`): the
+third thing it takes away from the case before, with the scripts left in the
+head and the requests still on their way. `src/test/next-intl/index.test.ts`
+holds that rule: it leaves a word behind on purpose, and no case may see it.
+
 ## Pinning limits
 
 A limit is tested against a literal written in the test (`28_800` for the

@@ -1,4 +1,12 @@
-import { describe, expect, it, mock } from "bun:test";
+import {
+	afterAll,
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	it,
+	mock,
+} from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -99,5 +107,36 @@ describe("next-intl stand-ins", () => {
 		resetIntl();
 		expect(await getLocale()).toBe("en");
 		expect(await getMessages()).toEqual({});
+	});
+});
+
+describe("the record of what the server components said", () => {
+	/** What the record held when this case began. */
+	let atTheStart = 0;
+
+	beforeEach(() => {
+		atTheStart = intl.said.length;
+	});
+
+	afterEach(() => {
+		// A word left behind on purpose: the case that follows must not see it.
+		intl.said.push({ key: "left-on-purpose", values: undefined });
+	});
+
+	afterAll(() => {
+		// Nothing of this file is left for the next one.
+		resetIntl();
+	});
+
+	it("is empty when the case begins, whatever the case before it left", () => {
+		expect(atTheStart).toBe(0);
+	});
+
+	it("holds only what this case said", () => {
+		intl.said.push({ key: "said-by-this-case", values: undefined });
+
+		expect(intl.said).toEqual([
+			{ key: "said-by-this-case", values: undefined },
+		]);
 	});
 });
