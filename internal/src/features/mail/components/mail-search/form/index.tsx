@@ -11,13 +11,17 @@ import {
 	CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Tooltip } from "@/components/ui/tooltip";
-import { SearchFields } from "@/features/mail/components/mail-search/form/fields";
+import {
+	FieldError,
+	SearchFields,
+} from "@/features/mail/components/mail-search/form/fields";
 import { SearchField } from "@/features/mail/components/mail-search/search-field";
 import {
 	type ListConditions,
 	MAX_CONDITION_TEXT,
 } from "@/features/mail/schemas/list-conditions-model";
 import {
+	isSearchFormMessage,
 	searchFormSchema,
 	searchFormValues,
 } from "@/features/mail/schemas/search-form";
@@ -68,6 +72,11 @@ export function SearchForm({
 	const t = useTranslations("mail");
 	const [open, setOpen] = useState(false);
 	const [errors, setErrors] = useState<Record<string, string>>({});
+	const wordsError = errors["q"];
+	const wordsMessage =
+		wordsError !== undefined && isSearchFormMessage(wordsError)
+			? t(wordsError)
+			: null;
 
 	const check = (event: React.FormEvent<HTMLFormElement>) => {
 		const parsed = searchFormSchema.safeParse(
@@ -110,12 +119,21 @@ export function SearchForm({
 						className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
 					/>
 					<SearchField
+						id="mail-search-words"
 						name="q"
 						defaultValue={conditions.q}
 						maxLength={fieldLength(MAX_CONDITION_TEXT)}
 						placeholder={t("searchPlaceholder")}
 						aria-label={t("searchLabel")}
 						aria-keyshortcuts="/"
+						aria-invalid={
+							wordsError === undefined ? undefined : true
+						}
+						aria-describedby={
+							wordsMessage === null
+								? undefined
+								: "mail-search-words-message"
+						}
 						className="min-w-0 w-full ps-9 pe-10"
 					/>
 					<CollapsibleTrigger asChild>
@@ -134,6 +152,7 @@ export function SearchForm({
 						</Tooltip>
 					</CollapsibleTrigger>
 				</div>
+				<FieldError id="mail-search-words" error={wordsMessage} />
 				{/* The fields stay in the page while the panel is closed: the
 				    form carries them, and a search keeps what was typed in
 				    them. */}

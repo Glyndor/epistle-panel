@@ -12,6 +12,27 @@ import {
 import { isSearchFormMessage } from "@/features/mail/schemas/search-form";
 import { fieldLength } from "@/lib/field-length";
 
+export function FieldError({
+	id,
+	error,
+}: {
+	id: string;
+	error: string | null;
+}) {
+	if (error === null) {
+		return null;
+	}
+	return (
+		<p
+			id={`${id}-message`}
+			role="alert"
+			className="text-destructive text-xs"
+		>
+			{error}
+		</p>
+	);
+}
+
 /**
  * A field of the search, with its name and the message of what is wrong with
  * it, if there is one. The message names the field, and the field says that
@@ -34,15 +55,7 @@ function Field({
 		<div className="flex flex-col gap-2">
 			<Label htmlFor={id}>{label}</Label>
 			{children}
-			{error === null ? null : (
-				<p
-					id={`${id}-message`}
-					role="alert"
-					className="text-destructive text-xs"
-				>
-					{error}
-				</p>
-			)}
+			<FieldError id={id} error={error} />
 		</div>
 	);
 }

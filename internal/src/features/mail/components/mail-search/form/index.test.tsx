@@ -7,6 +7,7 @@ import { parseListConditions } from "@/features/mail/schemas/list-conditions";
 import {
 	EMPTY_CONDITIONS,
 	type ListConditions,
+	MAX_CONDITION_TEXT,
 } from "@/features/mail/schemas/list-conditions-model";
 import { withQuery } from "@/test/query-wrapper";
 
@@ -182,12 +183,24 @@ describe("the search form", () => {
 		expect(field("conditionLabel")).toHaveAttribute("aria-invalid", "true");
 	});
 
-	it("sends nothing when the words are over the limit", () => {
+	it("names the words when they are over the limit and sends nothing", () => {
 		const { form } = draw();
 		fireEvent.change(words(), { target: { value: "a".repeat(201) } });
 
 		expect(fireEvent.submit(form)).toBe(false);
-		// The words were not cut to make them fit.
+
+		const message = screen.getByRole("alert");
+		expect(message).toHaveTextContent("conditionTooLong");
+		expect(words()).toHaveAttribute("aria-invalid", "true");
+		expect(words()).toHaveAttribute(
+			"aria-describedby",
+			"mail-search-words-message",
+		);
+		expect(message).toHaveAttribute("id", "mail-search-words-message");
+		expect(words()).toHaveAttribute(
+			"maxlength",
+			String(MAX_CONDITION_TEXT + 1),
+		);
 		expect(words()).toHaveValue("a".repeat(201));
 	});
 
