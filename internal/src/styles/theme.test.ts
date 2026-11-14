@@ -2,6 +2,8 @@ import { describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { contrastRatio } from "@/test/luminance";
+
 /**
  * The theme file is CSS, which no compiler checks for the three things the
  * theme choice depends on: the dark values exist twice and must be the same
@@ -82,6 +84,50 @@ describe("theme.css", () => {
 		expect(preferredDark.get("--chart-missing")).toBe("#6e6e76");
 		expect(chosenDark.get("--chart-missing")).toBe("#6e6e76");
 		expect(css).toContain("--color-chart-missing: var(--chart-missing);");
+	});
+
+	it("gives the bar of the shell a light value and one dark value, whichever way dark is reached", () => {
+		expect(light.get("--header")).toBe("#ffffff");
+		expect(preferredDark.get("--header")).toBe("oklch(0.255 0.006 286)");
+		expect(chosenDark.get("--header")).toBe("oklch(0.255 0.006 286)");
+		expect(css).toContain("--color-header: var(--header);");
+	});
+
+	it("keeps the rail, the bar and the canvas apart in luminance in every list", () => {
+		// The shell draws no line between its zones: tone is all that tells
+		// them apart, so two zones that drift to the same tone become one.
+		const zones = ["--sidebar", "--header", "--background"] as const;
+		for (const [list, values] of [
+			["light", light],
+			["preferred dark", preferredDark],
+			["chosen dark", chosenDark],
+		] as const) {
+			for (const [index, first] of zones.entries()) {
+				for (const second of zones.slice(index + 1)) {
+					const ratio = contrastRatio(
+						values.get(first) ?? "",
+						values.get(second) ?? "",
+					);
+					expect([list, first, second, ratio >= 1.1]).toEqual([
+						list,
+						first,
+						second,
+						true,
+					]);
+				}
+			}
+		}
+	});
+
+	it("lifts a work panel off the canvas in every list", () => {
+		for (const values of [light, preferredDark, chosenDark]) {
+			expect(
+				contrastRatio(
+					values.get("--surface") ?? "",
+					values.get("--background") ?? "",
+				),
+			).toBeGreaterThan(1.08);
+		}
 	});
 
 	it("gives every dark value a light one to replace", () => {
