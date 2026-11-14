@@ -133,6 +133,17 @@ foreign `Origin` with `X-Forwarded-Host` rows, so a change in Next or in the
 panel shows up as a failing check rather than as a surprise. The other two
 rows were only measured.
 
+**What a browser sends on a form it posts itself depends on the page's
+`Referrer-Policy`.** Measured on 2026-11-13 in Chromium with script off: under
+`no-referrer` the sign-in form went out with `Origin: null` and was refused
+(500, the third row above), so the sign-in and the sign-out, which are written
+to work without script, did not. The scenarios never saw it: they post with
+curl, which sends no `Origin` unless told to (the first row). The panel's pages
+now send `Referrer-Policy: same-origin`, under which the browser sends the
+panel's own origin to the panel and still nothing to another site. The `csrf`
+scenario posts the sign-in form both ways. The framed message body and the
+attachment download keep `no-referrer`: what they hold came from outside.
+
 A hostile account name answers the panel's not-found page with status 200, not
 404. The admin shell is streamed before the page resolves (`loading.tsx`), so a
 `notFound()` thrown by the page cannot change the status (measured on Next

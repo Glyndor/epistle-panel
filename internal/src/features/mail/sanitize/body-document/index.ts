@@ -34,6 +34,9 @@ export function bodyHeaders(remoteImages: boolean): Record<string, string> {
 		"Content-Type": "text/html; charset=utf-8",
 		"Content-Security-Policy": bodyCsp(remoteImages),
 		"X-Frame-Options": "SAMEORIGIN",
+		// What this page holds came from outside: a link or an image in it gets
+		// no referrer at all, whatever the panel's own pages send to themselves.
+		"Referrer-Policy": "no-referrer",
 		"Cache-Control": "private, no-store",
 	};
 }
