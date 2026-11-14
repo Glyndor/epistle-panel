@@ -137,7 +137,6 @@ export function FiltersMenu({
 							<DropdownMenuRadioItem
 								key={order.name}
 								value={order.name}
-								onSelect={(event) => event.preventDefault()}
 							>
 								{t(order.label)}
 							</DropdownMenuRadioItem>

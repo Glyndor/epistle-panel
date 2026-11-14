@@ -57,7 +57,9 @@ export function NarrowSearch({
 	// The field takes the focus when the panel opens; the icon takes it back.
 	useEffect(() => {
 		if (open) {
-			panel.current?.querySelector<HTMLInputElement>("input")?.focus();
+			panel.current
+				?.querySelector<HTMLInputElement>('input:not([type="hidden"])')
+				?.focus();
 		}
 	}, [open]);
 
