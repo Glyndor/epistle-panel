@@ -39,6 +39,10 @@ const messageIdText = z
 	.max(255)
 	.regex(/^[^\s<>\p{C}]+$/u);
 
+/** What sending does to the message it came from: a reply marks it answered, a forward marks it forwarded. */
+export const ORIGIN_MARKS = ["answered", "forwarded"] as const;
+export type OriginMark = (typeof ORIGIN_MARKS)[number];
+
 /**
  * What the composer sends to save a draft or send a message. Strict: nothing the
  * client adds reaches JMAP. The server is the gate; the form checks the same
@@ -64,5 +68,12 @@ export const composeInputSchema = z.strictObject({
 		.max(MAX_COMPOSE_ATTACHMENTS),
 	inReplyTo: messageIdText.optional(),
 	references: z.array(messageIdText).max(50).optional(),
+	/** The message this one answers or forwards, marked so once this one is sent. */
+	origin: z
+		.strictObject({
+			id: messageIdSchema,
+			as: z.enum(ORIGIN_MARKS),
+		})
+		.optional(),
 });
 export type ComposeInput = z.output<typeof composeInputSchema>;

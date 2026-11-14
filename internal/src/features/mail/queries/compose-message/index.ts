@@ -9,6 +9,7 @@ import {
 	submissionSetSchema,
 } from "@/features/mail/jmap/responses";
 import { loadSender } from "@/features/mail/queries/load-identity";
+import { markOrigin } from "@/features/mail/queries/mark-origin";
 import { safeFilename } from "@/features/mail/sanitize/safe-filename";
 import type { ComposeInput } from "@/features/mail/schemas/compose-input";
 
@@ -212,6 +213,7 @@ export async function composeMessage(
 	}
 	await destroy(session, id);
 	await destroy(session, input.draftId);
+	await markOrigin(session, input.origin);
 	return { kind: "sent" };
 }
 

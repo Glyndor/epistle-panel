@@ -13,6 +13,23 @@ const ok = {
 	attachments: [],
 };
 
+describe("composeInputSchema: the message it came from", () => {
+	it("takes an id and one of the two marks, and is left out for a new message", () => {
+		for (const as of ["answered", "forwarded"] as const) {
+			const parsed = composeInputSchema.safeParse({
+				...ok,
+				origin: { id: ID, as },
+			});
+			expect(parsed.success && parsed.data.origin).toEqual({
+				id: ID,
+				as,
+			});
+		}
+		const none = composeInputSchema.safeParse(ok);
+		expect(none.success && none.data.origin).toBeUndefined();
+	});
+});
+
 describe("composeInputSchema", () => {
 	it("accepts a message, a reply and a draft with attachments", () => {
 		expect(composeInputSchema.safeParse(ok).success).toBe(true);
@@ -74,6 +91,11 @@ describe("composeInputSchema", () => {
 			{ ...ok, draftId: "../x" },
 			{ ...ok, inReplyTo: "a b" },
 			{ ...ok, inReplyTo: "<a>" },
+			{ ...ok, origin: { id: "../x", as: "answered" } },
+			{ ...ok, origin: { id: ID, as: "seen" } },
+			{ ...ok, origin: { id: ID } },
+			{ ...ok, origin: { id: ID, as: "answered", keyword: "$junk" } },
+			{ ...ok, origin: ID },
 			{
 				...ok,
 				attachments: [

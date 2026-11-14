@@ -17,6 +17,12 @@ export type ComposeOutcome =
 	| { readonly kind: "unavailable" };
 
 /** The request body: the structured message the route's schema reads. */
+/** The message a reply or a forward came from, and the mark sending leaves on it. */
+export interface ComposeOrigin {
+	readonly id: string;
+	readonly as: "answered" | "forwarded";
+}
+
 export interface ComposeRequest {
 	readonly op: "draft" | "send";
 	readonly draftId?: string | undefined;
@@ -28,6 +34,7 @@ export interface ComposeRequest {
 	readonly attachments: unknown[];
 	readonly inReplyTo?: string | undefined;
 	readonly references?: string[] | undefined;
+	readonly origin?: ComposeOrigin | undefined;
 }
 
 /** The message is over the size the route reads: nothing was sent or saved. */
