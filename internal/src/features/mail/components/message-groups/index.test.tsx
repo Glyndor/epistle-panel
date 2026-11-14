@@ -86,7 +86,7 @@ describe("MessageGroups", () => {
 		groups([at(1, "2026-11-13T09:00:00Z")]);
 		const heading = screen.getByRole("heading", { level: 3 });
 
-		expect(heading).toHaveClass("sticky", "top-0", "z-10", "bg-background");
+		expect(heading).toHaveClass("sticky", "top-0", "z-10", "bg-surface");
 		// As tall as the pane's scroll padding (`scroll-pt-8`), so a focused row is never under it.
 		expect(heading).toHaveClass("h-8");
 		expect(heading.className).not.toMatch(/border|divide|shadow/);

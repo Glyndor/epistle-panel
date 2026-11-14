@@ -133,20 +133,20 @@ describe("RowActions", () => {
 		}
 	});
 
-	it("opens each tooltip under its own button, never over the other one", () => {
+	it("names each button in a tooltip under it, one at a time", () => {
 		const { container } = actions();
+		const shown = () => [
+			...document.querySelectorAll('[data-slot="tooltip"]'),
+		];
 
 		for (const each of screen.getAllByRole("button")) {
-			fireEvent.pointerEnter(each.parentElement as Element, {
-				pointerType: "mouse",
-			});
-			const text = each.parentElement?.querySelector(
-				'[data-slot="tooltip-content"]',
-			);
+			fireEvent.pointerEnter(each, { pointerType: "mouse" });
 
-			expect(text).toHaveAttribute("data-side", "bottom");
-			expect(text).toHaveClass("top-full", "end-0");
-			fireEvent.pointerLeave(each.parentElement as Element);
+			expect(shown()).toHaveLength(1);
+			expect(shown()[0]).toHaveAttribute("data-side", "bottom");
+			expect(shown()[0]?.textContent).toBe(each.textContent);
+			fireEvent.keyDown(each, { key: "Escape" });
+			expect(shown()).toHaveLength(0);
 		}
 		// The buttons take no layer of their own: a filled mark must pass
 		// under a date heading, and the row raises itself when it needs to.
@@ -253,17 +253,16 @@ describe("RowActions", () => {
 		expect(await screen.findByText("actionFailed")).toBeInTheDocument();
 	});
 
-	it("puts no style attribute in the page, tooltip included", () => {
+	it("puts no style attribute in the markup the server sends", () => {
+		// The tooltip is drawn only once it opens, in the browser, where its
+		// place is set from script; what the server sends carries no style.
 		const { container } = actions();
 
-		fireEvent.pointerEnter(button("star").parentElement as Element, {
-			pointerType: "mouse",
-		});
-
 		expect(container.querySelector("[style]")).toBeNull();
+		expect(document.querySelector('[data-slot="tooltip"]')).toBeNull();
+		fireEvent.pointerEnter(button("star"), { pointerType: "mouse" });
 		expect(
-			container.querySelector('[data-slot="tooltip-content"]')
-				?.textContent,
+			document.querySelector('[data-slot="tooltip"]')?.textContent,
 		).toBe("star");
 	});
 });

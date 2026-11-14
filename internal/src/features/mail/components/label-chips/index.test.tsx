@@ -82,24 +82,18 @@ describe("LabelChips", () => {
 		const five = ["A", "B", "C", "D", "E"].map((name) => label(name));
 		const { container } = render(<LabelChips labels={five} />);
 		const [narrow, wide] = counts(container);
+		const shown = () => document.querySelector('[data-slot="tooltip"]');
 
+		expect(shown()).toBeNull();
 		fireEvent.pointerEnter(narrow as Element, { pointerType: "mouse" });
-		expect(
-			narrow?.querySelector('[data-slot="tooltip-content"]')?.textContent,
-		).toBe("B, C, D, E");
-		fireEvent.pointerLeave(narrow as Element);
+		expect(shown()?.textContent).toBe("B, C, D, E");
+		fireEvent.keyDown(narrow as Element, { key: "Escape" });
+		expect(shown()).toBeNull();
 
 		// Under the count, not over the sender's line or a date heading.
-		expect(
-			narrow?.querySelector('[data-slot="tooltip-content"]'),
-		).toBeNull();
 		fireEvent.pointerEnter(wide as Element, { pointerType: "mouse" });
-		expect(
-			wide?.querySelector('[data-slot="tooltip-content"]'),
-		).toHaveAttribute("data-side", "bottom");
-		expect(
-			wide?.querySelector('[data-slot="tooltip-content"]')?.textContent,
-		).toBe("D, E");
+		expect(shown()).toHaveAttribute("data-side", "bottom");
+		expect(shown()?.textContent).toBe("D, E");
 	});
 
 	it("draws each of the eight tones with its own class, written out", () => {

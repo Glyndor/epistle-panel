@@ -30,7 +30,13 @@ describe("ListToolbar", () => {
 
 	it("names the search button, an icon alone, in a tooltip", () => {
 		render(
-			<ListToolbar box="INBOX" folderRole="inbox" filter="all" q="" />,
+			<ListToolbar
+				box="INBOX"
+				folderRole="inbox"
+				filter="all"
+				q=""
+				density="comfortable"
+			/>,
 		);
 
 		fireEvent.pointerEnter(
