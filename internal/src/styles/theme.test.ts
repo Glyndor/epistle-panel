@@ -130,6 +130,43 @@ describe("theme.css", () => {
 		}
 	});
 
+	it("gives the eight label tones a light value and one dark value, whichever way dark is reached", () => {
+		// A tone missing from one dark list would draw a dot made for a light
+		// chip on a dark one, under the 3:1 it was chosen for.
+		const lightValues = [
+			"#083a88",
+			"#392b16",
+			"#9b4251",
+			"#794acb",
+			"#0d7d89",
+			"#155a06",
+			"#671156",
+			"#83710d",
+		];
+		const dark = [
+			"#82c2f7",
+			"#e58803",
+			"#fcc1b6",
+			"#ae83f8",
+			"#aafcfe",
+			"#8cd55e",
+			"#fb78ae",
+			"#f5f778",
+		];
+		for (const [index, value] of dark.entries()) {
+			const name = `--label-${index + 1}`;
+			expect(light.get(name)).toBe(lightValues[index] ?? "");
+			expect(preferredDark.get(name)).toBe(value);
+			expect(chosenDark.get(name)).toBe(value);
+			expect(css).toContain(
+				`--color-label-${index + 1}: var(--label-${index + 1});`,
+			);
+		}
+		// Eight and no ninth: `labelTone` gives a number from 1 to 8.
+		expect(light.has("--label-9")).toBe(false);
+		expect(light.has("--label-0")).toBe(false);
+	});
+
 	it("gives every dark value a light one to replace", () => {
 		for (const name of preferredDark.keys()) {
 			expect(light.has(name)).toBe(true);

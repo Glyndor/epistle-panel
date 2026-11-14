@@ -101,6 +101,23 @@
 	--chart-4: #732a9d;
 	--chart-5: #0e8f7a;
 	--chart-missing: #85858d;
+	/* The tones of a label, by number: a label is drawn in the tone its keyword
+	   gives it (`features/mail/labels/label-tone`), as a dot on a chip beside
+	   its name, never as the colour alone. Each dot is 3:1 or more against the
+	   chip (`--foreground` at 10%) on every surface a message row takes, and
+	   every pair of the eight stays apart with full colour vision and with
+	   protanopia or deuteranopia simulated, the floors of the chart colours.
+	   Tone n is the same family in light and in dark: blue, brown or amber,
+	   red, violet, teal, green, pink, olive. Calculated values are in
+	   docs/maintainers/mail.md. */
+	--label-1: #083a88;
+	--label-2: #392b16;
+	--label-3: #9b4251;
+	--label-4: #794acb;
+	--label-5: #0d7d89;
+	--label-6: #155a06;
+	--label-7: #671156;
+	--label-8: #83710d;
 }
 
 /* The dark values are written twice, once for each way of getting them: the
@@ -155,6 +172,14 @@
 		--chart-4: #995ba6;
 		--chart-5: #34a08e;
 		--chart-missing: #6e6e76;
+		--label-1: #82c2f7;
+		--label-2: #e58803;
+		--label-3: #fcc1b6;
+		--label-4: #ae83f8;
+		--label-5: #aafcfe;
+		--label-6: #8cd55e;
+		--label-7: #fb78ae;
+		--label-8: #f5f778;
 	}
 }
 
@@ -197,6 +222,14 @@
 	--chart-4: #995ba6;
 	--chart-5: #34a08e;
 	--chart-missing: #6e6e76;
+	--label-1: #82c2f7;
+	--label-2: #e58803;
+	--label-3: #fcc1b6;
+	--label-4: #ae83f8;
+	--label-5: #aafcfe;
+	--label-6: #8cd55e;
+	--label-7: #fb78ae;
+	--label-8: #f5f778;
 }
 
 /* Fonts and the spacing unit. System stacks only: the CSP is
@@ -253,6 +286,14 @@
 	--color-chart-4: var(--chart-4);
 	--color-chart-5: var(--chart-5);
 	--color-chart-missing: var(--chart-missing);
+	--color-label-1: var(--label-1);
+	--color-label-2: var(--label-2);
+	--color-label-3: var(--label-3);
+	--color-label-4: var(--label-4);
+	--color-label-5: var(--label-5);
+	--color-label-6: var(--label-6);
+	--color-label-7: var(--label-7);
+	--color-label-8: var(--label-8);
 	--radius-sm: calc(var(--radius) - 4px);
 	--radius-md: calc(var(--radius) - 2px);
 	--radius-lg: var(--radius);
