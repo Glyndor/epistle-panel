@@ -85,6 +85,9 @@ function actions(
 }
 const button = (name: string) => screen.getByRole("button", { name });
 
+// The cases about looks read classes, not the cascade: which rule wins where
+// two apply (a coarse pointer over a compact row, the inner ring over the
+// outer one) is measured in a browser, not here.
 describe("RowActions", () => {
 	it("offers important first and the star second, each named for what a press does", () => {
 		actions();
@@ -153,6 +156,19 @@ describe("RowActions", () => {
 		expect(
 			container.querySelector('[data-slot="row-actions"]')?.className,
 		).not.toMatch(/(^|\s)z-/);
+	});
+
+	it("draws the focus ring inside the button on a coarse pointer, where it is as tall as a compact row", () => {
+		actions();
+
+		for (const each of screen.getAllByRole("button")) {
+			// Outside, the ring of a first row began over the row, under the
+			// date heading that sticks above it, and lost that side.
+			expect(each).toHaveClass(
+				"focus-visible:outline-offset-2",
+				"pointer-coarse:focus-visible:-outline-offset-2",
+			);
+		}
 	});
 
 	it("is 24 px on a fine pointer and 44 px on a coarse one", () => {

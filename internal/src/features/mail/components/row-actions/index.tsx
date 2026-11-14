@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 import { ImportantMark } from "@/components/icons/important-mark";
 import { Button } from "@/components/ui/button";
 import { Tooltip } from "@/components/ui/tooltip";
+import { BUSY_MARK } from "@/features/mail/components/busy-mark";
 import { useMessageChange } from "@/features/mail/components/reader-toolbar/use-message-change";
 import type { MessageOp } from "@/features/mail/schemas/mail-input";
 import { cn } from "@/lib/class-names";
@@ -22,6 +23,10 @@ import { cn } from "@/lib/class-names";
  * that move nothing: `aria-busy`, the pointer's progress cursor, and a dot on
  * its corner beside a dimmed icon. It stays pressable: a press made meanwhile
  * waits its turn.
+ *
+ * On a coarse pointer the button is as tall as a compact row, so its focus
+ * ring is drawn inside it: outside, the ring of the first row of a date group
+ * began over the row and the heading that sticks above it covered that side.
  */
 function Mark({
 	mark,
@@ -49,7 +54,10 @@ function Mark({
 				data-set={set}
 				aria-busy={busy ? true : undefined}
 				onClick={onPress}
-				className="pointer-events-auto relative size-6 px-0 opacity-0 hover:bg-foreground/10 focus-visible:opacity-100 active:bg-foreground/15 aria-busy:cursor-progress aria-busy:text-muted-foreground aria-busy:after:absolute aria-busy:after:end-0 aria-busy:after:top-0 aria-busy:after:size-1.5 aria-busy:after:rounded-full aria-busy:after:bg-foreground aria-busy:hover:cursor-progress data-[set=true]:opacity-100 group-focus-within/row:opacity-100 group-hover/row:opacity-100 pointer-coarse:size-11 pointer-coarse:px-0 pointer-coarse:opacity-100"
+				className={cn(
+					BUSY_MARK,
+					"pointer-events-auto size-6 px-0 opacity-0 hover:bg-foreground/10 focus-visible:opacity-100 active:bg-foreground/15 data-[set=true]:opacity-100 group-focus-within/row:opacity-100 group-hover/row:opacity-100 pointer-coarse:size-11 pointer-coarse:px-0 pointer-coarse:opacity-100 pointer-coarse:focus-visible:-outline-offset-2",
+				)}
 			>
 				{children}
 				<span className="sr-only">{label}</span>
