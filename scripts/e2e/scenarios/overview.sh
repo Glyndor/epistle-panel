@@ -7,10 +7,13 @@ count_in() {
 	{ grep -o -F -- "$2" <<<"$1" || true; } | wc -l | tr -d ' '
 }
 
-# current_links: the links of the last fetch that say they are the current page.
-# The breadcrumb trail marks its last step too, so the check names the link.
+# current_links: the links of the page's own content, in the last fetch, that
+# say they are the current page. The sidebar marks its current entry and the
+# trail its last step, both outside `main`: read with them, a check about the
+# period's link would pass or fail on the navigation's.
 current_links() {
-	{ grep -o -E '<a [^>]*aria-current="page"[^>]*>' "$work/b" || true; } | tr '\n' ' '
+	perl -0777 -ne 'print $1 if /(<main\b.*?<\/main>)/s' "$work/b" |
+		{ grep -o -E '<a [^>]*aria-current="page"[^>]*>' || true; } | tr '\n' ' '
 }
 
 scenario_overview() {
