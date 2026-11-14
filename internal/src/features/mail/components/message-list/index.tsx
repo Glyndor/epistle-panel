@@ -10,6 +10,7 @@ import { ListPager } from "@/features/mail/components/list-pager";
 import { ListSkeleton } from "@/features/mail/components/list-skeleton";
 import { MailNotice } from "@/features/mail/components/mail-notice";
 import { MessageGroups } from "@/features/mail/components/message-groups";
+import { listMemory } from "@/features/mail/components/message-list/list-memory";
 import { useKeptFocus } from "@/features/mail/components/message-list/use-kept-focus";
 import { useMailShortcuts } from "@/features/mail/components/message-list/use-mail-shortcuts";
 import type { ListAddress } from "@/features/mail/links/mail-href";
@@ -119,6 +120,12 @@ export function MessageList({
 										role: view.role,
 										conditions: EMPTY_CONDITIONS,
 									})}
+									onClick={() => {
+										// Every condition goes, and the chips are
+										// drawn again without any: the focus
+										// goes to the search field.
+										listMemory.chips = "all";
+									}}
 								>
 									{t("clearAll")}
 								</Link>

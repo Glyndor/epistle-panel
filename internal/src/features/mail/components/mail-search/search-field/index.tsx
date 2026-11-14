@@ -8,6 +8,13 @@ import { listMemory } from "@/features/mail/components/message-list/list-memory"
 const isSearch = (target: EventTarget | null) =>
 	target instanceof Element && target.matches("[data-mail-search]");
 
+/**
+ * The id of the search field of the mail area, so the page can give the focus
+ * to it: the chips of the conditions, when the last one is taken off, leave
+ * the focus there.
+ */
+export const SEARCH_FIELD_ID = "mail-search-words";
+
 let watching = false;
 
 /**

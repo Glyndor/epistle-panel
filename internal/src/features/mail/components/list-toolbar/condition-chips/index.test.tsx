@@ -7,8 +7,14 @@ import {
 	it,
 	mock,
 } from "bun:test";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
-
+import {
+	cleanup,
+	fireEvent,
+	render,
+	screen,
+	waitFor,
+} from "@testing-library/react";
+import { SEARCH_FIELD_ID } from "@/features/mail/components/mail-search/search-field";
 import { forgetListMemory } from "@/features/mail/components/message-list/list-memory";
 import { EMPTY_CONDITIONS } from "@/features/mail/schemas/list-conditions-model";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
@@ -70,18 +76,29 @@ function twoMessages() {
 }
 
 /** The chips over the results, with what narrows the list. */
-function chips(conditions: Partial<typeof EMPTY_CONDITIONS> = {}) {
-	return render(
-		withQuery(
-			// biome-ignore lint/a11y/useValidAriaRole: this is the folder's role, not an ARIA role.
-			<ConditionChips
-				box="INBOX"
-				role="inbox"
-				page={1}
-				conditions={{ ...EMPTY_CONDITIONS, ...conditions }}
-			/>,
-		),
+function withConditions(conditions: Partial<typeof EMPTY_CONDITIONS> = {}) {
+	return withQuery(
+		// biome-ignore lint/a11y/useValidAriaRole: this is the folder's role, not an ARIA role.
+		<ConditionChips
+			box="INBOX"
+			role="inbox"
+			page={1}
+			conditions={{ ...EMPTY_CONDITIONS, ...conditions }}
+		/>,
 	);
+}
+
+/** The chips over the results, with what narrows the list. */
+function chips(conditions: Partial<typeof EMPTY_CONDITIONS> = {}) {
+	return render(withConditions(conditions));
+}
+
+/** The field of the search, which the focus goes to when no chip is left. */
+function searchField() {
+	const field = document.createElement("input");
+	field.id = SEARCH_FIELD_ID;
+	document.body.append(field);
+	return field;
 }
 
 /** The chip of a condition, by the badge that holds it. */
@@ -182,5 +199,57 @@ describe("the chips of the active conditions", () => {
 
 		expect(container.innerHTML).toBe("");
 		expect(screen.queryByRole("navigation")).toBeNull();
+	});
+
+	it("give the focus to the chip that took the place of the one that was taken off", () => {
+		const { container, rerender } = chips({ q: "invoice", from: "ana" });
+		const remove = container.querySelector(
+			'[data-chip="q"]',
+		) as HTMLElement;
+
+		fireEvent.click(remove);
+
+		// The chips are drawn again without the chip that was taken off.
+		rerender(withConditions({ from: "ana" }));
+
+		expect(document.activeElement).toBe(
+			container.querySelector('[data-chip="from"]'),
+		);
+	});
+
+	it("wait for the change of the address before giving the focus away", () => {
+		const { container, rerender } = chips({ q: "invoice", from: "ana" });
+
+		fireEvent.click(container.querySelector('[data-slot="badge"] a'));
+
+		// The chips are drawn again with the chip still there: the change of
+		// the address has not landed yet, and the focus is not given away.
+		rerender(withConditions({ q: "invoice", from: "ana" }));
+
+		expect(document.activeElement).toBe(document.body);
+	});
+
+	it("give the focus to the search field when the last chip is taken off", () => {
+		const { container, rerender } = chips({ q: "invoice" });
+		const field = searchField();
+
+		fireEvent.click(container.querySelector('[data-chip="q"]'));
+
+		rerender(withConditions({}));
+
+		expect(document.activeElement).toBe(field);
+		field.remove();
+	});
+
+	it("give the focus to the search field when every condition is taken off", () => {
+		const { rerender } = chips({ q: "invoice", unread: true });
+		const field = searchField();
+
+		fireEvent.click(screen.getByRole("link", { name: "clearAll" }));
+
+		rerender(withConditions({}));
+
+		expect(document.activeElement).toBe(field);
+		field.remove();
 	});
 });

@@ -1,6 +1,7 @@
 "use client";
 
 import { SearchIcon, SlidersHorizontalIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
@@ -15,7 +16,10 @@ import {
 	FieldError,
 	SearchFields,
 } from "@/features/mail/components/mail-search/form/fields";
-import { SearchField } from "@/features/mail/components/mail-search/search-field";
+import {
+	SEARCH_FIELD_ID,
+	SearchField,
+} from "@/features/mail/components/mail-search/search-field";
 import {
 	type ListConditions,
 	MAX_CONDITION_TEXT,
@@ -70,6 +74,7 @@ export function SearchForm({
 	conditions: ListConditions;
 }) {
 	const t = useTranslations("mail");
+	const router = useRouter();
 	const [errors, setErrors] = useState<Record<string, string>>({});
 	const wordsError = errors["q"];
 	const wordsMessage =
@@ -78,11 +83,20 @@ export function SearchForm({
 			: null;
 
 	const check = (event: React.FormEvent<HTMLFormElement>) => {
-		const parsed = searchFormSchema.safeParse(
-			searchFormValues(new FormData(event.currentTarget)),
-		);
+		const data = new FormData(event.currentTarget);
+		const parsed = searchFormSchema.safeParse(searchFormValues(data));
 		if (parsed.success) {
 			setErrors({});
+			// The search is a change of the address, and the address is what
+			// the list reads: the page is drawn again with what it says, and
+			// the field keeps the focus and what was written in it.
+			event.preventDefault();
+			const query = new URLSearchParams();
+			for (const [name, value] of data.entries()) {
+				query.append(name, String(value));
+			}
+			const suffix = query.size > 0 ? `?${query}` : "";
+			router.push(`${path}${suffix}`);
 			return;
 		}
 		// The browser's own check let it through: the field is named here,
@@ -114,7 +128,7 @@ export function SearchForm({
 						className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
 					/>
 					<SearchField
-						id="mail-search-words"
+						id={SEARCH_FIELD_ID}
 						name="q"
 						defaultValue={conditions.q}
 						maxLength={fieldLength(MAX_CONDITION_TEXT)}
@@ -127,7 +141,7 @@ export function SearchForm({
 						aria-describedby={
 							wordsMessage === null
 								? undefined
-								: "mail-search-words-message"
+								: `${SEARCH_FIELD_ID}-message`
 						}
 						className="min-w-0 w-full ps-9 pe-10"
 					/>
@@ -154,7 +168,7 @@ export function SearchForm({
 						</DisclosureContent>
 					</Disclosure>
 				</div>
-				<FieldError id="mail-search-words" error={wordsMessage} />
+				<FieldError id={SEARCH_FIELD_ID} error={wordsMessage} />
 			</div>
 			<Tooltip label={t("searchSubmit")} align="end">
 				<Button type="submit" variant="outline" size="icon">

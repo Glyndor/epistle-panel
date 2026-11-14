@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterAll, afterEach, describe, expect, it, mock } from "bun:test";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { renderToString } from "react-dom/server";
 import { forgetListMemory } from "@/features/mail/components/message-list/list-memory";
@@ -9,13 +9,35 @@ import {
 	type ListConditions,
 	MAX_CONDITION_TEXT,
 } from "@/features/mail/schemas/list-conditions-model";
+import { registerStandIn } from "@/test/next-intl";
+import { navigationStandIn } from "@/test/next-navigation";
 import { withQuery } from "@/test/query-wrapper";
 
-import { SearchForm } from ".";
+/** The addresses the search sent the browser to. */
+const pushed: string[] = [];
+
+mock.module("next/navigation", () => ({
+	useRouter: () => ({
+		push: (href: string) => {
+			pushed.push(href);
+		},
+		replace: () => {},
+		refresh: () => {},
+	}),
+}));
+
+const { SearchForm } = await import(".");
 
 afterEach(() => {
 	cleanup();
 	forgetListMemory();
+	pushed.length = 0;
+});
+
+// The router of the form is this file's own: the stand-in goes back in place
+// so the files that run after this one find the panel's own.
+afterAll(() => {
+	registerStandIn("next/navigation", navigationStandIn);
 });
 
 const char = (code: number) => String.fromCodePoint(code);
@@ -54,8 +76,7 @@ const panelButton = () =>
 	screen.getByText("searchFields").closest("summary") as HTMLElement;
 
 /** The disclosure that holds the fields. */
-const disclosure = () =>
-	panelButton().closest("details") as HTMLDetailsElement;
+const disclosure = () => panelButton().closest("details") as HTMLDetailsElement;
 
 /** Write a value in a field, as a person typing would. */
 function write(name: string, value: string) {
@@ -82,8 +103,32 @@ describe("the search form", () => {
 
 		expect(form).toHaveAttribute("method", "get");
 		expect(form).toHaveAttribute("action", "/app/mail/inbox");
-		// A search that is valid is not stopped: the browser sends it.
-		expect(fireEvent.submit(form)).toBe(true);
+		// Without script the browser sends the form itself, and the address
+		// it builds is the one the page reads.
+		expect(pushed).toEqual([]);
+	});
+
+	it("sends the search as a change of the address, so the page is drawn again and the field keeps the focus", () => {
+		const { form } = draw();
+		fireEvent.change(words(), { target: { value: "invoice" } });
+
+		expect(fireEvent.submit(form)).toBe(false);
+
+		// The browser did not reload the page: the address changed and the
+		// page is drawn again with what it says.
+		expect(pushed).toHaveLength(1);
+		expect(pushed[0]).toStartWith("/app/mail/inbox?");
+		expect(pushed[0]).toContain("q=invoice");
+	});
+
+	it("keeps what the list was narrowed by in the address of a new search", () => {
+		const { form } = draw({ unread: true, order: "oldest" });
+
+		expect(fireEvent.submit(form)).toBe(false);
+
+		expect(pushed).toHaveLength(1);
+		expect(pushed[0]).toContain("unread=1");
+		expect(pushed[0]).toContain("order=oldest");
 	});
 
 	it("posts to the page of the folder it was drawn for", () => {
@@ -295,7 +340,10 @@ describe("the search form", () => {
 	it("opens the fields with the browser's own button, before any script has loaded", () => {
 		const html = renderToString(
 			withQuery(
-				<SearchForm path="/app/mail/inbox" conditions={EMPTY_CONDITIONS} />,
+				<SearchForm
+					path="/app/mail/inbox"
+					conditions={EMPTY_CONDITIONS}
+				/>,
 			),
 		);
 

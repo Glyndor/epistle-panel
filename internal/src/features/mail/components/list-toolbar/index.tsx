@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { DensityToggle } from "@/features/mail/components/density-toggle";
 import { ConditionChips } from "@/features/mail/components/list-toolbar/condition-chips";
 import { FiltersMenu } from "@/features/mail/components/list-toolbar/filters-menu";
+import { listMemory } from "@/features/mail/components/message-list/list-memory";
 import type { ListDensity } from "@/features/mail/config/list-density";
 import { mailHref } from "@/features/mail/links/mail-href";
 import {
@@ -51,6 +52,11 @@ export function ListToolbar({
 								role,
 								conditions: { ...conditions, q: "" },
 							})}
+							onClick={() => {
+								// The words are one of the conditions, and the
+								// button that takes them off goes with them.
+								listMemory.chips = "q";
+							}}
 						>
 							{t("searchClear")}
 						</Link>

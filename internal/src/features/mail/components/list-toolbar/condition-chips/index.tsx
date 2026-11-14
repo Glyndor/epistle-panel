@@ -4,17 +4,22 @@ import { useQuery } from "@tanstack/react-query";
 import { XIcon } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { useEffect } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip } from "@/components/ui/tooltip";
 import { getMessageListAction } from "@/features/mail/actions/get-message-list";
+import { SEARCH_FIELD_ID } from "@/features/mail/components/mail-search/search-field";
+import { listMemory } from "@/features/mail/components/message-list/list-memory";
 import { mailHref } from "@/features/mail/links/mail-href";
 import { messageListQueryOptions } from "@/features/mail/queries/mail-query-options";
 import { stripBidi } from "@/features/mail/sanitize/safe-text";
 import {
 	activeConditions,
 	CONDITION_LABELS,
+	CONDITION_NAMES,
+	type ConditionName,
 	EMPTY_CONDITIONS,
 	type ListConditions,
 	withoutCondition,
@@ -33,6 +38,24 @@ function chipValue(conditions: ListConditions, name: string): string | null {
 	}
 	const shown = stripBidi(value);
 	return shown.length > 32 ? `${shown.slice(0, 32)}…` : shown;
+}
+
+/**
+ * The chip that took the place of the one that was taken off: the one that
+ * follows it, or the one before it when it was the last.
+ */
+function neighbour(
+	active: readonly ConditionName[],
+	taken: ConditionName,
+): ConditionName | undefined {
+	const index = CONDITION_NAMES.indexOf(taken);
+	const after = active.find((name) => CONDITION_NAMES.indexOf(name) > index);
+	if (after !== undefined) {
+		return after;
+	}
+	return [...active]
+		.reverse()
+		.find((name) => CONDITION_NAMES.indexOf(name) < index);
 }
 
 /**
@@ -64,6 +87,36 @@ export function ConditionChips({
 		messageListQueryOptions({ box, page, conditions }, fetchList),
 	);
 	const active = activeConditions(conditions);
+
+	// The chips are drawn again without the chip that was taken off, and the
+	// focus goes with it: to the chip that took its place, or to the search
+	// field when none is left. The chip that was taken off is remembered
+	// while the change of the address is on its way.
+	useEffect(() => {
+		const taken = listMemory.chips;
+		if (taken === null) {
+			return;
+		}
+		const landed =
+			taken === "all"
+				? active.length === 0
+				: !active.includes(taken as ConditionName);
+		if (!landed) {
+			return;
+		}
+		listMemory.chips = null;
+		const next =
+			taken === "all"
+				? undefined
+				: neighbour(active, taken as ConditionName);
+		const target =
+			next === undefined
+				? document.getElementById(SEARCH_FIELD_ID)
+				: document.querySelector(`[data-chip="${next}"]`);
+		if (target instanceof HTMLElement) {
+			target.focus();
+		}
+	}, [active]);
 
 	if (active.length === 0) {
 		return null;
@@ -97,9 +150,13 @@ export function ConditionChips({
 											name,
 										),
 									})}
+									data-chip={name}
 									aria-label={t("conditionRemove", {
 										name: said,
 									})}
+									onClick={() => {
+										listMemory.chips = name;
+									}}
 								>
 									<XIcon aria-hidden="true" />
 								</Link>
@@ -111,6 +168,9 @@ export function ConditionChips({
 			<Button asChild variant="ghost" size="sm">
 				<Link
 					href={mailHref({ box, role, conditions: EMPTY_CONDITIONS })}
+					onClick={() => {
+						listMemory.chips = "all";
+					}}
 				>
 					{t("clearAll")}
 				</Link>
