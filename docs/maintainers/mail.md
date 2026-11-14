@@ -195,6 +195,9 @@ the tooltip of a count.
   (`components/list-skeleton`) has the same heights, margins and gaps, and its
   toolbar bars are as tall as the search field and the filters: nothing moves
   when the messages arrive (compared by position at 1280, 1024, 768 and 360 px).
+  The loading state of the route (`app/app/mail/(places)/loading.tsx`) also
+  holds the place of the link to the composer that the page draws over the
+  list below 768 px.
 - **Compact is two short lines, and one line only from 42rem of row.** One
   line cannot hold a row's parts at the widths the panes have: at 360 px with a
   coarse pointer the margin, the two buttons, the state icons, a 6rem subject,

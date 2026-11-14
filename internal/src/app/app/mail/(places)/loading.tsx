@@ -1,3 +1,4 @@
+import { Skeleton } from "@/components/ui/skeleton";
 import { ListPaneSkeleton } from "@/features/mail/components/list-skeleton";
 import { readListDensity } from "@/features/mail/queries/list-density";
 
@@ -17,6 +18,14 @@ export default async function Loading() {
 				data-density={density}
 				className="group/list flex min-h-0 flex-col rounded-2xl bg-surface"
 			>
+				{/* The place of the way into the composer, which the page draws here below 768 px: without it the list stood 40 px higher while this showed. */}
+				<div
+					aria-hidden="true"
+					data-slot="write-place"
+					className="flex items-center gap-2 p-2 md:hidden"
+				>
+					<Skeleton className="h-6 w-20 pointer-coarse:h-11" />
+				</div>
 				<ListPaneSkeleton />
 			</div>
 			<div className="min-h-0 rounded-2xl bg-surface max-lg:hidden" />
