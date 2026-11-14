@@ -9,7 +9,7 @@ import {
 } from "@testing-library/react";
 import { Component, type ReactNode } from "react";
 
-import { clearToasts } from "@/components/ui/toaster";
+import { clearToasts, Toaster } from "@/components/ui/toaster";
 import { LOCALE_NAMES, SUPPORTED_LOCALES } from "@/i18n/locales";
 import {
 	mockRequestCookies,
@@ -22,10 +22,12 @@ const { UserMenuPanel } = await import(".");
 
 const root = () => document.documentElement;
 const writes = (name: string) => cookies.writes.filter((w) => w.name === name);
+const originalGet = cookies.jar.get.bind(cookies.jar);
 
 beforeEach(() => {
 	resetIntl();
 	cookies.reset();
+	cookies.jar.get = originalGet;
 });
 afterEach(() => {
 	cleanup();
@@ -67,6 +69,7 @@ function renderPanel(
 				adminHref={props.adminHref}
 				defaultOpen={props.defaultOpen ?? true}
 			/>
+			<Toaster label="toasts" closeLabel="close" />
 		</Catch>,
 	);
 }
@@ -203,6 +206,30 @@ describe("UserMenuPanel", () => {
 		const [write] = writes("__Host-epistle_session");
 		expect(write?.value).toBe("");
 		expect(write?.options).toMatchObject({ maxAge: 0 });
+	});
+
+	it("says the person is still signed in, and keeps the page, when signing out cannot be reached", async () => {
+		await cookies.signIn();
+		const seen: unknown[] = [];
+		renderPanel({}, (error) => seen.push(error));
+		cookies.jar.get = () => {
+			throw new Error("the request failed");
+		};
+
+		fireEvent.click(
+			await screen.findByRole("menuitem", { name: "logout" }),
+		);
+
+		expect(await screen.findByRole("alert")).toHaveTextContent(
+			"logoutFailed",
+		);
+		// Nothing reached the boundary: the page is the one the person was on.
+		expect(seen).toEqual([]);
+		expect(writes("__Host-epistle_session")).toEqual([]);
+		const button = screen.getByRole("button", { name: "account" });
+		await waitFor(() =>
+			expect(button).not.toHaveAttribute("aria-busy", "true"),
+		);
 	});
 
 	it("ends the session once: while it is on its way the rows wait and a second press sends nothing", async () => {

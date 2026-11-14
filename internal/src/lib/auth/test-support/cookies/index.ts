@@ -82,6 +82,16 @@ export function mockRequestCookies() {
 		notFound: () => {
 			throw new NotFoundSignal();
 		},
+		// As the real one: the framework's own signals go on, anything else
+		// comes back to the caller.
+		unstable_rethrow: (error: unknown) => {
+			if (
+				error instanceof RedirectSignal ||
+				error instanceof NotFoundSignal
+			) {
+				throw error;
+			}
+		},
 		usePathname: () => "/",
 		useRouter: () => ({
 			push: () => {},

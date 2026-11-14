@@ -26,6 +26,8 @@
 	"theme_light": "Claro",
 	"theme_dark": "Oscuro",
 	"themeFailed": "No se pudo guardar el tema.",
+	"languageFailed": "No se pudo guardar el idioma.",
+	"logoutFailed": "Sigues con la sesión abierta: no se pudo cerrar. Inténtalo de nuevo.",
 	"menuFailed": "No se pudo cargar el menú. Inténtalo de nuevo.",
 	"notifications": "Notificaciones",
 	"dismiss": "Cerrar aviso"

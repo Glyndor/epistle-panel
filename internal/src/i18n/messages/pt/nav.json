@@ -26,6 +26,8 @@
 	"theme_light": "Claro",
 	"theme_dark": "Escuro",
 	"themeFailed": "Não foi possível guardar o tema.",
+	"languageFailed": "Não foi possível guardar o idioma.",
+	"logoutFailed": "A sessão continua aberta: não foi possível terminá-la. Tente de novo.",
 	"menuFailed": "Não foi possível carregar o menu. Tente novamente.",
 	"notifications": "Notificações",
 	"dismiss": "Dispensar"
