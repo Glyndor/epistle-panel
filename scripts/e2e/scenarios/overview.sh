@@ -7,13 +7,15 @@ count_in() {
 	{ grep -o -F -- "$2" <<<"$1" || true; } | wc -l | tr -d ' '
 }
 
-# current_links: the links of the page's own content, in the last fetch, that
-# say they are the current page. The sidebar marks its current entry and the
-# trail its last step, both outside `main`: read with them, a check about the
-# period's link would pass or fail on the navigation's.
+# current_links: the links of the last fetch that say they are the current
+# page, the sidebar's own entry left out. The sidebar marks its current entry
+# too, and underlines its name under the pointer: read with it, a check about
+# the period's link would pass or fail on the navigation's. They are told apart
+# by what they are and not by where they sit, since the page's content arrives
+# in the stream after the frame.
 current_links() {
-	perl -0777 -ne 'print $1 if /(<main\b.*?<\/main>)/s' "$work/b" |
-		{ grep -o -E '<a [^>]*aria-current="page"[^>]*>' || true; } | tr '\n' ' '
+	{ grep -o -E '<a [^>]*aria-current="page"[^>]*>' "$work/b" || true; } |
+		{ grep -v 'data-slot="sidebar-menu-button"' || true; } | tr '\n' ' '
 }
 
 scenario_overview() {
