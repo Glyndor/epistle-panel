@@ -147,6 +147,60 @@ describe("ListToolbar", () => {
 		}
 	});
 
+	it("gives the filters 10 px of side padding with a fine pointer, which is what fits the four at 360 px", () => {
+		render(
+			<ListToolbar
+				box="INBOX"
+				folderRole="inbox"
+				filter="all"
+				q=""
+				density="comfortable"
+			/>,
+		);
+
+		// Measured: with 12 px the four are 334 px in Italian and 330 px in
+		// Portuguese, in a strip of 328 px, and the last is cut at rest.
+		for (const filter of screen
+			.getByRole("navigation", { name: "filtersLabel" })
+			.querySelectorAll("a")) {
+			const sides = filter.className
+				.split(/\s+/)
+				.filter((name) => /^(pointer-coarse:)?p[xse]?-/.test(name));
+			expect(sides).toEqual(["px-2.5", "pointer-coarse:px-3"]);
+		}
+	});
+
+	it("gives every filter a look under the pointer and another under a press, the one in use included", () => {
+		render(
+			<ListToolbar
+				box="INBOX"
+				folderRole="inbox"
+				filter="unread"
+				q=""
+				density="comfortable"
+			/>,
+		);
+		const fills = (name: string) =>
+			screen
+				.getByRole("link", { name })
+				.className.split(/\s+/)
+				.filter((one) => /(^|:)bg-/.test(one))
+				.sort();
+
+		// Rest, pointer and press are three fills, and the filter in use has
+		// its own three: before, its pointer fill was its rest fill.
+		expect(fills("filterAll")).toEqual([
+			"active:bg-foreground/20",
+			"bg-muted",
+			"hover:bg-foreground/15",
+		]);
+		expect(fills("filterUnread")).toEqual([
+			"active:bg-foreground/25",
+			"bg-accent",
+			"hover:bg-foreground/20",
+		]);
+	});
+
 	it("puts the density switch at the end of the search's line, in the density the server read", () => {
 		for (const [density, pressed] of [
 			["comfortable", "false"],
