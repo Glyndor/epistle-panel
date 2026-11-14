@@ -8,8 +8,9 @@ import { getMessageListAction } from "@/features/mail/actions/get-message-list";
 import { ListPager } from "@/features/mail/components/list-pager";
 import { ListSkeleton } from "@/features/mail/components/list-skeleton";
 import { MailNotice } from "@/features/mail/components/mail-notice";
+import { MessageGroups } from "@/features/mail/components/message-groups";
+import { useKeptFocus } from "@/features/mail/components/message-list/use-kept-focus";
 import { useMailShortcuts } from "@/features/mail/components/message-list/use-mail-shortcuts";
-import { MessageRow } from "@/features/mail/components/message-row";
 import type { ListAddress } from "@/features/mail/links/mail-href";
 import { messageListQueryOptions } from "@/features/mail/queries/mail-query-options";
 import { unwrap } from "@/lib/query/action-result";
@@ -35,23 +36,43 @@ export function MessageList({
 	selectedId: string | undefined;
 }) {
 	const t = useTranslations("mail");
-	const { data, isPending, isError, refetch, isFetching } = useQuery(
-		messageListQueryOptions(
-			// The folder's role addresses it and is no part of what is asked.
-			{ box: view.box, page: view.page, filter: view.filter, q: view.q },
-			fetchList,
-		),
+	const { data, isPending, isError, refetch, isFetching, isPlaceholderData } =
+		useQuery(
+			messageListQueryOptions(
+				// The folder's role addresses it and is no part of what is asked.
+				{
+					box: view.box,
+					page: view.page,
+					filter: view.filter,
+					q: view.q,
+				},
+				fetchList,
+			),
+		);
+	const ids = data?.items.map((item) => item.id) ?? [];
+	useMailShortcuts({ ids, selectedId });
+	// What names this list among the lists of the page: its scroll is kept
+	// by it. The previous page, left on screen while this one is on its way,
+	// is not this list yet.
+	const focus = useKeptFocus(
+		ids,
+		data !== undefined && !isPlaceholderData && !isError,
+		[view.box, view.page, view.filter, view.q].join("\n"),
 	);
-	useMailShortcuts({
-		ids: data?.items.map((item) => item.id) ?? [],
-		selectedId,
-	});
+	// The list's own heading, for assistive technology: the pane is named for
+	// the eye by the folder it shows. The date headings are one level under it.
+	const frame = (body: React.ReactNode) => (
+		<div ref={focus.list} data-slot="message-list" className="contents">
+			<h2 className="sr-only">{t("listLabel")}</h2>
+			{body}
+		</div>
+	);
 
 	if (isPending) {
-		return <ListSkeleton />;
+		return frame(<ListSkeleton />);
 	}
 	if (data === undefined || isError) {
-		return (
+		return frame(
 			<MailNotice
 				tone="error"
 				action={
@@ -67,37 +88,43 @@ export function MessageList({
 				}
 			>
 				{t("unavailable")}
-			</MailNotice>
+			</MailNotice>,
 		);
 	}
 	if (data.items.length === 0) {
 		const filtered = view.q !== "" || view.filter !== "all";
-		return (
-			<MailNotice tone="empty">
-				{filtered
-					? `${t("emptyMatches")} ${t("emptyHint")}`
-					: t("emptyFolder")}
-			</MailNotice>
+		// The notice takes the focus when the last row leaves under it: it is
+		// in view and draws the ring, which a heading for assistive technology
+		// alone would not.
+		return frame(
+			<div
+				ref={focus.empty}
+				tabIndex={-1}
+				data-slot="empty-list"
+				className="m-1 rounded-xl outline-ring focus-visible:outline-2 focus-visible:-outline-offset-2"
+			>
+				<MailNotice tone="empty">
+					{filtered
+						? `${t("emptyMatches")} ${t("emptyHint")}`
+						: t("emptyFolder")}
+				</MailNotice>
+			</div>,
 		);
 	}
-	return (
+	return frame(
 		<>
-			<ul aria-label={t("listLabel")} className="flex flex-col">
-				{data.items.map((message) => (
-					<MessageRow
-						key={message.id}
-						message={message}
-						selected={message.id === selectedId}
-						view={view}
-					/>
-				))}
-			</ul>
+			<MessageGroups
+				items={data.items}
+				today={data.today}
+				selectedId={selectedId}
+				view={view}
+			/>
 			<ListPager
 				view={view}
 				page={data.page}
 				hasNext={data.hasNext}
 				total={data.total}
 			/>
-		</>
+		</>,
 	);
 }

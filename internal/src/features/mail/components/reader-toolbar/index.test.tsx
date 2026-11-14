@@ -224,9 +224,11 @@ describe("ReaderToolbar", () => {
 		renderBar();
 		fireEvent.click(screen.getByRole("button", { name: "archive" }));
 		await waitFor(() => expect(setCalls(seen)).toHaveLength(1));
-		await waitFor(() =>
-			expect(screen.getByRole("button", { name: "spam" })).toBeEnabled(),
-		);
+		await waitFor(() => expect(leftCount).toBe(1));
+		// A moved message has another id: the next move is of another message
+		// on another screen. On the same one it would be dropped as gone.
+		cleanup();
+		renderBar();
 		fireEvent.click(screen.getByRole("button", { name: "spam" }));
 		await waitFor(() =>
 			expect(setCalls(seen).length).toBeGreaterThanOrEqual(2),
@@ -303,6 +305,40 @@ describe("ReaderToolbar", () => {
 		}
 		await waitFor(() =>
 			expect(setCalls(seen).length).toBeGreaterThan(baseline),
+		);
+	});
+
+	it("takes no key for a message that is on its way out", async () => {
+		const seen = serve();
+		renderBar();
+		await new Promise((r) => setTimeout(r, 40));
+		const baseline = setCalls(seen).length;
+		// The answer to the move waits until every key has been pressed.
+		let release = () => {};
+		const held = new Promise<void>((resolve) => {
+			release = resolve;
+		});
+		const answer = globalThis.fetch;
+		globalThis.fetch = (async (...args: Parameters<typeof fetch>) => {
+			await held;
+			return answer(...args);
+		}) as typeof fetch;
+
+		fireEvent.keyDown(document.body, { key: "e" });
+		await waitFor(() =>
+			expect(screen.getByRole("button", { name: "star" })).toBeDisabled(),
+		);
+		for (const key of ["#", "!", "s", "e", "Delete"]) {
+			fireEvent.keyDown(document.body, { key });
+		}
+		globalThis.fetch = answer;
+		release();
+
+		await waitFor(() => expect(leftCount).toBe(1));
+		await new Promise((r) => setTimeout(r, 60));
+		expect(setCalls(seen)).toHaveLength(baseline + 1);
+		expect(document.querySelectorAll("[data-kind='error']")).toHaveLength(
+			0,
 		);
 	});
 

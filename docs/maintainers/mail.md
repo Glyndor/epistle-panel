@@ -133,7 +133,7 @@ Route Handlers, after the session is checked.
 ## Keywords: labels, important, forwarded
 
 A message's state beyond read and starred is a keyword on it, and the views carry
-it (`features/mail/labels`), though no screen draws it yet:
+it (`features/mail/labels`). The list draws all of it (see "The message list" below):
 
 - **A label is a keyword.** epistle keeps any keyword that is an IMAP atom (ASCII, no
   space, none of `( ) { % * " ] \`, at most 64 bytes, at most 32 on a message) and
@@ -171,6 +171,12 @@ it (`features/mail/labels`), though no screen draws it yet:
 The stand-in mailbox holds one message in each state and the combinations worth
 seeing (`stateMessages` in `scripts/e2e/stand-in-api/jmap/messages.ts`), dated from
 the day it starts so there is always one of today and one of yesterday.
+
+## The message list
+
+How a row is drawn, the date groups, the density, the filters, the queue of
+changes to a message and what the list remembers for the page (its scroll and
+the focus) are in [`mail-list.md`](mail-list.md).
 
 ## What was measured of epistle's JMAP (source, `src/api/jmap/`)
 
