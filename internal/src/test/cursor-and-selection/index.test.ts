@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { cursorFailures, RULES } from "./base";
 import { contentFailures, selectionFailures } from "./selection";
-import { elements, productionFiles, read } from "./source";
+import { attribute, elements, productionFiles, read } from "./source";
 import { utilityFailures } from "./utilities";
 
 /** Each exception identifies one part, never an entire file, and explains why. */
@@ -14,12 +14,6 @@ const ALLOWLIST: Readonly<Record<string, string>> = {
 		"Existing unstyled asChild close adapter delegates chrome to its child. Retained by this test-only change; its styled close button has a separate exception.",
 	"components/ui/dropdown-menu/index.tsx:34 <DropdownMenuPrimitive.Trigger>: missing select-none in base classes":
 		"Existing unstyled asChild menu adapter delegates to Button or SidebarMenuButton. Retained by this test-only change; new adapters need their own base or a reviewed exception.",
-	"components/ui/breadcrumb/index.tsx:48 <Comp>: missing select-none in base classes":
-		"Existing breadcrumb links can display message subjects and folder names; keep these data labels copyable until the breadcrumb selection policy is decided.",
-	"components/ui/dialog/index.tsx:73 <DialogPrimitive.Close>: missing select-none in base classes":
-		"Legacy icon close control omitted by the two rule commits. Retained by this test-only change; migrate its chrome to Button and remove this exception.",
-	"components/ui/sheet/index.tsx:118 <button>: missing select-none in base classes":
-		"Legacy sheet close control omitted by the two rule commits. Retained by this test-only change; migrate its chrome to Button and remove this exception.",
 	"components/ui/radio-group/index.tsx:36 <RadioGroupPrimitive.Item>: missing select-none in base classes":
 		"The existing radio draws only an indicator; its text is in the separate Label with select-none. An item that starts rendering text needs its own selection base.",
 	"components/layout/skip-link/index.tsx:8 <a>: missing select-none in base classes":
@@ -112,6 +106,94 @@ describe("the cursor and selection rule (docs/maintainers/cursor-and-selection.m
 				(element) => element.tag === "td",
 			),
 		).toBe(true);
+	});
+
+	it("detects missing classes on every newly covered control and label", () => {
+		const sabotage = (
+			file: string,
+			source: string,
+			tag: string,
+			predicate: (
+				element: ReturnType<typeof elements>[number],
+			) => boolean,
+		) => {
+			const element = elements(source).find(
+				(item) => item.tag === tag && predicate(item),
+			);
+			expect(element).toBeDefined();
+			const token = source.indexOf("select-none", element?.start ?? -1);
+			expect(token).toBeGreaterThanOrEqual(0);
+			const damaged = `${source.slice(0, token)}select-allow${source.slice(token + "select-none".length)}`;
+			expect(damaged).not.toBe(source);
+			const line = source.slice(0, element?.start).split("\n").length;
+			const expected = `${file}:${line} <${tag}>: missing select-none in base classes`;
+			expect(selectionFailures(file, damaged, true)).toContain(expected);
+			expect(selectionFailures(file, source, true)).not.toContain(
+				expected,
+			);
+		};
+		sabotage(
+			"components/ui/dialog/index.tsx",
+			read("components/ui/dialog/index.tsx"),
+			"DialogPrimitive.Close",
+			(element) =>
+				attribute(element, "className").includes("select-none"),
+		);
+		sabotage(
+			"components/ui/sheet/index.tsx",
+			read("components/ui/sheet/index.tsx"),
+			"button",
+			() => true,
+		);
+		for (const file of [
+			"components/ui/dialog/index.tsx",
+			"components/ui/sheet/index.tsx",
+		])
+			sabotage(file, read(file), "span", (element) =>
+				/\bsr-only\b/.test(attribute(element, "className")),
+			);
+		for (const [file, targets] of [
+			[
+				"components/ui/breadcrumb/index.tsx",
+				[
+					["Comp", "breadcrumb-link"],
+					["span", "breadcrumb-page"],
+				],
+			],
+			[
+				"components/ui/dropdown-menu/index.tsx",
+				[["DropdownMenuPrimitive.Label", "dropdown-menu-label"]],
+			],
+			[
+				"features/mail/components/reader-header/index.tsx",
+				[
+					["dt", ""],
+					["dt", ""],
+				],
+			],
+		] as const) {
+			let source = read(file);
+			for (const [tag, slot] of targets) {
+				const element = elements(source).find(
+					(item) =>
+						item.tag === tag &&
+						attribute(item, "data-slot").replace(/["']/g, "") ===
+							slot &&
+						attribute(item, "className").includes("select-none"),
+				);
+				expect(element).toBeDefined();
+				sabotage(
+					file,
+					source,
+					tag,
+					(item) =>
+						attribute(item, "className").includes("select-none") &&
+						attribute(item, "data-slot").replace(/["']/g, "") ===
+							slot,
+				);
+				source = source.replace("select-none", "select-allow");
+			}
+		}
 	});
 
 	it("every exception has a written reason and still needs it", () => {

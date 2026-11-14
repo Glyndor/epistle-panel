@@ -18,6 +18,10 @@ The chrome of the panel is not selectable. The content of the panel is.
 | the marks of a row | `features/mail/components/row-actions` |
 | a tooltip | `components/ui/tooltip` |
 | a button that opens and closes a part | `components/ui/collapsible` |
+| the close button of a dialog or a sheet, and its label | `components/ui/dialog`, `components/ui/sheet` |
+| a step of the breadcrumb, and the current page in it | `components/ui/breadcrumb` |
+| the label or the heading of a menu | `components/ui/dropdown-menu` (`DropdownMenuLabel`) |
+| the name of a field in the reader's header (From, To, Date) | `features/mail/components/reader-header` |
 
 | Content, selectable | Where it lives |
 |---|---|
@@ -41,7 +45,7 @@ message are copied from the reader, where the message is open.
 | What | Cursor |
 |---|---|
 | what navigates or acts on a press: a link, a button, a menu item | `pointer` |
-| what does nothing | `default` |
+| what does nothing | the browser's own (`auto`); the panel sets no rule for it, because a rule over every element would also override `text` over a paragraph |
 | a control that is off | `not-allowed` |
 | what is busy and still takes a press | `progress` |
 | what is busy and takes no press | `wait` |

@@ -88,7 +88,7 @@ function DropdownMenuLabel({
 		<DropdownMenuPrimitive.Label
 			data-slot="dropdown-menu-label"
 			className={cn(
-				"flex items-center gap-2 px-2 py-1.5 font-medium text-muted-foreground text-xs [&_svg]:size-4 [&_svg]:shrink-0",
+				"flex select-none items-center gap-2 px-2 py-1.5 font-medium text-muted-foreground text-xs [&_svg]:size-4 [&_svg]:shrink-0",
 				className,
 			)}
 			{...props}

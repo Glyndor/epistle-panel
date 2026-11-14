@@ -77,19 +77,49 @@ export function selectionFailures(
 	const tree = elements(source);
 	const failures = tree
 		.filter((element) => {
+			const requiredOwnClass =
+				(ui &&
+					(element.tag === "button" ||
+						/\.Close$/.test(element.tag) ||
+						(element.tag === "span" &&
+							/\bsr-only\b/.test(
+								classText(
+									attribute(element, "className"),
+									source,
+								),
+							) &&
+							element.parents.some(
+								(parent) =>
+									parent.tag === "button" ||
+									/\.Close$/.test(parent.tag),
+							)))) ||
+				(file === "components/ui/breadcrumb/index.tsx" &&
+					["breadcrumb-link", "breadcrumb-page"].includes(
+						attribute(element, "data-slot").replace(/["']/g, ""),
+					)) ||
+				(file === "components/ui/dropdown-menu/index.tsx" &&
+					/\.Label$/.test(element.tag) &&
+					attribute(element, "data-slot") ===
+						'"dropdown-menu-label"') ||
+				(file === "features/mail/components/reader-header/index.tsx" &&
+					element.tag === "dt");
 			const mandatory =
-				ui &&
-				(element.tag === "a" ||
-					attribute(element, "data-slot") === '"badge"');
+				requiredOwnClass ||
+				(ui &&
+					(element.tag === "a" ||
+						attribute(element, "data-slot") === '"badge"'));
 			if (!mandatory && !interactive(element, source)) return false;
-			if (shared(element, source)) return false;
+			if (!requiredOwnClass && shared(element, source)) return false;
 			if (
 				hasSelectNone(
 					baseClasses(attribute(element, "className"), source),
 				)
 			)
 				return false;
-			return !element.parents.some((parent) => shared(parent, source));
+			return (
+				requiredOwnClass ||
+				!element.parents.some((parent) => shared(parent, source))
+			);
 		})
 		.map(
 			(element) =>
@@ -121,6 +151,11 @@ export function contentFailures(file: string, source: string): string[] {
 	return elements(source)
 		.filter(
 			(element) =>
+				!(
+					file ===
+						"features/mail/components/reader-header/index.tsx" &&
+					element.tag === "dt"
+				) &&
 				!shared(element, source) &&
 				/\bselect-none\b/.test(
 					classText(attribute(element, "className"), source),

@@ -64,13 +64,17 @@ export function ReaderHeader({
 					.filter(([, list]) => list.length > 0)
 					.map(([label, list]) => (
 						<div key={label} className="contents">
-							<dt className="text-muted-foreground">{label}</dt>
+							<dt className="select-none text-muted-foreground">
+								{label}
+							</dt>
 							<dd className="break-words">
 								<Addresses list={list} />
 							</dd>
 						</div>
 					))}
-				<dt className="text-muted-foreground">{t("date")}</dt>
+				<dt className="select-none text-muted-foreground">
+					{t("date")}
+				</dt>
 				<dd>
 					<time dateTime={message.receivedAt}>
 						{formatReceivedAt(format, message.receivedAt)}
