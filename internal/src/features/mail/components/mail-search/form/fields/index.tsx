@@ -5,10 +5,47 @@ import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FolderPicker } from "@/features/mail/components/mail-search/form/folder-picker";
-import type { ListConditions } from "@/features/mail/schemas/list-conditions-model";
-import { MAX_CONDITION_TEXT } from "@/features/mail/schemas/list-conditions-model";
+import {
+	type ListConditions,
+	MAX_CONDITION_TEXT,
+} from "@/features/mail/schemas/list-conditions-model";
 import { isSearchFormMessage } from "@/features/mail/schemas/search-form";
 import { fieldLength } from "@/lib/field-length";
+
+/**
+ * A field of the search, with its name and the message of what is wrong with
+ * it, if there is one. The message names the field, and the field says that
+ * it is the one that is wrong.
+ */
+function Field({
+	id,
+	label,
+	error,
+	children,
+}: {
+	id: string;
+	/** The name of the field, already translated. */
+	label: string;
+	/** The message of what is wrong, already translated; null when there is none. */
+	error: string | null;
+	children: React.ReactNode;
+}) {
+	return (
+		<div className="flex flex-col gap-2">
+			<Label htmlFor={id}>{label}</Label>
+			{children}
+			{error === null ? null : (
+				<p
+					id={`${id}-message`}
+					role="alert"
+					className="text-destructive text-xs"
+				>
+					{error}
+				</p>
+			)}
+		</div>
+	);
+}
 
 /**
  * The fields of the search, beside the words: who wrote it, who it went to,
@@ -36,11 +73,16 @@ export function SearchFields({
 	};
 	const invalid = (field: string) =>
 		errors[field] !== undefined ? true : undefined;
+	const described = (field: string, id: string) =>
+		message(field) === null ? undefined : `${id}-message`;
 
 	return (
 		<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-			<div className="flex flex-col gap-2">
-				<Label htmlFor="mail-condition-from">{t("from")}</Label>
+			<Field
+				id="mail-condition-from"
+				label={t("from")}
+				error={message("from")}
+			>
 				<Input
 					id="mail-condition-from"
 					name="from"
@@ -50,24 +92,10 @@ export function SearchFields({
 					autoComplete="off"
 					spellCheck={false}
 					aria-invalid={invalid("from")}
-					aria-describedby={
-						message("from") === null
-							? undefined
-							: "mail-condition-from-message"
-					}
+					aria-describedby={described("from", "mail-condition-from")}
 				/>
-				{message("from") === null ? null : (
-					<p
-						id="mail-condition-from-message"
-						role="alert"
-						className="text-destructive text-xs"
-					>
-						{message("from")}
-					</p>
-				)}
-			</div>
-			<div className="flex flex-col gap-2">
-				<Label htmlFor="mail-condition-to">{t("to")}</Label>
+			</Field>
+			<Field id="mail-condition-to" label={t("to")} error={message("to")}>
 				<Input
 					id="mail-condition-to"
 					name="to"
@@ -77,26 +105,14 @@ export function SearchFields({
 					autoComplete="off"
 					spellCheck={false}
 					aria-invalid={invalid("to")}
-					aria-describedby={
-						message("to") === null
-							? undefined
-							: "mail-condition-to-message"
-					}
+					aria-describedby={described("to", "mail-condition-to")}
 				/>
-				{message("to") === null ? null : (
-					<p
-						id="mail-condition-to-message"
-						role="alert"
-						className="text-destructive text-xs"
-					>
-						{message("to")}
-					</p>
-				)}
-			</div>
-			<div className="flex flex-col gap-2">
-				<Label htmlFor="mail-condition-subject">
-					{t("fieldSubject")}
-				</Label>
+			</Field>
+			<Field
+				id="mail-condition-subject"
+				label={t("fieldSubject")}
+				error={message("subject")}
+			>
 				<Input
 					id="mail-condition-subject"
 					name="subject"
@@ -106,93 +122,58 @@ export function SearchFields({
 					autoComplete="off"
 					spellCheck={false}
 					aria-invalid={invalid("subject")}
-					aria-describedby={
-						message("subject") === null
-							? undefined
-							: "mail-condition-subject-message"
-					}
+					aria-describedby={described(
+						"subject",
+						"mail-condition-subject",
+					)}
 				/>
-				{message("subject") === null ? null : (
-					<p
-						id="mail-condition-subject-message"
-						role="alert"
-						className="text-destructive text-xs"
-					>
-						{message("subject")}
-					</p>
-				)}
-			</div>
-			<div className="flex flex-col gap-2">
-				<Label htmlFor="mail-condition-after">
-					{t("conditionAfter")}
-				</Label>
+			</Field>
+			<Field
+				id="mail-condition-after"
+				label={t("conditionAfter")}
+				error={message("after")}
+			>
 				<Input
 					id="mail-condition-after"
 					name="after"
 					type="date"
 					defaultValue={conditions.after ?? ""}
 					aria-invalid={invalid("after")}
-					aria-describedby={
-						message("after") === null
-							? undefined
-							: "mail-condition-after-message"
-					}
+					aria-describedby={described(
+						"after",
+						"mail-condition-after",
+					)}
 				/>
-				{message("after") === null ? null : (
-					<p
-						id="mail-condition-after-message"
-						role="alert"
-						className="text-destructive text-xs"
-					>
-						{message("after")}
-					</p>
-				)}
-			</div>
-			<div className="flex flex-col gap-2">
-				<Label htmlFor="mail-condition-before">
-					{t("conditionBefore")}
-				</Label>
+			</Field>
+			<Field
+				id="mail-condition-before"
+				label={t("conditionBefore")}
+				error={message("before")}
+			>
 				<Input
 					id="mail-condition-before"
 					name="before"
 					type="date"
 					defaultValue={conditions.before ?? ""}
 					aria-invalid={invalid("before")}
-					aria-describedby={
-						message("before") === null
-							? undefined
-							: "mail-condition-before-message"
-					}
+					aria-describedby={described(
+						"before",
+						"mail-condition-before",
+					)}
 				/>
-				{message("before") === null ? null : (
-					<p
-						id="mail-condition-before-message"
-						role="alert"
-						className="text-destructive text-xs"
-					>
-						{message("before")}
-					</p>
-				)}
-			</div>
-			<div className="flex flex-col gap-2">
-				<Label htmlFor="mail-condition-folder">
-					{t("conditionFolder")}
-				</Label>
+			</Field>
+			<Field
+				id="mail-condition-folder"
+				label={t("conditionFolder")}
+				error={message("folder")}
+			>
 				<FolderPicker value={conditions.folder ?? ""} />
-				{message("folder") === null ? null : (
-					<p
-						id="mail-condition-folder-message"
-						role="alert"
-						className="text-destructive text-xs"
-					>
-						{message("folder")}
-					</p>
-				)}
-			</div>
-			<div className="flex flex-col gap-2">
-				<Label htmlFor="mail-condition-label">
-					{t("conditionLabel")}
-				</Label>
+			</Field>
+			<Field
+				id="mail-condition-label"
+				label={t("conditionLabel")}
+				error={message("label")}
+			>
 				<Input
 					id="mail-condition-label"
 					name="label"
@@ -202,36 +183,24 @@ export function SearchFields({
 					autoComplete="off"
 					spellCheck={false}
 					aria-invalid={invalid("label")}
-					aria-describedby={
-						message("label") === null
-							? undefined
-							: "mail-condition-label-message"
-					}
+					aria-describedby={described(
+						"label",
+						"mail-condition-label",
+					)}
 				/>
-				{message("label") === null ? null : (
-					<p
-						id="mail-condition-label-message"
-						role="alert"
-						className="text-destructive text-xs"
-					>
-						{message("label")}
-					</p>
-				)}
-			</div>
+			</Field>
 			<div className="flex flex-col gap-2 sm:col-span-2 lg:col-span-1">
 				<Label htmlFor="mail-condition-attachment">
 					{t("hasAttachment")}
 				</Label>
-				<div className="flex items-center gap-2">
-					<input
-						id="mail-condition-attachment"
-						name="attachment"
-						type="checkbox"
-						value="1"
-						defaultChecked={conditions.attachment}
-						className="size-4 accent-primary"
-					/>
-				</div>
+				<input
+					id="mail-condition-attachment"
+					name="attachment"
+					type="checkbox"
+					value="1"
+					defaultChecked={conditions.attachment}
+					className="size-4 accent-primary"
+				/>
 			</div>
 		</div>
 	);

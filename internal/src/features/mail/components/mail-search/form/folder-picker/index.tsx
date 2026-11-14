@@ -20,23 +20,28 @@ const fetchMailboxes = async () => unwrap(await getMailboxesAction());
  *
  * The choice is the browser's own: it works before any script has loaded and
  * inside a plain GET form, which is where a menu of the panel's own cannot be
- * used.
+ * used. The folder the address names is in the list even before the folders
+ * are read, so a search that names one does not lose it.
  */
 export function FolderPicker({ value }: { value: string }) {
 	const t = useTranslations("mail");
 	const { data } = useQuery(mailboxesQueryOptions(fetchMailboxes));
+	const boxes = data ?? [];
+	const known = boxes.some((box) => box.id === value);
 
 	return (
 		<NativeSelect
 			id="mail-condition-folder"
 			name="folder"
 			defaultValue={value}
-			disabled={data === undefined}
 		>
 			<NativeSelectOption value="">
 				{t("conditionFolderHere")}
 			</NativeSelectOption>
-			{(data ?? []).map((box) => (
+			{known ? null : (
+				<NativeSelectOption value={value}>{value}</NativeSelectOption>
+			)}
+			{boxes.map((box) => (
 				<NativeSelectOption key={box.id} value={box.id}>
 					{box.name}
 				</NativeSelectOption>
