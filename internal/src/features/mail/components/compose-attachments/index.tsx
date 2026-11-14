@@ -98,10 +98,17 @@ export function ComposeAttachments({
 					id={inputId}
 					type="file"
 					multiple
-					className="sr-only"
+					// The field is what takes the focus and it is not drawn: its
+					// label, right after it, shows the ring in its place.
+					className="peer sr-only"
 					onChange={(event) => void upload(event.target.files)}
 				/>
-				<Button asChild variant="ghost" size="sm">
+				<Button
+					asChild
+					variant="ghost"
+					size="sm"
+					className="peer-focus-visible:outline-2 peer-focus-visible:outline-ring peer-focus-visible:outline-offset-2"
+				>
 					<label htmlFor={inputId} className="cursor-pointer">
 						<PaperclipIcon aria-hidden="true" />
 						{t("attach")}

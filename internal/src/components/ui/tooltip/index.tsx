@@ -86,6 +86,41 @@ function hasPopupOpen(element: HTMLElement): boolean {
  * Props it does not know go to the control, so it can stand between a Radix
  * trigger (`asChild`) and its button.
  */
+/** The values of `overflow` under which a box cuts off what leaves it. */
+const CLIPS = new Set(["auto", "scroll", "hidden", "clip"]);
+
+/**
+ * Whether a control has been scrolled wholly out of a box that clips it: any
+ * ancestor whose overflow is not `visible`. A control that is partly in view
+ * is still there to be named.
+ */
+function scrolledAway(element: HTMLElement, box: DOMRect): boolean {
+	for (
+		let parent = element.parentElement;
+		parent !== null;
+		parent = parent.parentElement
+	) {
+		const style = getComputedStyle(parent);
+		if (!CLIPS.has(style.overflowX) && !CLIPS.has(style.overflowY)) {
+			continue;
+		}
+		const clip = parent.getBoundingClientRect();
+		if (clip.width === 0 && clip.height === 0) {
+			// Not laid out: it clips nothing that can be measured.
+			continue;
+		}
+		if (
+			box.bottom <= clip.top ||
+			box.top >= clip.bottom ||
+			box.right <= clip.left ||
+			box.left >= clip.right
+		) {
+			return true;
+		}
+	}
+	return false;
+}
+
 export function Tooltip({
 	label,
 	shortcut,
@@ -147,7 +182,14 @@ export function Tooltip({
 				setPlace(null);
 				return;
 			}
-			const next = placeOf(element.getBoundingClientRect(), side, align);
+			const box = element.getBoundingClientRect();
+			if (scrolledAway(element, box)) {
+				// The control left the box that scrolls it: a name drawn
+				// over another zone would be the name of nothing in view.
+				setPlace(null);
+				return;
+			}
+			const next = placeOf(box, side, align);
 			setPlace((current) =>
 				current === null || samePlace(current, next) ? current : next,
 			);

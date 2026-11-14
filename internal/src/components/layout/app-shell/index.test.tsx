@@ -90,7 +90,38 @@ describe("AppShell", () => {
 		const inset = document.querySelector("[data-slot='sidebar-inset']");
 		expect(inset).toHaveClass("min-h-0", "overflow-hidden");
 		expect(screen.getByRole("banner")).toHaveClass("shrink-0");
-		expect(inset?.lastElementChild).toBe(screen.getByRole("main"));
+		const frame = inset?.lastElementChild;
+		expect(frame).toHaveAttribute("data-slot", "main-frame");
+		expect(frame?.firstElementChild).toBe(screen.getByRole("main"));
+	});
+
+	it("draws the focus of main on a box that does not scroll, so what overflows cannot cover it", async () => {
+		await renderShell();
+
+		const main = screen.getByRole("main");
+		// No ring of its own: the content it scrolls would be painted over it.
+		expect(main).toHaveClass("peer", "outline-none");
+		expect(main.className).not.toMatch(/focus-visible:outline/);
+		const ring = main.nextElementSibling;
+		expect(ring).toHaveAttribute("data-slot", "main-focus");
+		expect(ring).toHaveAttribute("aria-hidden", "true");
+		expect(ring).toHaveClass(
+			"pointer-events-none",
+			"absolute",
+			"inset-0",
+			"hidden",
+			"peer-focus-visible:block",
+			"outline-2",
+			"-outline-offset-2",
+		);
+		// The frame holds both and takes the place main had in the column.
+		expect(main.parentElement).toHaveClass(
+			"relative",
+			"min-h-0",
+			"flex-1",
+			"flex-col",
+		);
+		expect(main.parentElement).not.toHaveClass("overflow-y-auto");
 	});
 
 	it("scrolls a page as a whole, inside the main landmark", async () => {
@@ -182,10 +213,12 @@ describe("AppShell", () => {
 			]);
 			main.focus();
 			expect(document.activeElement).toBe(main);
-			expect(main).toHaveClass(
+			// The ring is the box after it, shown while main has the focus.
+			expect(main.nextElementSibling).toHaveClass(
 				"outline-ring",
-				"focus-visible:outline-2",
-				"focus-visible:-outline-offset-2",
+				"outline-2",
+				"-outline-offset-2",
+				"peer-focus-visible:block",
 			);
 			cleanup();
 		}

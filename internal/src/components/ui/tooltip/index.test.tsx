@@ -313,6 +313,49 @@ describe("Tooltip", () => {
 		expect(tip()).toBeNull();
 	});
 
+	it("goes when its control is scrolled wholly out of the box that clips it, and stays while a part is in view", async () => {
+		render(
+			<div data-testid="pane">
+				<Tooltip label="Row actions">
+					<button type="button">
+						<span className="sr-only">Row actions</span>
+					</button>
+				</Tooltip>
+			</div>,
+		);
+		const pane = screen.getByTestId("pane");
+		const button = screen.getByRole("button", { name: "Row actions" });
+		const frame = () =>
+			new Promise((resolve) =>
+				requestAnimationFrame(() => resolve(null)),
+			);
+		// The pane scrolls: it shows what lies between 48 and 400 px.
+		pane.style.overflowY = "auto";
+		place(pane, {
+			top: 48,
+			bottom: 400,
+			left: 0,
+			right: 800,
+			width: 800,
+			height: 352,
+		});
+		place(button, { top: 100, bottom: 132, left: 700, right: 732 });
+		fireEvent.pointerEnter(button);
+		expect(tip()).not.toBeNull();
+
+		// One pixel of the control still shows under the pane's upper edge.
+		place(button, { top: 17, bottom: 49, left: 700, right: 732 });
+		await frame();
+		await frame();
+		expect(tip()).not.toBeNull();
+
+		// It is wholly above the pane now, where the header is.
+		place(button, { top: 16, bottom: 48, left: 700, right: 732 });
+		await frame();
+		await frame();
+		expect(tip()).toBeNull();
+	});
+
 	it("stops following once it is gone, and leaves no frame asked for behind it", async () => {
 		const asked: number[] = [];
 		const cancelled: number[] = [];

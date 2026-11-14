@@ -72,6 +72,14 @@ function DialogContent({
 				<Tooltip label={closeLabel} align="end">
 					<DialogPrimitive.Close
 						data-slot="dialog-close"
+						// The box scrolls when it is taller than the window, and
+						// this button is at its top: reached with the keyboard
+						// from below, it was focused out of view.
+						onFocus={(event) =>
+							event.currentTarget.scrollIntoView?.({
+								block: "nearest",
+							})
+						}
 						className="absolute top-3 right-3 inline-flex size-8 pointer-coarse:size-11 items-center justify-center rounded-lg text-muted-foreground hover:bg-surface-sunken hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 [&_svg]:size-4"
 					>
 						<XIcon aria-hidden="true" />

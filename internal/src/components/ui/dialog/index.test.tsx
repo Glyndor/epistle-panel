@@ -83,6 +83,22 @@ describe("Dialog", () => {
 		expect(close.className).not.toContain("outline-none");
 	});
 
+	it("brings its close button into view when it takes the focus", async () => {
+		setup();
+		fireEvent.click(screen.getByRole("button", { name: "Open" }));
+		const close = await screen.findByRole("button", { name: "Shut" });
+		const asked: unknown[] = [];
+		close.scrollIntoView = ((options: unknown) => {
+			asked.push(options);
+		}) as typeof close.scrollIntoView;
+
+		// The box scrolls when it is taller than the window, and the button
+		// is at its top: reached from below, it must not stay out of view.
+		fireEvent.focus(close);
+
+		expect(asked).toEqual([{ block: "nearest" }]);
+	});
+
 	it("names its close button, an icon alone, in a tooltip", async () => {
 		setup();
 		fireEvent.click(screen.getByRole("button", { name: "Open" }));

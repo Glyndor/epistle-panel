@@ -86,31 +86,44 @@ export function AppShell({
 					user={user}
 					adminHref={adminHref}
 				/>
-				<main
-					id="main-content"
-					// The skip link lands here in both areas: a `main` that
-					// does not scroll cannot take the focus on its own.
-					tabIndex={-1}
-					data-content={content}
-					className={cn(
-						"min-h-0 min-w-0 flex-1 outline-ring focus-visible:outline-2 focus-visible:-outline-offset-2",
-						content === "page"
-							? "overflow-y-auto"
-							: "overflow-hidden",
-					)}
+				{/* The ring of `main`, which the skip link focuses, is drawn on a
+				    box that does not scroll. On `main` itself the content that
+				    overflows it is painted over the ring's lower side. */}
+				<div
+					data-slot="main-frame"
+					className="relative flex min-h-0 min-w-0 flex-1 flex-col"
 				>
-					{content === "page" ? (
-						// The padded column is a child of the scrolling box, not the
-						// box itself: a flex column of a fixed height would squeeze
-						// a table that scrolls sideways instead of letting the page
-						// scroll.
-						<div className="flex min-w-0 flex-col gap-3 p-4 md:px-6">
-							{children}
-						</div>
-					) : (
-						children
-					)}
-				</main>
+					<main
+						id="main-content"
+						// The skip link lands here in both areas: a `main` that
+						// does not scroll cannot take the focus on its own.
+						tabIndex={-1}
+						data-content={content}
+						className={cn(
+							"peer min-h-0 min-w-0 flex-1 outline-none",
+							content === "page"
+								? "overflow-y-auto"
+								: "overflow-hidden",
+						)}
+					>
+						{content === "page" ? (
+							// The padded column is a child of the scrolling box, not the
+							// box itself: a flex column of a fixed height would squeeze
+							// a table that scrolls sideways instead of letting the page
+							// scroll.
+							<div className="flex min-w-0 flex-col gap-3 p-4 md:px-6">
+								{children}
+							</div>
+						) : (
+							children
+						)}
+					</main>
+					<span
+						aria-hidden="true"
+						data-slot="main-focus"
+						className="pointer-events-none absolute inset-0 z-10 hidden outline-2 outline-ring -outline-offset-2 peer-focus-visible:block"
+					/>
+				</div>
 			</SidebarInset>
 			<AppToaster />
 		</SidebarProvider>
