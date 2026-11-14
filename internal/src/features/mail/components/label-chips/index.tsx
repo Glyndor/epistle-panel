@@ -1,6 +1,6 @@
 import { useFormatter, useTranslations } from "next-intl";
 
-import { Tooltip, TooltipContent } from "@/components/ui/tooltip";
+import { Tooltip } from "@/components/ui/tooltip";
 import type { LabelTone } from "@/features/mail/labels/label-tone";
 import type { LabelView } from "@/features/mail/schemas/mail-view";
 import { cn } from "@/lib/class-names";
@@ -45,16 +45,17 @@ function More({
 	}
 	return (
 		<Tooltip
-			className={cn("shrink-0", className)}
-			data-slot="label-more"
-			data-count={names.length}
+			label={format.list(names, { type: "conjunction" })}
+			side="bottom"
+			align="end"
 		>
-			<span className={CHIP}>
+			<span
+				className={cn(CHIP, "shrink-0", className)}
+				data-slot="label-more"
+				data-count={names.length}
+			>
 				{t("moreLabels", { count: names.length })}
 			</span>
-			<TooltipContent side="bottom" align="end">
-				<bdi>{format.list(names, { type: "conjunction" })}</bdi>
-			</TooltipContent>
 		</Tooltip>
 	);
 }

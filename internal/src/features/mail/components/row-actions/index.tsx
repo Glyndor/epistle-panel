@@ -6,7 +6,7 @@ import { type ReactNode, useRef } from "react";
 
 import { ImportantMark } from "@/components/icons/important-mark";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent } from "@/components/ui/tooltip";
+import { Tooltip } from "@/components/ui/tooltip";
 import { useMessageChange } from "@/features/mail/components/reader-toolbar/use-message-change";
 import type { MessageOp } from "@/features/mail/schemas/mail-input";
 import { cn } from "@/lib/class-names";
@@ -36,7 +36,7 @@ function Mark({
 	children: ReactNode;
 }) {
 	return (
-		<Tooltip>
+		<Tooltip label={label} side="bottom" align="end">
 			<Button
 				type="button"
 				variant="ghost"
@@ -49,9 +49,6 @@ function Mark({
 				{children}
 				<span className="sr-only">{label}</span>
 			</Button>
-			<TooltipContent side="bottom" align="end">
-				{label}
-			</TooltipContent>
 		</Tooltip>
 	);
 }

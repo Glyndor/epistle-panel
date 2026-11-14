@@ -6,7 +6,7 @@ import { useRef, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toaster";
-import { Tooltip, TooltipContent } from "@/components/ui/tooltip";
+import { Tooltip } from "@/components/ui/tooltip";
 import { setListDensity } from "@/features/mail/actions/set-list-density";
 import {
 	LIST_DENSITY_ATTRIBUTE,
@@ -62,7 +62,7 @@ export function DensityToggle({ density }: { density: ListDensity }) {
 	};
 
 	return (
-		<Tooltip>
+		<Tooltip label={t("densityCompact")} side="bottom" align="end">
 			<Button
 				ref={button}
 				type="button"
@@ -80,9 +80,6 @@ export function DensityToggle({ density }: { density: ListDensity }) {
 				)}
 				<span className="sr-only">{t("densityCompact")}</span>
 			</Button>
-			<TooltipContent side="bottom" align="end">
-				{t("densityCompact")}
-			</TooltipContent>
 		</Tooltip>
 	);
 }
