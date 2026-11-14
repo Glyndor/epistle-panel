@@ -79,6 +79,30 @@ scenario_mail() {
 	assert_absent "and leaves the others out" "$(cat "$work/b")" "Weekly newsletter"
 	fetch "/app/mail/inbox?q=newsletter" "$good"
 	assert_contains "a search finds by subject" "$(cat "$work/b")" "Weekly newsletter"
+	local search_links
+	search_links=$({ grep -o 'href="/app/mail/[^" ]*?[^" ]*"' "$work/b" || true; })
+	assert_contains "the search produces a result address with its words" "$search_links" "href=\"/app/mail/inbox/$MAIL_NEWSLETTER?q=newsletter\""
+	assert_eq "the addresses a search produces have no empty parameters" \
+		"$(printf '%s' "$search_links" | { grep -Eo '(\?|&amp;)[^=&?]+=(\&amp;|"|$)' || true; } | wc -l | tr -d ' ')" 0
+
+	# curl executes no script: the native disclosure and all its fields must
+	# already be inside the GET form, and both conditions must narrow the list.
+	local search_form
+	search_form=$(perl -0777 -ne 'print $1 if /(<form\b(?=[^>]*role="search")[^>]*>.*?<\/form>)/s' "$work/b")
+	assert_contains "the no-script search is a GET form" "$search_form" 'method="get"'
+	assert_contains "it submits to the current folder" "$search_form" 'action="/app/mail/inbox"'
+	assert_contains "advanced fields open with a native disclosure" "$search_form" '<details'
+	assert_contains "the disclosure has a native trigger" "$search_form" '<summary'
+	assert_contains "the sender field is in the server HTML" "$search_form" 'name="from"'
+	assert_contains "the subject field is in the server HTML" "$search_form" 'name="subject"'
+	fetch "/app/mail/inbox?from=news%40example.org&subject=newsletter" "$good"
+	assert_eq "no-script GET with sender and subject" "$status" 200
+	assert_contains "the advanced search returns its matching message" "$(cat "$work/b")" "Weekly newsletter"
+	assert_absent "the advanced search excludes other messages" "$(cat "$work/b")" "Welcome to your mailbox"
+	fetch "/app/mail/inbox?from=ana%40example.org&subject=newsletter" "$good"
+	assert_absent "the sender condition is applied with the subject" "$(cat "$work/b")" "Weekly newsletter"
+	fetch "/app/mail/inbox?from=news%40example.org&subject=Welcome" "$good"
+	assert_absent "the subject condition is applied with the sender" "$(cat "$work/b")" "Weekly newsletter"
 
 	# The address of a search narrows the list, and nothing of what it carries
 	# becomes markup in the page.
