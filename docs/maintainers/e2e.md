@@ -41,7 +41,7 @@ the line limit:
 | `scripts/e2e/lib/reporting.sh` | the pass and fail counters and the `assert_*` helpers |
 | `scripts/e2e/lib/processes.sh` | secrets, start and restart of the stand-in and the panel, its control calls |
 | `scripts/e2e/lib/http.sh` | `fetch`, `login`, the form-field readers, memory and CPU counters |
-| `scripts/e2e/scenarios/<name>.sh` | one scenario each: `headers`, `logout`, `limiter`, `limiter-global`, `noauth`, `degraded`, `rotation`, `idle`, `theme`, `theme-choice`, `profile-menu`, `body-limit`, `captcha`, `csrf`, `set-locale`, `unknown-variable`, `suppression`, `deliveries`, `account-detail`, `accounts`, `breadcrumbs`, `admin-id`, `mail`, `streaming`, `tables`, `overview` |
+| `scripts/e2e/scenarios/<concern>/<name>.sh` | one scenario each, in a folder per concern: `accounts/` holds `accounts` and `account-detail`; `auth/` holds `captcha`, `limiter`, `limiter-global`, `logout` and `noauth`; `config/` holds `rotation` and `unknown-variable`; `limits/` holds `degraded` and `idle`; `locale/` holds `set-locale`; `mail/` holds `deliveries`, `mail` and `suppression`; `rendering/` holds `breadcrumbs`, `overview`, `profile-menu`, `streaming` and `tables`; `security/` holds `admin-id`, `body-limit`, `csrf` and `headers`; `theme/` holds `theme` and `theme-choice` |
 
 Every run generates its own admin id (a fresh UUID v4, `admin_id`, and `adm` for the
 admin path) and passes it as `EPISTLE_PANEL_ADMIN_ID`; nothing in the repository
@@ -49,8 +49,9 @@ spells one. `lib/http.sh` has the helpers that compare a response with the 404 o
 missing path: `set_404_reference`, `assert_hidden` and `assert_action_hidden` (same
 status, same headers and same body once the nonce is blanked).
 
-A new scenario is a new file in `scenarios/`, a `source` line and a `case` entry
-in `run.sh`, and a row in the table below.
+A new scenario is a new file in the folder of `scenarios/` that holds its
+concern, a `source` line and a `case` entry in `run.sh`, and a row in the
+table below.
 
 Two small files are sourced by both scripts: `session-cookie.sh` holds the
 session cookie name, and a test fails when it differs from `SESSION_COOKIE` in
