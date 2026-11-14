@@ -59,8 +59,11 @@ describe("FolderPane", () => {
 	it("says the server is unreachable", async () => {
 		stubJmap({});
 		render(withQuery(<FolderPane />));
-		expect(await screen.findByRole("alert")).toHaveTextContent(
-			"unavailable",
-		);
+		const notice = await screen.findByRole("alert");
+		expect(notice).toHaveTextContent("unavailable");
+		// The rail collapsed to icons has no room for the sentence.
+		expect(
+			notice.closest(".group-data-\\[collapsible\\=icon\\]\\:sr-only"),
+		).not.toBeNull();
 	});
 });
