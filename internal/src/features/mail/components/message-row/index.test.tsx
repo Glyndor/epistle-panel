@@ -2,27 +2,14 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { cleanup, render, screen } from "@testing-library/react";
 
 import type { MessageSummary } from "@/features/mail/schemas/mail-view";
+import { withQuery } from "@/test/query-wrapper";
+import { summary } from "../../test-support/fixtures";
 
 import { MessageRow } from ".";
 
 afterEach(cleanup);
 
-const message = (over: Partial<MessageSummary> = {}): MessageSummary => ({
-	id: "id-1",
-	from: { name: "Ana", email: "ana@example.org" },
-	subject: "Hello",
-	receivedAt: "2026-11-12T10:00:00Z",
-	preview: "preview",
-	unread: false,
-	flagged: false,
-	important: false,
-	answered: false,
-	forwarded: false,
-	draft: false,
-	hasAttachment: false,
-	labels: [],
-	...over,
-});
+const ID = "00000000-0000-4000-8000-0000000000b1";
 const view = {
 	box: "INBOX",
 	role: "inbox",
@@ -30,64 +17,251 @@ const view = {
 	filter: "unread",
 	q: "x",
 } as const;
+const EVERYTHING = {
+	unread: true,
+	flagged: true,
+	important: true,
+	answered: true,
+	forwarded: true,
+	draft: true,
+	hasAttachment: true,
+	labels: [
+		{ keyword: "Work", name: "Work", tone: 1 },
+		{ keyword: "Home", name: "Home", tone: 2 },
+	],
+} as const satisfies Partial<MessageSummary>;
 
 function row(m: MessageSummary, selected = false) {
-	return render(
-		<ul>
-			<MessageRow message={m} selected={selected} view={view} />
-		</ul>,
+	const view_ = render(
+		withQuery(
+			<ul>
+				<MessageRow
+					message={m}
+					selected={selected}
+					view={view}
+					datePart="time"
+				/>
+			</ul>,
+		),
 	);
+	const item = view_.container.querySelector("li");
+	if (item === null) {
+		throw new Error("no row");
+	}
+	return { ...view_, item, link: screen.getByRole("link") };
 }
+/** The classes of `element` that set a height, at any variant. */
+const heights = (element: Element) =>
+	element.className
+		.split(/\s+/)
+		.filter((name) => /(^|:)h-[\w./]+$/.test(name))
+		.sort();
 
 describe("MessageRow", () => {
 	it("links to the message and keeps the list's own parameters", () => {
-		row(message());
-		const link = screen.getByRole("link");
+		const { link } = row(summary());
+
 		expect(link).toHaveAttribute(
 			"href",
-			"/app/mail/inbox/id-1?page=2&filter=unread&q=x",
+			`/app/mail/inbox/${ID}?page=2&filter=unread&q=x`,
 		);
-		expect(link).toHaveAttribute("data-message-id", "id-1");
+		expect(link).toHaveAttribute("data-message-id", ID);
 		expect(link).not.toHaveAttribute("aria-current");
 		expect(screen.getByText("Hello")).toBeInTheDocument();
 		expect(screen.getByText("preview")).toBeInTheDocument();
 	});
 
-	it("isolates each text from message with bdi so it cannot reorder its neighbours", () => {
-		const { container } = row(message());
-		expect(container.querySelectorAll("bdi")).toHaveLength(3);
+	it("holds the link and then the two buttons as siblings, never one inside the other", () => {
+		const { item, link, container } = row(summary());
+
+		expect(container.querySelector("a button")).toBeNull();
+		expect(container.querySelector("button a")).toBeNull();
+		expect(link.parentElement).toBe(item);
+		// The order of the page is the order of the keyboard: nothing sets a tabindex.
+		const stops = Array.from(
+			item.querySelectorAll<HTMLElement>("a, button"),
+		);
+		expect(stops.map((stop) => stop.tagName)).toEqual([
+			"A",
+			"BUTTON",
+			"BUTTON",
+		]);
+		expect(stops.slice(1).map((stop) => stop.textContent)).toEqual([
+			"markImportant",
+			"star",
+		]);
+		expect(item.querySelector("[tabindex]")).toBeNull();
 	});
 
-	it("marks the selected message and spells the states out", () => {
-		row(
-			message({
-				unread: true,
-				flagged: true,
-				answered: true,
-				draft: true,
-				hasAttachment: true,
-			}),
-			true,
-		);
-		expect(screen.getByRole("link")).toHaveAttribute(
-			"aria-current",
-			"true",
-		);
+	it("isolates each text of the message with bdi so it cannot reorder its neighbours", () => {
+		const { link } = row(summary());
+
 		expect(
-			screen.getByText(
-				"stateUnread, stateFlagged, stateAnswered, stateDraft, hasAttachment.",
-			),
-		).toBeInTheDocument();
+			Array.from(link.querySelectorAll("bdi")).map((b) => b.textContent),
+		).toEqual(["Ana Pérez", "Hello", "preview"]);
+	});
+
+	it("says every state once in words, in a fixed order", () => {
+		const { link } = row(summary(EVERYTHING), true);
+
+		expect(link.querySelector(".sr-only")?.textContent).toBe(
+			"stateUnread, stateFlagged, stateImportant, stateAnswered, stateForwarded, stateDraft, hasAttachment, stateLabels.",
+		);
+		expect(link).toHaveAttribute("aria-current", "true");
 	});
 
 	it("has no state text for a read, plain message", () => {
-		const { container } = row(message());
-		expect(container.querySelector(".sr-only")).toBeNull();
+		expect(row(summary()).link.querySelector(".sr-only")).toBeNull();
+	});
+
+	it("marks an unread message three ways: weight, a dot before the sender and the raised surface", () => {
+		const { item, link } = row(summary({ unread: true }));
+		const dot = link.querySelector('[data-slot="unread-dot"]');
+
+		expect(screen.getByText("Ana Pérez")).toHaveClass("font-semibold");
+		expect(screen.getByText("Hello")).toHaveClass("font-medium");
+		expect(item).toHaveClass("bg-surface");
+		expect(dot).toHaveClass("absolute", "start-1.5", "rounded-full");
+		// Before the initials and the sender in the page too.
+		expect(
+			dot?.compareDocumentPosition(screen.getByText("Ana Pérez")),
+		).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+	});
+
+	it("leaves a read message on the pane's surface, lighter and with no dot", () => {
+		const { item, link } = row(summary());
+
+		expect(item).not.toHaveClass("bg-surface");
+		expect(item).not.toHaveClass("bg-accent");
+		expect(link.querySelector('[data-slot="unread-dot"]')).toBeNull();
+		expect(screen.getByText("Ana Pérez")).not.toHaveClass("font-semibold");
+		expect(screen.getByText("Ana Pérez")).toHaveClass(
+			"text-muted-foreground",
+		);
+	});
+
+	it("hands the star and the important mark to their buttons", () => {
+		row(summary({ flagged: true, important: true }));
+
+		expect(screen.getByRole("button", { name: "unstar" })).toHaveAttribute(
+			"data-set",
+			"true",
+		);
+		expect(
+			screen.getByRole("button", { name: "unmarkImportant" }),
+		).toHaveAttribute("data-set", "true");
+	});
+
+	it("puts the answered and the forwarded icon before the subject", () => {
+		const { link } = row(summary({ answered: true, forwarded: true }));
+		const subject = screen.getByText("Hello");
+		const line = subject.parentElement;
+
+		expect(
+			Array.from(line?.children ?? []).map(
+				(child) => child.getAttribute("data-slot") ?? child.tagName,
+			),
+		).toEqual(["answered-icon", "forwarded-icon", "BDI"]);
+		expect(
+			link.querySelectorAll('svg[aria-hidden="true"]').length,
+		).toBeGreaterThanOrEqual(2);
+		cleanup();
+
+		const plain = row(summary()).link;
+		expect(plain.querySelector('[data-slot="answered-icon"]')).toBeNull();
+		expect(plain.querySelector('[data-slot="forwarded-icon"]')).toBeNull();
+	});
+
+	it("writes the word for a draft before the name, once for the eye and once for the ear", () => {
+		row(summary({ draft: true }));
+		const sender = screen.getByText("Ana Pérez");
+		const badge = sender.previousElementSibling;
+
+		expect(badge).toHaveAttribute("data-slot", "badge");
+		expect(badge?.textContent).toBe("stateDraft");
+		expect(badge).toHaveAttribute("aria-hidden", "true");
+		cleanup();
+
+		row(summary());
+		expect(screen.getByText("Ana Pérez").previousElementSibling).toBeNull();
+	});
+
+	it("puts the clip of an attachment beside the date", () => {
+		const { link } = row(summary({ hasAttachment: true }));
+		const time = link.querySelector("time");
+
+		expect(time?.previousElementSibling).toHaveAttribute(
+			"data-slot",
+			"attachment-icon",
+		);
+		cleanup();
+		expect(
+			row(summary()).link.querySelector("time")?.previousElementSibling,
+		).toBeNull();
+	});
+
+	it("puts the labels after the subject, on its line", () => {
+		row(summary({ labels: EVERYTHING.labels }));
+
+		expect(screen.getByText("Hello").nextElementSibling).toHaveAttribute(
+			"data-slot",
+			"label-chips",
+		);
+	});
+
+	it("marks the open message with the accent surface and a mark on its start edge", () => {
+		const { item, link } = row(summary({ unread: true }), true);
+
+		expect(link).toHaveAttribute("aria-current", "true");
+		expect(item).toHaveClass(
+			"bg-accent",
+			"before:absolute",
+			"before:start-0",
+			"before:bg-primary",
+		);
+		// The accent replaces the raised surface, and no side is named by hand.
+		expect(item).not.toHaveClass("bg-surface");
+		expect(item.className).not.toMatch(/(^|[\s:])(left|right)-/);
+	});
+
+	it("keeps one height whatever the state: 72 px, and 40 or 44 px when compact", () => {
+		const plain = row(summary());
+		const expected = heights(plain.item);
+		const lines = Array.from(plain.link.children).flatMap(heights);
+
+		expect(expected).toEqual([
+			"group-data-[density=compact]/list:h-10",
+			"h-18",
+			"pointer-coarse:group-data-[density=compact]/list:h-11",
+		]);
+		cleanup();
+
+		for (const state of [
+			{ unread: true },
+			{ flagged: true, important: true },
+			{ draft: true },
+			{ labels: EVERYTHING.labels },
+			EVERYTHING,
+		] as const) {
+			for (const selected of [false, true]) {
+				const each = row(summary(state), selected);
+
+				expect(heights(each.item)).toEqual(expected);
+				// The lines inside are as tall with a badge, an icon or a chip.
+				expect(Array.from(each.link.children).flatMap(heights)).toEqual(
+					lines,
+				);
+				expect(each.item).not.toHaveClass("min-h-14");
+				cleanup();
+			}
+		}
+		expect(lines).toContain("h-5");
+		expect(lines).toContain("h-4");
 	});
 
 	it("falls back to the address, then to a placeholder, and to a placeholder for no subject", () => {
 		row(
-			message({
+			summary({
 				from: { name: null, email: "x@example.org" },
 				subject: "",
 			}),
@@ -95,15 +269,32 @@ describe("MessageRow", () => {
 		expect(screen.getByText("x@example.org")).toBeInTheDocument();
 		expect(screen.getByText("noSubject")).toBeInTheDocument();
 		cleanup();
-		row(message({ from: null }));
+
+		row(summary({ from: null }));
 		expect(screen.getByText("noSender")).toBeInTheDocument();
 	});
 
-	it("prints the date in a time element", () => {
-		const { container } = row(message());
-		expect(container.querySelector("time")).toHaveAttribute(
-			"dateTime",
-			"2026-11-12T10:00:00Z",
-		);
+	it("stands the sender's initials at the start of the row, as decoration", () => {
+		const { link } = row(summary());
+		const avatar = link.querySelector('[data-slot="avatar"]');
+
+		expect(avatar).toHaveAttribute("aria-hidden", "true");
+		expect(avatar?.textContent).toBe("AP");
+		// A mark, not a control: the checkbox it may become is not built yet.
+		expect(avatar?.closest("button")).toBeNull();
+	});
+
+	it("prints the part of the date it is asked for in a time element with the whole date", () => {
+		const { link } = row(summary());
+		const time = link.querySelector("time");
+
+		expect(time).toHaveAttribute("dateTime", "2026-11-12T10:00:00Z");
+		expect(time).toHaveAttribute("data-date-part", "time");
+	});
+
+	it("puts no style attribute in the page", () => {
+		const { container } = row(summary(EVERYTHING), true);
+
+		expect(container.querySelector("[style]")).toBeNull();
 	});
 });

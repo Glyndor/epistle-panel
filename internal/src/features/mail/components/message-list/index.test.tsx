@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+	cleanup,
+	fireEvent,
+	render,
+	screen,
+	waitFor,
+} from "@testing-library/react";
 
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
 import { clearSecretCache } from "@/lib/config/secret";
@@ -94,5 +100,80 @@ describe("MessageList", () => {
 		});
 		fireEvent.click(screen.getByRole("button", { name: "retry" }));
 		expect(await screen.findByText("Back")).toBeInTheDocument();
+	});
+	it("draws the page under date headings, each naming its own list", async () => {
+		stubJmap({
+			"Email/query": { ids: [A, B] },
+			"Email/get": {
+				list: [
+					emailFixture({ id: A, receivedAt: "2020-03-05T10:00:00Z" }),
+					emailFixture({ id: B, receivedAt: "2019-07-01T10:00:00Z" }),
+				],
+			},
+		});
+		render(withQuery(<MessageList view={view} selectedId={undefined} />));
+
+		// Two months of years gone by, whatever day the test runs on.
+		const headings = await screen.findAllByRole("heading", { level: 3 });
+		expect(headings.map((h) => h.textContent)).toEqual([
+			"2020-03-01T00:00:00.000Z",
+			"2019-07-01T00:00:00.000Z",
+		]);
+		for (const heading of headings) {
+			expect(
+				screen.getByRole("list", { name: heading.textContent ?? "" }),
+			).toBeInTheDocument();
+		}
+	});
+
+	it("stars a message from its row, and the row shows it before the server answers", async () => {
+		// The server as it is: starred once the change was written.
+		let starred = false;
+		const seen = stubJmap({
+			"Email/query": { ids: [A] },
+			"Email/get": () => ({
+				list: [
+					emailFixture({
+						id: A,
+						keywords: starred
+							? { $seen: true, $flagged: true }
+							: { $seen: true },
+					}),
+				],
+			}),
+			"Email/set": () => {
+				starred = true;
+				return { updated: { [A]: null } };
+			},
+		});
+		const sets = () =>
+			seen.flatMap((r) => r.calls).filter((c) => c[0] === "Email/set");
+		render(withQuery(<MessageList view={view} selectedId={undefined} />));
+		const star = await screen.findByRole("button", { name: "star" });
+		await settled();
+		// From here every answer waits until the case has looked at the row.
+		let release = () => {};
+		const held = new Promise<void>((resolve) => {
+			release = resolve;
+		});
+		const answer = globalThis.fetch;
+		globalThis.fetch = (async (...args: Parameters<typeof fetch>) => {
+			await held;
+			return answer(...args);
+		}) as typeof fetch;
+
+		fireEvent.click(star);
+
+		// Nothing was written yet: what shows is the list's own cache.
+		const filled = await screen.findByRole("button", { name: "unstar" });
+		expect(filled).toHaveAttribute("data-set", "true");
+		expect(sets()).toHaveLength(0);
+
+		release();
+		await waitFor(() => expect(sets()).toHaveLength(1));
+		await settled();
+		expect(
+			screen.getByRole("button", { name: "unstar" }),
+		).toBeInTheDocument();
 	});
 });

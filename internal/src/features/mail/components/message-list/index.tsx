@@ -8,8 +8,8 @@ import { getMessageListAction } from "@/features/mail/actions/get-message-list";
 import { ListPager } from "@/features/mail/components/list-pager";
 import { ListSkeleton } from "@/features/mail/components/list-skeleton";
 import { MailNotice } from "@/features/mail/components/mail-notice";
+import { MessageGroups } from "@/features/mail/components/message-groups";
 import { useMailShortcuts } from "@/features/mail/components/message-list/use-mail-shortcuts";
-import { MessageRow } from "@/features/mail/components/message-row";
 import type { ListAddress } from "@/features/mail/links/mail-href";
 import { messageListQueryOptions } from "@/features/mail/queries/mail-query-options";
 import { unwrap } from "@/lib/query/action-result";
@@ -82,16 +82,12 @@ export function MessageList({
 	}
 	return (
 		<>
-			<ul aria-label={t("listLabel")} className="flex flex-col">
-				{data.items.map((message) => (
-					<MessageRow
-						key={message.id}
-						message={message}
-						selected={message.id === selectedId}
-						view={view}
-					/>
-				))}
-			</ul>
+			<MessageGroups
+				items={data.items}
+				today={data.today}
+				selectedId={selectedId}
+				view={view}
+			/>
 			<ListPager
 				view={view}
 				page={data.page}

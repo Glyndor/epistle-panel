@@ -126,7 +126,7 @@ Route Handlers, after the session is checked.
 ## Keywords: labels, important, forwarded
 
 A message's state beyond read and starred is a keyword on it, and the views carry
-it (`features/mail/labels`), though no screen draws it yet:
+it (`features/mail/labels`). The list draws all of it (see "The message list" below):
 
 - **A label is a keyword.** epistle keeps any keyword that is an IMAP atom (ASCII, no
   space, none of `( ) { % * " ] \`, at most 64 bytes, at most 32 on a message) and
@@ -164,6 +164,84 @@ it (`features/mail/labels`), though no screen draws it yet:
 The stand-in mailbox holds one message in each state and the combinations worth
 seeing (`stateMessages` in `scripts/e2e/stand-in-api/jmap/messages.ts`), dated from
 the day it starts so there is always one of today and one of yesterday.
+
+## The message list: rows, date groups and density
+
+A row (`components/message-row`) is a list item that holds the link to the
+message and, after it, the two buttons of `components/row-actions` as siblings:
+a button inside a link is not valid HTML. The keyboard goes link, important,
+star, and nothing sets a `tabindex`. Every state has a sign that is not a
+colour, and none changes the row's height:
+
+| State | Sign |
+|---|---|
+| unread | heavier sender and subject, a dot in the row's start margin, the raised surface (`bg-surface`); a read row stays on the pane's |
+| starred, important | the mark filled beside the date, always in view; not set, its outline shows with the pointer on the row, with the focus in it, and always on a coarse pointer |
+| answered, forwarded | the reply or the forward icon before the subject |
+| draft | the word, before the name |
+| attachment | a clip before the date |
+| labels | chips after the subject (`components/label-chips`): one in a narrow row, three in a wide one, then a count with the other names under the pointer |
+| open in the reader | the accent surface and a mark on the start edge (`before:start-0`, so it follows a right-to-left page) |
+
+All of it is said once in words to assistive technology, in one sentence at the
+start of the link; the icons, the chips and the draft badge are hidden from it.
+
+- **Height.** 72 px comfortable (two lines and the preview), 40 px compact (one
+  line), 44 px compact on a coarse pointer. The lines inside have fixed heights
+  (20, 20 and 16 px), so a badge, an icon or a chip never makes a row taller.
+  The skeleton (`components/list-skeleton`) has the same heights and margins.
+- **Density** is the reader's choice, kept in the `mail-density` cookie (a
+  year, `HttpOnly`, only under `/app/mail`) and read on the server
+  (`queries/list-density`): the list pane carries `data-density` and the class
+  `group/list`, and the rows, the headings and the skeleton read it with
+  `group-data-[density=compact]/list:`. The first frame is already right,
+  `loading.tsx` included. The switch (`components/density-toggle`, at the end
+  of the filters) sets the attribute at once and then calls `setListDensity`,
+  which checks the session and the value again; a refusal puts the attribute
+  back and says so.
+- **One change at a time per row.** epistle replaces a message's whole keyword
+  set, so a star and an important mark sent together would each be built from
+  the set before the other. Both buttons share one mutation and a lock shut in
+  the press itself; while a change is on its way they are `aria-disabled` and
+  keep the focus.
+- **Date groups** (`components/message-groups`): a real `h3` over each run
+  (today, yesterday, last few days, then the month and year through `Intl`, in
+  UTC like the grouping), under an `h2` of the list drawn for assistive
+  technology only. Each run's `ul` is named by its heading. The heading sticks
+  to the top of the pane while its run scrolls, and the pane's `scroll-pt-8` is
+  the heading's height, so a row the keyboard reaches is not left under it. A
+  row prints the hour under today and yesterday and the day under the rest; its
+  `time` element holds the whole date.
+- **A tone class is written out** (`bg-label-1` to `bg-label-8` in
+  `label-chips`): Tailwind keeps only the classes it finds as text, so one
+  built from the number would paint nothing.
+
+### The label tones
+
+`--label-1` to `--label-8` in `styles/theme.css`, in the light list and both
+dark ones (`theme.test.ts` fixes the values). A chip is `--foreground` at 10%
+over the row, so it shows on every surface a row takes; the dot is the tone.
+Calculated from the tokens (8-bit sRGB, the chip mixed over each row surface),
+not read from a rendered page:
+
+| Tone | Light | Dark | Dot against the chip, lowest of the four row surfaces: light, dark |
+|---|---|---|---|
+| 1 blue | `#083a88` | `#82c2f7` | 7.00, 4.85 |
+| 2 brown, amber | `#392b16` | `#e58803` | 9.01, 3.46 |
+| 3 red | `#9b4251` | `#fcc1b6` | 4.19, 5.92 |
+| 4 violet | `#794acb` | `#ae83f8` | 3.77, 3.26 |
+| 5 teal | `#0d7d89` | `#aafcfe` | 3.20, 7.96 |
+| 6 green | `#155a06` | `#8cd55e` | 5.52, 5.19 |
+| 7 pink | `#671156` | `#fb78ae` | 7.70, 3.70 |
+| 8 olive | `#83710d` | `#f5f778` | 3.18, 8.13 |
+
+The lowest is always the open row (`--accent`). The floor is 3:1 (WCAG 1.4.11).
+Every pair of the eight is checked the way the chart colours are (`charts.md`):
+distance in OKLab times 100, floors 15 with full colour vision and 8 with
+protanopia or deuteranopia simulated. Smallest distances: light 16.1 and 8.6,
+dark 16.5 and 8.9. Tritanopia is not in the floor (4.6 and 3.5); a chip always
+carries the label's name. An override of the tones should be checked the same
+way, over all 28 pairs and against the chip on the open row.
 
 ## What was measured of epistle's JMAP (source, `src/api/jmap/`)
 

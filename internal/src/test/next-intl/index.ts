@@ -132,6 +132,7 @@ export function clientStandIn() {
 		useFormatter: () => ({
 			number: (value: number) => String(value),
 			dateTime: (value: Date) => value.toISOString(),
+			list: (values: Iterable<string>) => [...values].join(", "),
 		}),
 		NextIntlClientProvider: ProviderStandIn,
 	};
