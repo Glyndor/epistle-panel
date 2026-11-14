@@ -1,7 +1,5 @@
-import { useFormatter, useTranslations } from "next-intl";
-
-import { Tooltip } from "@/components/ui/tooltip";
-import { CHIP_PILL, LabelChip } from "@/features/mail/components/label-chip";
+import { LabelChip } from "@/features/mail/components/label-chip";
+import { More } from "@/features/mail/components/label-chips/more";
 import type { LabelView } from "@/features/mail/schemas/mail-view";
 import { cn } from "@/lib/class-names";
 
@@ -32,45 +30,6 @@ const COUNT_AFTER_THREE =
 
 /** A chip is as tall as the line it sits on, so a row with labels is as tall as one without. */
 const LINE = "h-5 group-data-[density=compact]/list:h-4";
-
-/**
- * The count of the labels a row draws no chip for, with their names under the
- * pointer. Each name is text from a message, so each stands in its own
- * `<bdi>` there too.
- */
-function More({
-	labels,
-	className,
-}: {
-	labels: readonly LabelView[];
-	className: string;
-}) {
-	const t = useTranslations("mail");
-	const format = useFormatter();
-	if (labels.length === 0) {
-		return null;
-	}
-	return (
-		<Tooltip
-			label={format.list(
-				labels.map((label) => (
-					<bdi key={label.keyword}>{label.name}</bdi>
-				)),
-				{ type: "conjunction" },
-			)}
-			side="bottom"
-			align="end"
-		>
-			<span
-				className={cn(CHIP_PILL, LINE, "shrink-0", className)}
-				data-slot="label-more"
-				data-count={labels.length}
-			>
-				{t("moreLabels", { count: labels.length })}
-			</span>
-		</Tooltip>
-	);
-}
 
 /**
  * The labels of a message after its subject. A row never draws a chip without
@@ -110,11 +69,14 @@ export function LabelChips({ labels }: { labels: readonly LabelView[] }) {
 					)}
 				/>
 			))}
-			<More labels={labels} className={COUNT_ALL} />
-			<More labels={labels.slice(1)} className={COUNT_AFTER_ONE} />
+			<More labels={labels} className={cn(LINE, COUNT_ALL)} />
+			<More
+				labels={labels.slice(1)}
+				className={cn(LINE, COUNT_AFTER_ONE)}
+			/>
 			<More
 				labels={labels.slice(SHOWN_MOST)}
-				className={COUNT_AFTER_THREE}
+				className={cn(LINE, COUNT_AFTER_THREE)}
 			/>
 		</span>
 	);

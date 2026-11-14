@@ -1,5 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { ListPaneSkeleton } from "@/features/mail/components/list-skeleton";
+import { ListPaneSkeleton } from "@/features/mail/components/list-pane-skeleton";
 import { readListDensity } from "@/features/mail/queries/list-density";
 
 /**

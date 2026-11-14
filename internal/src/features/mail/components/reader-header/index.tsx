@@ -1,30 +1,12 @@
 import { useFormatter, useTranslations } from "next-intl";
 import { LabelChip } from "@/features/mail/components/label-chip";
+import { Addresses } from "@/features/mail/components/reader-header/addresses";
 
 import { formatReceivedAt } from "@/features/mail/format/received-at";
 import type {
 	AddressView,
 	MessageDetail,
 } from "@/features/mail/schemas/mail-view";
-
-/** One address as text, the name first when there is one. Both parts are text from the message. */
-function Addresses({ list }: { list: readonly AddressView[] }) {
-	return (
-		<>
-			{list.map((address, index) => (
-				// biome-ignore lint/suspicious/noArrayIndexKey: the same address can be listed twice and the list never reorders
-				<span key={`${address.email}-${index}`}>
-					{index > 0 ? ", " : null}
-					<bdi>
-						{address.name === null
-							? address.email
-							: `${address.name} <${address.email}>`}
-					</bdi>
-				</span>
-			))}
-		</>
-	);
-}
 
 /**
  * The subject and the headers a reader looks at first: from, to, cc, reply-to

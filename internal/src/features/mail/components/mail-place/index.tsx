@@ -4,7 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
 import { ListBoundary } from "@/features/mail/components/list-boundary";
-import { ListPaneSkeleton } from "@/features/mail/components/list-skeleton";
+import { ListPaneSkeleton } from "@/features/mail/components/list-pane-skeleton";
 import { MailNotice } from "@/features/mail/components/mail-notice";
 import { folderName } from "@/features/mail/components/mail-place/place-name";
 import { ReaderBoundary } from "@/features/mail/components/reader-boundary";
