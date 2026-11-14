@@ -76,8 +76,22 @@ export function useMessageChange({
 	});
 
 	return {
-		change: (change: Change, options: { quiet?: boolean } = {}) =>
-			mutation.mutate({ change, ...options }),
+		/**
+		 * Make one change. `onSettled` is called once the server has answered,
+		 * whatever the answer: a caller that must not send a second change
+		 * before then holds its own lock and opens it there, since `pending`
+		 * only turns true with the next render.
+		 */
+		change: (
+			change: Change,
+			options: { quiet?: boolean; onSettled?: () => void } = {},
+		) => {
+			const { onSettled, ...rest } = options;
+			mutation.mutate(
+				{ change, ...rest },
+				onSettled === undefined ? undefined : { onSettled },
+			);
+		},
 		pending: mutation.isPending,
 	};
 }
