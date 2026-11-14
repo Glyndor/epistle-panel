@@ -12,6 +12,14 @@ noscript_html() {
 	header_html | perl -0777 -ne 'print $1 if /<noscript>(.*?)<\/noscript>/s'
 }
 
+# language_options: how many options of the banner carry a language. The
+# language chooser the webmail's banner used to hold marked every one of its
+# options with its language, and the profile menu holds the chooser now.
+language_options() {
+	printf '%s' "$header" | { grep -o '<option[^>]*>' || true; } |
+		{ grep -c 'lang=' || true; }
+}
+
 scenario_profile_menu() {
 	echo "# profile menu: both headers name the account from the session, and only an admin is handed the way in"
 	fresh
@@ -33,7 +41,8 @@ scenario_profile_menu() {
 		assert_absent "$path: no picture is loaded for it" "$header" '<img'
 		assert_contains "$path: without script, the way into the administration is a plain link built with the id" "$fallback" "href=\"$adm\""
 		assert_contains "$path: without script, sign out is a plain form" "$fallback" 'name="$ACTION_ID_'
-		assert_absent "$path: the banner has no select and no language list of its own" "$header" '<select'
+		assert_absent "$path: the banner has no language list of its own" "$header" 'aria-label="Language"'
+		assert_eq "$path: the banner has no option marked with a language" "$(language_options)" 0
 		assert_eq "$path: no inline style in the banner" "$(printf '%s' "$header" | { grep -o -E ' style="|<style' || true; } | wc -l | tr -d ' ')" 0
 	done
 	fetch "$adm/queue" "$admin_cookie"

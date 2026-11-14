@@ -95,14 +95,16 @@ scenario_mail() {
 	assert_contains "they are text in the field of the search" "$(cat "$work/b")" "&lt;script&gt;"
 
 	# A word over the limit is not applied, and the page names the condition
-	# it did not apply.
+	# it did not apply. The page carries the address it was asked for, which
+	# holds the word, so the field is what is looked at.
 	local long_word
 	long_word=$(printf 'a%.0s' {1..201})
 	fetch "/app/mail/inbox?q=$long_word" "$good"
 	assert_eq "GET a search with a word over the limit" "$status" 200
 	assert_contains "the page names the condition it did not apply" "$(cat "$work/b")" "was not valid and was not applied"
 	assert_contains "and says which one it was" "$(cat "$work/b")" "Words"
-	assert_absent "and the word over the limit is not in the field" "$(cat "$work/b")" "$long_word"
+	assert_absent "and the word over the limit is not in the field" \
+		"$({ grep -o '<input[^>]*name="q"[^>]*>' "$work/b" || true; })" "$long_word"
 
 	fetch /app/mail/archive "$good"
 	assert_eq "GET a folder by its role" "$status" 200
