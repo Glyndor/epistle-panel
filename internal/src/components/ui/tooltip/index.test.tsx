@@ -9,7 +9,7 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip } from ".";
-import { keyboardFocus, place, renderTip, tip } from "./test-support";
+import { keyboardFocus, place, renderTip, tabTo, tip } from "./test-support";
 
 afterEach(cleanup);
 
@@ -152,14 +152,37 @@ describe("Tooltip", () => {
 		expect(tip()).toBeNull();
 	});
 
-	it("shows on a keyboard focus, not on one the pointer gave, and goes on blur", async () => {
+	it("shows on a focus the Tab key brought, not on one the pointer gave nor one handed back, and goes on blur", async () => {
 		const button = renderTip();
 
+		// The pointer gave it: the browser does not show the focus either.
 		keyboardFocus(button, false);
+		fireEvent.keyDown(document.body, { key: "Tab" });
 		fireEvent.focus(button);
 		expect(tip()).toBeNull();
 
+		// Handed back by something that closed (Escape, Enter in a menu, a
+		// press elsewhere): the focus shows, and it is no visit.
+		for (const before of [
+			() => fireEvent.keyDown(document.body, { key: "Escape" }),
+			() => fireEvent.keyDown(document.body, { key: "Enter" }),
+			() => fireEvent.pointerDown(document.body),
+		]) {
+			fireEvent.blur(button);
+			keyboardFocus(button, true);
+			fireEvent.keyDown(document.body, { key: "Tab" });
+			before();
+			fireEvent.focus(button);
+			expect(tip()).toBeNull();
+		}
+
+		// The Tab key brought it, forwards or back.
+		fireEvent.blur(button);
+		tabTo(button);
+		expect(tip()).toHaveTextContent("Toggle sidebar");
+		fireEvent.blur(button);
 		keyboardFocus(button, true);
+		fireEvent.keyDown(document.body, { key: "Tab", shiftKey: true });
 		fireEvent.focus(button);
 		expect(tip()).toHaveTextContent("Toggle sidebar");
 

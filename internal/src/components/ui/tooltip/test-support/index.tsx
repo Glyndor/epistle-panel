@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 
 import { Tooltip } from "..";
 
@@ -30,6 +30,13 @@ export function keyboardFocus(element: HTMLElement, visible: boolean) {
 		selector === ":focus-visible"
 			? visible
 			: original(selector)) as typeof element.matches;
+}
+
+/** Move the focus to the control the way the Tab key does: the key, then the focus. */
+export function tabTo(element: HTMLElement) {
+	keyboardFocus(element, true);
+	fireEvent.keyDown(document.body, { key: "Tab" });
+	fireEvent.focus(element);
 }
 
 export function renderTip(props: Partial<Parameters<typeof Tooltip>[0]> = {}) {

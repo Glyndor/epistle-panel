@@ -101,6 +101,39 @@ function hasPopupOpen(element: HTMLElement): boolean {
  * Props it does not know go to the control, so it can stand between a Radix
  * trigger (`asChild`) and its button.
  */
+/**
+ * What the person last did, as far as a focus that arrives can tell: the Tab
+ * key moves the focus to a control, and anything else (Escape closing a menu,
+ * Enter choosing in it, a press) only hands it back to one. Kept for the page
+ * and not for a tooltip: the button of a menu that loads on demand is replaced
+ * by another when it is first pressed, and a note kept by the first would be
+ * lost with it.
+ */
+let lastInput: "tab" | "other" = "other";
+let watching = false;
+
+/** Start noting the last key and press of the page, once. */
+function watchInput() {
+	if (watching) {
+		return;
+	}
+	watching = true;
+	document.addEventListener(
+		"keydown",
+		(event) => {
+			lastInput = event.key === "Tab" ? "tab" : "other";
+		},
+		true,
+	);
+	document.addEventListener(
+		"pointerdown",
+		() => {
+			lastInput = "other";
+		},
+		true,
+	);
+}
+
 /** What a pointer can press: a tooltip lying over one of these gives way to it. */
 const CONTROLS =
 	"a[href], button, input, select, textarea, summary, label, [role='button'], [role='menuitem'], [role='tab']";
@@ -166,9 +199,11 @@ export function Tooltip({
 	const hideTimer = React.useRef<ReturnType<typeof setTimeout>>(undefined);
 	const control = React.useRef<HTMLElement | null>(null);
 	const tip = React.useRef<HTMLSpanElement | null>(null);
-	// Set by a press or a key that sent the tooltip away, until the pointer
-	// leaves or the focus moves on: it must not come back under the same visit.
+	// Set by a press or a key that sent the tooltip away while the pointer is
+	// on the control, until the pointer leaves: moving on it must not bring the
+	// tooltip back in the same visit.
 	const sentAway = React.useRef(false);
+	React.useEffect(watchInput, []);
 
 	const show = (element: HTMLElement) => {
 		clearTimeout(hideTimer.current);
@@ -184,14 +219,6 @@ export function Tooltip({
 	const dismiss = () => {
 		clearTimeout(hideTimer.current);
 		setPlace(null);
-	};
-	// The pointer or the focus left the control: the next time is a new visit,
-	// unless they left for the menu the control itself opened. That menu hands
-	// the focus back when it closes, and the name was read before it opened.
-	const endVisit = (element: HTMLElement) => {
-		if (!hasPopupOpen(element)) {
-			sentAway.current = false;
-		}
 	};
 	// The tooltip can be reached with the pointer, so it must not stand between
 	// the pointer and another control: over one that is not its own (the
@@ -295,7 +322,7 @@ export function Tooltip({
 				}}
 				onPointerLeave={(event: React.PointerEvent<HTMLElement>) => {
 					props.onPointerLeave?.(event);
-					endVisit(event.currentTarget);
+					sentAway.current = false;
 					hide();
 				}}
 				onPointerDown={(event: React.PointerEvent<HTMLElement>) => {
@@ -305,10 +332,11 @@ export function Tooltip({
 				}}
 				onFocus={(event: React.FocusEvent<HTMLElement>) => {
 					props.onFocus?.(event);
-					// A menu the control opened gives the focus back when it
-					// closes: that is no new visit, and the name was just read.
+					// Only for a focus the Tab key brought. A menu or a dialog
+					// that closes hands the focus back to the control it was
+					// opened from: that is no visit, and the name was read.
 					if (
-						!sentAway.current &&
+						lastInput === "tab" &&
 						event.currentTarget.matches(":focus-visible")
 					) {
 						show(event.currentTarget);
@@ -316,7 +344,6 @@ export function Tooltip({
 				}}
 				onBlur={(event: React.FocusEvent<HTMLElement>) => {
 					props.onBlur?.(event);
-					endVisit(event.currentTarget);
 					hide();
 				}}
 				onKeyDown={(event: React.KeyboardEvent<HTMLElement>) => {

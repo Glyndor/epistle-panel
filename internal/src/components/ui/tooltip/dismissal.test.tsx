@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
 import { Tooltip } from ".";
-import { keyboardFocus, renderTip, tip } from "./test-support";
+import { keyboardFocus, renderTip, tabTo, tip } from "./test-support";
 
 afterEach(cleanup);
 
@@ -27,8 +27,7 @@ describe("Tooltip: sent away and brought back", () => {
 			// The focus comes from elsewhere each time: a control that was just
 			// used does not show its name again when the focus only returns.
 			fireEvent.blur(button);
-			keyboardFocus(button, true);
-			fireEvent.focus(button);
+			tabTo(button);
 			expect(tip()).not.toBeNull();
 			fireEvent.keyDown(button, { key });
 			expect(tip()).toBeNull();
@@ -174,24 +173,7 @@ describe("Tooltip: sent away and brought back", () => {
 		expect(tip()).not.toBeNull();
 	});
 
-	it("does not come back when the focus returns to a control that was just used", () => {
-		const button = renderTip();
-		keyboardFocus(button, true);
-
-		// The pointer pressed it (a menu opens); the menu closes and hands the focus back.
-		fireEvent.pointerEnter(button);
-		fireEvent.pointerDown(button);
-		expect(tip()).toBeNull();
-		fireEvent.focus(button);
-		expect(tip()).toBeNull();
-
-		// Once the focus has gone elsewhere, a keyboard focus shows it again.
-		fireEvent.blur(button);
-		fireEvent.focus(button);
-		expect(tip()).not.toBeNull();
-	});
-
-	it("stays away while the menu the control opened is open, and after it hands the focus back", () => {
+	it("does not come back when what the control opened hands the focus back, however it was opened and closed", () => {
 		render(
 			<Tooltip label="Theme">
 				<button
@@ -204,44 +186,88 @@ describe("Tooltip: sent away and brought back", () => {
 			</Tooltip>,
 		);
 		const button = screen.getByRole("button", { name: "Theme" });
-		keyboardFocus(button, true);
 		const open = (is: boolean) =>
 			button.setAttribute("aria-expanded", String(is));
+		const closings = [
+			[
+				"Escape",
+				() => fireEvent.keyDown(document.body, { key: "Escape" }),
+			],
+			[
+				"Enter on an option",
+				() => fireEvent.keyDown(document.body, { key: "Enter" }),
+			],
+			[
+				"a press on an option",
+				() => fireEvent.pointerDown(document.body),
+			],
+		] as const;
 
 		for (const opened of ["pointer", "Enter", " "] as const) {
-			// It shows, the control is used, and its menu opens.
-			if (opened === "pointer") {
-				fireEvent.pointerEnter(button);
-				fireEvent.pointerDown(button);
-			} else {
+			for (const [closed, close] of closings) {
+				// It shows, the control is used, and its menu opens.
+				if (opened === "pointer") {
+					fireEvent.pointerEnter(button);
+					fireEvent.pointerDown(button);
+				} else {
+					tabTo(button);
+					expect(tip()).not.toBeNull();
+					fireEvent.keyDown(button, { key: opened });
+				}
+				expect(tip()).toBeNull();
+				open(true);
+				// The focus goes into the menu, and the pointer too.
+				fireEvent.blur(button);
+				fireEvent.pointerLeave(button);
+				// The menu closes and gives the focus back to its button.
+				close();
+				open(false);
+				keyboardFocus(button, true);
 				fireEvent.focus(button);
-				fireEvent.keyDown(button, { key: opened });
+				expect([opened, closed, tip()]).toEqual([opened, closed, null]);
+
+				// Tab away and back: a visit, and the name is shown again.
+				fireEvent.blur(button);
+				tabTo(button);
+				expect([opened, closed, tip() === null]).toEqual([
+					opened,
+					closed,
+					false,
+				]);
+				fireEvent.blur(button);
 			}
-			expect(tip()).toBeNull();
-			open(true);
-			// The focus goes into the menu, and the pointer too.
-			fireEvent.blur(button);
-			fireEvent.pointerLeave(button);
-			// Escape closes the menu, which gives the focus back to its button.
-			open(false);
-			fireEvent.focus(button);
-			expect([opened, tip()]).toEqual([opened, null]);
-
-			// Tab away and back: a new visit, and the name is shown again.
-			fireEvent.blur(button);
-			fireEvent.focus(button);
-			expect([opened, tip() === null]).toEqual([opened, false]);
-			fireEvent.blur(button);
 		}
+	});
 
-		// The pointer coming back after the menu closed is a new visit too.
+	it("shows again for the keyboard after a menu was closed by a press outside, which hands no focus back", () => {
+		const button = renderTip();
+
 		fireEvent.pointerEnter(button);
 		fireEvent.pointerDown(button);
-		open(true);
 		fireEvent.pointerLeave(button);
-		open(false);
-		fireEvent.pointerEnter(button);
-		expect(tip()).not.toBeNull();
+		// The press outside: the focus goes to the page, not to the button.
+		fireEvent.pointerDown(document.body);
+		expect(tip()).toBeNull();
+
+		// The first visit with the keyboard after that names the control.
+		tabTo(button);
+		expect(tip()).toHaveTextContent("Toggle sidebar");
+	});
+
+	it("does not come back on a button that took the place of the one that was pressed", () => {
+		// A menu that loads on demand swaps its button for another on the
+		// first press: what the first one knew is gone with it.
+		const first = renderTip();
+		fireEvent.pointerEnter(first);
+		fireEvent.pointerDown(first);
+		cleanup();
+
+		const second = renderTip();
+		keyboardFocus(second, true);
+		fireEvent.keyDown(document.body, { key: "Escape" });
+		fireEvent.focus(second);
+
+		expect(tip()).toBeNull();
 	});
 
 	it("takes its Escape listener off the page when it goes", () => {

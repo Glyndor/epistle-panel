@@ -152,6 +152,7 @@ describe("SidebarMenuButton", () => {
 			selector === ":focus-visible"
 				? true
 				: original(selector)) as typeof button.matches;
+		fireEvent.keyDown(document.body, { key: "Tab" });
 		fireEvent.focus(button);
 		expect(tip()).toHaveTextContent("Domains");
 
