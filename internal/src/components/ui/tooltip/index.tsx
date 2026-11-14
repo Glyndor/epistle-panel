@@ -245,6 +245,24 @@ export function Tooltip({
 		return () => cancelAnimationFrame(frame);
 	}, [shown, side, align]);
 
+	React.useEffect(() => {
+		if (!shown) {
+			return;
+		}
+		// Escape sends the tooltip away wherever the focus is: one the pointer
+		// brought up is over a control that does not have it, and it must be
+		// possible to dismiss it without moving the pointer.
+		const onKeyDown = (event: KeyboardEvent) => {
+			if (event.key === "Escape") {
+				sentAway.current = true;
+				clearTimeout(hideTimer.current);
+				setPlace(null);
+			}
+		};
+		document.addEventListener("keydown", onKeyDown);
+		return () => document.removeEventListener("keydown", onKeyDown);
+	}, [shown]);
+
 	return (
 		<>
 			<Slot
@@ -279,7 +297,12 @@ export function Tooltip({
 				}}
 				onFocus={(event: React.FocusEvent<HTMLElement>) => {
 					props.onFocus?.(event);
-					if (event.currentTarget.matches(":focus-visible")) {
+					// A menu the control opened gives the focus back when it
+					// closes: that is no new visit, and the name was just read.
+					if (
+						!sentAway.current &&
+						event.currentTarget.matches(":focus-visible")
+					) {
 						show(event.currentTarget);
 					}
 				}}
