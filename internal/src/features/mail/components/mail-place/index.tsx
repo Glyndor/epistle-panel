@@ -11,6 +11,7 @@ import { ReaderBoundary } from "@/features/mail/components/reader-boundary";
 import { ReaderSkeleton } from "@/features/mail/components/reader-skeleton";
 import { ShortcutsHelp } from "@/features/mail/components/shortcuts-help";
 import { WriteLink } from "@/features/mail/components/write-link";
+import { readListDensity } from "@/features/mail/queries/list-density";
 import type { PlaceRef } from "@/features/mail/queries/request-mail";
 import { parseListParams } from "@/features/mail/schemas/mail-input";
 import { requireSession } from "@/lib/auth/require-session";
@@ -24,7 +25,9 @@ import { cn } from "@/lib/class-names";
  * parameter checked on its own. The frame of the panes is sent at once; each
  * pane then streams its own data behind a skeleton, read on the server and
  * owned by Query in the browser from then on. Below 1024 px the panes become
- * one column: the list, or the reader when a message is open.
+ * one column: the list, or the reader when a message is open. The list pane
+ * carries the density the reader chose, from its cookie, for the rows and
+ * their skeleton to read.
  *
  * The page's one `h1` names the folder. It is not drawn: the trail of the
  * header already shows where the person is.
@@ -41,7 +44,10 @@ export async function MailPlace({
 }) {
 	await requireSession();
 	const t = await getTranslations("mail");
-	const params = parseListParams(await searchParams);
+	const [params, density] = await Promise.all([
+		searchParams.then(parseListParams),
+		readListDensity(),
+	]);
 	const name =
 		"role" in place ? t(`role_${place.role}`) : folderName(place.box);
 
@@ -52,8 +58,9 @@ export async function MailPlace({
 			</h1>
 			<section
 				aria-label={t("listLabel")}
+				data-density={density}
 				className={cn(
-					"flex min-h-0 flex-col rounded-2xl bg-surface",
+					"group/list flex min-h-0 flex-col rounded-2xl bg-surface",
 					message !== undefined && "max-lg:hidden",
 				)}
 			>

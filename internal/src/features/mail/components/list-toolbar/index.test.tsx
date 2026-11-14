@@ -13,6 +13,7 @@ describe("ListToolbar", () => {
 				folderRole={null}
 				filter="unread"
 				q=""
+				density="comfortable"
 			/>,
 		);
 		const form = container.querySelector("form");
@@ -43,7 +44,13 @@ describe("ListToolbar", () => {
 
 	it("posts the search of a folder with a role to the role's page", () => {
 		const { container } = render(
-			<ListToolbar box="Papelera" folderRole="trash" filter="all" q="" />,
+			<ListToolbar
+				box="Papelera"
+				folderRole="trash"
+				filter="all"
+				q=""
+				density="comfortable"
+			/>,
 		);
 		expect(container.querySelector("form")).toHaveAttribute(
 			"action",
@@ -53,7 +60,13 @@ describe("ListToolbar", () => {
 
 	it("sends no filter field for the default filter and no clear link without a search", () => {
 		const { container } = render(
-			<ListToolbar box="INBOX" folderRole="inbox" filter="all" q="" />,
+			<ListToolbar
+				box="INBOX"
+				folderRole="inbox"
+				filter="all"
+				q=""
+				density="comfortable"
+			/>,
 		);
 		expect(container.querySelector("input[name=filter]")).toBeNull();
 		expect(screen.queryByRole("link", { name: "searchClear" })).toBeNull();
@@ -67,6 +80,7 @@ describe("ListToolbar", () => {
 				folderRole="inbox"
 				filter="flagged"
 				q="invoice"
+				density="comfortable"
 			/>,
 		);
 		expect(screen.getByRole("searchbox")).toHaveValue("invoice");
@@ -83,6 +97,7 @@ describe("ListToolbar", () => {
 				folderRole="inbox"
 				filter="unread"
 				q="a b"
+				density="comfortable"
 			/>,
 		);
 		const nav = screen.getByRole("navigation", { name: "filtersLabel" });
@@ -100,5 +115,26 @@ describe("ListToolbar", () => {
 			links.filter((l) => l.getAttribute("aria-current") === "true"),
 		).toHaveLength(1);
 		expect(links[1]).toHaveAttribute("aria-current", "true");
+	});
+	it("ends the filters with the density switch, in the density the server read", () => {
+		for (const [density, pressed] of [
+			["comfortable", "false"],
+			["compact", "true"],
+		] as const) {
+			render(
+				<ListToolbar
+					box="INBOX"
+					folderRole="inbox"
+					filter="all"
+					q=""
+					density={density}
+				/>,
+			);
+
+			expect(
+				screen.getByRole("button", { name: "densityCompact" }),
+			).toHaveAttribute("aria-pressed", pressed);
+			cleanup();
+		}
 	});
 });
