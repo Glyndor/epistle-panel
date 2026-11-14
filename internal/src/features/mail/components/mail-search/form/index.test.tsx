@@ -241,18 +241,24 @@ describe("the search form", () => {
 		expect(html).not.toContain("<script>");
 	});
 
-	it("keeps the fields in the page while the panel is closed", () => {
-		const { form } = draw();
+	it("keeps the fields in the page while the panel is closed, but out of sight and out of the tab order", () => {
+		const { container, form } = draw();
 
-		// The panel is closed, and the fields are still there: a search
-		// keeps what was written in them.
 		const button = screen.getByRole("button", { name: "searchFields" });
+		const panel = container.querySelector<HTMLElement>(
+			'[data-slot="collapsible-content"]',
+		);
 		expect(button).toHaveAttribute("aria-expanded", "false");
-		expect(field("from")).toBeInTheDocument();
-		write("from", "ana");
+		expect(panel?.hidden).toBe(true);
+		expect(field("from")).not.toBeVisible();
 
+		write("from", "ana");
 		const sent = address(form);
 		expect(sent.get("from")).toBe("ana");
+
+		openPanel();
+		expect(panel?.hidden).toBe(false);
+		expect(field("from")).toBeVisible();
 	});
 
 	it("opens and closes the panel of the fields", () => {

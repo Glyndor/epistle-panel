@@ -139,6 +139,7 @@ export function SearchForm({
 				    them. */}
 				<CollapsibleContent
 					forceMount
+					hidden={!open}
 					className="absolute inset-x-0 top-full z-30 mt-2 rounded-xl bg-surface-raised p-3 shadow-raised"
 				>
 					<SearchFields conditions={conditions} errors={errors} />
