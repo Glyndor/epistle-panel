@@ -224,9 +224,11 @@ describe("ReaderToolbar", () => {
 		renderBar();
 		fireEvent.click(screen.getByRole("button", { name: "archive" }));
 		await waitFor(() => expect(setCalls(seen)).toHaveLength(1));
-		await waitFor(() =>
-			expect(screen.getByRole("button", { name: "spam" })).toBeEnabled(),
-		);
+		await waitFor(() => expect(leftCount).toBe(1));
+		// A moved message has another id: the next move is of another message
+		// on another screen. On the same one it would be dropped as gone.
+		cleanup();
+		renderBar();
 		fireEvent.click(screen.getByRole("button", { name: "spam" }));
 		await waitFor(() =>
 			expect(setCalls(seen).length).toBeGreaterThanOrEqual(2),
