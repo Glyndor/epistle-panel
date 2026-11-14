@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { HeaderActions } from "@/components/layout/header-actions";
 import { SidebarTrigger } from "@/components/ui/sidebar/trigger";
 import type { SessionRole } from "@/lib/auth/session";
+import { cn } from "@/lib/class-names";
 
 /**
  * The bar above the content, the same in the administration and in the mail:
@@ -16,11 +17,13 @@ import type { SessionRole } from "@/lib/auth/session";
  * link and form of `HeaderActions` are shown as well, so the page is not
  * pushed sideways.
  *
- * The middle cell is drawn from 1024 px, with twice the trail's share of the
- * room, when the area says it has a search (`reserveSearch`), also while there
- * is nothing in it yet: the trail then never grows into the place the search
- * will take. Below 1024 px the cell holds only what the area draws there,
- * which in the mail area is the icon that opens the search over the bar.
+ * From 1024 px up, in the area that has a search, the bar is three columns:
+ * the trail, the search in the middle and the far end. The two outer columns
+ * are the same, so the search sits in the middle of the bar and not beside
+ * it. The area with no search keeps the row it had.
+ *
+ * Below 1024 px the cell holds only what the area draws there, which in the
+ * mail area is the icon that opens the search over the bar.
  */
 export async function SiteHeader({
 	trail,
@@ -43,16 +46,24 @@ export async function SiteHeader({
 	const t = await getTranslations("nav");
 
 	return (
-		<header className="relative flex min-h-12 shrink-0 flex-wrap items-center gap-x-2 gap-y-1 bg-header px-2 py-1 pointer-coarse:min-h-14 md:px-4">
-			<SidebarTrigger
-				label={t("toggle")}
-				shortcut={t("toggleShortcut")}
-			/>
-			<div
-				data-slot="header-trail"
-				className="flex min-w-0 flex-1 basis-0"
-			>
-				{trail}
+		<header
+			className={cn(
+				"relative flex min-h-12 shrink-0 flex-wrap items-center gap-x-2 gap-y-1 bg-header px-2 py-1 pointer-coarse:min-h-14 md:px-4",
+				reserveSearch &&
+					"lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,32rem)_minmax(0,1fr)]",
+			)}
+		>
+			<div className="flex min-w-0 flex-1 basis-0 items-center gap-x-2 lg:col-start-1 lg:row-start-1">
+				<SidebarTrigger
+					label={t("toggle")}
+					shortcut={t("toggleShortcut")}
+				/>
+				<div
+					data-slot="header-trail"
+					className="flex min-w-0 flex-1 basis-0"
+				>
+					{trail}
+				</div>
 			</div>
 			{reserveSearch ? (
 				<div
@@ -60,16 +71,18 @@ export async function SiteHeader({
 					// From 1024 px up the cell holds the search, wide. Below it
 					// the cell holds only the icon that opens the search over
 					// the bar, and the trail keeps the room.
-					className="min-w-0 flex-2 basis-0 max-lg:flex-none max-lg:w-auto"
+					className="min-w-0 max-lg:flex-none max-lg:w-auto lg:col-start-2 lg:row-start-1"
 				>
 					{search}
 				</div>
 			) : null}
-			<HeaderActions
-				name={user.name}
-				sessionRole={user.role}
-				adminHref={adminHref}
-			/>
+			<div className="lg:col-start-3 lg:row-start-1 lg:justify-self-end">
+				<HeaderActions
+					name={user.name}
+					sessionRole={user.role}
+					adminHref={adminHref}
+				/>
+			</div>
 		</header>
 	);
 }
