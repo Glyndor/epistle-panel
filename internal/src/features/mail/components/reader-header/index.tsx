@@ -1,4 +1,5 @@
 import { useFormatter, useTranslations } from "next-intl";
+import { LabelChip } from "@/features/mail/components/label-chip";
 
 import { formatReceivedAt } from "@/features/mail/format/received-at";
 import type {
@@ -27,7 +28,9 @@ function Addresses({ list }: { list: readonly AddressView[] }) {
 
 /**
  * The subject and the headers a reader looks at first: from, to, cc, reply-to
- * and the date. Each is shown as text and isolated with `<bdi>`, so what the
+ * the labels and the date. Every label is there as a chip with its whole
+ * name: a row of the list may show only a count, and the names behind a count
+ * are under the pointer alone. Each is shown as text and isolated with `<bdi>`, so what the
  * sender wrote cannot rearrange its neighbours. The heading takes focus when
  * the reader is the only pane in view, which `MessageReader` arranges.
  */
@@ -58,6 +61,22 @@ export function ReaderHeader({
 					{message.subject === "" ? t("noSubject") : message.subject}
 				</bdi>
 			</h2>
+			{message.labels.length === 0 ? null : (
+				<ul
+					aria-label={t("labelsTitle")}
+					data-slot="reader-labels"
+					className="flex flex-wrap gap-1"
+				>
+					{message.labels.map((label) => (
+						<li key={label.keyword} className="flex min-w-0">
+							<LabelChip
+								label={label}
+								className="h-6 max-w-full"
+							/>
+						</li>
+					))}
+				</ul>
+			)}
 			<dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-sm">
 				{rows
 					.filter(([, list]) => list.length > 0)

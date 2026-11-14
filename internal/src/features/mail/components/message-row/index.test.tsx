@@ -96,16 +96,29 @@ describe("MessageRow", () => {
 	it("isolates each text of the message with bdi so it cannot reorder its neighbours", () => {
 		const { link } = row(summary());
 
+		// The initials are made of the sender's name, so they are text of the message too.
 		expect(
 			Array.from(link.querySelectorAll("bdi")).map((b) => b.textContent),
-		).toEqual(["Ana Pérez", "Hello", "preview"]);
+		).toEqual(["AP", "Ana Pérez", "Hello", "preview"]);
+	});
+
+	it("isolates each label's name in the sentence a screen reader hears", () => {
+		const { link } = row(summary({ labels: EVERYTHING.labels }));
+		const said = link.querySelector(".sr-only");
+
+		expect(
+			Array.from(said?.querySelectorAll("bdi") ?? []).map(
+				(name) => name.textContent,
+			),
+		).toEqual(["Work", "Home"]);
+		expect(said?.textContent).toBe("stateLabelsWork, Home.");
 	});
 
 	it("says every state once in words, in a fixed order", () => {
 		const { link } = row(summary(EVERYTHING), true);
 
 		expect(link.querySelector(".sr-only")?.textContent).toBe(
-			"stateUnread, stateFlagged, stateImportant, stateAnswered, stateForwarded, stateDraft, hasAttachment, stateLabels.",
+			"stateUnread, stateFlagged, stateImportant, stateAnswered, stateForwarded, stateDraft, hasAttachment, stateLabelsWork, Home.",
 		);
 		expect(link).toHaveAttribute("aria-current", "true");
 	});
@@ -114,18 +127,19 @@ describe("MessageRow", () => {
 		expect(row(summary()).link.querySelector(".sr-only")).toBeNull();
 	});
 
-	it("marks an unread message three ways: weight, a dot before the sender and the raised surface", () => {
+	it("marks an unread message two ways that are not a colour: weight and a dot before the sender", () => {
 		const { item, link } = row(summary({ unread: true }));
 		const dot = link.querySelector('[data-slot="unread-dot"]');
 
 		expect(screen.getByText("Ana Pérez")).toHaveClass("font-semibold");
 		expect(screen.getByText("Hello")).toHaveClass("font-medium");
-		expect(item).toHaveClass("bg-surface");
-		expect(dot).toHaveClass("absolute", "start-1.5", "rounded-full");
+		expect(dot).toHaveClass("absolute", "start-2", "rounded-full");
 		// Before the initials and the sender in the page too.
 		expect(
 			dot?.compareDocumentPosition(screen.getByText("Ana Pérez")),
 		).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+		// It stands on the pane like a read one: the pane has one surface.
+		expect(item.className).not.toMatch(/(^|\s)bg-/);
 	});
 
 	it("leaves a read message on the pane's surface, lighter and with no dot", () => {
@@ -209,19 +223,90 @@ describe("MessageRow", () => {
 		);
 	});
 
-	it("marks the open message with the accent surface and a mark on its start edge", () => {
+	it("marks the open message with the accent surface and a mark at its start edge", () => {
 		const { item, link } = row(summary({ unread: true }), true);
 
 		expect(link).toHaveAttribute("aria-current", "true");
+		expect(item).toHaveAttribute("data-open", "true");
 		expect(item).toHaveClass(
 			"bg-accent",
 			"before:absolute",
-			"before:start-0",
 			"before:bg-primary",
 		);
-		// The accent replaces the raised surface, and no side is named by hand.
-		expect(item).not.toHaveClass("bg-surface");
+		// No side is named by hand.
 		expect(item.className).not.toMatch(/(^|[\s:])(left|right)-/);
+	});
+
+	it("draws the open row's mark inside the focus ring, so the ring keeps its start side", () => {
+		const { item, link } = row(summary(), true);
+
+		// The ring is the row's two outer pixels; the mark starts after them.
+		expect(link).toHaveClass(
+			"focus-visible:outline-2",
+			"focus-visible:-outline-offset-2",
+		);
+		expect(item).toHaveClass("before:start-0.5", "before:w-1");
+		expect(item).not.toHaveClass("before:start-0");
+		expect(item).toHaveClass("before:pointer-events-none");
+	});
+
+	it("gives the open row a look of its own under the pointer and pressed", () => {
+		const open = row(summary(), true);
+
+		expect(open.item).toHaveClass(
+			"hover:bg-accent/50",
+			"active:bg-accent/25",
+		);
+		// Not the fills of any other row, which would be the open surface itself.
+		expect(open.item).not.toHaveClass("hover:bg-muted");
+		expect(open.item).not.toHaveClass("hover:bg-accent");
+		expect(open.item).not.toHaveClass("active:bg-accent");
+		expect(screen.getByText("Hello")).toHaveClass(
+			"group-data-[open=true]/row:group-hover/row:underline",
+		);
+		cleanup();
+
+		const closed = row(summary());
+		expect(closed.item).toHaveAttribute("data-open", "false");
+		expect(closed.item).toHaveClass("hover:bg-muted", "active:bg-accent");
+	});
+
+	it("keeps a least width for the subject in every case, and lets the sender give way first", () => {
+		row(summary());
+		const C = "group-data-[density=compact]/list:";
+
+		expect(screen.getByText("Hello")).toHaveClass(
+			"flex-1",
+			"min-w-24",
+			"pointer-fine:@sm/row:min-w-40",
+			`${C}min-w-20`,
+			`${C}@xs/row:min-w-24`,
+			`${C}@sm/row:min-w-40`,
+			`pointer-fine:${C}@sm/row:min-w-48`,
+			`${C}@2xl/row:min-w-32`,
+		);
+		expect(screen.getByText("Hello")).not.toHaveClass("min-w-0");
+		expect(screen.getByText("Ana Pérez")).toHaveClass(
+			"min-w-12",
+			"truncate",
+		);
+		// The clip and the date keep their width.
+		expect(
+			screen.getByText("Hello").closest("a")?.querySelector("time")
+				?.parentElement,
+		).toHaveClass("shrink-0");
+	});
+
+	it("hides the initials where the row is too narrow for them, by the row's own width", () => {
+		const { link } = row(summary());
+		const C = "group-data-[density=compact]/list:";
+
+		expect(link.querySelector('[data-slot="avatar"]')).toHaveClass(
+			"hidden",
+			"@xs/row:flex",
+			`${C}hidden`,
+			`${C}@sm/row:flex`,
+		);
 	});
 
 	it("keeps one height whatever the state: 72 px, and 40 or 44 px when compact", () => {
@@ -257,6 +342,7 @@ describe("MessageRow", () => {
 		}
 		expect(lines).toContain("h-5");
 		expect(lines).toContain("h-4");
+		expect(lines).toContain("group-data-[density=compact]/list:h-4");
 	});
 
 	it("raises the row under the pointer or with the focus one step, and no other", () => {
