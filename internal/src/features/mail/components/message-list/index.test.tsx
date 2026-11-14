@@ -13,7 +13,13 @@ const { MessageList } = await import(".");
 
 const A = "00000000-0000-4000-8000-0000000000a1";
 const B = "00000000-0000-4000-8000-0000000000a2";
-const view = { box: "INBOX", page: 1, filter: "all", q: "" } as const;
+const view = {
+	box: "INBOX",
+	role: "inbox",
+	page: 1,
+	filter: "all",
+	q: "",
+} as const;
 
 beforeEach(async () => {
 	clearSecretCache();

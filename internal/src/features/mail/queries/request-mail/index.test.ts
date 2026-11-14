@@ -7,7 +7,7 @@ import { clearSecretCache } from "@/lib/config/secret";
 const originalFetch = globalThis.fetch;
 const savedEnv = { ...process.env };
 const cookies = mockRequestCookies();
-const { FALLBACK_BOX, requestMailboxes, requestMailSession, resolveBox } =
+const { FALLBACK_BOX, requestMailboxes, requestMailSession, resolvePlace } =
 	await import(".");
 
 const boxes = {
@@ -85,29 +85,83 @@ describe("requestMailboxes", () => {
 	});
 });
 
-describe("resolveBox", () => {
-	it("takes the folder the address names without asking the server", async () => {
+describe("resolvePlace", () => {
+	it("takes a folder asked for by its id without asking the server", async () => {
 		const seen = stubJmap(boxes);
-		expect(await resolveBox("Archive")).toBe("Archive");
+		expect(await resolvePlace({ box: "Archive" })).toEqual({
+			box: "Archive",
+			role: null,
+			unreadable: false,
+		});
 		expect(seen).toHaveLength(0);
 	});
 
-	it("opens the inbox by its role, whatever its id and its place in the list", async () => {
+	it("opens a folder by its role, whatever its id and its place in the list", async () => {
 		stubJmap(boxes);
-		expect(await resolveBox(undefined)).toBe("Mail");
+		expect(await resolvePlace({ role: "inbox" })).toEqual({
+			box: "Mail",
+			role: "inbox",
+			unreadable: false,
+		});
 	});
 
-	it("falls back when the folders cannot be read or none is the inbox", async () => {
+	it("opens the first of two folders with one role", async () => {
+		stubJmap({
+			"Mailbox/get": {
+				list: [
+					{
+						id: "Sent",
+						name: "Sent",
+						role: "sent",
+						totalEmails: 0,
+						unreadEmails: 0,
+					},
+					{
+						id: "Sent Items",
+						name: "Sent Items",
+						role: "sent",
+						totalEmails: 0,
+						unreadEmails: 0,
+					},
+				],
+			},
+		});
+		expect((await resolvePlace({ role: "sent" })).box).toBe("Sent");
+	});
+
+	it("has no folder for a role the account lacks, and says which role", async () => {
+		stubJmap(boxes);
+		expect(await resolvePlace({ role: "junk" })).toEqual({
+			box: null,
+			role: "junk",
+			// The folders were read: the account has none of that role.
+			unreadable: false,
+		});
+	});
+
+	it("falls back for the inbox, and only for it, when the folders cannot be read or none is the inbox", async () => {
 		const logged = spyOn(console, "error").mockImplementation(() => {});
 		try {
 			stubJmap({});
-			expect(await resolveBox(undefined)).toBe(FALLBACK_BOX);
+			expect(await resolvePlace({ role: "inbox" })).toEqual({
+				box: FALLBACK_BOX,
+				role: "inbox",
+				unreadable: false,
+			});
+			// Not read is not the same as none: the pane says the server is unreachable.
+			expect(await resolvePlace({ role: "trash" })).toEqual({
+				box: null,
+				role: "trash",
+				unreadable: true,
+			});
 			stubJmap({
 				"Mailbox/get": {
 					list: [boxes["Mailbox/get"].list[0]],
 				},
 			});
-			expect(await resolveBox(undefined)).toBe(FALLBACK_BOX);
+			expect((await resolvePlace({ role: "inbox" })).box).toBe(
+				FALLBACK_BOX,
+			);
 		} finally {
 			logged.mockRestore();
 		}

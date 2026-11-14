@@ -89,7 +89,9 @@ a loading state sits above a page that is not its own.
 
 ## How the 404 stays one
 
-The proxy lets four things on to the router: `/`, `/app/mail` with a session,
+The proxy lets four things on to the router: `/`, the routes of the mail area
+with a session (`lib/mail-paths` lists them exactly; any other path under
+`/app/mail` is hidden like the rest),
 `/app/{id}/**` with a session of the admin role and the right id, and the
 assets its matcher skips. Everything else, which is a path no route has, `/app`,
 the admin area for someone who may not see it and any other id, is rewritten to

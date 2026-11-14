@@ -10,20 +10,15 @@ import { ListSkeleton } from "@/features/mail/components/list-skeleton";
 import { MailNotice } from "@/features/mail/components/mail-notice";
 import { useMailShortcuts } from "@/features/mail/components/message-list/use-mail-shortcuts";
 import { MessageRow } from "@/features/mail/components/message-row";
+import type { ListAddress } from "@/features/mail/links/mail-href";
 import { messageListQueryOptions } from "@/features/mail/queries/mail-query-options";
-import type { ListFilter } from "@/features/mail/schemas/mail-input";
 import { unwrap } from "@/lib/query/action-result";
 
 const fetchList = async (input: Parameters<typeof getMessageListAction>[0]) =>
 	unwrap(await getMessageListAction(input));
 
-/** What selects the list on screen. */
-export interface ListView {
-	readonly box: string;
-	readonly page: number;
-	readonly filter: ListFilter;
-	readonly q: string;
-}
+/** What selects the list on screen, and how its folder is addressed. */
+export type ListView = ListAddress;
 
 /**
  * The messages of the folder, one page. The page is prefetched on the server
@@ -41,7 +36,11 @@ export function MessageList({
 }) {
 	const t = useTranslations("mail");
 	const { data, isPending, isError, refetch, isFetching } = useQuery(
-		messageListQueryOptions(view, fetchList),
+		messageListQueryOptions(
+			// The folder's role addresses it and is no part of what is asked.
+			{ box: view.box, page: view.page, filter: view.filter, q: view.q },
+			fetchList,
+		),
 	);
 	useMailShortcuts({
 		ids: data?.items.map((item) => item.id) ?? [],

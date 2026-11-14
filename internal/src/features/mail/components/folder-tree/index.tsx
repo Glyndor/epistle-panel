@@ -43,6 +43,13 @@ export function FolderTree({
 	activeId: string;
 }) {
 	const t = useTranslations("mail");
+	// A role's path opens the first folder with that role, so only that one is addressed by it.
+	const byRole = new Map<string, string>();
+	for (const box of boxes) {
+		if (box.role !== null && !byRole.has(box.role)) {
+			byRole.set(box.role, box.id);
+		}
+	}
 
 	return (
 		<nav aria-label={t("folders")} className="p-2">
@@ -54,7 +61,14 @@ export function FolderTree({
 					return (
 						<li key={box.id}>
 							<Link
-								href={mailHref({ box: box.id })}
+								href={mailHref({
+									box: box.id,
+									role:
+										box.role !== null &&
+										byRole.get(box.role) === box.id
+											? box.role
+											: null,
+								})}
 								aria-current={active ? "page" : undefined}
 								className={cn(
 									"flex min-h-8 items-center gap-2 rounded-md py-1 pr-2 text-sm hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring pointer-coarse:min-h-11",

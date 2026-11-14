@@ -34,7 +34,15 @@ describe("FolderTree", () => {
 		expect(screen.getAllByRole("link")).toHaveLength(5);
 		expect(
 			screen.getByRole("link", { name: /role_inbox/ }),
-		).toHaveAttribute("href", "/app/mail?box=INBOX");
+		).toHaveAttribute("href", "/app/mail/inbox");
+		expect(screen.getByRole("link", { name: /role_sent/ })).toHaveAttribute(
+			"href",
+			"/app/mail/sent",
+		);
+		expect(screen.getByRole("link", { name: "Q4" })).toHaveAttribute(
+			"href",
+			"/app/mail/folder/Work_2FQ4",
+		);
 		expect(screen.getByText("role_sent")).toBeInTheDocument();
 		expect(screen.getByText("Q4")).toBeInTheDocument();
 	});
@@ -53,7 +61,7 @@ describe("FolderTree", () => {
 		expect(screen.getAllByText("unreadCount")).toHaveLength(1);
 	});
 
-	it("encodes a mailbox id in the link", () => {
+	it("writes a mailbox id into one segment of the link", () => {
 		render(
 			<FolderTree
 				boxes={[box({ id: "A&b/c d", name: "A" })]}
@@ -62,7 +70,26 @@ describe("FolderTree", () => {
 		);
 		expect(screen.getByRole("link")).toHaveAttribute(
 			"href",
-			"/app/mail?box=A%26b%2Fc+d",
+			"/app/mail/folder/A_26b_2Fc_20d",
+		);
+	});
+
+	it("addresses by role only the first folder with that role", () => {
+		render(
+			<FolderTree
+				boxes={[
+					box({ id: "Sent", name: "Sent", role: "sent" }),
+					box({ id: "Sent Items", name: "Sent Items", role: "sent" }),
+				]}
+				activeId=""
+			/>,
+		);
+		const links = screen.getAllByRole("link");
+		expect(links[0]).toHaveAttribute("href", "/app/mail/sent");
+		// The role's path would open the first one: the second keeps a path of its own.
+		expect(links[1]).toHaveAttribute(
+			"href",
+			"/app/mail/folder/Sent_20Items",
 		);
 	});
 });

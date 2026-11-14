@@ -44,7 +44,7 @@ scenario_mail() {
 	reset_api
 
 	local path
-	for path in /app/mail "/app/mail?box=Sent&msg=$MAIL_HOSTILE_HTML" "/app/mail/body/$MAIL_HOSTILE_HTML" "/app/mail/attachment/$MAIL_ATTACHMENTS/2"; do
+	for path in /app/mail /app/mail/inbox "/app/mail/sent/$MAIL_HOSTILE_HTML" /app/mail/folder/Work_2FQ4 "/app/mail?box=Sent&msg=$MAIL_HOSTILE_HTML" /app/mail/no-such-place "/app/mail/body/$MAIL_HOSTILE_HTML" "/app/mail/attachment/$MAIL_ATTACHMENTS/2"; do
 		fetch "$path"
 		assert_eq "no cookie: GET $path" "$status" 307
 		assert_eq "no cookie: $path goes to the sign-in page" "$(header location)" "/"
@@ -61,28 +61,70 @@ scenario_mail() {
 	assert_eq "one main landmark" "$({ grep -o '<main' "$work/b" || true; } | wc -l | tr -d ' ')" 1
 	assert_absent "the bearer token is not in the page" "$(cat "$work/b")" "$(cat "$api_token_file")"
 
-	fetch "/app/mail?page=2" "$good"
+	# A folder is a page with a path of its own; what narrows it is a parameter.
+	fetch /app/mail/inbox "$good"
+	assert_eq "GET /app/mail/inbox" "$status" 200
+	assert_contains "the inbox by its own path lists the same message" "$(cat "$work/b")" "Welcome to your mailbox"
+	assert_contains "its title names the folder" "$(cat "$work/b")" "<title>Inbox · "
+	assert_contains "a row links to the message under the folder's path" "$(cat "$work/b")" "href=\"/app/mail/inbox/$MAIL_HOSTILE_HEADERS\""
+	assert_contains "the folder tree links a folder with a role by the role" "$(cat "$work/b")" 'href="/app/mail/archive"'
+	assert_contains "and any other folder by its name as one segment" "$(cat "$work/b")" 'href="/app/mail/folder/Work_2FQ4"'
+	assert_absent "no link carries the folder as a parameter" "$(cat "$work/b")" "?box="
+	fetch "/app/mail/inbox?page=2" "$good"
 	assert_contains "page 2 lists an older message" "$(cat "$work/b")" "Bulk message"
-	fetch "/app/mail?filter=flagged" "$good"
+	fetch "/app/mail/inbox?filter=flagged" "$good"
 	assert_contains "the flagged filter keeps the starred message" "$(cat "$work/b")" "Starred and answered"
 	assert_absent "and leaves the others out" "$(cat "$work/b")" "Weekly newsletter"
-	fetch "/app/mail?q=newsletter" "$good"
+	fetch "/app/mail/inbox?q=newsletter" "$good"
 	assert_contains "a search finds by subject" "$(cat "$work/b")" "Weekly newsletter"
-	fetch "/app/mail?box=Archive" "$good"
+	fetch /app/mail/archive "$good"
+	assert_eq "GET a folder by its role" "$status" 200
 	assert_contains "another folder lists its own message" "$(cat "$work/b")" "Old thread"
+	assert_absent "and not the inbox's" "$(cat "$work/b")" "Welcome to your mailbox"
+	fetch /app/mail/folder/Archive "$good"
+	assert_contains "the same folder by its name" "$(cat "$work/b")" "Old thread"
+	fetch /app/mail/folder/Work_2FQ4 "$good"
+	assert_eq "GET a folder whose name holds a slash" "$status" 200
+	assert_contains "its title is the last part of its name" "$(cat "$work/b")" "<title>Q4 · "
+
+	# What is no place is no page, and names nothing to the mail server.
+	local before_places
+	before_places=$(api_count '"method"')
+	for path in /app/mail/no-such-place /app/mail/Inbox /app/mail/label/Work /app/mail/starred /app/mail/inbox/not-an-id /app/mail/inbox/11111111-1111-1111-1111-111111111111 "/app/mail/inbox/$MAIL_HOSTILE_HEADERS/more" /app/mail/folder/Work%2FQ4 /app/mail/folder/Work_2fQ4 /app/mail/folder/a_00b /app/mail/folder; do
+		fetch "$path" "$good"
+		assert_eq "GET $path is no page" "$status" 404
+	done
+	assert_eq "none of them asked the mail server anything" "$(api_count '"method"')" "$before_places"
+
+	# An address from before a folder was a path is sent on to the page it meant.
+	fetch "/app/mail?box=Archive"
+	assert_eq "an old folder address without a session goes to the sign-in page" "$(header location)" "/"
+	fetch "/app/mail?box=Archive" "$good"
+	assert_eq "an old folder address redirects" "$status" 307
+	assert_eq "to the folder's path" "$(header location)" "/app/mail/folder/Archive"
+	fetch "/app/mail?box=Work/Q4&page=2&filter=unread&q=a+b&msg=$MAIL_TEXT_ONLY" "$good"
+	assert_eq "with the message and what narrows the list" "$(header location)" "/app/mail/folder/Work_2FQ4/$MAIL_TEXT_ONLY?page=2&filter=unread&q=a+b"
+	for hostile in '//evil.example' 'https://evil.example/' '..%2F..%2F..' '%2F%5Cevil.example'; do
+		fetch "/app/mail?box=$hostile" "$good"
+		assert_eq "an old address naming '$hostile' still redirects" "$status" 307
+		assert_contains "with somewhere to go" "$(header location)" "/app/mail/"
+		assert_contains "and only into the mail area" "$(header location) " "/app/mail/folder/"
+		assert_absent "never to another origin" "$(header location)" "evil.example/"
+		assert_absent "never with a second slash" "$(header location | cut -c1-2)" "//"
+	done
 	fetch "/app/mail?box=%0a&page=-1&filter=zzz&q=%00&msg=../x" "$good"
 	assert_eq "hostile parameters degrade to the default view" "$status" 200
 	assert_contains "which is the inbox" "$(cat "$work/b")" "Welcome to your mailbox"
 
 	# Headers and addresses with line breaks and bidi controls are text.
-	fetch "/app/mail?msg=$MAIL_HOSTILE_HEADERS" "$good"
+	fetch "/app/mail/inbox/$MAIL_HOSTILE_HEADERS" "$good"
 	assert_eq "the message with hostile headers renders" "$status" 200
 	assert_contains "its subject is shown as one line of text" "$(cat "$work/b")" "Invoicetxt.exe Bcc: attacker@example.org"
 	assert_eq "no bidi override reaches the page" "$({ grep -o -P '[\x{202A}-\x{202E}\x{2066}-\x{2069}]' "$work/b" || true; } | wc -l | tr -d ' ')" 0
 	assert_absent "no injected header became markup" "$(cat "$work/b")" "<X-Injected"
 
 	# A message whose body is plain text keeps its markup as text.
-	fetch "/app/mail?msg=$MAIL_TEXT_ONLY" "$good"
+	fetch "/app/mail/inbox/$MAIL_TEXT_ONLY" "$good"
 	assert_contains "the markup in a text body is escaped" "$(cat "$work/b")" "&lt;script&gt;alert(&#x27;text&#x27;)&lt;/script&gt;"
 
 	# The framed body: sanitised, under its own policy.
@@ -251,7 +293,7 @@ scenario_mail() {
 	assert_eq "saving it again replaces it" "$(mail_post /app/mail/compose-message "${draft/\"op\":\"draft\"/\"op\":\"draft\",\"draftId\":\"$draft_id\"}" "$good")" 200
 	draft_id=$(grep -o '"id":"[^"]*"' "$work/b" | head -1 | sed 's/"id":"//; s/"//')
 	assert_eq "there is still one draft" "$({ mail_state | grep -o '"mailbox":"Drafts"' || true; } | wc -l | tr -d ' ')" 1
-	fetch "/app/mail?box=Drafts" "$good"
+	fetch /app/mail/drafts "$good"
 	assert_contains "the drafts folder lists it" "$(cat "$work/b")" "Draft subject"
 
 	assert_eq "a draft id that names an ordinary message is refused" "$(mail_post /app/mail/compose-message "${draft/\"op\":\"draft\"/\"op\":\"draft\",\"draftId\":\"$MAIL_NEWSLETTER\"}" "$good")" 200

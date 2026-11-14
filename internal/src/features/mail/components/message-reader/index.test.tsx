@@ -20,7 +20,13 @@ const cookies = mockRequestCookies();
 const { MessageReader } = await import(".");
 
 const ID = "00000000-0000-4000-8000-0000000000b1";
-const view = { box: "INBOX", page: 2, filter: "unread", q: "x" } as const;
+const view = {
+	box: "INBOX",
+	role: "inbox",
+	page: 2,
+	filter: "unread",
+	q: "x",
+} as const;
 
 beforeEach(async () => {
 	clearSecretCache();
@@ -92,7 +98,7 @@ describe("MessageReader", () => {
 		expect(document.activeElement).toBe(document.body);
 		expect(screen.getByRole("link", { name: "back" })).toHaveAttribute(
 			"href",
-			"/app/mail?box=INBOX&page=2&filter=unread&q=x",
+			"/app/mail/inbox?page=2&filter=unread&q=x",
 		);
 	});
 

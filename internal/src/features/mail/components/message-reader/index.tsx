@@ -16,12 +16,11 @@ import { MailNotice } from "@/features/mail/components/mail-notice";
 import { ReaderHeader } from "@/features/mail/components/reader-header";
 import { ReaderSkeleton } from "@/features/mail/components/reader-skeleton";
 import { ReaderToolbar } from "@/features/mail/components/reader-toolbar";
-import { mailHref } from "@/features/mail/links/mail-href";
+import { type ListAddress, mailHref } from "@/features/mail/links/mail-href";
 import {
 	mailboxesQueryOptions,
 	messageQueryOptions,
 } from "@/features/mail/queries/mail-query-options";
-import type { ListFilter } from "@/features/mail/schemas/mail-input";
 import { unwrap } from "@/lib/query/action-result";
 
 const fetchMailboxes = async () => unwrap(await getMailboxesAction());
@@ -40,13 +39,7 @@ function readerIsAlone(): boolean {
  * the keyboard shortcuts can carry on. Every state has its own text: waiting,
  * unreachable (with a retry) and a message that no longer exists.
  */
-export function MessageReader({
-	id,
-	view,
-}: {
-	id: string;
-	view: { box: string; page: number; filter: ListFilter; q: string };
-}) {
+export function MessageReader({ id, view }: { id: string; view: ListAddress }) {
 	const t = useTranslations("mail");
 	const headingId = useId();
 	const backLink = useRef<HTMLAnchorElement>(null);

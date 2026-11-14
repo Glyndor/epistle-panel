@@ -5,14 +5,41 @@ import { attachmentHref, bodyHref, composeHref, mailHref } from ".";
 const ID = "01890a5d-ac96-774b-b9aa-9be4c3bd6b0e";
 
 describe("mailHref", () => {
-	it("is the bare address for the default view", () => {
-		expect<string>(mailHref({})).toBe("/app/mail");
+	it("is the inbox for the default view", () => {
+		expect<string>(mailHref({})).toBe("/app/mail/inbox");
 		expect<string>(mailHref({ page: 1, filter: "all", q: "" })).toBe(
-			"/app/mail",
+			"/app/mail/inbox",
 		);
 	});
 
-	it("carries only what differs from the default, encoded", () => {
+	it("names a folder with a role by the role, whatever its id is", () => {
+		expect<string>(mailHref({ box: "INBOX", role: "inbox" })).toBe(
+			"/app/mail/inbox",
+		);
+		expect<string>(mailHref({ box: "Papelera", role: "trash" })).toBe(
+			"/app/mail/trash",
+		);
+		expect<string>(mailHref({ role: "junk" })).toBe("/app/mail/junk");
+	});
+
+	it("names any other folder by its id as one segment", () => {
+		expect<string>(mailHref({ box: "Work" })).toBe("/app/mail/folder/Work");
+		expect<string>(mailHref({ box: "Work/Q4", role: null })).toBe(
+			"/app/mail/folder/Work_2FQ4",
+		);
+		// A folder that is called like a fixed path stays under `folder/`.
+		expect<string>(mailHref({ box: "compose" })).toBe(
+			"/app/mail/folder/compose",
+		);
+		expect<string>(mailHref({ box: "inbox" })).toBe(
+			"/app/mail/folder/inbox",
+		);
+		expect<string>(mailHref({ box: "../../x" })).toBe(
+			"/app/mail/folder/_2E._2F.._2Fx",
+		);
+	});
+
+	it("puts the open message after the folder and what narrows the list in the query", () => {
 		expect<string>(
 			mailHref({
 				box: "Work/Q4 & more",
@@ -22,7 +49,14 @@ describe("mailHref", () => {
 				msg: ID,
 			}),
 		).toBe(
-			`/app/mail?box=Work%2FQ4+%26+more&page=3&filter=unread&q=a+b%26c%3Dd&msg=${ID}`,
+			`/app/mail/folder/Work_2FQ4_20_26_20more/${ID}?page=3&filter=unread&q=a+b%26c%3Dd`,
+		);
+		expect<string>(mailHref({ role: "sent", msg: ID })).toBe(
+			`/app/mail/sent/${ID}`,
+		);
+		// An id is a UUID; one that is not cannot add a segment.
+		expect<string>(mailHref({ role: "sent", msg: "a/b?c" })).toBe(
+			"/app/mail/sent/a%2Fb%3Fc",
 		);
 	});
 });

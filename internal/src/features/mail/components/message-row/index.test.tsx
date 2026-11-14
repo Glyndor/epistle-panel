@@ -23,7 +23,13 @@ const message = (over: Partial<MessageSummary> = {}): MessageSummary => ({
 	labels: [],
 	...over,
 });
-const view = { box: "INBOX", page: 2, filter: "unread", q: "x" } as const;
+const view = {
+	box: "INBOX",
+	role: "inbox",
+	page: 2,
+	filter: "unread",
+	q: "x",
+} as const;
 
 function row(m: MessageSummary, selected = false) {
 	return render(
@@ -39,7 +45,7 @@ describe("MessageRow", () => {
 		const link = screen.getByRole("link");
 		expect(link).toHaveAttribute(
 			"href",
-			"/app/mail?box=INBOX&page=2&filter=unread&q=x&msg=id-1",
+			"/app/mail/inbox/id-1?page=2&filter=unread&q=x",
 		);
 		expect(link).toHaveAttribute("data-message-id", "id-1");
 		expect(link).not.toHaveAttribute("aria-current");

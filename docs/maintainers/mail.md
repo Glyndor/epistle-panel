@@ -8,7 +8,7 @@ the JMAP server, how a hostile message is handled and what is still missing.
 
 | Piece | Where |
 |---|---|
-| Page, three panes, one column below 1024 px | `app/(mail)/app/mail/page.tsx`, frame in `app/(mail)/layout.tsx` |
+| A page per folder, three panes, one column below 1024 px | `app/app/mail/[role]`, `app/app/mail/folder/[name]`, each with `[id]` for an open message; they all render `features/mail/components/mail-place`. Frame in `app/app/mail/layout.tsx` |
 | Folder tree, list, search, filters, pager, reader | `features/mail/components/*` |
 | Server Actions behind each pane | `features/mail/actions/*` (`getMailboxesAction`, `getMessageListAction`, `getMessageAction`) |
 | JMAP client, one credential provider | `features/mail/jmap/call`, `features/mail/jmap/credentials` |
@@ -20,8 +20,50 @@ An admin session sees a link to the administration in the header, built on the
 server with the installation's id (`app/app/mail/layout.tsx`); no other session
 is given the id.
 
-The view lives in the address: `/app/mail?box=&page=&filter=&q=&msg=`. Each
-parameter is checked on its own and a bad one falls back to its default.
+**A folder is a page with a path of its own**, and so is an open message:
+
+| Place | Path |
+|---|---|
+| a folder the account has by role | `/app/mail/inbox`, `/drafts`, `/sent`, `/archive`, `/junk`, `/trash` |
+| any other folder | `/app/mail/folder/<name>` |
+| a message open in either | the folder's path and `/<id>` |
+
+`/app/mail` itself is the inbox, the same page as `/app/mail/inbox`, so signing
+in lands on it with no second trip. What narrows a folder's list is not a place
+and stays a parameter, read on the server: `?page=&filter=&q=`, each checked on
+its own, a bad one falling back to its default.
+
+- **A folder's name in a path** is written with an escape of its own
+  (`lib/folder-segment`): a letter, a digit and a hyphen as they are, a dot too
+  except first, any other byte as `_` and two upper-case digits. `Work/Q4` is
+  `Work_2FQ4`. Percent-encoding would carry a slash, but what `%2F` inside one
+  segment means is decided again by the framework, a proxy in front and the
+  browser. Only the one spelling is read, so a folder has one path.
+- **A role's path opens the first folder with that role.** A second folder with
+  the same role is linked by its name. A folder named by its id does not wait
+  for the folder tree; one named by its role does. An account with no folder of
+  the role is told so in the list pane; when the folders could not be read at
+  all the pane says the server is unreachable and offers to try again, since
+  that is not the same thing.
+- **What is no route is decided in the proxy** (`lib/mail-paths`, `isMailPath`),
+  not in the page: under a `loading.tsx` a page's `notFound()` answers 200 (see
+  `e2e.md`). So another case, an encoded slash, a role that is none, an id that
+  is not one and a name the panel does not write all get the panel's one 404,
+  and the mail server is asked nothing. The pages check again and call
+  `notFound()` for whatever would reach them some other way.
+- **An address from before** (`?box=` or `?msg=`) is redirected to the page it
+  meant, by the proxy too (`legacyMailTarget`) and for the same reason: a
+  `redirect()` from a page under a `loading.tsx` answers 200 with a refresh, not
+  307. The new address is built from values that passed their own check and
+  always starts with `/app/mail/`, so the old query cannot choose where it goes;
+  without a session the old address goes to the sign-in page like any other.
+- **A message's id is read by one rule** in the proxy and in the page
+  (`isMessageId`, held to the message schema by a test), so the proxy never lets
+  through an id the page would then refuse with a 200.
+  `label`, `starred`, `important` and `search` are no routes yet: they span
+  folders, which `Email/query` cannot do (Glyndor/epistle#1790).
+- **Each place has its title**: the role in the reader's language, or the last
+  part of the folder's name, and the panel's name.
 Keyboard: `j` and `k` (next and previous message), `/` (search), `u` (back to the
 list on a narrow screen). They are ignored while a field or dialog has focus and
 with any modifier. Interface text is the `mail` namespace in the six languages.
