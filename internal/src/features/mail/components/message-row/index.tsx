@@ -45,9 +45,15 @@ const OPEN =
  * 40 px; from 42rem of row, one line. The buttons of a compact row and of a
  * coarse pointer are as tall as the row, so the whole link stops short of
  * them.
+ *
+ * The row is chrome, like every link that is a control: its text is not
+ * selectable (`select-none`), so a double click on a row does not leave half
+ * the list selected. The subject, the sender and the body of a message are
+ * copied from the reader, where the message is open. See
+ * `docs/maintainers/cursor-and-selection.md`.
  */
 const LINK =
-	"grid h-full grid-cols-[auto_minmax(0,1fr)_auto] content-center items-center rounded-xl ps-5 pe-3 text-sm outline-ring focus-visible:outline-2 focus-visible:-outline-offset-2 group-data-[density=compact]/list:pe-15 group-data-[density=compact]/list:text-xs group-data-[density=compact]/list:@2xl/row:grid-cols-[auto_8rem_minmax(0,1fr)_auto] pointer-coarse:pe-23 pointer-coarse:group-data-[density=compact]/list:pe-23";
+	"grid h-full grid-cols-[auto_minmax(0,1fr)_auto] content-center items-center rounded-xl ps-5 pe-3 text-sm outline-ring select-none focus-visible:outline-2 focus-visible:-outline-offset-2 group-data-[density=compact]/list:pe-15 group-data-[density=compact]/list:text-xs group-data-[density=compact]/list:@2xl/row:grid-cols-[auto_8rem_minmax(0,1fr)_auto] pointer-coarse:pe-23 pointer-coarse:group-data-[density=compact]/list:pe-23";
 
 /** The initials. They leave a row too narrow to hold them beside the subject's least width: under 20rem, and under 24rem when compact. */
 const AVATAR =

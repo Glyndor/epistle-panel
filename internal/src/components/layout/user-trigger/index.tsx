@@ -35,7 +35,7 @@ export function UserTrigger({
 				variant="ghost"
 				data-user-menu=""
 				className={cn(
-					"max-w-56 gap-2 px-1 aria-expanded:bg-accent aria-expanded:text-accent-foreground aria-busy:cursor-progress aria-busy:*:opacity-70 md:pe-2 pointer-coarse:px-2.5",
+					"max-w-56 gap-2 px-1 aria-expanded:bg-accent aria-expanded:text-accent-foreground aria-busy:*:opacity-70 md:pe-2 pointer-coarse:px-2.5",
 					className,
 				)}
 				{...props}

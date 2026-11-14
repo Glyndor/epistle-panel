@@ -20,7 +20,7 @@ export async function ShortcutsHelp() {
 
 	return (
 		<Collapsible className="group m-2 rounded-xl bg-muted p-2 text-muted-foreground text-xs max-lg:hidden">
-			<CollapsibleTrigger className="flex min-h-8 w-full items-center gap-2 rounded-lg hover:cursor-pointer focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
+			<CollapsibleTrigger className="flex min-h-8 w-full items-center gap-2 rounded-lg focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
 				<KeyboardIcon aria-hidden="true" className="size-4" />
 				{t("shortcutsTitle")}
 				<ChevronDownIcon

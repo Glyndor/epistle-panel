@@ -326,10 +326,11 @@ describe("RowActions", () => {
 			// A press made now waits its turn: the button is not shut.
 			expect(each).not.toHaveAttribute("aria-disabled");
 			expect(each).not.toBeDisabled();
-			// The progress cursor, and a dot on its corner that takes no room.
+			// The progress cursor comes from the base layer of the global
+			// stylesheet, which reads `aria-busy`; here is the dot on the
+			// corner that takes no room.
 			expect(each).toHaveClass(
 				"relative",
-				"aria-busy:cursor-progress",
 				"aria-busy:after:absolute",
 				"aria-busy:after:size-1.5",
 				"aria-busy:after:rounded-full",

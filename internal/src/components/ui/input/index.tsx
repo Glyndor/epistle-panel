@@ -12,7 +12,7 @@ import { cn } from "@/lib/class-names";
  * `select` of the delivery filters and the language menu wear the same classes.
  */
 export const FIELD_CLASS =
-	"min-h-8 w-full min-w-0 rounded-lg bg-field shadow-[inset_0_-2px_0_0_var(--field-edge)] px-3 py-1 text-sm transition-colors placeholder:text-muted-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:shadow-[inset_0_0_0_1px_var(--destructive),inset_0_-2px_0_0_var(--destructive)] pointer-coarse:min-h-11";
+	"min-h-8 w-full min-w-0 rounded-lg bg-field shadow-[inset_0_-2px_0_0_var(--field-edge)] px-3 py-1 text-sm transition-colors placeholder:text-muted-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50 aria-invalid:shadow-[inset_0_0_0_1px_var(--destructive),inset_0_-2px_0_0_var(--destructive)] pointer-coarse:min-h-11";
 
 /** Text field. */
 function Input({ className, type, ...props }: React.ComponentProps<"input">) {

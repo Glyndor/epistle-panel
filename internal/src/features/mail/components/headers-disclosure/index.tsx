@@ -26,7 +26,7 @@ export function HeadersDisclosure({
 	}
 	return (
 		<Collapsible className="group m-4 rounded-xl bg-muted p-4 text-sm">
-			<CollapsibleTrigger className="flex min-h-8 w-full items-center justify-between gap-2 rounded-lg font-medium hover:cursor-pointer focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 pointer-coarse:min-h-11">
+			<CollapsibleTrigger className="flex min-h-8 w-full items-center justify-between gap-2 rounded-lg font-medium focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 pointer-coarse:min-h-11">
 				{t("allHeaders")}
 				<ChevronDownIcon
 					aria-hidden="true"

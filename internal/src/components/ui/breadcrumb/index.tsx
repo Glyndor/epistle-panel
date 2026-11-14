@@ -48,7 +48,7 @@ function BreadcrumbLink({
 		<Comp
 			data-slot="breadcrumb-link"
 			className={cn(
-				"inline-flex min-h-6 items-center rounded-md px-1 hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-ring active:bg-accent/70 pointer-coarse:min-h-11",
+				"inline-flex min-h-6 select-none items-center rounded-md px-1 hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-ring active:bg-accent/70 pointer-coarse:min-h-11",
 				className,
 			)}
 			{...props}
@@ -62,7 +62,10 @@ function BreadcrumbPage({ className, ...props }: React.ComponentProps<"span">) {
 		<span
 			data-slot="breadcrumb-page"
 			aria-current="page"
-			className={cn("px-1 font-semibold text-foreground", className)}
+			className={cn(
+				"select-none px-1 font-semibold text-foreground",
+				className,
+			)}
 			{...props}
 		/>
 	);
