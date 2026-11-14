@@ -20,10 +20,12 @@ import { initials } from "@/lib/initials";
  * comfortable list (two lines and the preview) and 40 px for the compact one
  * (one line; 44 px on a coarse pointer). The density comes from the pane
  * (`group/list`). The row is the container its own parts ask about their
- * room (`@container/row`).
+ * room (`@container/row`). The row under the pointer or with the focus is
+ * raised one step over its neighbours, so a tooltip that leaves its box is
+ * drawn over the next row; it stays under a date heading, which is higher.
  */
 const ROW =
-	"group/row @container/row relative h-18 rounded-xl hover:bg-muted active:bg-accent group-data-[density=compact]/list:h-10 pointer-coarse:group-data-[density=compact]/list:h-11";
+	"group/row @container/row relative h-18 rounded-xl hover:z-1 hover:bg-muted focus-within:z-1 active:bg-accent group-data-[density=compact]/list:h-10 pointer-coarse:group-data-[density=compact]/list:h-11";
 
 /** The open message: the accent surface, and a mark on the start edge, which is the right one in a right-to-left page. */
 const OPEN =

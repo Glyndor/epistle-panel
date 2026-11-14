@@ -21,6 +21,8 @@ import {
  * refuses (the session ended, say) the previous density comes back and a
  * toast says so. One change at a time: a press made while another is being
  * stored is dropped, and the button says it is busy without losing the focus.
+ * Pressed, it stands on the accent surface, and the pointer on it darkens it
+ * a step more, so the two are not one look.
  *
  * `density` is what the server read from the cookie and painted on the pane.
  */
@@ -69,7 +71,7 @@ export function DensityToggle({ density }: { density: ListDensity }) {
 				aria-pressed={compact}
 				aria-disabled={pending ? true : undefined}
 				onClick={toggle}
-				className="aria-pressed:bg-accent aria-pressed:text-accent-foreground"
+				className="hover:bg-foreground/10 active:bg-foreground/15 aria-pressed:bg-accent aria-pressed:text-accent-foreground aria-pressed:hover:bg-foreground/15"
 			>
 				{compact ? (
 					<Rows4Icon aria-hidden="true" />

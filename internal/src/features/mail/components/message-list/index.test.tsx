@@ -101,6 +101,7 @@ describe("MessageList", () => {
 		fireEvent.click(screen.getByRole("button", { name: "retry" }));
 		expect(await screen.findByText("Back")).toBeInTheDocument();
 	});
+
 	it("draws the page under date headings, each naming its own list", async () => {
 		stubJmap({
 			"Email/query": { ids: [A, B] },

@@ -116,6 +116,7 @@ describe("ListToolbar", () => {
 		).toHaveLength(1);
 		expect(links[1]).toHaveAttribute("aria-current", "true");
 	});
+
 	it("ends the filters with the density switch, in the density the server read", () => {
 		for (const [density, pressed] of [
 			["comfortable", "false"],

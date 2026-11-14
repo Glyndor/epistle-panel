@@ -112,6 +112,7 @@ describe("/app/mail", () => {
 		expect(asked).not.toContainEqual({ inMailbox: "Sent" });
 		expect(screen.getByText("readerEmpty")).toBeInTheDocument();
 	});
+
 	it("paints the list pane in the density the reader chose, and the switch agrees", async () => {
 		const pane = () => screen.getByRole("region", { name: "listLabel" });
 		const toggle = () =>

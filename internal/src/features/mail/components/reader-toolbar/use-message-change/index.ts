@@ -26,8 +26,8 @@ export function useMessageChange({
 }: {
 	id: string;
 	mailboxId: string | null;
-	/** Called when the message left its folder, to take the reader back to the list. */
-	onLeft: () => void;
+	/** Called when the message left its folder, to take the reader back to the list. A caller that only changes flags gives none. */
+	onLeft?: () => void;
 }) {
 	const t = useTranslations("mail");
 	const client = useQueryClient();
@@ -64,7 +64,7 @@ export function useMessageChange({
 				toast.success(
 					result.outcome.destroyed ? t("deletedForever") : t("moved"),
 				);
-				onLeft();
+				onLeft?.();
 			} else if (!quiet) {
 				toast.success(t("changed"));
 			}

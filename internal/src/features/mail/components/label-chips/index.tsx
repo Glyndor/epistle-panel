@@ -52,7 +52,7 @@ function More({
 			<span className={CHIP}>
 				{t("moreLabels", { count: names.length })}
 			</span>
-			<TooltipContent side="top" align="end">
+			<TooltipContent side="bottom" align="end">
 				<bdi>{format.list(names, { type: "conjunction" })}</bdi>
 			</TooltipContent>
 		</Tooltip>
