@@ -78,6 +78,14 @@ scenario_mail() {
 	assert_contains "the flagged filter keeps the starred message" "$(cat "$work/b")" "Starred and answered"
 	assert_absent "and leaves the others out" "$(cat "$work/b")" "Weekly newsletter"
 	fetch "/app/mail/inbox?q=newsletter" "$good"
+	# Translation strings may be in the RSC scripts even on a healthy page.
+	# Check the server markup, including streamed segments, without scripts.
+	local search_html
+	search_html=$(perl -0777 -pe 's/<script\b[^>]*>.*?<\/script>//sg' "$work/b")
+	assert_eq "a word search renders successfully" "$status" 200
+	assert_absent "a word search does not render the error boundary" "$search_html" "Something went wrong"
+	assert_absent "a word search does not render the error explanation" "$search_html" "The page could not be shown."
+	assert_contains "a word search keeps the search field" "$search_html" 'id="mail-search-words"'
 	assert_contains "a search finds by subject" "$(cat "$work/b")" "Weekly newsletter"
 	# curl executes no script: the native disclosure and all its fields must
 	# already be inside the GET form, and both conditions must narrow the list.
