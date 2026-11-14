@@ -1,18 +1,23 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { cleanup, fireEvent, render } from "@testing-library/react";
 
+import { tip } from "@/components/ui/tooltip/test-support";
 import type { LabelView } from "@/features/mail/schemas/mail-view";
 
 import { LabelChips } from ".";
 
-afterEach(cleanup);
+afterEach(() => {
+	fireEvent.pointerDown(document.body);
+	cleanup();
+});
 
-const TONES = [1, 2, 3, 4, 5, 6, 7, 8] as const;
+const C = "group-data-[density=compact]/list:";
 const label = (name: string, tone: LabelView["tone"] = 1): LabelView => ({
 	keyword: name,
 	name,
 	tone,
 });
+const six = ["A", "B", "C", "D", "E", "F"].map((name) => label(name));
 const chips = (root: HTMLElement) =>
 	Array.from(root.querySelectorAll<HTMLElement>('[data-slot="label-chip"]'));
 const counts = (root: HTMLElement) =>
@@ -25,101 +30,124 @@ describe("LabelChips", () => {
 		expect(container.innerHTML).toBe("");
 	});
 
-	it("draws a chip with a dot and the name, isolated, for each label up to three", () => {
-		const { container } = render(
-			<LabelChips
-				labels={[label("Work"), label("Home"), label("Tax")]}
-			/>,
-		);
+	it("never draws a fourth chip", () => {
+		const { container } = render(<LabelChips labels={six} />);
 
-		const drawn = chips(container);
-		expect(drawn.map((chip) => chip.textContent)).toEqual([
-			"Work",
-			"Home",
-			"Tax",
+		expect(chips(container).map((chip) => chip.textContent)).toEqual([
+			"A",
+			"B",
+			"C",
 		]);
-		for (const chip of drawn) {
-			expect(chip.querySelector("bdi")).not.toBeNull();
-			expect(chip.querySelector("span.rounded-full")).not.toBeNull();
-		}
-		// Three labels fit a wide row: nothing is left to count there.
-		expect(counts(container)).toHaveLength(1);
 	});
 
-	it("never draws a fourth chip, and counts the rest for the wide row", () => {
-		const five = ["A", "B", "C", "D", "E"].map((name) => label(name));
-		const { container } = render(<LabelChips labels={five} />);
+	it("counts every label where no chip shows, the rest after one chip and after three", () => {
+		const { container } = render(<LabelChips labels={six} />);
 
-		expect(chips(container)).toHaveLength(3);
-		const [narrow, wide] = counts(container);
-		// One chip shows where the row is narrow, so four are left; three
-		// where it is wide, so two are.
-		expect(narrow).toHaveAttribute("data-count", "4");
-		expect(narrow).toHaveClass("@sm/row:hidden");
-		expect(wide).toHaveAttribute("data-count", "2");
-		expect(wide).toHaveClass("hidden", "@sm/row:inline-flex");
+		expect(
+			counts(container).map((count) => count.getAttribute("data-count")),
+		).toEqual(["6", "5", "3"]);
 	});
 
-	it("shows one chip where the row is narrow and the others only where it is wide", () => {
-		const { container } = render(
-			<LabelChips labels={[label("A"), label("B"), label("C")]} />,
+	it("shows the count of all the labels under 24rem, and under 32rem when compact: the labels never go", () => {
+		const { container } = render(<LabelChips labels={six} />);
+		const [all] = counts(container);
+
+		// In view from the start, with no chip beside it.
+		expect(all).not.toHaveClass("hidden");
+		expect(all).toHaveClass(
+			"@sm/row:hidden",
+			`${C}inline-flex`,
+			`${C}@lg/row:hidden`,
 		);
-		const [first, second, third] = chips(container);
-
-		expect(first).not.toHaveClass("hidden");
-		expect(second).toHaveClass("hidden", "@sm/row:inline-flex");
-		expect(third).toHaveClass("hidden", "@sm/row:inline-flex");
+		for (const chip of chips(container)) {
+			expect(chip).toHaveClass("hidden");
+		}
 	});
 
-	it("has no count for a single label", () => {
+	it("shows one chip from 24rem and three from 32rem when comfortable", () => {
+		const { container } = render(<LabelChips labels={six} />);
+		const [first, second, third] = chips(container);
+		const [, afterOne, afterThree] = counts(container);
+
+		expect(first).toHaveClass("@sm/row:inline-flex");
+		expect(second).toHaveClass("@lg/row:inline-flex");
+		expect(third).toHaveClass("@lg/row:inline-flex");
+		expect(second).not.toHaveClass("@sm/row:inline-flex");
+		expect(afterOne).toHaveClass(
+			"hidden",
+			"@sm/row:inline-flex",
+			"@lg/row:hidden",
+		);
+		expect(afterThree).toHaveClass("hidden", "@lg/row:inline-flex");
+	});
+
+	it("shows at most one chip and a count when compact, and only from 32rem", () => {
+		const { container } = render(<LabelChips labels={six} />);
+		const [first, second, third] = chips(container);
+		const [, afterOne, afterThree] = counts(container);
+
+		expect(first).toHaveClass(`${C}hidden`, `${C}@lg/row:inline-flex`);
+		for (const other of [second, third]) {
+			expect(other).toHaveClass(`${C}hidden`);
+			expect(other?.className).not.toContain(`${C}@`);
+		}
+		expect(afterOne).toHaveClass(`${C}hidden`, `${C}@lg/row:inline-flex`);
+		expect(afterThree).toHaveClass(`${C}hidden`);
+		expect(afterThree?.className).not.toContain(`${C}@`);
+	});
+
+	it("lets a chip give way down to four characters of its name and no further, and never the count", () => {
+		const { container } = render(<LabelChips labels={six} />);
+
+		for (const chip of chips(container)) {
+			expect(chip).toHaveClass("shrink", "max-w-28");
+			// The chip's least width is its dot, its padding and four characters.
+			expect(chip).toHaveClass("min-w-[calc(4ch+1.75rem)]");
+			expect(chip).not.toHaveClass("min-w-0");
+		}
+		for (const count of counts(container)) {
+			expect(count).toHaveClass("shrink-0");
+		}
+		expect(container.firstElementChild).toHaveClass("min-w-0", "shrink");
+	});
+
+	it("has a count for a single label only where its chip does not show", () => {
 		const { container } = render(<LabelChips labels={[label("Only")]} />);
 
 		expect(chips(container)).toHaveLength(1);
-		expect(counts(container)).toHaveLength(0);
-	});
-
-	it("names the labels behind each count under the pointer", () => {
-		const five = ["A", "B", "C", "D", "E"].map((name) => label(name));
-		const { container } = render(<LabelChips labels={five} />);
-		const [narrow, wide] = counts(container);
-		const shown = () => document.querySelector('[data-slot="tooltip"]');
-
-		expect(shown()).toBeNull();
-		fireEvent.pointerEnter(narrow as Element, { pointerType: "mouse" });
-		expect(shown()?.textContent).toBe("B, C, D, E");
-		fireEvent.keyDown(narrow as Element, { key: "Escape" });
-		expect(shown()).toBeNull();
-
-		// Under the count, not over the sender's line or a date heading.
-		fireEvent.pointerEnter(wide as Element, { pointerType: "mouse" });
-		expect(shown()).toHaveAttribute("data-side", "bottom");
-		expect(shown()?.textContent).toBe("D, E");
-	});
-
-	it("draws each of the eight tones with its own class, written out", () => {
-		const { container } = render(
-			<LabelChips
-				labels={TONES.slice(0, 3).map((t) => label(`t${t}`, t))}
-			/>,
-		);
 		expect(
-			chips(container).map(
-				(chip) =>
-					chip
-						.querySelector("span")
-						?.className.match(/bg-label-\d/)?.[0],
-			),
-		).toEqual(["bg-label-1", "bg-label-2", "bg-label-3"]);
-		cleanup();
+			counts(container).map((count) => count.getAttribute("data-count")),
+		).toEqual(["1"]);
+		expect(counts(container)[0]).toHaveClass("@sm/row:hidden");
+	});
 
-		for (const tone of TONES) {
-			const view = render(<LabelChips labels={[label("x", tone)]} />);
-			const [chip] = chips(view.container);
+	it("is as tall as its line in both densities", () => {
+		const { container } = render(<LabelChips labels={six} />);
 
-			expect(chip).toHaveAttribute("data-tone", String(tone));
-			expect(chip?.querySelector("span")).toHaveClass(`bg-label-${tone}`);
-			cleanup();
+		for (const each of [...chips(container), ...counts(container)]) {
+			expect(each).toHaveClass("h-5", `${C}h-4`);
 		}
+	});
+
+	it("names the labels behind a count under the pointer, each isolated", () => {
+		const { container } = render(<LabelChips labels={six} />);
+
+		fireEvent.pointerEnter(counts(container)[0] as Element);
+
+		expect(tip()).toHaveTextContent("A, B, C, D, E, F");
+		expect(tip()?.querySelectorAll("bdi")).toHaveLength(6);
+	});
+
+	it("names only the labels its count stands for", () => {
+		const { container } = render(<LabelChips labels={six} />);
+
+		fireEvent.pointerEnter(counts(container)[2] as Element);
+
+		expect(
+			Array.from(tip()?.querySelectorAll("bdi") ?? []).map(
+				(name) => name.textContent,
+			),
+		).toEqual(["D", "E", "F"]);
 	});
 
 	it("is hidden from assistive technology, which hears the labels from the row", () => {
@@ -129,16 +157,5 @@ describe("LabelChips", () => {
 			"aria-hidden",
 			"true",
 		);
-	});
-
-	it("keeps every tone class as text in the source, where the stylesheet looks for it", async () => {
-		const source = await Bun.file(
-			new URL("./index.tsx", import.meta.url),
-		).text();
-
-		for (const tone of TONES) {
-			expect(source).toContain(`"bg-label-${tone}"`);
-		}
-		expect(source).not.toMatch(/bg-label-\$\{/);
 	});
 });

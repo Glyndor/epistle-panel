@@ -175,56 +175,99 @@ colour, and none changes the row's height:
 
 | State | Sign |
 |---|---|
-| unread | heavier sender and subject, a dot in the row's start margin, the raised surface (`bg-surface`); a read row stays on the pane's |
+| unread | heavier sender and subject, and a dot in the row's start margin. It stands on the pane like a read one: the pane has one surface |
 | starred, important | the mark filled beside the date, always in view; not set, its outline shows with the pointer on the row, with the focus in it, and always on a coarse pointer |
 | answered, forwarded | the reply or the forward icon before the subject |
 | draft | the word, before the name |
 | attachment | a clip before the date |
-| labels | chips after the subject (`components/label-chips`): one in a narrow row, three in a wide one, then a count with the other names under the pointer |
-| open in the reader | the accent surface and a mark on the start edge (`before:start-0`, so it follows a right-to-left page) |
+| labels | chips or a count after the subject (`components/label-chips`, below) |
+| open in the reader | the accent surface and a mark at the start edge, inside the focus ring, which keeps its four sides. Under the pointer and pressed the surface steps toward the pane's (the accent at 50% and at 25%) and the subject is underlined |
 
 All of it is said once in words to assistive technology, in one sentence at the
 start of the link; the icons, the chips and the draft badge are hidden from it.
+Every text taken from a message stands in `<bdi>`: the sender, the subject, the
+preview, the initials, each label's name in the chip, in that sentence and in
+the tooltip of a count.
 
-- **Height.** 72 px comfortable (two lines and the preview), 40 px compact (one
-  line), 44 px compact on a coarse pointer. The lines inside have fixed heights
-  (20, 20 and 16 px), so a badge, an icon or a chip never makes a row taller.
-  The skeleton (`components/list-skeleton`) has the same heights and margins.
+- **Height.** 72 px comfortable (two lines and the preview), 40 px compact,
+  44 px compact on a coarse pointer. The lines inside have fixed heights, so a
+  badge, an icon or a chip never makes a row taller. The skeleton
+  (`components/list-skeleton`) has the same heights, margins and gaps, and its
+  toolbar bars are as tall as the search field and the filters: nothing moves
+  when the messages arrive (compared by position at 1280, 1024, 768 and 360 px).
+- **Compact is two short lines, and one line only from 42rem of row.** One
+  line cannot hold a row's parts at the widths the panes have: at 360 px with a
+  coarse pointer the margin, the two buttons, the state icons, a 6rem subject,
+  a count, the clip and the date add up to 364 px of a 328 px row before any
+  sender. So a compact row keeps its height and puts the sender, the clip and
+  the date over the subject and the labels, in 12 px text. Where the row is
+  42rem or more it is one line: sender (8rem), subject, date.
+- **The subject comes first.** It has a least width and everything else on
+  its line gives way before it: 6rem, and 10rem with a fine pointer from 24rem
+  of row; compact, 5rem under 20rem, 6rem from there, 10rem from 24rem (12rem
+  with a fine pointer), 8rem on one line. The sender gives way down to 3rem
+  before the clip and the date, which keep their width. The initials are left
+  out of a row too narrow for them (under 20rem; under 24rem when compact).
+  The row is the container these ask (`@container/row`), since its width
+  follows the pane and the sidebar, not the window.
+- **A chip is never drawn without a readable name.** Its least width is four
+  characters of name, its dot and its padding. Where a row's line cannot hold
+  that beside the subject's least width, no chip is drawn and the labels are
+  a count of all of them (`+N`); they are never left out. Comfortable: a count
+  under 24rem, one chip and a count from 24rem, three from 32rem. Compact: a
+  count under 32rem, one chip and a count from there. The names behind a count
+  show under the pointer, and the reader of the open message lists every label
+  as a chip (`components/reader-header`), for whoever has no pointer.
 - **Density** is the reader's choice, kept in the `mail-density` cookie (a
   year, `HttpOnly`, only under `/app/mail`) and read on the server
   (`queries/list-density`): the list pane carries `data-density` and the class
   `group/list`, and the rows, the headings and the skeleton read it with
   `group-data-[density=compact]/list:`. The first frame is already right,
-  `loading.tsx` included. The switch (`components/density-toggle`, at the end
-  of the filters) sets the attribute at once and then calls `setListDensity`,
-  which checks the session and the value again; a refusal puts the attribute
-  back and says so.
-- **One change at a time per row.** epistle replaces a message's whole keyword
-  set, so a star and an important mark sent together would each be built from
-  the set before the other. Both buttons share one mutation and a lock shut in
-  the press itself; while a change is on its way they are `aria-disabled` and
-  keep the focus.
+  `loading.tsx` included. The switch (`components/density-toggle`) is at the
+  end of the search's line: beside the filters it pushed them onto a second
+  line at 360 px. It sets the attribute at once and then calls
+  `setListDensity`, which checks the session and the value again; a refusal
+  puts the attribute back and says so.
+- **No press is lost.** epistle replaces a message's whole keyword set, so the
+  changes to one message are written one after the other, each on what the one
+  before left (`useMessageChange` gives its mutation a scope by message, which
+  also orders a change from the reader's toolbar and one from the row). Each
+  shows at once. One the server refuses is taken back on its own, by the
+  opposite operation on what is cached by then (`patchFlags`), and a toast says
+  so; one that worked says nothing from a row, which already shows it. While a
+  change is on its way both buttons say so without moving anything:
+  `aria-busy`, the progress cursor and a dot on the button's corner.
+- **No transform above a control with a tooltip.** The tooltip is
+  `position: fixed`, and a transformed ancestor becomes the frame it is placed
+  in. The box of the row's buttons is centred with its own height.
+- **The focus stays in the list.** Under the starred filter, taking a star off
+  removes the row. The focus goes to the same control of the row after it, to
+  the row before when it was the last, or to the list's heading when none is
+  left (`message-list/use-kept-focus`). A focus the person took elsewhere is
+  not followed.
 - **Date groups** (`components/message-groups`): a real `h3` over each run
   (today, yesterday, last few days, then the month and year through `Intl`, in
-  UTC like the grouping), under an `h2` of the list drawn for assistive
-  technology only. Each run's `ul` is named by its heading. The heading sticks
-  to the top of the pane while its run scrolls, and the pane's `scroll-pt-8` is
-  the heading's height, so a row the keyboard reaches is not left under it. A
-  row prints the hour under today and yesterday and the day under the rest; its
-  `time` element holds the whole date.
+  UTC like the grouping), under the list's `h2`, which `MessageList` draws for
+  assistive technology around every state of the list. Each run's `ul` is
+  named by its heading. The heading sticks to the top of the pane while its run
+  scrolls, and the pane's `scroll-pt-8` is the heading's height, so a row the
+  keyboard reaches is not left under it. A row prints the hour under today and
+  yesterday and the day under the rest; its `time` element holds the whole
+  date.
 - **A tone class is written out** (`bg-label-1` to `bg-label-8` in
-  `label-chips`): Tailwind keeps only the classes it finds as text, so one
-  built from the number would paint nothing.
+  `components/label-chip`): Tailwind keeps only the classes it finds as text,
+  so one built from the number would paint nothing.
 
 ### The label tones
 
 `--label-1` to `--label-8` in `styles/theme.css`, in the light list and both
 dark ones (`theme.test.ts` fixes the values). A chip is `--foreground` at 10%
 over the row, so it shows on every surface a row takes; the dot is the tone.
-Calculated from the tokens (8-bit sRGB, the chip mixed over each row surface),
-not read from a rendered page:
+Calculated from the tokens (8-bit sRGB, the chip mixed over each surface a row
+takes: the pane, under the pointer, open, and open under the pointer and
+pressed), not read from a rendered page:
 
-| Tone | Light | Dark | Dot against the chip, lowest of the four row surfaces: light, dark |
+| Tone | Light | Dark | Dot against the chip, lowest of the surfaces a row takes: light, dark |
 |---|---|---|---|
 | 1 blue | `#083a88` | `#82c2f7` | 7.00, 4.85 |
 | 2 brown, amber | `#392b16` | `#e58803` | 9.01, 3.46 |
