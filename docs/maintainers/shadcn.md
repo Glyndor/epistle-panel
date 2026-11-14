@@ -59,6 +59,9 @@ helpers (`class-variance-authority`, `clsx`, `tailwind-merge`).
 - **Focus ring is an outline.** `focus-visible:outline-2 outline-offset-2
   outline-ring`. Do not add `outline-none` next to it: in Tailwind 4 it sets
   `--tw-outline-style: none` and the focus outline never draws.
+- **The cursor and the selection.** A control takes its cursor from the base
+  layer of the global stylesheet, and the chrome is not selectable: see
+  [cursor-and-selection.md](cursor-and-selection.md).
 - **Leaf folder, 300 code lines.** Each component has its own folder with
   `index.tsx` and `index.test.tsx` beside it.
 
