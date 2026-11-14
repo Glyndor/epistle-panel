@@ -14,6 +14,7 @@ import {
 	screen,
 	waitFor,
 } from "@testing-library/react";
+import { NarrowSearch } from "@/features/mail/components/mail-search/narrow";
 import { SEARCH_FIELD_ID } from "@/features/mail/components/mail-search/search-field";
 import { forgetListMemory } from "@/features/mail/components/message-list/list-memory";
 import { EMPTY_CONDITIONS } from "@/features/mail/schemas/list-conditions-model";
@@ -32,11 +33,22 @@ mock.module("next-intl", () => ({
 }));
 
 const originalFetch = globalThis.fetch;
+const originalMatchMedia = window.matchMedia;
+
+/** The same breakpoint used by the header's lg utilities. */
+function viewport(width: number) {
+	window.matchMedia = (query: string) => {
+		const media = originalMatchMedia.call(window, query);
+		Object.defineProperty(media, "matches", { value: width >= 1024 });
+		return media;
+	};
+}
 const savedEnv = { ...process.env };
 const cookies = mockRequestCookies();
 const { ConditionChips } = await import(".");
 
 beforeEach(async () => {
+	viewport(1280);
 	clearSecretCache();
 	cookies.reset();
 	process.env["EPISTLE_API_URL"] = "http://127.0.0.1:8025";
@@ -50,6 +62,7 @@ afterEach(async () => {
 	process.env = { ...savedEnv };
 	cleanup();
 	globalThis.fetch = originalFetch;
+	window.matchMedia = originalMatchMedia;
 });
 
 // The stand-ins of the panel go back in place for the files that run after
@@ -243,6 +256,70 @@ describe("the chips of the active conditions", () => {
 		rerender(withConditions({ q: "invoice", from: "ana" }));
 
 		expect(document.activeElement).toBe(document.body);
+	});
+
+	for (const width of [360, 768, 1024, 1280]) {
+		for (const action of ["last", "all"] as const) {
+			it(`restores focus after removing ${action} at ${width}px`, () => {
+				viewport(width);
+				render(
+					<header>
+						<div>
+							<NarrowSearch label="search" closeLabel="close">
+								<input
+									id={SEARCH_FIELD_ID}
+									type="search"
+									aria-label="words"
+								/>
+							</NarrowSearch>
+						</div>
+					</header>,
+				);
+				const field = screen.getByLabelText("words");
+				const opener = screen.getByRole("button", { name: "search" });
+				if (width < 1024) {
+					// happy-dom does not lay out Tailwind: model the browser's
+					// refusal to focus an input in the closed narrow panel.
+					field.focus = () => {};
+				}
+				const { container, rerender } = chips({ q: "invoice" });
+				const remove =
+					action === "all"
+						? screen.getByRole("link", { name: "clearAll" })
+						: (container.querySelector(
+								'[data-chip="q"]',
+							) as HTMLElement);
+				remove.focus();
+				fireEvent.click(remove);
+				rerender(withConditions({}));
+				expect(document.activeElement).toBe(
+					width < 1024 ? opener : field,
+				);
+				expect(document.activeElement).not.toBe(document.body);
+			});
+		}
+	}
+
+	it("keeps focus in an open narrow search when the last chip leaves", () => {
+		viewport(360);
+		render(
+			<header>
+				<NarrowSearch label="search" closeLabel="close">
+					<input
+						id={SEARCH_FIELD_ID}
+						type="search"
+						aria-label="words"
+					/>
+				</NarrowSearch>
+			</header>,
+		);
+		fireEvent.click(screen.getByRole("button", { name: "search" }));
+		const { container, rerender } = chips({ q: "invoice" });
+		fireEvent.click(
+			container.querySelector('[data-chip="q"]') as HTMLElement,
+		);
+		rerender(withConditions({}));
+		expect(document.activeElement).toBe(screen.getByLabelText("words"));
 	});
 
 	it("give the focus to the search field when the last chip is taken off", () => {

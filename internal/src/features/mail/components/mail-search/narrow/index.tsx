@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Tooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/class-names";
 
+export const SEARCH_OPENER_ID = "mail-search-opener";
+
 /**
  * The search of the mail area on a narrow window: an icon in the header that
  * opens the field over the header, and a control that takes it back. From
@@ -100,6 +102,7 @@ export function NarrowSearch({
 			<Tooltip label={label} align="end">
 				<Button
 					ref={opener}
+					id={SEARCH_OPENER_ID}
 					type="button"
 					variant="ghost"
 					size="icon"

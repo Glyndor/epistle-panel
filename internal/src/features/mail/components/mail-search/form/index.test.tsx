@@ -98,6 +98,29 @@ function address(form: HTMLFormElement): URLSearchParams {
 }
 
 describe("the search form", () => {
+	it("anchors the fields to the available header form, never to a viewport-wide field popup", () => {
+		const { form } = draw();
+		const content = form.querySelector(
+			'[data-slot="disclosure-content"]',
+		) as HTMLElement;
+		expect(form).toHaveClass("relative");
+		expect(content).toHaveClass(
+			"absolute",
+			"inset-x-0",
+			"w-[min(40rem,100%)]",
+		);
+		expect(content.className).not.toContain("100vw");
+		// No positioned ancestor may intercept the form's containing block.
+		let ancestor = content.parentElement;
+		while (ancestor !== null && ancestor !== form) {
+			expect(ancestor.className.split(/\s+/)).not.toContain("relative");
+			expect(ancestor.className.split(/\s+/)).not.toContain("absolute");
+			ancestor = ancestor.parentElement;
+		}
+		expect(ancestor).toBe(form);
+		expect(content.hasAttribute("style")).toBe(false);
+	});
+
 	it("is a plain GET form to the folder's own page", () => {
 		const { form } = draw();
 

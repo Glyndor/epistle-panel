@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip } from "@/components/ui/tooltip";
 import { getMessageListAction } from "@/features/mail/actions/get-message-list";
+import { SEARCH_OPENER_ID } from "@/features/mail/components/mail-search/narrow";
 import { SEARCH_FIELD_ID } from "@/features/mail/components/mail-search/search-field";
 import { listMemory } from "@/features/mail/components/message-list/list-memory";
 import { mailHref } from "@/features/mail/links/mail-href";
@@ -90,7 +91,7 @@ export function ConditionChips({
 
 	// The chips are drawn again without the chip that was taken off, and the
 	// focus goes with it: to the chip that took its place, or to the search
-	// field when none is left. The chip that was taken off is remembered
+	// field, or its narrow-screen opener, when none is left. The chip that was taken off is remembered
 	// while the change of the address is on its way.
 	useEffect(() => {
 		const taken = listMemory.chips;
@@ -109,9 +110,17 @@ export function ConditionChips({
 			taken === "all"
 				? undefined
 				: neighbour(active, taken as ConditionName);
+		const opener = document.getElementById(SEARCH_OPENER_ID);
+		// Match Tailwind's lg breakpoint. A closed narrow search keeps its
+		// field in the DOM but hidden, so focusing it cannot restore focus.
+		const searchTarget =
+			window.matchMedia("(min-width: 64rem)").matches ||
+			opener?.getAttribute("aria-expanded") === "true"
+				? document.getElementById(SEARCH_FIELD_ID)
+				: opener;
 		const target =
 			next === undefined
-				? document.getElementById(SEARCH_FIELD_ID)
+				? searchTarget
 				: document.querySelector(`[data-chip="${next}"]`);
 		if (target instanceof HTMLElement) {
 			target.focus();

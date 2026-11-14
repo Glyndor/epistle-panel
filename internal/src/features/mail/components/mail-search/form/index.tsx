@@ -125,7 +125,7 @@ export function SearchForm({
 			onSubmit={check}
 			role="search"
 			aria-label={t("searchLabel")}
-			className="flex min-w-0 flex-1 items-center gap-2"
+			className="relative flex min-w-0 flex-1 items-center gap-2"
 		>
 			{carried(conditions)}
 			<div className="min-w-0 flex-1">
@@ -152,29 +152,26 @@ export function SearchForm({
 						}
 						className="min-w-0 w-full ps-9 pe-10"
 					/>
-					{/* The fields are behind the browser's own disclosure, so they
+				</div>
+				{/* The fields are behind the browser's own disclosure, so they
 					    are there before any script has loaded: the summary is the
 					    button that opens them, and the browser opens and closes
 					    them with it. */}
-					<Disclosure>
-						<DisclosureTrigger className="absolute end-1 top-1/2 -translate-y-1/2">
-							<Tooltip label={t("searchFields")} align="end">
-								<span>
-									<SlidersHorizontalIcon aria-hidden="true" />
-									<span className="sr-only">
-										{t("searchFields")}
-									</span>
+				<Disclosure>
+					<DisclosureTrigger className="absolute end-11 top-0 pointer-coarse:end-14">
+						<Tooltip label={t("searchFields")} align="end">
+							<span>
+								<SlidersHorizontalIcon aria-hidden="true" />
+								<span className="sr-only">
+									{t("searchFields")}
 								</span>
-							</Tooltip>
-						</DisclosureTrigger>
-						<DisclosureContent className="absolute end-0 top-full z-30 mt-2 w-[min(40rem,calc(100vw_-_2rem))] rounded-xl bg-surface-raised p-3 shadow-raised">
-							<SearchFields
-								conditions={conditions}
-								errors={errors}
-							/>
-						</DisclosureContent>
-					</Disclosure>
-				</div>
+							</span>
+						</Tooltip>
+					</DisclosureTrigger>
+					<DisclosureContent className="absolute inset-x-0 top-full z-30 mx-auto mt-2 w-[min(40rem,100%)] rounded-xl bg-surface-raised p-3 shadow-raised">
+						<SearchFields conditions={conditions} errors={errors} />
+					</DisclosureContent>
+				</Disclosure>
 				<FieldError id={SEARCH_FIELD_ID} error={wordsMessage} />
 			</div>
 			<Tooltip label={t("searchSubmit")} align="end">
