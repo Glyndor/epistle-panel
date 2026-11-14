@@ -99,11 +99,11 @@ describe("/app/mail", () => {
 
 	it("keeps what narrows the list, which is no place", async () => {
 		await home({ filter: "unread", q: "x", page: "1" });
-		// The search itself is in the header of the bar; the links of the list
-		// keep what narrows it.
+		// The search itself is in the header of the bar; the filters of the
+		// list are in their menu.
 		expect(
-			screen.getByRole("link", { name: "filterUnread" }),
-		).toHaveAttribute("href", "/app/mail/inbox?q=x&unread=1");
+			screen.getByRole("button", { name: /filters/ }),
+		).toBeInTheDocument();
 	});
 
 	it("reads no folder and no message from the query: the proxy sends such an address on before it gets here", async () => {

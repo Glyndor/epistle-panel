@@ -137,11 +137,11 @@ describe("MailPlace", () => {
 			"href",
 			`/app/mail/sent/${ID}`,
 		);
-		// The search is in the header of the bar, not in the page; the links
-		// of the list stay on the role's path.
+		// The search is in the header of the bar, not in the page; the filters
+		// of the list are in their menu, beside the list they narrow.
 		expect(
-			screen.getByRole("link", { name: "filterUnread" }),
-		).toHaveAttribute("href", "/app/mail/sent?unread=1");
+			screen.getByRole("button", { name: /filters/ }),
+		).toBeInTheDocument();
 	});
 
 	it("says so, and asks for no messages, when the account has no folder of the role", async () => {
@@ -191,11 +191,11 @@ describe("MailPlace", () => {
 			.filter((c) => c[0] === "Email/query")
 			.map((c) => c[1]["filter"]);
 		expect(filters).toContainEqual({ inMailbox: "Sent" });
-		// The search is in the header of the bar; the links of the list carry
-		// the words the address held.
+		// The search is in the header of the bar; the filters of the list are
+		// in their menu, with what the address held.
 		expect(
-			screen.getByRole("link", { name: "filterUnread" }),
-		).toHaveAttribute("href", "/app/mail/folder/Sent?q=x&unread=1");
+			screen.getByRole("button", { name: /filters/ }),
+		).toBeInTheDocument();
 	});
 
 	it("opens the reader for a message in the address", async () => {
@@ -314,7 +314,7 @@ describe("MailPlace", () => {
 			screen.getByRole("region", { name: "listLabel" }),
 		).toBeInTheDocument();
 		expect(
-			screen.getByRole("navigation", { name: "filtersLabel" }),
+			screen.getByRole("button", { name: /filters/ }),
 		).toBeInTheDocument();
 	});
 
