@@ -59,9 +59,11 @@ the tooltip of a count.
   hidden while a filter has keyboard focus (a browser did not bring a link
   cut by this box into view: `scrollLeft` stayed 0). Not for a press, which gives the focus on its way down: the
   strip moving then would put another filter under the pointer. By a pointer:
-  a chevron on the pane's surface at each end that hides more than 8 px moves
-  the strip and is the sign that there is more; it is not in the tab order
-  nor in the accessibility tree. By touch or a wheel. Each filter has
+  a chevron on the pane's surface at each end where a filter is hidden by more
+  than 8 px moves the strip and is the sign that there is more; the filter is
+  measured where it is drawn, so the padding of the strip hides no filter and
+  shows no chevron. The chevron is not in the tab order nor in the
+  accessibility tree. By touch or a wheel. Each filter has
   three fills: at rest, darker under the pointer and darker under a press,
   and the one in use has its own three. Their side padding is 10 px with a
   fine pointer: with 12 the four did not fit 360 px in Italian and Portuguese.

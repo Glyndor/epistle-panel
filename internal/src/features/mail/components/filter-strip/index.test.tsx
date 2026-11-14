@@ -31,19 +31,74 @@ function strip() {
 	}
 	return { ...view, list };
 }
-/** Lay the strip out, which the test DOM does not: its width, its content's, and how far it is scrolled. */
-function layOut(
+/** The strip's own padding: it is not a filter, and what it hides is not a filter hidden. */
+const PAD = 4;
+
+/**
+ * Lay the strip out, which the test DOM does not: its box, the filters in
+ * it, and how far it is scrolled. The content of the strip is its filters
+ * between its own padding, and the first and the last filter are as wide as
+ * the content needs, so the edges of the content are the edges of those two.
+ */
+function place(
 	list: HTMLElement,
 	box: { client: number; scroll: number; left: number },
+	rtl = false,
 ) {
+	const filters = Array.from(list.children);
+	const first = filters[0];
+	const last = filters[filters.length - 1];
+	if (first === undefined || last === undefined) {
+		throw new Error("no filters");
+	}
+	const rect = (left: number, right: number) => ({
+		left,
+		right,
+		top: 0,
+		bottom: 0,
+		width: right - left,
+		height: 0,
+		x: left,
+		y: 0,
+		toJSON: () => ({}),
+	});
+	const content = box.scroll - 2 * PAD;
+	const width = Math.max(content / 2, 1);
+	// Where the content of the strip starts, and where it ends.
+	const start = rtl ? box.client - PAD - box.left : PAD - box.left;
+	const end = rtl ? start - content : start + content;
+	list.getBoundingClientRect = () => rect(0, box.client);
+	first.getBoundingClientRect = () =>
+		rtl ? rect(start - width, start) : rect(start, start + width);
+	last.getBoundingClientRect = () =>
+		rtl ? rect(end, end + width) : rect(end - width, end);
 	Object.defineProperties(list, {
 		clientWidth: { configurable: true, value: box.client },
 		scrollWidth: { configurable: true, value: box.scroll },
 		scrollLeft: { configurable: true, writable: true, value: box.left },
 	});
+}
+/** Lay the strip out and let it know it moved. */
+function layOut(
+	list: HTMLElement,
+	box: { client: number; scroll: number; left: number },
+	rtl = false,
+) {
+	place(list, box, rtl);
 	act(() => {
 		fireEvent.scroll(list);
 	});
+}
+/** The page reads the other way: the strip's start is on its right. */
+function asRtl(list: HTMLElement) {
+	const computed = window.getComputedStyle;
+	window.getComputedStyle = ((element: Element) =>
+		element === list
+			? { direction: "rtl" }
+			: computed(element)) as typeof window.getComputedStyle;
+	return () => {
+		window.getComputedStyle = computed;
+	};
 }
 const edges = (root: HTMLElement) =>
 	Array.from(root.querySelectorAll<HTMLElement>("[data-edge]")).map((edge) =>
@@ -115,20 +170,32 @@ describe("FilterStrip", () => {
 	it("shows a chevron only for more than 8 px out of view at that end", () => {
 		const { container, list } = strip();
 
-		// The last filter reads whole with 8 px of its padding cut.
-		layOut(list, { client: 296, scroll: 304, left: 0 });
+		// The last filter reads whole with 8 px of it cut.
+		layOut(list, { client: 296, scroll: 308, left: 0 });
 		expect(edges(container)).toEqual([]);
-		layOut(list, { client: 296, scroll: 305, left: 0 });
+		layOut(list, { client: 296, scroll: 309, left: 0 });
 		expect(edges(container)).toEqual(["end"]);
 
 		layOut(list, { client: 296, scroll: 342, left: 8 });
 		expect(edges(container)).toEqual(["end"]);
-		layOut(list, { client: 296, scroll: 342, left: 9 });
+		layOut(list, { client: 296, scroll: 342, left: 13 });
 		expect(edges(container)).toEqual(["start", "end"]);
 
 		// Gone to the end of a strip that hid 6 px: nothing to say, and the
 		// first filter takes its press at once.
 		layOut(list, { client: 296, scroll: 302, left: 6 });
+		expect(edges(container)).toEqual([]);
+	});
+
+	it("shows a chevron only for a filter cut by more than 8 px, not for the strip's own padding", () => {
+		const { container, list } = strip();
+
+		// The strip's padding is 4 px on each side: the box hides it, and
+		// that is not a filter hidden. The last filter is cut by 5 px.
+		layOut(list, { client: 296, scroll: 305, left: 0 });
+		expect(edges(container)).toEqual([]);
+		// And the first one by 5 px, with the strip scrolled to its end.
+		layOut(list, { client: 296, scroll: 309, left: 9 });
 		expect(edges(container)).toEqual([]);
 	});
 
@@ -145,8 +212,10 @@ describe("FilterStrip", () => {
 		expect(edges(container)).toEqual(["start"]);
 
 		// A right-to-left page counts the same distance the other way.
-		layOut(list, { client: 288, scroll: 334, left: -46 });
+		const restore = asRtl(list);
+		layOut(list, { client: 288, scroll: 334, left: -46 }, true);
 		expect(edges(container)).toEqual(["start"]);
+		restore();
 	});
 
 	it("moves the strip toward the end a pointer presses, by most of what is in view", () => {
@@ -173,12 +242,8 @@ describe("FilterStrip", () => {
 		list.scrollBy = ((options?: ScrollToOptions) => {
 			moved.push(options?.left);
 		}) as typeof list.scrollBy;
-		const computed = window.getComputedStyle;
-		window.getComputedStyle = ((element: Element) =>
-			element === list
-				? { direction: "rtl" }
-				: computed(element)) as typeof window.getComputedStyle;
-		layOut(list, { client: 200, scroll: 400, left: -100 });
+		const restore = asRtl(list);
+		layOut(list, { client: 200, scroll: 400, left: -100 }, true);
 
 		fireEvent.click(
 			container.querySelector('[data-edge="end"]') as HTMLElement,
@@ -186,7 +251,7 @@ describe("FilterStrip", () => {
 		fireEvent.click(
 			container.querySelector('[data-edge="start"]') as HTMLElement,
 		);
-		window.getComputedStyle = computed;
+		restore();
 
 		expect(moved).toEqual([-150, 150]);
 	});
@@ -219,10 +284,7 @@ describe("FilterStrip", () => {
 		};
 		/** The content's width changes; the strip's box and its scroll do not, and nothing is said of it. */
 		const widen = (list: HTMLElement, scroll: number) =>
-			Object.defineProperty(list, "scrollWidth", {
-				configurable: true,
-				value: scroll,
-			});
+			place(list, { client: 296, scroll, left: 0 });
 
 		it("reads the strip again when a filter changes size, as the one in use does", () => {
 			observe();

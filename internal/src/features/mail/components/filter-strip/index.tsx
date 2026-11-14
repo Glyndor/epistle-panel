@@ -5,7 +5,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Edge } from "@/features/mail/components/filter-strip/edge";
 
 /**
- * How much of the strip, in pixels, has to be out of view at an end for that
+ * How much of a filter, in pixels, has to be out of view at an end for that
  * end to show its chevron. Under it the filter at that end reads whole (its
  * side padding is 10 px or more), and a chevron over it only took its press.
  */
@@ -24,6 +24,33 @@ function focusIsVisible(element: Element): boolean {
 interface More {
 	readonly start: boolean;
 	readonly end: boolean;
+}
+
+/**
+ * Which ends of the strip hold filters that are out of view. The filters are
+ * measured where they are drawn, and not the box that clips them: the box
+ * hides its own padding as well, and that is not a filter hidden.
+ */
+function hiddenEnds(list: HTMLElement): More {
+	const first = list.firstElementChild;
+	const last = list.lastElementChild;
+	if (first === null || last === null) {
+		return { start: false, end: false };
+	}
+	const box = list.getBoundingClientRect();
+	const a = first.getBoundingClientRect();
+	const b = last.getBoundingClientRect();
+	// A right-to-left page reads the other way: its start is on the right.
+	const rtl = getComputedStyle(list).direction === "rtl";
+	return rtl
+		? {
+				start: a.right - box.right > HIDDEN,
+				end: box.left - b.left > HIDDEN,
+			}
+		: {
+				start: box.left - a.left > HIDDEN,
+				end: b.right - box.right > HIDDEN,
+			};
 }
 
 /**
@@ -68,13 +95,7 @@ export function FilterStrip({
 			if (!mounted) {
 				return;
 			}
-			const hidden = list.scrollWidth - list.clientWidth;
-			// Negative in a right-to-left page: the distance is what counts.
-			const moved = Math.abs(list.scrollLeft);
-			const next = {
-				start: moved > HIDDEN,
-				end: hidden - moved > HIDDEN,
-			};
+			const next = hiddenEnds(list);
 			setMore((now) =>
 				now.start === next.start && now.end === next.end ? now : next,
 			);
