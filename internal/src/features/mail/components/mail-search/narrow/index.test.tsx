@@ -10,17 +10,21 @@ afterEach(() => {
 });
 
 /**
- * The bar the search sits in: the trail on its left and the search's own cell
- * on its right. The search is a child of the bar, and the bar is what the
+ * The bar the search sits in: the trail on its left, the search's own cell in
+ * a part of its own and the actions at the far end. The cell is a grandchild
+ * of the bar, as it is in the header of the panel, and the bar is what the
  * panel covers.
  */
 function bar() {
 	return (
 		<header>
 			<button type="button">the trail</button>
-			<NarrowSearch label="search" closeLabel="close">
-				<input type="search" aria-label="the field" />
-			</NarrowSearch>
+			<div data-slot="header-search">
+				<NarrowSearch label="search" closeLabel="close">
+					<input type="search" aria-label="the field" />
+				</NarrowSearch>
+			</div>
+			<button type="button">the actions</button>
 		</header>
 	);
 }
@@ -90,17 +94,45 @@ describe("NarrowSearch", () => {
 	it("keeps the rest of the bar out of the way while it is open", () => {
 		render(bar());
 		const trail = screen.getByRole("button", { name: "the trail" });
+		const actions = screen.getByRole("button", { name: "the actions" });
+		const holder = document.querySelector(
+			'[data-slot="header-search"]',
+		) as HTMLElement;
 		expect(trail.hasAttribute("inert")).toBe(false);
+		expect(actions.hasAttribute("inert")).toBe(false);
 
 		fireEvent.click(opener());
 
 		// The panel covers the bar: what is under it is not reached, neither
 		// by the pointer nor by the keyboard.
 		expect(trail.hasAttribute("inert")).toBe(true);
+		expect(actions.hasAttribute("inert")).toBe(true);
+		// The part of the bar that holds the cell is not inert: the field is
+		// inside it, and an inert ancestor would take it out of reach.
+		expect(holder.hasAttribute("inert")).toBe(false);
+		expect(holder.contains(field())).toBe(true);
+		expect(field().closest("[inert]")).toBeNull();
 
 		fireEvent.keyDown(document, { key: "Escape" });
 
 		expect(trail.hasAttribute("inert")).toBe(false);
+		expect(actions.hasAttribute("inert")).toBe(false);
+	});
+
+	it("leaves the icon out of the tab order while the panel is over the bar", () => {
+		render(bar());
+
+		expect(opener().hasAttribute("tabindex")).toBe(false);
+
+		fireEvent.click(opener());
+
+		// The icon is behind the panel: it is not a stop of the tab order,
+		// and the panel gives the focus back to it when it closes.
+		expect(opener()).toHaveAttribute("tabindex", "-1");
+
+		fireEvent.keyDown(document, { key: "Escape" });
+
+		expect(opener().hasAttribute("tabindex")).toBe(false);
 	});
 
 	it("is a button the keyboard can reach, with the name of the search", () => {

@@ -35,14 +35,25 @@ export function NarrowSearch({
 	const panel = useRef<HTMLDivElement>(null);
 	const opener = useRef<HTMLButtonElement>(null);
 
-	// The bar's other parts are behind the panel: they are not reached.
+	// The bar's other parts are behind the panel: they are not reached. The
+	// cell is not a child of the bar but a grandchild of it, so what is inert
+	// is every part of the bar that does not hold the cell: the one that holds
+	// it is the cell's own container, and making it inert would take the field
+	// with it.
 	useEffect(() => {
-		const bar = cell.current?.closest("header");
-		if (!open || bar === undefined || bar === null) {
+		const cellElement = cell.current;
+		const bar = cellElement?.closest("header") ?? null;
+		if (!open || cellElement === null || bar === null) {
+			return;
+		}
+		const holder = Array.from(bar.children).find((child) =>
+			child.contains(cellElement),
+		);
+		if (holder === undefined) {
 			return;
 		}
 		const others = Array.from(bar.children).filter(
-			(child) => child !== cell.current,
+			(child) => child !== holder,
 		);
 		for (const other of others) {
 			other.setAttribute("inert", "");
@@ -94,6 +105,10 @@ export function NarrowSearch({
 					size="icon"
 					className="lg:hidden"
 					aria-expanded={open}
+					// While the panel is over the bar the icon is behind it:
+					// it leaves the tab order, and the panel gives the focus
+					// back to it when it closes.
+					tabIndex={open ? -1 : undefined}
 					onClick={() => setOpen(true)}
 				>
 					<SearchIcon aria-hidden="true" />
