@@ -2,6 +2,8 @@
 
 import * as React from "react";
 
+import type { SidebarGroupId } from "../groups-cookie";
+
 /** What every sidebar part reads from its provider. */
 export interface SidebarContextProps {
 	state: "expanded" | "collapsed";
@@ -11,6 +13,10 @@ export interface SidebarContextProps {
 	setOpenMobile: (open: boolean) => void;
 	isMobile: boolean;
 	toggleSidebar: () => void;
+	/** The groups of the navigation that are closed. */
+	closedGroups: readonly SidebarGroupId[];
+	/** Open or close a group of the navigation, and keep the choice for the next page. */
+	setGroupOpen: (id: SidebarGroupId, open: boolean) => void;
 }
 
 /** Context carrying the sidebar state; created empty so a missing provider is caught. */

@@ -167,11 +167,12 @@ describe("NavMain groups", () => {
 		fireEvent.click(heading);
 
 		expect(heading).toHaveAttribute("aria-expanded", "false");
-		expect(
-			screen
-				.getByRole("navigation", { name: "label" })
-				.querySelectorAll("a"),
-		).toHaveLength(0);
+		// The page that is open stays: a closed group does not hide it.
+		const kept = screen
+			.getByRole("navigation", { name: "label" })
+			.querySelectorAll("a");
+		expect(kept).toHaveLength(1);
+		expect(kept[0]).toHaveAttribute("aria-current", "page");
 
 		fireEvent.click(heading);
 		expect(
@@ -215,5 +216,47 @@ describe("NavMain on the rail", () => {
 
 		fireEvent.pointerEnter(other);
 		expect(tip()).not.toHaveTextContent("currentEntry");
+	});
+	it("left closed, a group still draws the entry of the current page, once, and no other", () => {
+		pathname = `/app/${TEST_ADMIN_ID}/accounts/ana`;
+		render(
+			<SidebarProvider defaultClosedGroups={["manage"]}>
+				<NavMain groups={adminNav()} />
+			</SidebarProvider>,
+		);
+
+		expect(screen.getByRole("button", { name: "manage" })).toHaveAttribute(
+			"aria-expanded",
+			"false",
+		);
+		const links = screen.getAllByRole("link");
+		expect(links).toHaveLength(1);
+		expect(links[0]).toHaveAttribute(
+			"href",
+			`/app/${TEST_ADMIN_ID}/accounts`,
+		);
+		expect(links[0]).toHaveAttribute("aria-current", "page");
+
+		fireEvent.click(screen.getByRole("button", { name: "manage" }));
+		expect(screen.getAllByRole("link")).toHaveLength(6);
+		expect(
+			screen
+				.getAllByRole("link")
+				.filter((link) => link.hasAttribute("aria-current")),
+		).toHaveLength(1);
+	});
+
+	it("is served closed with the current entry in the markup, so the first paint is the one that stays", () => {
+		pathname = `/app/${TEST_ADMIN_ID}/queue`;
+		const html = renderToString(
+			<SidebarProvider defaultClosedGroups={["manage"]}>
+				<NavMain groups={adminNav()} />
+			</SidebarProvider>,
+		);
+
+		expect(html).toContain('aria-expanded="false"');
+		expect(html).toContain(`href="/app/${TEST_ADMIN_ID}/queue"`);
+		expect(html).not.toContain(`href="/app/${TEST_ADMIN_ID}/domains"`);
+		expect(html).not.toContain("style=");
 	});
 });

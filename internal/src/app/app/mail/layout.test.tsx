@@ -319,6 +319,56 @@ describe("MailLayout", () => {
 		).toHaveAttribute("data-state", "expanded");
 	});
 
+	it("sends the folders closed, placeholder first and tree after, only when the groups' cookie names the folders", async () => {
+		await cookies.signIn("ana", "admin");
+		stubJmap(answers);
+		/** The frame as it is first sent, then with what it streams. */
+		const states = async () => {
+			const first = render(
+				withQuery(await resolveFirstPaint(await shell())),
+			);
+			const placeholder = first.container
+				.querySelector("[data-slot='folder-skeleton']")
+				?.getAttribute("data-state");
+			cleanup();
+			const whole = await renderLayout();
+			const heading = whole.container
+				.querySelector("[data-slot='sidebar-group-label']")
+				?.getAttribute("aria-expanded");
+			const markup = whole.container.innerHTML;
+			cleanup();
+			return { placeholder, heading, markup };
+		};
+
+		for (const value of ["folders", "manage.folders"]) {
+			cookies.jar.set("sidebar_groups", value);
+			const { placeholder, heading } = await states();
+			expect([value, placeholder, heading]).toEqual([
+				value,
+				"closed",
+				"false",
+			]);
+		}
+		for (const value of [
+			"manage",
+			"",
+			"Folders",
+			"folders.other",
+			'folders"><i data-from-cookie="1">',
+		]) {
+			cookies.jar.set("sidebar_groups", value);
+			const { placeholder, heading, markup } = await states();
+			expect([value, placeholder, heading]).toEqual([
+				value,
+				"open",
+				"true",
+			]);
+			expect(markup).not.toContain("data-from-cookie");
+		}
+		cookies.jar.delete("sidebar_groups");
+		expect((await states()).placeholder).toBe("open");
+	});
+
 	it("gives a session that is not an admin's no way into the administration, in the markup or in what the menu is handed", async () => {
 		await cookies.signIn("ana", "user");
 		stubJmap(answers);

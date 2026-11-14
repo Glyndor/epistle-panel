@@ -166,4 +166,42 @@ describe("AdminLayout", () => {
 			second.container.querySelector("[data-slot='sidebar']"),
 		).toHaveAttribute("data-state", "expanded");
 	});
+
+	it("starts a group of the navigation closed only when its cookie names it, and takes nothing else from that cookie", async () => {
+		await cookies.signIn("ops");
+		const heading = (container: HTMLElement) =>
+			container
+				.querySelector("[data-slot='sidebar-group-label']")
+				?.getAttribute("aria-expanded");
+
+		for (const value of ["manage", "manage.folders", "folders.manage"]) {
+			cookies.jar.set("sidebar_groups", value);
+			const { container } = await renderLayout();
+			expect([value, heading(container)]).toEqual([value, "false"]);
+			cleanup();
+		}
+
+		// A group of the other area, a name that is no group, more names
+		// than there are groups, markup: the group is served open, and no
+		// character of the cookie is in the page.
+		for (const value of [
+			"folders",
+			"other",
+			"manage.other",
+			"manage.folders.manage",
+			"MANAGE",
+			'manage"><i data-from-cookie="1">',
+		]) {
+			cookies.jar.set("sidebar_groups", value);
+			const { container } = await renderLayout();
+			expect([value, heading(container)]).toEqual([value, "true"]);
+			expect(container.innerHTML).not.toContain("data-from-cookie");
+			expect(container.innerHTML).not.toContain("other");
+			cleanup();
+		}
+
+		cookies.jar.delete("sidebar_groups");
+		const none = await renderLayout();
+		expect(heading(none.container)).toBe("true");
+	});
 });

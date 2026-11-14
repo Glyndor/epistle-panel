@@ -18,7 +18,12 @@ import { composeHref } from "@/features/mail/links/mail-href";
  * the account's folders, which stream in behind their skeleton. Collapsed to
  * icons the composer is its icon with a tooltip, like every other entry.
  */
-export async function MailNav() {
+export async function MailNav({
+	foldersOpen = true,
+}: {
+	/** Whether the folders start open, as the layout read it: their placeholder is drawn the same way. */
+	foldersOpen?: boolean;
+} = {}) {
 	const t = await getTranslations("mail");
 
 	return (
@@ -39,7 +44,7 @@ export async function MailNav() {
 					</SidebarMenuItem>
 				</SidebarMenu>
 			</SidebarGroup>
-			<Suspense fallback={<FolderSkeleton />}>
+			<Suspense fallback={<FolderSkeleton open={foldersOpen} />}>
 				<FoldersBoundary />
 			</Suspense>
 		</>

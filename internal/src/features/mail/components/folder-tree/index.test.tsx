@@ -157,7 +157,9 @@ describe("FolderTree", () => {
 		fireEvent.click(heading);
 
 		expect(heading).toHaveAttribute("aria-expanded", "false");
-		expect(screen.queryAllByRole("link")).toHaveLength(0);
+		// The inbox is the folder the address shows: it alone stays.
+		expect(screen.queryAllByRole("link")).toHaveLength(1);
+		expect(current()).toHaveLength(1);
 	});
 
 	it("indents a nested folder by a class, up to the deepest level it has one for", () => {
@@ -232,5 +234,42 @@ describe("FolderTree", () => {
 		expect(html).toContain('href="/app/mail/folder/Work_2FQ4"');
 		expect(html).not.toContain("style=");
 		expect(html).not.toContain("<style");
+	});
+	it("left closed, still draws the folder that is open, once, and no other", () => {
+		pathname = "/app/mail/sent";
+		render(
+			<SidebarProvider defaultClosedGroups={["folders"]}>
+				<FolderTree boxes={boxes} />
+			</SidebarProvider>,
+		);
+
+		expect(screen.getByRole("button", { name: "folders" })).toHaveAttribute(
+			"aria-expanded",
+			"false",
+		);
+		const links = screen.getAllByRole("link");
+		expect(links).toHaveLength(1);
+		expect(links[0]).toHaveAttribute("href", "/app/mail/sent");
+		expect(links[0]).toHaveAttribute("aria-current", "page");
+
+		// Opened, every folder is back and the open one is not repeated.
+		fireEvent.click(screen.getByRole("button", { name: "folders" }));
+		expect(screen.getAllByRole("link")).toHaveLength(5);
+		expect(current()).toHaveLength(1);
+	});
+
+	it("left closed on a page that is no folder, draws its heading alone", () => {
+		pathname = "/app/mail/compose";
+		render(
+			<SidebarProvider defaultClosedGroups={["folders"]}>
+				<FolderTree boxes={boxes} />
+			</SidebarProvider>,
+		);
+
+		expect(screen.queryAllByRole("link")).toHaveLength(0);
+		expect(screen.getByRole("button", { name: "folders" })).toHaveAttribute(
+			"aria-expanded",
+			"false",
+		);
 	});
 });

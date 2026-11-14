@@ -4,10 +4,12 @@ import { Suspense } from "react";
 
 import { AppShell } from "@/components/layout/app-shell";
 import { QueryProvider } from "@/components/layout/query-provider";
+import { closedSidebarGroups } from "@/components/ui/sidebar/closed-groups";
 import {
 	SIDEBAR_COOKIE,
 	sidebarStartsOpen,
 } from "@/components/ui/sidebar/cookie";
+import { SIDEBAR_GROUPS_COOKIE } from "@/components/ui/sidebar/groups-cookie";
 import { MailNav } from "@/features/mail/components/mail-nav";
 import {
 	QuotaMeter,
@@ -27,8 +29,9 @@ import { adminRoutes, PUBLIC_ROUTES } from "@/lib/routes";
  * switch. Nothing of the frame scrolls: each pane of a page does.
  *
  * Without a session it redirects to sign-in before anything renders. Whether
- * the sidebar starts collapsed is read here, from its cookie, so the first
- * paint is already the one the person left.
+ * the sidebar starts collapsed, and whether its folders start closed, are read
+ * here from their cookies, so the first paint is already the one the person
+ * left: the placeholder of the folders is drawn closed too.
  */
 export default async function MailLayout({
 	children,
@@ -40,14 +43,18 @@ export default async function MailLayout({
 	const adminId = session.role === "admin" ? await readAdminId() : undefined;
 	const t = await getTranslations("mail");
 	const hasMail = (await requestMailSession()) !== null;
-	const open = sidebarStartsOpen(
-		(await cookies()).get(SIDEBAR_COOKIE)?.value,
+	const jar = await cookies();
+	const open = sidebarStartsOpen(jar.get(SIDEBAR_COOKIE)?.value);
+	const closedGroups = closedSidebarGroups(
+		jar.get(SIDEBAR_GROUPS_COOKIE)?.value,
 	);
 
 	return (
 		<QueryProvider>
 			<AppShell
-				navigation={<MailNav />}
+				navigation={
+					<MailNav foldersOpen={!closedGroups.includes("folders")} />
+				}
 				sidebarFooter={
 					// A session with no mail of its own has no storage to ask
 					// for: nothing is drawn, and nothing holds its place.
@@ -71,6 +78,7 @@ export default async function MailLayout({
 						: adminRoutes(adminId).home
 				}
 				defaultOpen={open}
+				closedGroups={closedGroups}
 				content="panes"
 			>
 				{children}

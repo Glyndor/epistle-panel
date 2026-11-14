@@ -5,6 +5,7 @@ import * as React from "react";
 import { cn } from "@/lib/class-names";
 import { SidebarContext, type SidebarContextProps } from "../context";
 import { sidebarCookie } from "../cookie";
+import { type SidebarGroupId, sidebarGroupsCookie } from "../groups-cookie";
 import { useIsMobile } from "../use-is-mobile";
 
 const SIDEBAR_KEYBOARD_SHORTCUT = "b";
@@ -33,16 +34,41 @@ function handFocusToToggle(): void {
  * attribute: the panel serves `style-src 'self'`, and a server-rendered
  * `style` would be blocked and break the layout. On a coarse pointer the
  * collapsed rail grows to fit a 44 px target.
+ *
+ * It also holds which groups of the navigation are closed. That is kept here
+ * and not by each group: the folders of the mail area come in a streamed part
+ * that replaces its placeholder, and a note kept by the group would be made
+ * anew with it. Both states start from what the layout read from their
+ * cookies, so the page the server sends is already the one the person left.
  */
 export function SidebarProvider({
 	defaultOpen = true,
+	defaultClosedGroups,
 	className,
 	children,
 	...props
-}: React.ComponentProps<"div"> & { defaultOpen?: boolean }) {
+}: React.ComponentProps<"div"> & {
+	defaultOpen?: boolean;
+	/** The groups of the navigation that start closed, as the layout read them. */
+	defaultClosedGroups?: readonly SidebarGroupId[];
+}) {
 	const isMobile = useIsMobile();
 	const [openMobile, setOpenMobile] = React.useState(false);
 	const [open, setOpenState] = React.useState(defaultOpen);
+	const [closedGroups, setClosedGroups] = React.useState<
+		readonly SidebarGroupId[]
+	>(defaultClosedGroups ?? []);
+
+	const setGroupOpen = (id: SidebarGroupId, groupOpen: boolean) => {
+		const next = groupOpen
+			? closedGroups.filter((closed) => closed !== id)
+			: closedGroups.includes(id)
+				? closedGroups
+				: [...closedGroups, id];
+		setClosedGroups(next);
+		// biome-ignore lint/suspicious/noDocumentCookie: the Cookie Store API is not Baseline widely available yet.
+		document.cookie = sidebarGroupsCookie(next);
+	};
 
 	const setOpen = React.useCallback((value: boolean) => {
 		setOpenState(value);
@@ -86,6 +112,8 @@ export function SidebarProvider({
 		openMobile,
 		setOpenMobile,
 		toggleSidebar,
+		closedGroups,
+		setGroupOpen,
 	};
 
 	return (

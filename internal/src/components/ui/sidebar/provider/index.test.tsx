@@ -54,10 +54,32 @@ describe("SidebarProvider", () => {
 		expect(writes.at(-1)).toContain("SameSite=Lax");
 	});
 
+	it("keeps a group closed in the other area closed while it writes one of its own", () => {
+		capture = captureCookieWrites();
+		const { writes } = capture;
+		render(
+			<SidebarProvider defaultClosedGroups={["folders"]}>
+				<NavSection id="manage" label="Manage">
+					<a href="/domains">Domains</a>
+				</NavSection>
+			</SidebarProvider>,
+		);
+		const heading = screen.getByRole("button", { name: "Manage" });
+		expect(heading).toHaveAttribute("aria-expanded", "true");
+
+		fireEvent.click(heading);
+		expect(writes.at(-1)).toStartWith(
+			"sidebar_groups=manage.folders; path=/;",
+		);
+
+		fireEvent.click(heading);
+		expect(writes.at(-1)).toStartWith("sidebar_groups=folders; path=/;");
+	});
+
 	it("hands the focus to the toggle when the rail collapses under a group's heading, which is then not drawn", () => {
 		render(
 			<SidebarProvider>
-				<NavSection label="Manage">
+				<NavSection id="manage" label="Manage">
 					<a href="/domains">Domains</a>
 				</NavSection>
 				<SidebarTrigger label="Toggle sidebar" />
@@ -80,7 +102,7 @@ describe("SidebarProvider", () => {
 	it("leaves the focus alone when the rail collapses under anything that stays drawn", () => {
 		render(
 			<SidebarProvider>
-				<NavSection label="Manage">
+				<NavSection id="manage" label="Manage">
 					<a href="/domains">Domains</a>
 				</NavSection>
 				<SidebarTrigger label="Toggle sidebar" />
