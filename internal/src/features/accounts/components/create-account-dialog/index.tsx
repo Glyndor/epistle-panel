@@ -32,6 +32,11 @@ function FormLoading() {
  * The form is loaded when the dialog first opens, not with the page: the list
  * of accounts needs neither the form library nor the schemas until someone
  * creates an account.
+ *
+ * A dialog gives the focus to its first control at the moment it opens, and
+ * on the first opening the form is not there yet: the focus went to the close
+ * button and stayed on it. So the form is told to take the focus in its first
+ * field when it arrives (`takeFocus`), on the first opening as on the next.
  */
 const CreateAccountForm = dynamic(
 	() =>
@@ -59,7 +64,7 @@ export function CreateAccountDialog() {
 					<DialogTitle>{t("createTitle")}</DialogTitle>
 					<DialogDescription>{t("createHelp")}</DialogDescription>
 				</DialogHeader>
-				<CreateAccountForm onDone={() => setOpen(false)} />
+				<CreateAccountForm takeFocus onDone={() => setOpen(false)} />
 			</DialogContent>
 		</Dialog>
 	);

@@ -49,6 +49,59 @@ describe("CreateAccountDialog", () => {
 		).toBeInTheDocument();
 	});
 
+	/** What has the focus, as a word a failed assertion can be read by. */
+	const focused = () => {
+		const active = document.activeElement;
+		return active === null
+			? "nothing"
+			: (active.getAttribute("name") ??
+					active.getAttribute("data-slot") ??
+					active.tagName.toLowerCase());
+	};
+
+	it("gives the focus to the first field on its first opening, when the form comes after the dialog", async () => {
+		// A dialog of its own, whose form has never been loaded: every
+		// opening is the first one for it, whatever ran before this case.
+		const fresh = "./index.tsx?never-opened";
+		const { CreateAccountDialog: NeverOpened } = (await import(
+			fresh
+		)) as typeof import(".");
+		render(withQuery(<NeverOpened />));
+
+		fireEvent.click(screen.getByRole("button", { name: "create" }));
+
+		// The dialog is there and its form is not: the only control the
+		// dialog could give the focus to is its close button.
+		expect(screen.getByRole("dialog")).toBeInTheDocument();
+		expect(screen.queryByLabelText("nameLabel")).toBeNull();
+		expect(focused()).toBe("dialog-close");
+
+		await screen.findByLabelText("nameLabel");
+		await waitFor(() => expect(focused()).toBe("name"));
+		expect(screen.getByRole("dialog")).toContainElement(
+			document.activeElement as HTMLElement,
+		);
+	});
+
+	it("gives the focus to the first field on every later opening, and hands it back to its button when it closes", async () => {
+		render(withQuery(<CreateAccountDialog />));
+		const opener = screen.getByRole("button", { name: "create" });
+
+		for (const opening of ["first", "second", "third"]) {
+			fireEvent.click(opener);
+			await screen.findByLabelText("nameLabel");
+			await waitFor(() =>
+				expect([opening, focused()]).toEqual([opening, "name"]),
+			);
+
+			fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+			await waitFor(() =>
+				expect(screen.queryByRole("dialog")).toBeNull(),
+			);
+			await waitFor(() => expect(document.activeElement).toBe(opener));
+		}
+	});
+
 	it("closes by itself once the account exists, and says so", async () => {
 		stubRoutes([["POST", /accounts$/, { body: { created: "carol" } }]]);
 		render(

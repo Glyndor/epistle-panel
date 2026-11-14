@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -55,8 +55,22 @@ type Refusal = "createRefused" | "createCap";
  * the same rules again before the mail server decides what only it knows. The
  * password goes straight from the field to the action and the field is emptied
  * as soon as the answer is in. `onDone` runs once the account exists.
+ *
+ * With `takeFocus` the first field takes the focus when the form comes into
+ * the page. The dialog that shows it loads this form's code when it first
+ * opens: on that first opening the dialog gave the focus to the only control
+ * it had by then, its close button, and the form arrived a moment later with
+ * nobody left to hand the focus on. The form does it itself, whenever it
+ * arrives.
  */
-export function CreateAccountForm({ onDone }: { onDone: () => void }) {
+export function CreateAccountForm({
+	onDone,
+	takeFocus = false,
+}: {
+	onDone: () => void;
+	/** Give the focus to the first field once the form is in the page. */
+	takeFocus?: boolean;
+}) {
 	const t = useTranslations("accounts");
 	const client = useQueryClient();
 	const [refusal, setRefusal] = useState<Refusal | null>(null);
@@ -71,6 +85,15 @@ export function CreateAccountForm({ onDone }: { onDone: () => void }) {
 		mode: "onSubmit",
 		reValidateMode: "onChange",
 	});
+	// The field itself, not the form library's `setFocus`: that one waits for
+	// a timer before it moves the focus, and a dialog that closed meanwhile
+	// would get it back.
+	const firstField = useRef<HTMLInputElement | null>(null);
+	useEffect(() => {
+		if (takeFocus) {
+			firstField.current?.focus();
+		}
+	}, [takeFocus]);
 	const message = (key: string) =>
 		isOneOf(CREATE_ACCOUNT_ERROR_KEYS, key)
 			? t(key, { max: ADDRESSES_MAX })
@@ -123,6 +146,10 @@ export function CreateAccountForm({ onDone }: { onDone: () => void }) {
 							<FormControl>
 								<Input
 									{...field}
+									ref={(element) => {
+										field.ref(element);
+										firstField.current = element;
+									}}
 									required
 									maxLength={fieldLength(ACCOUNT_NAME_MAX)}
 									pattern={ACCOUNT_NAME_HTML_PATTERN}
