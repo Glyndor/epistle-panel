@@ -88,6 +88,27 @@ describe("DensityToggle", () => {
 		expect(writes()).toHaveLength(0);
 	});
 
+	it("puts the density back when the server cannot be reached at all", async () => {
+		const view = pane("compact");
+		// The action itself fails, as when the network is gone.
+		const get = cookies.jar.get.bind(cookies.jar);
+		cookies.jar.get = () => {
+			throw new Error("unreachable");
+		};
+
+		fireEvent.click(view.button);
+
+		try {
+			expect(
+				await screen.findByText("densityFailed"),
+			).toBeInTheDocument();
+			expect(view.pane).toHaveAttribute("data-density", "compact");
+			expect(view.button).toHaveAttribute("aria-pressed", "true");
+		} finally {
+			cookies.jar.get = get;
+		}
+	});
+
 	it("drops a second press while the first is being stored", async () => {
 		await cookies.signIn();
 		const view = pane("comfortable");
@@ -126,5 +147,17 @@ describe("DensityToggle", () => {
 		expect(comfortable).not.toBe(compact);
 		expect(comfortable).toContain("<svg");
 		expect(compact).toContain("<svg");
+	});
+
+	it("looks different pressed, under the pointer, and both", () => {
+		const { button } = pane("compact");
+
+		expect(button).toHaveClass(
+			"hover:bg-foreground/10",
+			"aria-pressed:bg-accent",
+			"aria-pressed:hover:bg-foreground/15",
+		);
+		// The ghost button's own hover is the accent, which is the pressed look.
+		expect(button).not.toHaveClass("hover:bg-accent");
 	});
 });

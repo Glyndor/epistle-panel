@@ -259,6 +259,16 @@ describe("MessageRow", () => {
 		expect(lines).toContain("h-4");
 	});
 
+	it("raises the row under the pointer or with the focus one step, and no other", () => {
+		const { item } = row(summary({ flagged: true }));
+
+		expect(item).toHaveClass("relative", "hover:z-1", "focus-within:z-1");
+		// At rest it has no layer: one step is under a date heading's ten.
+		expect(
+			item.className.split(/\s+/).filter((name) => /^z-/.test(name)),
+		).toEqual([]);
+	});
+
 	it("falls back to the address, then to a placeholder, and to a placeholder for no subject", () => {
 		row(
 			summary({

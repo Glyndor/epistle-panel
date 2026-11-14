@@ -11,9 +11,6 @@ import { useMessageChange } from "@/features/mail/components/reader-toolbar/use-
 import type { MessageOp } from "@/features/mail/schemas/mail-input";
 import { cn } from "@/lib/class-names";
 
-/** A row has nowhere to go back to: a flag change leaves the message where it is. */
-const stay = () => {};
-
 /**
  * One mark of a row as a button: 24 px on a fine pointer, 44 px on a coarse
  * one. A mark that is set is always in view. One that is not shows when the
@@ -21,6 +18,9 @@ const stay = () => {};
  * coarse pointer, which has no hover. It is hidden by opacity alone, so the
  * keyboard reaches it either way and the row keeps its width. While a change
  * is on its way the button says so with `aria-disabled` and keeps the focus.
+ *
+ * Its tooltip opens under it and ends where it ends. Beside it, the text lay
+ * over the other mark and took the press meant for that one.
  */
 function Mark({
 	set,
@@ -49,7 +49,9 @@ function Mark({
 				{children}
 				<span className="sr-only">{label}</span>
 			</Button>
-			<TooltipContent side="start">{label}</TooltipContent>
+			<TooltipContent side="bottom" align="end">
+				{label}
+			</TooltipContent>
 		</Tooltip>
 	);
 }
@@ -79,11 +81,8 @@ export function RowActions({
 	important: boolean;
 }) {
 	const t = useTranslations("mail");
-	const { change, pending } = useMessageChange({
-		id,
-		mailboxId: box,
-		onLeft: stay,
-	});
+	// No `onLeft`: a flag change leaves the message where it is.
+	const { change, pending } = useMessageChange({ id, mailboxId: box });
 	// `pending` turns true with the next render; the lock is shut in the press
 	// itself, so a second press in the same instant finds it shut.
 	const sending = useRef(false);
@@ -102,7 +101,7 @@ export function RowActions({
 	return (
 		<div
 			data-slot="row-actions"
-			className="absolute end-2 top-1.5 z-10 flex group-data-[density=compact]/list:top-1/2 group-data-[density=compact]/list:-translate-y-1/2 pointer-coarse:end-1 pointer-coarse:top-1/2 pointer-coarse:-translate-y-1/2"
+			className="absolute end-2 top-1.5 flex group-data-[density=compact]/list:top-1/2 group-data-[density=compact]/list:-translate-y-1/2 pointer-coarse:end-1 pointer-coarse:top-1/2 pointer-coarse:-translate-y-1/2"
 		>
 			<Mark
 				set={important}

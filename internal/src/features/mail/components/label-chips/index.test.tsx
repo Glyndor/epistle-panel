@@ -89,7 +89,14 @@ describe("LabelChips", () => {
 		).toBe("B, C, D, E");
 		fireEvent.pointerLeave(narrow as Element);
 
+		// Under the count, not over the sender's line or a date heading.
+		expect(
+			narrow?.querySelector('[data-slot="tooltip-content"]'),
+		).toBeNull();
 		fireEvent.pointerEnter(wide as Element, { pointerType: "mouse" });
+		expect(
+			wide?.querySelector('[data-slot="tooltip-content"]'),
+		).toHaveAttribute("data-side", "bottom");
 		expect(
 			wide?.querySelector('[data-slot="tooltip-content"]')?.textContent,
 		).toBe("D, E");

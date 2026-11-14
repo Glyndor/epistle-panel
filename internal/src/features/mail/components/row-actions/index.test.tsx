@@ -133,6 +133,28 @@ describe("RowActions", () => {
 		}
 	});
 
+	it("opens each tooltip under its own button, never over the other one", () => {
+		const { container } = actions();
+
+		for (const each of screen.getAllByRole("button")) {
+			fireEvent.pointerEnter(each.parentElement as Element, {
+				pointerType: "mouse",
+			});
+			const text = each.parentElement?.querySelector(
+				'[data-slot="tooltip-content"]',
+			);
+
+			expect(text).toHaveAttribute("data-side", "bottom");
+			expect(text).toHaveClass("top-full", "end-0");
+			fireEvent.pointerLeave(each.parentElement as Element);
+		}
+		// The buttons take no layer of their own: a filled mark must pass
+		// under a date heading, and the row raises itself when it needs to.
+		expect(
+			container.querySelector('[data-slot="row-actions"]')?.className,
+		).not.toMatch(/(^|\s)z-/);
+	});
+
 	it("is 24 px on a fine pointer and 44 px on a coarse one", () => {
 		actions();
 
