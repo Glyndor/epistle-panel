@@ -27,7 +27,10 @@ export function FolderPicker({ value }: { value: string }) {
 	const t = useTranslations("mail");
 	const { data } = useQuery(mailboxesQueryOptions(fetchMailboxes));
 	const boxes = data ?? [];
-	const known = boxes.some((box) => box.id === value);
+	// The folder the address names is in the list even before the folders are
+	// read, so a search that names one does not lose it. A search that names
+	// none has nothing to add: the first option already says it.
+	const named = value !== "" && !boxes.some((box) => box.id === value);
 
 	return (
 		<NativeSelect
@@ -38,9 +41,9 @@ export function FolderPicker({ value }: { value: string }) {
 			<NativeSelectOption value="">
 				{t("conditionFolderHere")}
 			</NativeSelectOption>
-			{known ? null : (
+			{named ? (
 				<NativeSelectOption value={value}>{value}</NativeSelectOption>
-			)}
+			) : null}
 			{boxes.map((box) => (
 				<NativeSelectOption key={box.id} value={box.id}>
 					{box.name}
