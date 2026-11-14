@@ -12,11 +12,17 @@ name: End-to-end
 # `internal/package.json` and `internal/bun.lock` are listed because a bump of
 # Next, React or the bundler changes the standalone server and the headers
 # these scripts read, which no unit test sees. The price is one run, about five
-# minutes, on every dependency bump. The negated patterns keep a change that
-# only touches an `internal/` test file from paying it; they are scoped to
-# `internal/` because `scripts/e2e` has tests of its own that this job runs. A
-# path list with a negated pattern needs a positive one before it, and the
-# patterns are read in order.
+# minutes, on every dependency bump.
+#
+# The whole of `internal/src` is listed, not the folders the scenarios were
+# first written against: the built server ships all of it. With a list of
+# folders, a change to `src/styles` (the theme the `theme` scenarios read) or to
+# `src/lib/routes` (which paths exist) alone did not run this workflow. The
+# negated patterns keep a change that only touches a test file, the test
+# preload or a test helper from paying it; they are scoped to `internal/`
+# because `scripts/e2e` has tests of its own that this job runs. A path list
+# with a negated pattern needs a positive one before it, and the patterns are
+# read in order.
 
 on:
   pull_request:
@@ -24,45 +30,35 @@ on:
     # check already answered for on develop, and it is not required on main.
     branches: [develop]
     paths:
-      - "internal/src/lib/auth/**"
-      - "internal/src/lib/security-headers/**"
-      - "internal/src/lib/api/**"
-      - "internal/src/lib/config/**"
-      - "internal/src/lib/query/**"
-      - "internal/src/proxy.ts"
+      - "internal/src/**"
       - "internal/next.config.ts"
+      - "internal/postcss.config.mjs"
+      - "internal/tsconfig.json"
       - "internal/package.json"
       - "internal/bun.lock"
-      - "internal/src/app/**"
-      - "internal/src/components/**"
-      - "internal/src/features/**"
-      - "internal/src/i18n/**"
       - "scripts/e2e/**"
       - "scripts/headers/**"
       - ".github/workflows/e2e.yml"
       - "!internal/**/*.test.ts"
       - "!internal/**/*.test.tsx"
+      - "!internal/src/test/**"
+      - "!internal/src/**/test-support/**"
   push:
     branches: [develop]
     paths:
-      - "internal/src/lib/auth/**"
-      - "internal/src/lib/security-headers/**"
-      - "internal/src/lib/api/**"
-      - "internal/src/lib/config/**"
-      - "internal/src/lib/query/**"
-      - "internal/src/proxy.ts"
+      - "internal/src/**"
       - "internal/next.config.ts"
+      - "internal/postcss.config.mjs"
+      - "internal/tsconfig.json"
       - "internal/package.json"
       - "internal/bun.lock"
-      - "internal/src/app/**"
-      - "internal/src/components/**"
-      - "internal/src/features/**"
-      - "internal/src/i18n/**"
       - "scripts/e2e/**"
       - "scripts/headers/**"
       - ".github/workflows/e2e.yml"
       - "!internal/**/*.test.ts"
       - "!internal/**/*.test.tsx"
+      - "!internal/src/test/**"
+      - "!internal/src/**/test-support/**"
 
 permissions:
   contents: read
