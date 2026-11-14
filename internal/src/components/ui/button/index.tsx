@@ -9,9 +9,14 @@ import { cn } from "@/lib/class-names";
  * administration surface) and at least 44 px on a coarse one, the touch target
  * the panel adopted. Dark mode needs no `dark:` utilities: the tokens flip in
  * `styles/theme.css`.
+ *
+ * A button is chrome: its label is not selectable (`select-none`), and its
+ * cursor comes from the base layer of the global stylesheet, which gives every
+ * control its cursor by its role. See
+ * `docs/maintainers/cursor-and-selection.md`.
  */
 const buttonVariants = cva(
-	"inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium text-sm transition-colors hover:cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+	"inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium text-sm transition-colors select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
 	{
 		variants: {
 			variant: {

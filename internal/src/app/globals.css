@@ -11,3 +11,112 @@ body {
 body:has(dialog[open]) {
 	overflow: hidden;
 }
+
+/*
+ * The cursor of a control, in one place. The map and the reason are in
+ * `docs/maintainers/cursor-and-selection.md`.
+ *
+ * Every rule is wrapped in `:where()`, so it carries no specificity of its
+ * own: the order of the rules below is the order of the map, and the last one
+ * that matches is the one that paints. A utility class (`cursor-*`) still wins
+ * over all of it, since the utilities come after the base layer.
+ */
+@layer base {
+	/* What navigates or acts on a press: a link, a button, a menu item. */
+	:where(
+		a[href],
+		button,
+		select,
+		summary,
+		label[for],
+		[role="button"],
+		[role="tab"],
+		[role="menuitem"],
+		[role="menuitemcheckbox"],
+		[role="menuitemradio"],
+		[role="option"],
+		[role="switch"],
+		[role="checkbox"],
+		[role="radio"],
+		[role="treeitem"],
+		input[type="button"],
+		input[type="submit"],
+		input[type="reset"],
+		input[type="checkbox"],
+		input[type="radio"],
+		input[type="file"],
+		input[type="color"]
+	) {
+		cursor: pointer;
+	}
+
+	/* A field that takes text. */
+	:where(
+		textarea,
+		input:not(
+			[type="button"],
+			[type="submit"],
+			[type="reset"],
+			[type="checkbox"],
+			[type="radio"],
+			[type="file"],
+			[type="range"],
+			[type="color"]
+		),
+		[contenteditable="true"]
+	) {
+		cursor: text;
+	}
+
+	/* What is dragged. */
+	:where([draggable="true"], input[type="range"]) {
+		cursor: grab;
+	}
+
+	/* What is being dragged. */
+	:where([draggable="true"]:active, input[type="range"]:active) {
+		cursor: grabbing;
+	}
+
+	/* The line between two panes. */
+	:where([role="separator"][aria-orientation="vertical"]) {
+		cursor: col-resize;
+	}
+
+	/* A control that is off. */
+	:where(:disabled, [aria-disabled="true"]) {
+		cursor: not-allowed;
+	}
+
+	/* Busy: it takes no press while it works. */
+	:where([aria-busy="true"]) {
+		cursor: wait;
+	}
+
+	/* Busy and still taking a press: the work is on its way, and the press
+	   waits its turn. */
+	:where(
+		[aria-busy="true"]:is(
+			a[href],
+			button,
+			input,
+			select,
+			textarea,
+			summary,
+			[role="button"],
+			[role="tab"],
+			[role="menuitem"],
+			[role="option"],
+			[role="switch"],
+			[role="checkbox"],
+			[role="radio"]
+		)
+	) {
+		cursor: progress;
+	}
+
+	/* Busy and off: it waits, and it cannot be pressed. */
+	:where([aria-busy="true"]:is(:disabled, [aria-disabled="true"])) {
+		cursor: wait;
+	}
+}

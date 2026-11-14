@@ -5,11 +5,12 @@ import { BUSY_MARK } from ".";
 const classes = BUSY_MARK.split(" ");
 
 describe("BUSY_MARK", () => {
-	it("says busy with the cursor, a dimmed icon and a dot, all from aria-busy", () => {
-		expect(classes).toContain("aria-busy:cursor-progress");
-		expect(classes).toContain("aria-busy:hover:cursor-progress");
+	it("says busy with a dimmed icon and a dot, all from aria-busy", () => {
 		expect(classes).toContain("aria-busy:text-muted-foreground");
 		expect(classes).toContain("aria-busy:after:rounded-full");
+		// The cursor is not here: the base layer of the global stylesheet gives
+		// a busy control the progress cursor, so it is read there and not here.
+		expect(classes).not.toContain("aria-busy:cursor-progress");
 		// Nothing shows at rest: every sign waits for the attribute.
 		expect(
 			classes.filter((name) => !name.startsWith("aria-busy:")),

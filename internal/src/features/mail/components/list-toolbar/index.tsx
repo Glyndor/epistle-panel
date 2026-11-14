@@ -31,9 +31,13 @@ const FILTER_LABELS = {
  * under a press. Its side padding is 10 px on a fine pointer and not 12: with
  * 12 the four did not fit a 360 px window in Italian and Portuguese (334 and
  * 330 px in 328), and the last was cut at rest.
+ *
+ * A filter is chrome, like every link that is a control: its name is not
+ * selectable (`select-none`). See
+ * `docs/maintainers/cursor-and-selection.md`.
  */
 const FILTER =
-	"inline-flex min-h-8 items-center whitespace-nowrap rounded-full bg-muted px-2.5 text-xs hover:bg-foreground/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring active:bg-foreground/20 pointer-coarse:min-h-11 pointer-coarse:px-3";
+	"inline-flex min-h-8 items-center whitespace-nowrap rounded-full bg-muted px-2.5 text-xs select-none hover:bg-foreground/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring active:bg-foreground/20 pointer-coarse:min-h-11 pointer-coarse:px-3";
 
 /** The filter in use: the accent surface and a heavier name, and its own darker steps, one further than the others'. */
 const CURRENT =

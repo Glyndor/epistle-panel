@@ -38,7 +38,7 @@ export function Group({
 		<div data-slot="message-group" data-group={dateGroupKey(group)}>
 			<h3
 				id={heading}
-				className="sticky top-0 z-10 h-8 truncate bg-surface px-3 font-medium text-muted-foreground text-xs leading-8 first-letter:uppercase"
+				className="sticky top-0 z-10 h-8 truncate bg-surface px-3 font-medium text-muted-foreground text-xs leading-8 select-none first-letter:uppercase"
 			>
 				{dateGroupLabel(group, t, format)}
 			</h3>

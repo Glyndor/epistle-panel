@@ -41,7 +41,7 @@ export function ThemeTrigger({
 				size="icon"
 				data-theme-choice={choice}
 				className={cn(
-					"aria-expanded:bg-accent aria-expanded:text-accent-foreground aria-busy:cursor-progress aria-busy:*:opacity-70",
+					"aria-expanded:bg-accent aria-expanded:text-accent-foreground aria-busy:*:opacity-70",
 					className,
 				)}
 				{...props}

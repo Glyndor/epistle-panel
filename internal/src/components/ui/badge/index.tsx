@@ -7,9 +7,12 @@ import { cn } from "@/lib/class-names";
  * A short label for a state or an outcome. It is a soft tonal pill with no
  * border, and the label always says the state in words, so the colour never
  * carries it alone.
+ *
+ * A badge is chrome: its label is not selectable (`select-none`). See
+ * `docs/maintainers/cursor-and-selection.md`.
  */
 const badgeVariants = cva(
-	"inline-flex w-fit shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-0.5 font-medium text-xs",
+	"inline-flex w-fit shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-0.5 font-medium text-xs select-none",
 	{
 		variants: {
 			variant: {

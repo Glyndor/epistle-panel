@@ -109,7 +109,7 @@ export function ComposeAttachments({
 					size="sm"
 					className="peer-focus-visible:outline-2 peer-focus-visible:outline-ring peer-focus-visible:outline-offset-2"
 				>
-					<label htmlFor={inputId} className="cursor-pointer">
+					<label htmlFor={inputId}>
 						<PaperclipIcon aria-hidden="true" />
 						{t("attach")}
 					</label>

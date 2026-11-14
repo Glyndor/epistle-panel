@@ -98,6 +98,9 @@ function hasPopupOpen(element: HTMLElement): boolean {
  * width, the window being resized, a pane scrolling), and it goes when the
  * control stops being drawn.
  *
+ * A tooltip is chrome: its text is not selectable (`select-none`). See
+ * `docs/maintainers/cursor-and-selection.md`.
+ *
  * Props it does not know go to the control, so it can stand between a Radix
  * trigger (`asChild`) and its button.
  */
@@ -395,7 +398,7 @@ export function Tooltip({
 					// Placement from the control's rectangle, set on the client.
 					style={place}
 				>
-					<span className="flex max-w-64 items-center gap-2 rounded-lg bg-foreground px-2 py-1 text-background text-xs shadow-raised">
+					<span className="flex max-w-64 items-center gap-2 rounded-lg bg-foreground px-2 py-1 text-background text-xs shadow-raised select-none">
 						<span className="min-w-0 break-words">{label}</span>
 						{shortcut === undefined ? null : (
 							<span className="shrink-0 font-mono">

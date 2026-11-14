@@ -38,7 +38,7 @@ function ButtonPlace({
 			aria-hidden="true"
 			className={cn(
 				buttonVariants({ variant, size: "sm" }),
-				"select-none bg-muted text-transparent hover:cursor-default hover:bg-muted hover:text-transparent",
+				"select-none bg-muted text-transparent hover:bg-muted hover:text-transparent",
 				className,
 			)}
 		>

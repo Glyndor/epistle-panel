@@ -141,21 +141,21 @@ describe("ReaderToolbar while a change is on its way", () => {
 		);
 	});
 
-	it("says busy on its two flags the way a row's marks do: cursor and a dot, nothing that moves", () => {
+	it("says busy on its two flags the way a row's marks do: a dot, nothing that moves", () => {
 		slowServer().release();
 		bar();
 
 		for (const name of ["star", "markUnread"]) {
 			expect(button(name)).toHaveClass(
 				"relative",
-				"aria-busy:cursor-progress",
 				"aria-busy:after:absolute",
 				"aria-busy:after:size-1.5",
 			);
 			expect(button(name)).not.toHaveAttribute("aria-busy");
 		}
-		// The moves have no such mark: they shut the bar instead.
-		expect(button("archive")).not.toHaveClass("aria-busy:cursor-progress");
+		// The moves have no such mark: they shut the bar instead. The cursor
+		// of a busy control comes from the base layer of the global stylesheet.
+		expect(button("archive")).not.toHaveClass("aria-busy:after:absolute");
 	});
 
 	it("shuts the moves while a flag waits, and everything while a move does", async () => {
