@@ -97,6 +97,11 @@ so. `flood` has 300 records in 24 hours, 620 queued messages and 640
 addresses, more of each than is read. `skew` has hours of 60, 5 (one of each
 outcome), 12, 2 and 8 records, each group ten minutes into an hour of the UTC
 clock, to compare the heights of the columns.
+`POST /__control/quota` with `{"quota":"unlimited"}` makes `Quota/get` answer
+the account's quota with a `limit` of `null`, and `{"quota":"none"}` an empty
+list, as a server that keeps no quota for the account does; `"limited"` is the
+seeded answer, under a limit. They are the three shapes the storage at the
+foot of the mail area's sidebar has to hold its place for (see `mail.md`).
 `POST /__control/reset` puts the seeds back, and `POST /__control/forget`
 empties the request log without touching the data.
 

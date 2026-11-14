@@ -181,6 +181,51 @@ describe("modes", () => {
 	});
 });
 
+describe("quota", () => {
+	const setQuota = (quota: unknown) =>
+		fetch(`${base}/__control/quota`, {
+			method: "POST",
+			body: JSON.stringify({ quota }),
+		});
+	const quotaList = async () => {
+		const response = await fetch(`${base}/jmap/api`, {
+			method: "POST",
+			headers: { ...auth, "Content-Type": "application/json" },
+			body: JSON.stringify({
+				using: [],
+				methodCalls: [["Quota/get", { accountId: "admin", ids: null }, "q"]],
+			}),
+		});
+		const body = (await response.json()) as {
+			methodResponses: Array<[string, { list: Array<{ limit: number | null }> }, string]>;
+		};
+		return body.methodResponses[0]?.[1].list;
+	};
+
+	test("the account has a limit until told otherwise", async () => {
+		expect(await quotaList()).toMatchObject([{ limit: 100_000 }]);
+	});
+
+	test("unlimited answers a null limit, none an empty list, and the reset puts the limit back", async () => {
+		expect(await (await setQuota("unlimited")).json()).toEqual({ quota: "unlimited" });
+		expect(await quotaList()).toMatchObject([{ limit: null }]);
+		expect((await setQuota("none")).status).toBe(200);
+		expect(await quotaList()).toEqual([]);
+		await fetch(`${base}/__control/reset`, { method: "POST" });
+		expect(await quotaList()).toMatchObject([{ limit: 100_000 }]);
+	});
+
+	test("the three modes are accepted and anything else is refused, leaving the mode as it was", async () => {
+		for (const quota of ["limited", "unlimited", "none"]) {
+			expect((await setQuota(quota)).status).toBe(200);
+		}
+		for (const quota of ["full", "", "NONE", 0, null, ["none"]]) {
+			expect((await setQuota(quota)).status).toBe(400);
+		}
+		expect(await quotaList()).toEqual([]);
+	});
+});
+
 describe("delay", () => {
 	// A stand-in of its own whose sleep records the wait instead of taking it,
 	// so the cases assert the requested delay and not a wall-clock time.

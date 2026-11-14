@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
+import { quotaGetSchema } from "../../../../internal/src/features/mail/jmap/responses";
 import { createJmapStore, MAIL_ACCOUNT } from ".";
 import { IDS } from "./messages";
 
@@ -40,6 +41,28 @@ describe("the stand-in JMAP", () => {
 		expect(list[0]?.limit).toBe(100_000);
 		expect(list[0]?.used).toBeGreaterThan(1000);
 		expect(list[0]?.used).toBeLessThan(100_000);
+	});
+
+	it("answers the quota with no limit or with no quota at all when told to, in the shape the panel reads, until the reset", async () => {
+		const quota = async () =>
+			quotaGetSchema.parse((await call([["Quota/get", { accountId: MAIL_ACCOUNT, ids: null }, "q"]])).methodResponses[0]?.[1]).list;
+
+		store.quota("unlimited");
+		const unlimited = await quota();
+		expect(unlimited).toHaveLength(1);
+		expect(unlimited[0]?.resourceType).toBe("octets");
+		expect(unlimited[0]?.limit).toBeNull();
+		expect(unlimited[0]?.used).toBeGreaterThan(1000);
+
+		store.quota("none");
+		expect(await quota()).toEqual([]);
+
+		store.quota("limited");
+		expect((await quota())[0]?.limit).toBe(100_000);
+
+		store.quota("none");
+		store.reset();
+		expect((await quota())[0]?.limit).toBe(100_000);
 	});
 
 	it("gets emails with body values, attachments and the root headers", async () => {

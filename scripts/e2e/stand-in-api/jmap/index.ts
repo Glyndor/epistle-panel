@@ -14,6 +14,14 @@ export const OVERSIZE_MEGABYTES = 27;
 /** The limit `Quota/get` reports, in bytes: small, so the seeded mailbox reads as a visible share of it. */
 export const QUOTA_LIMIT = 100_000;
 
+/**
+ * How `Quota/get` answers: `limited` is the seeded account under its limit,
+ * `unlimited` the same quota with a `limit` of `null`, `none` an empty list, as
+ * a server that keeps no quota for the account answers.
+ */
+export const QUOTA_MODES = ["limited", "unlimited", "none"] as const;
+export type QuotaMode = (typeof QUOTA_MODES)[number];
+
 /** A stream of `count` chunks of 1 MiB, sent as they are asked for, with no total declared. */
 function megabytes(count: number): ReadableStream<Uint8Array> {
 	let sent = 0;
@@ -39,6 +47,7 @@ export function createJmapStore() {
 	let messages: SeedMessage[] = seedMessages();
 	let fresh = 0;
 	let oversize = false;
+	let quotaMode: QuotaMode = "limited";
 	const freshId = () => `00000000-0000-4000-9000-${(++fresh).toString(16).padStart(12, "0")}`;
 
 	const byMailbox = (box: string) =>
@@ -59,14 +68,17 @@ export function createJmapStore() {
 		};
 	}
 
-	/** `Quota/get` as epistle answers it: one quota for the account, in octets, with what the seeded messages weigh. */
+	/**
+	 * `Quota/get` as epistle answers it: one quota for the account, in octets, with what the seeded messages weigh.
+	 * In the `unlimited` mode its `limit` is `null`; in the `none` mode the list is empty.
+	 */
 	function quotaGet() {
 		const used = messages.reduce((sum, m) => sum + (m.text?.length ?? 0) + (m.html?.length ?? 0) + (m.attachments ?? []).reduce((all, a) => all + a.content.length, 0), 0);
 		return {
 			accountId: MAIL_ACCOUNT,
 			state: "0",
 			notFound: [],
-			list: [{ id: "mail", resourceType: "octets", used, scope: "account", name: "Mail storage", types: ["Mail"], limit: QUOTA_LIMIT }],
+			list: quotaMode === "none" ? [] : [{ id: "mail", resourceType: "octets", used, scope: "account", name: "Mail storage", types: ["Mail"], limit: quotaMode === "unlimited" ? null : QUOTA_LIMIT }],
 		};
 	}
 
@@ -179,10 +191,15 @@ export function createJmapStore() {
 		oversizeBlobs(on: boolean) {
 			oversize = on;
 		},
+		/** Answer `Quota/get` with a limit, with none, or with no quota at all, until the reset. */
+		quota(mode: QuotaMode) {
+			quotaMode = mode;
+		},
 		reset() {
 			messages = seedMessages();
 			fresh = 0;
 			oversize = false;
+			quotaMode = "limited";
 			compose.reset();
 		},
 		snapshot: () => messages.map((m) => ({ id: m.id, mailbox: m.mailbox, keywords: m.keywords, subject: m.subject })),
