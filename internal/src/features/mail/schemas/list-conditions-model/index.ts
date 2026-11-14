@@ -183,6 +183,38 @@ export function conditionsToQuery(
 	return query;
 }
 
+/**
+ * The name of the field each condition is set in, as a key of the `mail`
+ * namespace: a chip says which one it is, and a condition the server did not
+ * apply is named with the same word.
+ */
+export const CONDITION_LABELS = {
+	q: "searchWords",
+	from: "from",
+	to: "to",
+	subject: "fieldSubject",
+	after: "conditionAfter",
+	before: "conditionBefore",
+	label: "conditionLabel",
+	folder: "conditionFolder",
+	unread: "filterUnread",
+	starred: "filterFlagged",
+	important: "filterImportant",
+	attachment: "hasAttachment",
+	order: "conditionOrder",
+} as const satisfies Record<ConditionName, string>;
+
+/**
+ * The conditions that narrow the list, in the order they are written. The
+ * order is not one of them: it says where a message shows, not whether it
+ * does.
+ */
+export function activeConditions(conditions: ListConditions): ConditionName[] {
+	return CONDITION_NAMES.filter(
+		(name) => name !== "order" && !isDefault(conditions, name),
+	);
+}
+
 /** The conditions with one of them back to its default: what taking off one chip of a search leaves. */
 export function withoutCondition(
 	conditions: ListConditions,

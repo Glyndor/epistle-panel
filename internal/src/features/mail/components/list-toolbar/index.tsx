@@ -3,6 +3,7 @@ import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { DensityToggle } from "@/features/mail/components/density-toggle";
+import { ConditionChips } from "@/features/mail/components/list-toolbar/condition-chips";
 import { FiltersMenu } from "@/features/mail/components/list-toolbar/filters-menu";
 import type { ListDensity } from "@/features/mail/config/list-density";
 import { mailHref } from "@/features/mail/links/mail-href";
@@ -22,12 +23,15 @@ import type { MailboxRole } from "@/features/mail/schemas/mail-view";
 export function ListToolbar({
 	box,
 	folderRole: role,
+	page,
 	conditions,
 	density,
 }: {
 	box: string;
 	/** The folder's role, when its path is the role's. Not named `role`, which on an element is ARIA's. */
 	folderRole: MailboxRole | null;
+	/** The page of the list on screen. */
+	page: number;
 	/** What narrows the list, as the address said it. */
 	conditions: ListConditions;
 	/** The density the server read from the cookie and painted on the pane. */
@@ -54,6 +58,12 @@ export function ListToolbar({
 				)}
 				<DensityToggle density={density} />
 			</div>
+			<ConditionChips
+				box={box}
+				role={role}
+				page={page}
+				conditions={conditions}
+			/>
 			{hasConditions(conditions) ? (
 				<p className="text-muted-foreground text-xs">
 					{t("searchNote", { count: SCAN_LIMIT })}

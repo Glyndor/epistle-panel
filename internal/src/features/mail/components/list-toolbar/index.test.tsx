@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { cleanup, render, screen } from "@testing-library/react";
-
 import { EMPTY_CONDITIONS } from "@/features/mail/schemas/list-conditions-model";
+import { withQuery } from "@/test/query-wrapper";
 
 import { ListToolbar } from ".";
 
@@ -16,12 +16,15 @@ afterEach(cleanup);
 describe("ListToolbar", () => {
 	it("has no search of its own: it is in the header of the bar", () => {
 		const { container } = render(
-			<ListToolbar
-				box="Work/Q4"
-				folderRole={null}
-				conditions={CONDITIONS}
-				density="comfortable"
-			/>,
+			withQuery(
+				<ListToolbar
+					box="Work/Q4"
+					folderRole={null}
+					conditions={CONDITIONS}
+					page={1}
+					density="comfortable"
+				/>,
+			),
 		);
 
 		expect(container.querySelector("form")).toBeNull();
@@ -30,12 +33,15 @@ describe("ListToolbar", () => {
 
 	it("offers no clear link without a search", () => {
 		render(
-			<ListToolbar
-				box="INBOX"
-				folderRole="inbox"
-				conditions={CONDITIONS}
-				density="comfortable"
-			/>,
+			withQuery(
+				<ListToolbar
+					box="INBOX"
+					folderRole="inbox"
+					conditions={CONDITIONS}
+					page={1}
+					density="comfortable"
+				/>,
+			),
 		);
 
 		expect(screen.queryByRole("link", { name: "searchClear" })).toBeNull();
@@ -44,12 +50,15 @@ describe("ListToolbar", () => {
 
 	it("says what the search reads and offers to clear it", () => {
 		render(
-			<ListToolbar
-				box="INBOX"
-				folderRole="inbox"
-				conditions={SEARCH}
-				density="comfortable"
-			/>,
+			withQuery(
+				<ListToolbar
+					box="INBOX"
+					folderRole="inbox"
+					conditions={SEARCH}
+					page={1}
+					density="comfortable"
+				/>,
+			),
 		);
 
 		expect(screen.getByText("searchNote")).toBeInTheDocument();
@@ -60,12 +69,15 @@ describe("ListToolbar", () => {
 
 	it("has the filters and the order in one menu, and says how many are on", () => {
 		render(
-			<ListToolbar
-				box="INBOX"
-				folderRole="inbox"
-				conditions={{ ...EMPTY_CONDITIONS, unread: true }}
-				density="comfortable"
-			/>,
+			withQuery(
+				<ListToolbar
+					box="INBOX"
+					folderRole="inbox"
+					conditions={{ ...EMPTY_CONDITIONS, unread: true }}
+					page={1}
+					density="comfortable"
+				/>,
+			),
 		);
 
 		const menu = screen.getByRole("button", { name: /filters/ });
@@ -79,12 +91,15 @@ describe("ListToolbar", () => {
 			["compact", "true"],
 		] as const) {
 			const { container } = render(
-				<ListToolbar
-					box="INBOX"
-					folderRole="inbox"
-					conditions={CONDITIONS}
-					density={density}
-				/>,
+				withQuery(
+					<ListToolbar
+						box="INBOX"
+						folderRole="inbox"
+						conditions={CONDITIONS}
+						page={1}
+						density={density}
+					/>,
+				),
 			);
 			const toggle = screen.getByRole("button", {
 				name: "densityCompact",

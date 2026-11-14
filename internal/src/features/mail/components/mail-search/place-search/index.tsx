@@ -3,26 +3,9 @@ import { getTranslations } from "next-intl/server";
 import { MailSearch } from "@/features/mail/components/mail-search";
 import type { PlaceRef } from "@/features/mail/queries/request-mail";
 import {
-	type ConditionName,
+	CONDITION_LABELS,
 	parseListConditions,
 } from "@/features/mail/schemas/list-conditions";
-
-/** The name of the field each condition is set in, to name it when it is refused. */
-const CONDITION_NAMES = {
-	q: "searchWords",
-	from: "from",
-	to: "to",
-	subject: "fieldSubject",
-	after: "conditionAfter",
-	before: "conditionBefore",
-	label: "conditionLabel",
-	folder: "conditionFolder",
-	unread: "filterUnread",
-	starred: "filterFlagged",
-	important: "filterImportant",
-	attachment: "hasAttachment",
-	order: "conditionOrder",
-} as const satisfies Record<ConditionName, string>;
 
 /**
  * The search of a place of the mail area, in the header of the bar: the
@@ -55,9 +38,7 @@ export async function PlaceSearch({
 				<p role="alert" className="text-destructive px-2 text-xs">
 					{t("conditionRejected", {
 						name: rejected
-							.map((name) =>
-								t(CONDITION_NAMES[name] ?? "searchWords"),
-							)
+							.map((name) => t(CONDITION_LABELS[name]))
 							.join(", "),
 					})}
 				</p>

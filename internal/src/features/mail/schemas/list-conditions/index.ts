@@ -20,6 +20,8 @@ import {
 import { MAILBOX_ID_PATTERN } from "@/lib/mail-paths";
 
 export {
+	activeConditions,
+	CONDITION_LABELS,
 	CONDITION_NAMES,
 	type ConditionName,
 	conditionsToQuery,

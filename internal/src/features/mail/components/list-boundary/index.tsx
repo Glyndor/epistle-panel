@@ -82,6 +82,7 @@ export async function ListBoundary({
 			<ListToolbar
 				box={resolved.box}
 				folderRole={resolved.role}
+				page={page}
 				conditions={conditions}
 				density={density}
 			/>

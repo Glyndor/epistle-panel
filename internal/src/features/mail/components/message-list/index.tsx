@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
@@ -12,8 +13,12 @@ import { MessageGroups } from "@/features/mail/components/message-groups";
 import { useKeptFocus } from "@/features/mail/components/message-list/use-kept-focus";
 import { useMailShortcuts } from "@/features/mail/components/message-list/use-mail-shortcuts";
 import type { ListAddress } from "@/features/mail/links/mail-href";
+import { mailHref } from "@/features/mail/links/mail-href";
 import { messageListQueryOptions } from "@/features/mail/queries/mail-query-options";
-import { hasConditions } from "@/features/mail/schemas/list-conditions-model";
+import {
+	EMPTY_CONDITIONS,
+	hasConditions,
+} from "@/features/mail/schemas/list-conditions-model";
 import { unwrap } from "@/lib/query/action-result";
 
 const fetchList = async (input: Parameters<typeof getMessageListAction>[0]) =>
@@ -103,7 +108,24 @@ export function MessageList({
 				data-slot="empty-list"
 				className="m-1 rounded-xl outline-ring focus-visible:outline-2 focus-visible:-outline-offset-2"
 			>
-				<MailNotice tone="empty">
+				<MailNotice
+					tone="empty"
+					action={
+						filtered ? (
+							<Button asChild variant="outline" size="sm">
+								<Link
+									href={mailHref({
+										box: view.box,
+										role: view.role,
+										conditions: EMPTY_CONDITIONS,
+									})}
+								>
+									{t("clearAll")}
+								</Link>
+							</Button>
+						) : null
+					}
+				>
 					{filtered
 						? `${t("emptyMatches")} ${t("emptyHint")}`
 						: t("emptyFolder")}
