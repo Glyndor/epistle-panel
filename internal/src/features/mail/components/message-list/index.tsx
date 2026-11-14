@@ -9,6 +9,7 @@ import { ListPager } from "@/features/mail/components/list-pager";
 import { ListSkeleton } from "@/features/mail/components/list-skeleton";
 import { MailNotice } from "@/features/mail/components/mail-notice";
 import { MessageGroups } from "@/features/mail/components/message-groups";
+import { useKeptFocus } from "@/features/mail/components/message-list/use-kept-focus";
 import { useMailShortcuts } from "@/features/mail/components/message-list/use-mail-shortcuts";
 import type { ListAddress } from "@/features/mail/links/mail-href";
 import { messageListQueryOptions } from "@/features/mail/queries/mail-query-options";
@@ -42,16 +43,26 @@ export function MessageList({
 			fetchList,
 		),
 	);
-	useMailShortcuts({
-		ids: data?.items.map((item) => item.id) ?? [],
-		selectedId,
-	});
+	const ids = data?.items.map((item) => item.id) ?? [];
+	useMailShortcuts({ ids, selectedId });
+	const focus = useKeptFocus(ids);
+	// The list's own heading, for assistive technology (the pane is named for
+	// the eye by the folder it shows) and for the focus when the last row
+	// leaves under it. The date headings are one level under it.
+	const frame = (body: React.ReactNode) => (
+		<div ref={focus.list} className="contents">
+			<h2 ref={focus.heading} tabIndex={-1} className="sr-only">
+				{t("listLabel")}
+			</h2>
+			{body}
+		</div>
+	);
 
 	if (isPending) {
-		return <ListSkeleton />;
+		return frame(<ListSkeleton />);
 	}
 	if (data === undefined || isError) {
-		return (
+		return frame(
 			<MailNotice
 				tone="error"
 				action={
@@ -67,20 +78,20 @@ export function MessageList({
 				}
 			>
 				{t("unavailable")}
-			</MailNotice>
+			</MailNotice>,
 		);
 	}
 	if (data.items.length === 0) {
 		const filtered = view.q !== "" || view.filter !== "all";
-		return (
+		return frame(
 			<MailNotice tone="empty">
 				{filtered
 					? `${t("emptyMatches")} ${t("emptyHint")}`
 					: t("emptyFolder")}
-			</MailNotice>
+			</MailNotice>,
 		);
 	}
-	return (
+	return frame(
 		<>
 			<MessageGroups
 				items={data.items}
@@ -94,6 +105,6 @@ export function MessageList({
 				hasNext={data.hasNext}
 				total={data.total}
 			/>
-		</>
+		</>,
 	);
 }
