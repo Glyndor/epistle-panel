@@ -10,6 +10,10 @@
  * underscore included, so the two directions are exact: `Work` stays `Work`,
  * `To do` is `To_20do`, `Año` is `A_C3_B1o`. A name made of plain letters
  * reads the same in any IMAP client.
+ *
+ * A keyword that was not written this way (one an IMAP client set) shows as
+ * the keyword itself, and a name typed like one is that keyword. Two keywords
+ * never show as one name: that is checked in both directions.
  */
 
 /** Longest keyword epistle keeps, in bytes: its `MAX_KEYWORD_BYTES`. */
@@ -31,16 +35,44 @@ function isPlain(byte: number): boolean {
 	);
 }
 
-/**
- * What a name may not hold: a control, a line or paragraph separator, a
- * bidirectional control, a zero-width character or the byte-order mark. The
- * same things `safeLine` takes out of a line, refused here so a name is never
- * silently a different one. A tab is the exception: it is white space, and
- * reads as a space like any other.
- */
 const char = (code: number) => String.fromCodePoint(code);
+const ZWNJ = char(0x200c);
+const ZWJ = char(0x200d);
+/** The selector that asks for the emoji form of the character before it. */
+const EMOJI_FORM = char(0xfe0f);
+
+/**
+ * What a name may not hold, because it cannot be seen or changes what is
+ * around it: a control (a tab is white space and reads as a space), a line or
+ * paragraph separator, half of a surrogate pair, any format character (the
+ * bidirectional controls and marks, the zero-width ones, the soft hyphen, the
+ * byte-order mark, the tag characters), a filler that draws as nothing, and a
+ * variation selector. The two joiners and the emoji selector are format too,
+ * and are let through only where {@link MISPLACED} does not find them.
+ */
 const FORBIDDEN = new RegExp(
-	`(?!\\t)[\\p{Cc}\\p{Zl}\\p{Zp}${char(0x202a)}-${char(0x202e)}${char(0x2066)}-${char(0x2069)}${char(0x200b)}-${char(0x200f)}${char(0xfeff)}]`,
+	[
+		"(?!\\t)[\\p{Cc}\\p{Zl}\\p{Zp}\\p{Cs}]",
+		`(?![${ZWNJ}${ZWJ}])\\p{Cf}`,
+		`[${char(0x034f)}${char(0x115f)}${char(0x1160)}${char(0x180b)}-${char(0x180f)}${char(0x2800)}${char(0x3164)}${char(0xffa0)}]`,
+		`[${char(0xfe00)}-${char(0xfe0e)}${char(0xe0100)}-${char(0xe01ef)}]`,
+	].join("|"),
+	"u",
+);
+
+/**
+ * A joiner or the emoji selector where it joins or selects nothing: first,
+ * after white space or after another of them, or (a joiner) last or before
+ * white space. Between two characters they are part of how a word or an emoji
+ * is written (Persian, Indic scripts, emoji sequences); anywhere else they
+ * are only invisible.
+ */
+const MISPLACED = new RegExp(
+	[
+		`(?:^|\\s|[${ZWNJ}${ZWJ}])[${ZWNJ}${ZWJ}]`,
+		`[${ZWNJ}${ZWJ}](?:$|\\s|${EMOJI_FORM})`,
+		`(?:^|\\s|[${ZWNJ}${ZWJ}${EMOJI_FORM}])${EMOJI_FORM}`,
+	].join("|"),
 	"u",
 );
 
@@ -54,7 +86,7 @@ export function normalizeLabelName(name: string): string | null {
 		return null;
 	}
 	const normal = name.normalize("NFC").replace(/\s+/gu, " ").trim();
-	return normal === "" ? null : normal;
+	return normal === "" || MISPLACED.test(normal) ? null : normal;
 }
 
 /** Keywords mail clients write without the `$` that marks a system keyword. */
@@ -75,16 +107,21 @@ export function isLabelKeyword(keyword: string): boolean {
 	);
 }
 
+/** Whether the server would keep `token` as a keyword: its `imap::keyword::validate`. */
+export function isKeywordAtom(token: string): boolean {
+	return (
+		token.length >= 1 &&
+		token.length <= MAX_KEYWORD_BYTES &&
+		/^[\x21-\x7e]+$/.test(token) &&
+		!/[(){%*"\]\\]/.test(token)
+	);
+}
+
 /**
- * The keyword that carries a label of this name, or `null` when the name is
- * not one (see {@link normalizeLabelName}) or its keyword would pass the
- * server's length.
+ * A name written out byte by byte, with nothing decided yet about whether it
+ * is the keyword the name gets. `null` when it would pass the server's length.
  */
-export function labelToKeyword(name: string): string | null {
-	const normal = normalizeLabelName(name);
-	if (normal === null) {
-		return null;
-	}
+function escaped(normal: string): string | null {
 	let keyword = "";
 	for (const byte of new TextEncoder().encode(normal)) {
 		keyword += isPlain(byte)
@@ -106,7 +143,7 @@ export function labelToKeyword(name: string): string | null {
 
 const HEX_PAIR = /^[0-9A-Fa-f]{2}$/;
 
-/** The bytes a keyword written by {@link labelToKeyword} stands for, or `null` when it was not written by it. */
+/** The bytes a keyword written by {@link escaped} stands for, or `null` when it was not written by it. */
 function decodeBytes(keyword: string): Uint8Array | null {
 	const bytes: number[] = [];
 	for (let index = 0; index < keyword.length; index += 1) {
@@ -128,13 +165,27 @@ function decodeBytes(keyword: string): Uint8Array | null {
 }
 
 /**
- * The name a keyword shows as. A keyword this module wrote reads back as the
- * name it was made from. Any other keyword (one an IMAP client set, with a
- * character that is not written this way, an escape that is not UTF-8, or one
- * that would read as a control or a bidirectional override) is shown as it
- * is, so it can still be seen and taken off. So is one that reads as a name
- * but is not how that name is written (`_41bc` beside `Abc`): two keywords
- * never show as one name.
+ * Whether a name is itself a keyword that shows as that name: `Work_items`,
+ * `a+b`, anything an IMAP client could have set that does not read as
+ * something else. Such a name needs no writing out, and the written-out form
+ * of it is a different keyword that must not show under the same name.
+ */
+function isOwnKeyword(name: string): boolean {
+	return (
+		isKeywordAtom(name) &&
+		isLabelKeyword(name) &&
+		keywordToLabel(name) === name
+	);
+}
+
+/**
+ * The name a keyword shows as. A keyword written from a name reads back as
+ * that name. Any other keyword is shown as it is, so it can still be seen and
+ * taken off: one with a character that is not written this way, digits that
+ * are not UTF-8, one that would read as a control, an invisible character or
+ * a text-direction control, one that reads as a name written another way
+ * (`_41bc` beside `Abc`), and one that reads as a name which is a keyword of
+ * its own (`foo_5Fbar` beside `foo_bar`).
  */
 export function keywordToLabel(keyword: string): string {
 	const bytes = decodeBytes(keyword);
@@ -153,9 +204,33 @@ export function keywordToLabel(keyword: string): string {
 	} catch {
 		return keyword;
 	}
-	return labelToKeyword(name)?.toLowerCase() === keyword.toLowerCase()
-		? name
-		: keyword;
+	if (name === keyword) {
+		// Nothing was written as digits: the keyword is its own name.
+		return keyword;
+	}
+	if (
+		normalizeLabelName(name) !== name ||
+		escaped(name)?.toLowerCase() !== keyword.toLowerCase() ||
+		// The name is shorter than the keyword that held digits, so this ends.
+		isOwnKeyword(name)
+	) {
+		return keyword;
+	}
+	return name;
+}
+
+/**
+ * The keyword that carries a label of this name, or `null` when the name is
+ * not one (see {@link normalizeLabelName}) or its keyword would pass the
+ * server's length. A name that is already a keyword showing as itself is that
+ * keyword; any other is written out.
+ */
+export function labelToKeyword(name: string): string | null {
+	const normal = normalizeLabelName(name);
+	if (normal === null) {
+		return null;
+	}
+	return isOwnKeyword(normal) ? normal : escaped(normal);
 }
 
 /** What makes two keywords the same label: the server matches a keyword without regard to case. */

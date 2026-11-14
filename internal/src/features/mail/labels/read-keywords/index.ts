@@ -1,4 +1,5 @@
 import {
+	isKeywordAtom,
 	isLabelKeyword,
 	keywordToLabel,
 	labelKey,
@@ -45,7 +46,9 @@ export function readLabels(
 		if (labels.size >= MAX_KEYWORDS_PER_MESSAGE) {
 			break;
 		}
-		if (!on || !isLabelKeyword(keyword)) {
+		// The server only keeps an atom. Anything else is not a keyword it
+		// could have sent, and is not shown or handed back to it.
+		if (!on || !isKeywordAtom(keyword) || !isLabelKeyword(keyword)) {
 			continue;
 		}
 		const key = labelKey(keyword);

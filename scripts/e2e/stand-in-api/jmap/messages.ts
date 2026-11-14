@@ -73,7 +73,6 @@ export const IDS = {
 	stateBare: seedId(27),
 	stateManyLabels: seedId(28),
 	stateLastYear: seedId(29),
-	stateDraft: seedId(30),
 } as const;
 
 /** `days` days before now at `hour` UTC, so the list always has a message of today, of yesterday and of this week. */
@@ -195,16 +194,6 @@ function stateMessages(): SeedMessage[] {
 			to: [ME],
 			keywords: { $seen: true, $flagged: true },
 			text: "Old enough to sit under another year.",
-		},
-		{
-			id: IDS.stateDraft,
-			mailbox: "Drafts",
-			receivedAt: daysAgo(0, 0),
-			subject: "Half-written reply",
-			from: [ME],
-			to: [ANA],
-			keywords: { $draft: true, $seen: true },
-			text: "A draft.",
 		},
 	];
 }

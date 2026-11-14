@@ -52,6 +52,34 @@ describe("readLabels", () => {
 		).toEqual(["exe_E2_80_AEgpj", "Work_items"]);
 	});
 
+	it("leaves out what the server could not have kept as a keyword", () => {
+		const long = "x".repeat(65);
+		expect(
+			readLabels({
+				"two words": true,
+				"line\nbreak": true,
+				'quote"d': true,
+				[long]: true,
+				"": true,
+				Kept: true,
+			}),
+		).toEqual([{ keyword: "Kept", name: "Kept", tone: 2 }]);
+	});
+
+	it("never gives two labels one name", () => {
+		const labels = readLabels({
+			foo_bar: true,
+			foo_5Fbar: true,
+			"A+B": true,
+			A_2BB: true,
+			_41bc: true,
+			Abc: true,
+		});
+		const names = labels.map((label) => label.name);
+		expect(new Set(names).size).toBe(names.length);
+		expect(names).toHaveLength(6);
+	});
+
 	it("reads no more labels than a message can carry", () => {
 		const many: Record<string, boolean> = {};
 		for (let n = 0; n < 40; n += 1) {

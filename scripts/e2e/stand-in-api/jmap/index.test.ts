@@ -99,8 +99,8 @@ describe("the stand-in JMAP", () => {
 	});
 
 	it("keeps a snapshot and goes back to the seed on reset", () => {
-		expect(store.snapshot()).toHaveLength(80);
+		expect(store.snapshot()).toHaveLength(79);
 		store.reset();
-		expect(store.snapshot()).toHaveLength(80);
+		expect(store.snapshot()).toHaveLength(79);
 	});
 });

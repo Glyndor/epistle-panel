@@ -61,8 +61,13 @@ it (`features/mail/labels`), though no screen draws it yet:
   matches it without regard to case. `keyword-codec` writes a name into that
   alphabet and back: a letter, a digit, a dot and a hyphen stand for themselves, any
   other byte of the name's UTF-8 form is `_` and two hexadecimal digits (`To do` is
-  `To_20do`). A keyword it did not write, or one that would read as a control or a
-  text-direction override, is shown as the keyword itself.
+  `To_20do`). A keyword it did not write is shown as the keyword itself: one an
+  IMAP client set, one that would read as a control, an invisible character or a
+  text-direction control, one that reads as a name written another way. A name
+  that is already such a keyword (`Work_items`) is that keyword, so what a client
+  set and what is typed in the panel are one label, and two keywords never show
+  as one name. A name may not hold what cannot be seen; a joiner and the emoji
+  selector are taken only between two characters.
 - **A keyword of the protocol is not a label**: one that starts with `$` or `\`, and
   `Junk`, `NonJunk` and `NotJunk`, which some clients write without the `$`.
 - **Case.** Only the four JMAP names come back in lower case. Every other keyword
