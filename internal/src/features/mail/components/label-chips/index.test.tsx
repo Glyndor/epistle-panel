@@ -23,6 +23,12 @@ const chips = (root: HTMLElement) =>
 const counts = (root: HTMLElement) =>
 	Array.from(root.querySelectorAll<HTMLElement>('[data-slot="label-more"]'));
 
+// These cases read classes, not the cascade. That a compact variant
+// (`group-data-[density=compact]/list:`, two selectors) beats a container one
+// (`@sm/row:`, one) is true of the stylesheet Tailwind writes today and is not
+// proved here: the guard is the measurement of every row in a browser, at six
+// widths, two densities and two pointers (the audit, and `geo.mjs` beside the
+// contract of this work).
 describe("LabelChips", () => {
 	it("draws nothing for a message with no label", () => {
 		const { container } = render(<LabelChips labels={[]} />);

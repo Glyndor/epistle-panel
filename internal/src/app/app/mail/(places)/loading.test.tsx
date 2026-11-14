@@ -64,12 +64,19 @@ describe("the webmail's loading states", () => {
 		const box = "flex items-center gap-2 p-2 md:hidden";
 
 		expect(page).toContain(`className="${box}"`);
-		expect(place).toHaveClass(...box.split(" "));
+		// The exact box and nothing more: one class added (a `hidden`, say)
+		// would leave the place there and take its height away.
+		expect(place?.className).toBe(box);
 		expect(place).toHaveAttribute("aria-hidden", "true");
 		// As tall as the link: 24 px, 44 px on a coarse pointer.
-		expect(place?.firstElementChild).toHaveClass(
-			"h-6",
-			"pointer-coarse:h-11",
+		expect(
+			place?.firstElementChild?.className
+				.split(/\s+/)
+				.filter((name) => /(^|:)(h|min-h|max-h|size)-/.test(name))
+				.sort(),
+		).toEqual(["h-6", "pointer-coarse:h-11"]);
+		expect(place?.firstElementChild?.className).not.toMatch(
+			/(^|\s)(hidden|invisible|sr-only)(\s|$)/,
 		);
 		// And before the list's own place, inside the pane.
 		expect(place?.nextElementSibling?.getAttribute("aria-hidden")).toBe(
