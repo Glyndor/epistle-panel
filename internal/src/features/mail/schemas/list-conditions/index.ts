@@ -4,17 +4,25 @@ import {
 	isKeywordAtom,
 	isLabelKeyword,
 } from "@/features/mail/labels/keyword-codec";
+import { stripBidi } from "@/features/mail/sanitize/safe-text";
 import {
 	CONDITION_NAMES,
+	CONDITION_TEXT_PATTERN,
 	type ConditionName,
 	FIRST_CONDITION_YEAR,
+	isConditionDay,
 	LAST_CONDITION_YEAR,
 	LIST_ORDERS,
 	type ListConditions,
 	MAX_CONDITION_TEXT,
+	type QUICK_FILTERS,
+	type QuickFilter,
 } from "@/features/mail/schemas/list-conditions-model";
+import { MAILBOX_ID_PATTERN } from "@/lib/mail-paths";
 
 export {
+	activeConditions,
+	CONDITION_LABELS,
 	CONDITION_NAMES,
 	type ConditionName,
 	conditionsToQuery,
@@ -27,44 +35,22 @@ export {
 	type ListConditions,
 	type ListOrder,
 	MAX_CONDITION_TEXT,
+	QUICK_FILTERS,
+	type QuickFilter,
 	withoutCondition,
 } from "@/features/mail/schemas/list-conditions-model";
 
 /**
  * A text condition (`q`, `from`, `to`, `subject`): at most
  * {@link MAX_CONDITION_TEXT} characters as written, no control character and
- * no line or paragraph separator, trimmed. The same rule `q` has always had.
+ * no line or paragraph separator, bidirectional controls removed and the
+ * ends trimmed. The same rule `q` has always had.
  */
 export const conditionTextSchema = z
 	.string()
 	.max(MAX_CONDITION_TEXT)
-	.regex(/^[^\p{Cc}\p{Zl}\p{Zp}]*$/u)
-	.transform((value) => value.trim());
-
-const ISO_DAY = /^(\d{4})-(\d{2})-(\d{2})$/;
-
-/** Whether `text` is `YYYY-MM-DD`, a day of the calendar, in the years a condition names. */
-function isConditionDay(text: string): boolean {
-	const match = ISO_DAY.exec(text);
-	if (match === null) {
-		return false;
-	}
-	const [year, month, date] = [
-		Number(match[1]),
-		Number(match[2]),
-		Number(match[3]),
-	];
-	if (year < FIRST_CONDITION_YEAR || year > LAST_CONDITION_YEAR) {
-		return false;
-	}
-	const back = new Date(Date.UTC(year, month - 1, date));
-	// `Date.UTC` rolls 2026-02-30 over into March: that is not a day.
-	return (
-		back.getUTCFullYear() === year &&
-		back.getUTCMonth() === month - 1 &&
-		back.getUTCDate() === date
-	);
-}
+	.regex(CONDITION_TEXT_PATTERN)
+	.transform((value) => stripBidi(value).trim());
 
 /**
  * A day condition (`after`, `before`): exactly `YYYY-MM-DD`, a real day of
@@ -83,8 +69,21 @@ export const conditionLabelSchema = z
 	.string()
 	.refine((value) => isKeywordAtom(value) && isLabelKeyword(value));
 
+/**
+ * A folder condition: the mailbox the list is read from, when it is not the
+ * one of the page. A mailbox id is the name epistle knows the folder by, so it
+ * is free text of the account's making, with the controls a name cannot hold.
+ */
+export const conditionFolderSchema = z.string().regex(MAILBOX_ID_PATTERN);
+
 /** How the list is sorted. */
 export const listOrderSchema = z.enum(LIST_ORDERS);
+
+/**
+ * A quick filter: a tick of the group. The address says it with a mark and
+ * nothing else, so a value that is not the mark is not a tick.
+ */
+export const conditionTickSchema = z.literal("1");
 
 /** Whether two days, each one a condition day, leave a range with no day in it. */
 function isEmptyRange(after: string | null, before: string | null): boolean {
@@ -107,6 +106,11 @@ export const listConditionsSchema = z
 		after: conditionDaySchema.nullable(),
 		before: conditionDaySchema.nullable(),
 		label: conditionLabelSchema.nullable(),
+		folder: conditionFolderSchema.nullable(),
+		unread: z.boolean(),
+		starred: z.boolean(),
+		important: z.boolean(),
+		attachment: z.boolean(),
 		order: listOrderSchema,
 	})
 	.superRefine((value, context) => {
@@ -131,6 +135,17 @@ function firstValue(value: string | string[] | undefined): string | undefined {
 	return Array.isArray(value) ? value[0] : value;
 }
 
+/**
+ * The filters of the address from before the quick filters were conditions
+ * of their own: one at a time, and the name the panel has always used for
+ * them. A link from before still says what it said.
+ */
+const LEGACY_FILTERS: Readonly<Record<string, QuickFilter>> = {
+	unread: "unread",
+	flagged: "starred",
+	attachments: "attachment",
+};
+
 /** What the address said about the conditions: what is applied and what was not. */
 export interface ParsedConditions {
 	readonly conditions: ListConditions;
@@ -145,6 +160,10 @@ export interface ParsedConditions {
  * whole folder as if it had matched. A parameter that is absent or empty is
  * no condition and no rejection. A repeated one is read by its first value.
  * Two days that leave an empty range are both rejected.
+ *
+ * The filter of the address from before the quick filters were conditions of
+ * their own is read as the quick filter it named, so a link from before says
+ * the same thing.
  */
 export function parseListConditions(
 	raw: Readonly<Record<string, string | string[] | undefined>>,
@@ -174,6 +193,16 @@ export function parseListConditions(
 		after = null;
 		before = null;
 	}
+	const ticks: Record<(typeof QUICK_FILTERS)[number], boolean> = {
+		unread: read("unread", conditionTickSchema) !== undefined,
+		starred: read("starred", conditionTickSchema) !== undefined,
+		important: read("important", conditionTickSchema) !== undefined,
+		attachment: read("attachment", conditionTickSchema) !== undefined,
+	};
+	const legacy = LEGACY_FILTERS[firstValue(raw["filter"]) ?? ""];
+	if (legacy !== undefined) {
+		ticks[legacy] = true;
+	}
 	const conditions: ListConditions = {
 		q: read("q", conditionTextSchema) ?? "",
 		from: read("from", conditionTextSchema) ?? "",
@@ -182,6 +211,11 @@ export function parseListConditions(
 		after,
 		before,
 		label: read("label", conditionLabelSchema) ?? null,
+		folder: read("folder", conditionFolderSchema) ?? null,
+		unread: ticks.unread,
+		starred: ticks.starred,
+		important: ticks.important,
+		attachment: ticks.attachment,
 		order: read("order", listOrderSchema) ?? "newest",
 	};
 	return {

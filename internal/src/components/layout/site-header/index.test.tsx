@@ -93,8 +93,9 @@ describe("SiteHeader", () => {
 			.querySelector("[data-slot='header-search']");
 		expect(cell).not.toBeNull();
 		expect(cell?.childElementCount).toBe(0);
-		// Twice the trail's share from 1024 px; below that the trail has the row.
-		expect(cell).toHaveClass("flex-2", "basis-0", "max-lg:hidden");
+		// Below 1024 px the cell holds only what the area draws there, and
+		// the trail has the row.
+		expect(cell).toHaveClass("max-lg:w-auto");
 		cleanup();
 
 		await renderHeader({
@@ -106,6 +107,25 @@ describe("SiteHeader", () => {
 				.getByRole("banner")
 				.querySelector("[data-slot='header-search']"),
 		).toContainElement(screen.getByRole("textbox", { name: "search" }));
+	});
+
+	it("puts the search in the middle of the bar, between two columns of the same width", async () => {
+		await renderHeader({
+			reserveSearch: true,
+			search: <input aria-label="search" />,
+		});
+
+		const banner = screen.getByRole("banner");
+
+		// From 1024 px up the bar is three columns and the two outer ones
+		// are the same, so the search sits in the middle of the bar and not
+		// beside it.
+		expect(banner.className).toContain(
+			"lg:grid-cols-[minmax(0,1fr)_minmax(0,32rem)_minmax(0,1fr)]",
+		);
+		expect(
+			banner.querySelector("[data-slot='header-search']")?.className,
+		).toContain("lg:col-start-2");
 	});
 
 	it("has the theme button, showing the theme of the document", async () => {

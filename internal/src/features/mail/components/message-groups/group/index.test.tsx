@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { cleanup, render, screen, within } from "@testing-library/react";
 
+import { EMPTY_CONDITIONS } from "@/features/mail/schemas/list-conditions-model";
 import { withQuery } from "@/test/query-wrapper";
 import { summary } from "../../../test-support/fixtures";
 
@@ -12,8 +13,7 @@ const view = {
 	box: "INBOX",
 	role: "inbox",
 	page: 1,
-	filter: "all",
-	q: "",
+	conditions: EMPTY_CONDITIONS,
 } as const;
 const A = "00000000-0000-4000-8000-000000000001";
 const B = "00000000-0000-4000-8000-000000000002";

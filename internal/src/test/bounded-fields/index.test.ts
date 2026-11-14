@@ -13,8 +13,12 @@ const SRC = join(import.meta.dir, "..", "..");
  */
 const FIELD = /<(Input|Textarea|MailTextarea)\b[\s\S]*?\/>/g;
 
-/** Fields that hold no typed text. */
-const NOT_TEXT = /type="(?:file|hidden|checkbox)"/;
+/**
+ * Fields that hold no typed text. A date field holds a day: the browser
+ * parses what is typed into it and refuses what is not a day, so a paste of
+ * any size cannot get into the page.
+ */
+const NOT_TEXT = /type="(?:file|hidden|checkbox|date)"/;
 
 /** A component that wraps a field and hands on what it was given: its caller declares the length. */
 const FORWARDS = /\{\.\.\.props\}/;

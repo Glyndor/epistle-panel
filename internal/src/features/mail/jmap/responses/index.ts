@@ -77,6 +77,8 @@ const emailSchema = z.object({
 	keywords: z.record(z.string(), z.boolean()).optional(),
 	preview: z.string().optional(),
 	hasAttachment: z.boolean().optional(),
+	/** The size of the raw message, in octets: the order by size reads it. */
+	size: z.number().int().nonnegative().optional(),
 	mailboxIds: z.record(z.string(), z.boolean()).optional(),
 	messageId: z.array(z.string()).nullable().optional(),
 	bodyStructure: partSchema.nullable().optional(),

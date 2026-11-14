@@ -1,6 +1,5 @@
 import { describe, expect, it } from "bun:test";
 
-import { messageListInputSchema } from "@/features/mail/schemas/mail-input";
 import { type Rng, runCases } from "@/test/prng";
 
 import {
@@ -94,6 +93,16 @@ function label(rng: Rng): string | null {
 	return conditionLabelSchema.safeParse(raw).success ? raw : null;
 }
 
+const FOLDER_ALPHABET = "abcXYZ019_-/.";
+
+/** A folder the panel would know: a name without a control in it. */
+function folder(rng: Rng): string | null {
+	if (rng.chance(0.3)) {
+		return null;
+	}
+	return rng.string(FOLDER_ALPHABET, rng.int(1, 20));
+}
+
 /** A valid set of conditions: built through the schemas, with an ordered range. */
 function conditions(rng: Rng): ListConditions {
 	if (rng.chance(0.05)) {
@@ -111,6 +120,11 @@ function conditions(rng: Rng): ListConditions {
 		after,
 		before,
 		label: label(rng),
+		folder: folder(rng),
+		unread: rng.chance(0.3),
+		starred: rng.chance(0.3),
+		important: rng.chance(0.3),
+		attachment: rng.chance(0.3),
 		order: rng.pick(LIST_ORDERS),
 	};
 }
@@ -215,7 +229,7 @@ describe("a text condition", () => {
 		await runCases("same as q", 4000, (rng) => {
 			const raw = rawText(rng);
 			const ours = conditionTextSchema.safeParse(raw);
-			const listQ = messageListInputSchema.shape.q.safeParse(raw);
+			const listQ = listConditionsSchema.shape.q.safeParse(raw);
 			expect([raw, ours.success, ours.data]).toEqual([
 				raw,
 				listQ.success,

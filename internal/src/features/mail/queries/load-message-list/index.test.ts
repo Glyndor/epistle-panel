@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { EMPTY_CONDITIONS } from "../../schemas/list-conditions-model";
 import { GET_CHUNK, PAGE_SIZE, SCAN_LIMIT } from "../../schemas/mail-input";
 import {
 	emailFixture,
@@ -41,7 +42,7 @@ function folder(
 	};
 }
 
-const base = { box: "INBOX", page: 1, filter: "all", q: "" } as const;
+const base = { box: "INBOX", page: 1, conditions: EMPTY_CONDITIONS } as const;
 
 describe("loadMessageList without a filter", () => {
 	it("fetches only the page's slice of the folder, in the folder's order", async () => {
@@ -92,7 +93,7 @@ describe("loadMessageList with a filter or a search", () => {
 		// 19:30 on the 12th in Bogotá is already the 13th in UTC.
 		const view = await loadMessageList(
 			SESSION,
-			{ ...base, filter: "unread" },
+			{ ...base, conditions: { ...EMPTY_CONDITIONS, unread: true } },
 			new Date("2026-11-12T19:30:00-05:00"),
 		);
 		expect(view.today).toBe("2026-11-13");
@@ -114,7 +115,7 @@ describe("loadMessageList with a filter or a search", () => {
 		stubJmap(answers);
 		const view = await loadMessageList(SESSION, {
 			...base,
-			filter: "unread",
+			conditions: { ...EMPTY_CONDITIONS, unread: true },
 		});
 		expect(view.total).toBe(65);
 		expect(view.items).toHaveLength(PAGE_SIZE);
@@ -129,12 +130,20 @@ describe("loadMessageList with a filter or a search", () => {
 		}));
 		stubJmap(answers);
 		expect(
-			(await loadMessageList(SESSION, { ...base, filter: "flagged" }))
-				.total,
+			(
+				await loadMessageList(SESSION, {
+					...base,
+					conditions: { ...EMPTY_CONDITIONS, starred: true },
+				})
+			).total,
 		).toBe(2);
 		expect(
-			(await loadMessageList(SESSION, { ...base, filter: "attachments" }))
-				.total,
+			(
+				await loadMessageList(SESSION, {
+					...base,
+					conditions: { ...EMPTY_CONDITIONS, attachment: true },
+				})
+			).total,
 		).toBe(1);
 	});
 
@@ -154,10 +163,18 @@ describe("loadMessageList with a filter or a search", () => {
 				][i] ?? {},
 		);
 		stubJmap(answers);
-		const view = await loadMessageList(SESSION, { ...base, q: "report" });
+		const view = await loadMessageList(SESSION, {
+			...base,
+			conditions: { ...EMPTY_CONDITIONS, q: "report" },
+		});
 		expect(view.total).toBe(3);
 		expect(
-			(await loadMessageList(SESSION, { ...base, q: "nowhere" })).total,
+			(
+				await loadMessageList(SESSION, {
+					...base,
+					conditions: { ...EMPTY_CONDITIONS, q: "nowhere" },
+				})
+			).total,
 		).toBe(0);
 	});
 
@@ -166,7 +183,7 @@ describe("loadMessageList with a filter or a search", () => {
 		const seen = stubJmap(answers);
 		const view = await loadMessageList(SESSION, {
 			...base,
-			filter: "unread",
+			conditions: { ...EMPTY_CONDITIONS, unread: true },
 		});
 		expect(view.partial).toBe(true);
 		expect(view.total).toBe(SCAN_LIMIT);
@@ -180,8 +197,12 @@ describe("loadMessageList with a filter or a search", () => {
 	it("is not partial for a folder within the limit", async () => {
 		stubJmap(folder(10).answers);
 		expect(
-			(await loadMessageList(SESSION, { ...base, filter: "unread" }))
-				.partial,
+			(
+				await loadMessageList(SESSION, {
+					...base,
+					conditions: { ...EMPTY_CONDITIONS, unread: true },
+				})
+			).partial,
 		).toBe(false);
 	});
 });

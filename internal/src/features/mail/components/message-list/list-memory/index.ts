@@ -8,6 +8,8 @@
  * effects and event handlers read and write it.
  */
 
+import type { ConditionName } from "@/features/mail/schemas/list-conditions-model";
+
 /** The control of a row that has the focus, or had it: the row's link (`mark` is null) or one of its two marks. */
 export interface Held {
 	readonly id: string;
@@ -33,6 +35,12 @@ export const listMemory: {
 	address: string | null;
 	/** What the search field reads and how much it takes, while it has the focus or had it when it went with its page. */
 	search: { text: string; readonly max: number } | null;
+	/**
+	 * The condition whose chip was taken off, or `all` when every condition
+	 * was: the chips are drawn again without it, and the focus goes to the
+	 * chip that took its place, or to the search field when none is left.
+	 */
+	chips: ConditionName | "all" | null;
 } = {
 	scroll: new Map(),
 	held: null,
@@ -41,6 +49,7 @@ export const listMemory: {
 	heirs: new Map(),
 	address: null,
 	search: null,
+	chips: null,
 };
 
 /** Note how far the list of `address` is scrolled. Only the most recent addresses are kept. */
@@ -98,4 +107,5 @@ export function forgetListMemory(): void {
 	listMemory.heirs = new Map();
 	listMemory.address = null;
 	listMemory.search = null;
+	listMemory.chips = null;
 }

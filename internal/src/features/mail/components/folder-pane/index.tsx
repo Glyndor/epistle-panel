@@ -8,6 +8,7 @@ import { FolderSkeleton } from "@/features/mail/components/folder-skeleton";
 import { FolderTree } from "@/features/mail/components/folder-tree";
 import { MailNotice } from "@/features/mail/components/mail-notice";
 import { mailboxesQueryOptions } from "@/features/mail/queries/mail-query-options";
+import type { MailboxView } from "@/features/mail/schemas/mail-view";
 import { unwrap } from "@/lib/query/action-result";
 
 const fetchMailboxes = async () => unwrap(await getMailboxesAction());
@@ -15,10 +16,22 @@ const fetchMailboxes = async () => unwrap(await getMailboxesAction());
 /**
  * The folder tree of the sidebar with its own waiting and unreachable states;
  * the counters refresh in the background.
+ *
+ * The folders the server read are the tree's first paint: they are what the
+ * query starts with, so the tree is in the page the server sends. The browser
+ * owns the list from then on and refreshes it.
  */
-export function FolderPane() {
+export function FolderPane({
+	boxes,
+}: {
+	/** The folders the server read, when it could read them. */
+	boxes: MailboxView[] | undefined;
+}) {
 	const t = useTranslations("mail");
-	const { data, isPending } = useQuery(mailboxesQueryOptions(fetchMailboxes));
+	const { data, isPending } = useQuery({
+		...mailboxesQueryOptions(fetchMailboxes),
+		initialData: () => boxes,
+	});
 
 	if (isPending) {
 		return <FolderSkeleton />;

@@ -1,12 +1,19 @@
 /**
- * The conditions a folder's list can be narrowed by besides its filter and its
- * page, as plain values. No schema library here, so a client component (a
- * search form, the chips of a search) can import it cheaply; the schemas that
- * read them from an address live in `list-conditions`.
+ * The conditions a folder's list can be narrowed by besides its page, as plain
+ * values. No schema library here, so a client component (a search form, the
+ * chips of a search) can import it cheaply; the schemas that read them from an
+ * address live in `list-conditions`.
  */
 
 /** Longest text of a text condition, in characters: the rule `q` has always had. */
 export const MAX_CONDITION_TEXT = 200;
+
+/**
+ * The characters a text condition may not hold: the controls, the line and
+ * paragraph separators. It is the pattern of the browser's own check, of the
+ * schema on the server and of the one in the page.
+ */
+export const CONDITION_TEXT_PATTERN = /^[^\p{Cc}\p{Zl}\p{Zp}]*$/u;
 
 /** Earliest year a day condition names. */
 export const FIRST_CONDITION_YEAR = 1970;
@@ -14,9 +21,50 @@ export const FIRST_CONDITION_YEAR = 1970;
 /** Latest year a day condition names: a day is written with four digits. */
 export const LAST_CONDITION_YEAR = 9999;
 
+const ISO_DAY = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/**
+ * Whether `text` is `YYYY-MM-DD`, a day of the calendar, in the years a
+ * condition names. `Date.UTC` rolls 2026-02-30 over into March: that is not a
+ * day.
+ */
+export function isConditionDay(text: string): boolean {
+	const match = ISO_DAY.exec(text);
+	if (match === null) {
+		return false;
+	}
+	const [year, month, date] = [
+		Number(match[1]),
+		Number(match[2]),
+		Number(match[3]),
+	];
+	if (year < FIRST_CONDITION_YEAR || year > LAST_CONDITION_YEAR) {
+		return false;
+	}
+	const back = new Date(Date.UTC(year, month - 1, date));
+	return (
+		back.getUTCFullYear() === year &&
+		back.getUTCMonth() === month - 1 &&
+		back.getUTCDate() === date
+	);
+}
+
 /** How the list is sorted. The first is the default and what the server sends. */
 export const LIST_ORDERS = ["newest", "oldest", "largest"] as const;
 export type ListOrder = (typeof LIST_ORDERS)[number];
+
+/**
+ * The quick filters of the list, each one a condition of its own: they are the
+ * ticks of one group and several of them can be on at once, which a single
+ * parameter could not say.
+ */
+export const QUICK_FILTERS = [
+	"unread",
+	"starred",
+	"important",
+	"attachment",
+] as const;
+export type QuickFilter = (typeof QUICK_FILTERS)[number];
 
 /**
  * The parameters of the address that hold a condition, in the order they are
@@ -31,14 +79,20 @@ export const CONDITION_NAMES = [
 	"after",
 	"before",
 	"label",
+	"folder",
+	"unread",
+	"starred",
+	"important",
+	"attachment",
 	"order",
 ] as const;
 export type ConditionName = (typeof CONDITION_NAMES)[number];
 
 /**
  * Every condition of a list, each one present. A text that narrows nothing is
- * `""`, a day or a label that narrows nothing is `null`. A day is `YYYY-MM-DD`
- * in UTC and both ends are included; `after` is never later than `before`.
+ * `""`, a day, a label or a folder that narrows nothing is `null`, and a quick
+ * filter that is off is `false`. A day is `YYYY-MM-DD` in UTC and both ends are
+ * included; `after` is never later than `before`.
  */
 export interface ListConditions {
 	/** Words anywhere in the subject, the preview or the sender and recipients. */
@@ -55,6 +109,16 @@ export interface ListConditions {
 	before: string | null;
 	/** A keyword the message holds. */
 	label: string | null;
+	/** The folder the list is read from, when it is not the one of the page. */
+	folder: string | null;
+	/** Keep the messages that were not read. */
+	unread: boolean;
+	/** Keep the messages that are starred. */
+	starred: boolean;
+	/** Keep the messages the reader marked as important. */
+	important: boolean;
+	/** Keep the messages that carry an attachment. */
+	attachment: boolean;
 	order: ListOrder;
 }
 
@@ -67,6 +131,11 @@ export const EMPTY_CONDITIONS: Readonly<ListConditions> = Object.freeze({
 	after: null,
 	before: null,
 	label: null,
+	folder: null,
+	unread: false,
+	starred: false,
+	important: false,
+	attachment: false,
 	order: "newest",
 });
 
@@ -101,11 +170,49 @@ export function conditionsToQuery(
 	const query: [name: ConditionName, value: string][] = [];
 	for (const name of CONDITION_NAMES) {
 		const value = conditions[name];
-		if (value !== null && !isDefault(conditions, name)) {
-			query.push([name, value]);
+		if (value === null || isDefault(conditions, name)) {
+			continue;
 		}
+		// A quick filter is a tick: it is on or it is not, and the address
+		// says it with a mark and nothing else.
+		query.push([
+			name,
+			typeof value === "boolean" ? (value ? "1" : "") : value,
+		]);
 	}
 	return query;
+}
+
+/**
+ * The name of the field each condition is set in, as a key of the `mail`
+ * namespace: a chip says which one it is, and a condition the server did not
+ * apply is named with the same word.
+ */
+export const CONDITION_LABELS = {
+	q: "searchWords",
+	from: "from",
+	to: "to",
+	subject: "fieldSubject",
+	after: "conditionAfter",
+	before: "conditionBefore",
+	label: "conditionLabel",
+	folder: "conditionFolder",
+	unread: "filterUnread",
+	starred: "filterFlagged",
+	important: "filterImportant",
+	attachment: "hasAttachment",
+	order: "conditionOrder",
+} as const satisfies Record<ConditionName, string>;
+
+/**
+ * The conditions that narrow the list, in the order they are written. The
+ * order is not one of them: it says where a message shows, not whether it
+ * does.
+ */
+export function activeConditions(conditions: ListConditions): ConditionName[] {
+	return CONDITION_NAMES.filter(
+		(name) => name !== "order" && !isDefault(conditions, name),
+	);
 }
 
 /** The conditions with one of them back to its default: what taking off one chip of a search leaves. */

@@ -39,11 +39,23 @@ scenario_shell_state() {
 	# Anyone can write a cookie: a name that is no group, more names than
 	# there are groups, markup. Each is read as no cookie, and none of it is
 	# in the page.
-	for value in zzgroupzz manage.zzgroupzz MANAGE manage.folders.manage 'manage"><i/data-zz=1>' '<script>zz</script>'; do
+	#
+	# Each value is looked for with a piece of it that the page cannot hold
+	# by chance: a piece of two letters is the hash of a chunk of the build.
+	local pair value needle
+	for pair in \
+		'zzgroupzz|zzgroupzz' \
+		'manage.zzgroupzz|zzgroupzz' \
+		'MANAGE|MANAGE' \
+		'manage.folders.manage|folders.manage' \
+		'manage"><i/data-zz=1>|data-zz=1' \
+		'<script>zz</script>|script>zz'; do
+		value=${pair%%|*}
+		needle=${pair#*|}
 		fetch "$adm/queue" "$good; sidebar_groups=$value"
 		assert_eq "groups cookie '$value': the page answers" "$status" 200
 		assert_eq "groups cookie '$value': the group is served open" "$(group_heading)" 'aria-expanded="true"'
-		assert_absent "groups cookie '$value': nothing of it is in the page" "$(cat "$work/b")" "zz"
+		assert_absent "groups cookie '$value': nothing of it is in the page" "$(cat "$work/b")" "$needle"
 	done
 
 	fetch "/app/mail/sent" "$good; sidebar_groups=folders"

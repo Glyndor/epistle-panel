@@ -35,6 +35,7 @@ afterEach(async () => {
 const slots = {
 	children: <p>page</p>,
 	trail: <nav aria-label="trail">here</nav>,
+	search: <p>search</p>,
 };
 
 const answers = {
@@ -119,7 +120,7 @@ describe("MailLayout", () => {
 		expect(screen.getByRole("main")).toHaveClass("overflow-hidden");
 	});
 
-	it("draws the trail of its slot in the header, and keeps no empty cell for a search that is not built yet", async () => {
+	it("draws the trail of its slot in the header, and the search of its slot beside it", async () => {
 		await cookies.signIn("ana", "user");
 		stubJmap(answers);
 		await renderLayout();
@@ -128,9 +129,12 @@ describe("MailLayout", () => {
 		expect(banner).toContainElement(
 			screen.getByRole("navigation", { name: "trail" }),
 		);
-		// An empty cell took two thirds of the bar from the trail, which cut
-		// a subject short beside 563 px of nothing.
-		expect(banner.querySelector("[data-slot='header-search']")).toBeNull();
+		// The cell of the search is not empty: it holds the search of the
+		// area, and the trail does not grow into the place it will take.
+		expect(banner).toContainElement(screen.getByText("search"));
+		expect(
+			banner.querySelector("[data-slot='header-search']"),
+		).not.toBeNull();
 	});
 
 	it("names the sidebar and the folders inside it differently", async () => {

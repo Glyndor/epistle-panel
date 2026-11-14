@@ -21,8 +21,8 @@ import { cn } from "@/lib/class-names";
  * A folder of the webmail as a page: its message list and the reader, two
  * panels raised off the canvas, each scrolling on its own. The folders are in
  * the sidebar of the area. The folder is the page's path and so is the open
- * message; what narrows the list (`?page=&filter=&q=`) is read here, each
- * parameter checked on its own. The frame of the panes is sent at once; each
+ * message; what narrows the list (`?page=` and the conditions of the address)
+ * is read here, each parameter checked on its own. The frame of the panes is sent at once; each
  * pane then streams its own data behind a skeleton, read on the server and
  * owned by Query in the browser from then on. Below 1024 px the panes become
  * one column: the list, or the reader when a message is open. The list pane
@@ -72,8 +72,7 @@ export async function MailPlace({
 					<ListBoundary
 						place={place}
 						page={params.page}
-						filter={params.filter}
-						q={params.q}
+						conditions={params.conditions}
 						selectedId={message}
 					/>
 				</Suspense>
@@ -92,8 +91,7 @@ export async function MailPlace({
 							id={message}
 							place={place}
 							page={params.page}
-							filter={params.filter}
-							q={params.q}
+							conditions={params.conditions}
 						/>
 					</Suspense>
 				) : (

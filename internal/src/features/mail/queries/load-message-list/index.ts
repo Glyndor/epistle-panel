@@ -8,10 +8,17 @@ import {
 	emailGetSchema,
 	emailQuerySchema,
 } from "@/features/mail/jmap/responses";
+import {
+	compareBy,
+	matchesConditions,
+} from "@/features/mail/queries/match-conditions";
 import { toSummary } from "@/features/mail/queries/to-views";
 import {
+	hasConditions,
+	isDefaultOrder,
+} from "@/features/mail/schemas/list-conditions-model";
+import {
 	GET_CHUNK,
-	type ListFilter,
 	type MessageListInput,
 	PAGE_SIZE,
 	SCAN_LIMIT,
@@ -28,6 +35,7 @@ const ROW_PROPERTIES = [
 	"keywords",
 	"preview",
 	"hasAttachment",
+	"size",
 ];
 
 function chunksOf<T>(items: readonly T[], size: number): T[][] {
@@ -36,38 +44,6 @@ function chunksOf<T>(items: readonly T[], size: number): T[][] {
 		chunks.push(items.slice(start, start + size));
 	}
 	return chunks;
-}
-
-function matchesFilter(email: EmailRecord, filter: ListFilter): boolean {
-	const keywords = email.keywords ?? {};
-	switch (filter) {
-		case "unread":
-			return keywords["$seen"] !== true;
-		case "flagged":
-			return keywords["$flagged"] === true;
-		case "attachments":
-			return email.hasAttachment === true;
-		case "all":
-			return true;
-	}
-}
-
-function matchesText(email: EmailRecord, needle: string): boolean {
-	if (needle === "") {
-		return true;
-	}
-	const haystack = [
-		email.subject,
-		email.preview,
-		...[...(email.from ?? []), ...(email.to ?? [])].flatMap((a) => [
-			a.name,
-			a.email,
-		]),
-	]
-		.filter((part): part is string => typeof part === "string")
-		.join("\n")
-		.toLowerCase();
-	return haystack.includes(needle.toLowerCase());
 }
 
 /** Fetch the emails named by `ids`, in that order, in as many calls as the server's limit needs. */
@@ -103,11 +79,12 @@ async function fetchEmails(
 }
 
 /**
- * One page of a folder. With no filter and no search the page is the slice of
- * the folder's ids and only those messages are fetched. Otherwise the newest
- * {@link SCAN_LIMIT} messages are fetched and filtered here, and `partial` says
- * so when the folder holds more. `now` is when the list is read, which dates
- * the groups the rows are shown under.
+ * One page of a folder. With nothing narrowing the list and the default order
+ * the page is the slice of the folder's ids and only those messages are
+ * fetched. Otherwise the newest {@link SCAN_LIMIT} messages are fetched,
+ * narrowed here, ordered as the conditions say, and `partial` says so when the
+ * folder holds more. `now` is when the list is read, which dates the groups
+ * the rows are shown under.
  */
 export async function loadMessageList(
 	session: MailSession,
@@ -115,17 +92,20 @@ export async function loadMessageList(
 	now: Date = new Date(),
 ): Promise<MessageListView> {
 	const today = utcDay(now);
+	const { conditions } = input;
+	// The folder of the page, unless the conditions name another one.
+	const box = conditions.folder ?? input.box;
 	const queried = await jmapCall(session, [
 		[
 			"Email/query",
-			{ accountId: session.accountId, filter: { inMailbox: input.box } },
+			{ accountId: session.accountId, filter: { inMailbox: box } },
 			"q",
 		],
 	]);
 	const { ids } = methodResult(queried, "q", "Email/query", emailQuerySchema);
 	const start = (input.page - 1) * PAGE_SIZE;
 
-	if (input.filter === "all" && input.q === "") {
+	if (!hasConditions(conditions) && isDefaultOrder(conditions.order)) {
 		const emails = await fetchEmails(
 			session,
 			ids.slice(start, start + PAGE_SIZE),
@@ -141,10 +121,9 @@ export async function loadMessageList(
 	}
 
 	const scanned = await fetchEmails(session, ids.slice(0, SCAN_LIMIT));
-	const matching = scanned.filter(
-		(email) =>
-			matchesFilter(email, input.filter) && matchesText(email, input.q),
-	);
+	const matching = scanned
+		.filter((email) => matchesConditions(email, conditions))
+		.sort(compareBy(conditions.order));
 	return {
 		items: matching.slice(start, start + PAGE_SIZE).map(toSummary),
 		page: input.page,

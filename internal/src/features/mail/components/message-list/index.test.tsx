@@ -6,7 +6,11 @@ import {
 	screen,
 	waitFor,
 } from "@testing-library/react";
-import { forgetListMemory } from "@/features/mail/components/message-list/list-memory";
+import {
+	forgetListMemory,
+	listMemory,
+} from "@/features/mail/components/message-list/list-memory";
+import { EMPTY_CONDITIONS } from "@/features/mail/schemas/list-conditions-model";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
 import { clearSecretCache } from "@/lib/config/secret";
 import { settled, withQuery } from "@/test/query-wrapper";
@@ -23,8 +27,7 @@ const view = {
 	box: "INBOX",
 	role: "inbox",
 	page: 1,
-	filter: "all",
-	q: "",
+	conditions: EMPTY_CONDITIONS,
 } as const;
 
 beforeEach(async () => {
@@ -73,7 +76,10 @@ describe("MessageList", () => {
 		render(
 			withQuery(
 				<MessageList
-					view={{ ...view, q: "x" }}
+					view={{
+						...view,
+						conditions: { ...view.conditions, q: "x" },
+					}}
 					selectedId={undefined}
 				/>,
 			),
@@ -81,6 +87,40 @@ describe("MessageList", () => {
 		expect(
 			await screen.findByText("emptyMatches emptyHint"),
 		).toBeInTheDocument();
+	});
+
+	it("offers the way out of a search that matched nothing, and none for a folder that is empty", async () => {
+		stubJmap({ "Email/query": { ids: [] }, "Email/get": { list: [] } });
+		render(
+			withQuery(
+				<MessageList
+					view={{
+						...view,
+						conditions: {
+							...view.conditions,
+							q: "x",
+							starred: true,
+						},
+					}}
+					selectedId={undefined}
+				/>,
+			),
+		);
+
+		// The link that takes every condition off: the clean address.
+		const out = await screen.findByRole("link", { name: "clearAll" });
+		expect(out).toHaveAttribute("href", "/app/mail/inbox");
+		// It is remembered, so the chips drawn again without any give the
+		// focus to the search field.
+		fireEvent.click(out);
+		expect(listMemory.chips).toBe("all");
+		cleanup();
+
+		// A folder with nothing in it is not a search that matched nothing:
+		// there is nothing to take off.
+		render(withQuery(<MessageList view={view} selectedId={undefined} />));
+		await screen.findByText("emptyFolder");
+		expect(screen.queryByRole("link", { name: "clearAll" })).toBeNull();
 	});
 
 	it("shows a waiting state first", () => {
@@ -228,7 +268,10 @@ describe("MessageList", () => {
 		render(
 			withQuery(
 				<MessageList
-					view={{ ...view, filter: "flagged" }}
+					view={{
+						...view,
+						conditions: { ...EMPTY_CONDITIONS, starred: true },
+					}}
 					selectedId={undefined}
 				/>,
 			),
@@ -268,7 +311,10 @@ describe("MessageList", () => {
 		const { container } = render(
 			withQuery(
 				<MessageList
-					view={{ ...view, filter: "flagged" }}
+					view={{
+						...view,
+						conditions: { ...EMPTY_CONDITIONS, starred: true },
+					}}
 					selectedId={undefined}
 				/>,
 			),

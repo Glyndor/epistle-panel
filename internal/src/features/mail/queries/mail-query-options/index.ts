@@ -27,7 +27,7 @@ export function messageListQueryOptions(
 	fetcher: (input: MessageListInput) => Promise<MessageListView>,
 ) {
 	return queryOptions({
-		queryKey: mailKeys.list(input.box, input.page, input.filter, input.q),
+		queryKey: mailKeys.list(input.box, input.page, input.conditions),
 		queryFn: () => fetcher(input),
 		placeholderData: keepPreviousData,
 		refetchInterval: MAIL_REFRESH_MS,

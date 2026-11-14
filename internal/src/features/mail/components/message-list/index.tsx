@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
@@ -9,10 +10,16 @@ import { ListPager } from "@/features/mail/components/list-pager";
 import { ListSkeleton } from "@/features/mail/components/list-skeleton";
 import { MailNotice } from "@/features/mail/components/mail-notice";
 import { MessageGroups } from "@/features/mail/components/message-groups";
+import { listMemory } from "@/features/mail/components/message-list/list-memory";
 import { useKeptFocus } from "@/features/mail/components/message-list/use-kept-focus";
 import { useMailShortcuts } from "@/features/mail/components/message-list/use-mail-shortcuts";
 import type { ListAddress } from "@/features/mail/links/mail-href";
+import { mailHref } from "@/features/mail/links/mail-href";
 import { messageListQueryOptions } from "@/features/mail/queries/mail-query-options";
+import {
+	EMPTY_CONDITIONS,
+	hasConditions,
+} from "@/features/mail/schemas/list-conditions-model";
 import { unwrap } from "@/lib/query/action-result";
 
 const fetchList = async (input: Parameters<typeof getMessageListAction>[0]) =>
@@ -43,8 +50,7 @@ export function MessageList({
 				{
 					box: view.box,
 					page: view.page,
-					filter: view.filter,
-					q: view.q,
+					conditions: view.conditions,
 				},
 				fetchList,
 			),
@@ -57,7 +63,7 @@ export function MessageList({
 	const focus = useKeptFocus(
 		ids,
 		data !== undefined && !isPlaceholderData && !isError,
-		[view.box, view.page, view.filter, view.q].join("\n"),
+		[view.box, view.page, JSON.stringify(view.conditions)].join("\n"),
 	);
 	// The list's own heading, for assistive technology: the pane is named for
 	// the eye by the folder it shows. The date headings are one level under it.
@@ -92,7 +98,7 @@ export function MessageList({
 		);
 	}
 	if (data.items.length === 0) {
-		const filtered = view.q !== "" || view.filter !== "all";
+		const filtered = hasConditions(view.conditions);
 		// The notice takes the focus when the last row leaves under it: it is
 		// in view and draws the ring, which a heading for assistive technology
 		// alone would not.
@@ -103,7 +109,30 @@ export function MessageList({
 				data-slot="empty-list"
 				className="m-1 rounded-xl outline-ring focus-visible:outline-2 focus-visible:-outline-offset-2"
 			>
-				<MailNotice tone="empty">
+				<MailNotice
+					tone="empty"
+					action={
+						filtered ? (
+							<Button asChild variant="outline" size="sm">
+								<Link
+									href={mailHref({
+										box: view.box,
+										role: view.role,
+										conditions: EMPTY_CONDITIONS,
+									})}
+									onClick={() => {
+										// Every condition goes, and the chips are
+										// drawn again without any: the focus
+										// goes to the search field.
+										listMemory.chips = "all";
+									}}
+								>
+									{t("clearAll")}
+								</Link>
+							</Button>
+						) : null
+					}
+				>
 					{filtered
 						? `${t("emptyMatches")} ${t("emptyHint")}`
 						: t("emptyFolder")}

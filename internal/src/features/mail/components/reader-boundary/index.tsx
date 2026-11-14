@@ -13,7 +13,7 @@ import {
 	requestMessage,
 	resolvePlace,
 } from "@/features/mail/queries/request-mail";
-import type { ListFilter } from "@/features/mail/schemas/mail-input";
+import type { ListConditions } from "@/features/mail/schemas/list-conditions-model";
 import { prefetch } from "@/lib/query/prefetch";
 import { makeQueryClient } from "@/lib/query/query-client";
 
@@ -26,14 +26,12 @@ export async function ReaderBoundary({
 	id,
 	place,
 	page,
-	filter,
-	q,
+	conditions,
 }: {
 	id: string;
 	place: PlaceRef;
 	page: number;
-	filter: ListFilter;
-	q: string;
+	conditions: ListConditions;
 }) {
 	const client = makeQueryClient();
 	const session = await requestMailSession();
@@ -62,8 +60,7 @@ export async function ReaderBoundary({
 		box: resolved.box ?? FALLBACK_BOX,
 		role: resolved.box === null ? ("inbox" as const) : resolved.role,
 		page,
-		filter,
-		q,
+		conditions,
 	};
 
 	return (

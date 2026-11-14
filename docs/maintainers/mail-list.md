@@ -146,6 +146,8 @@ never read while a component renders.
 | `acted` | the row the person's last action concerns |
 | `shown` | the messages last drawn, in order, and the address they are of |
 | `heirs` | the 100 rows that left last, each pointing to its current successor; a successor that leaves hands over again, so a reader can return after several refreshes |
+| `search` | what the search field reads, while it has the focus or had it when it went with its page |
+| `chips` | the condition whose chip was taken off, or `all` when every condition was: the chips are drawn again without it, and the focus goes to the chip that took its place, or to the search field when none is left |
 
 **Who writes**
 
@@ -156,6 +158,8 @@ never read while a component renders.
 | `acted` | the list | a press in a row, which is also what Enter, Space, `j` and `k` send |
 | `held` and `acted` | the reader (`handFocusToList`) | the open message leaves through the reader (archive, spam, delete), or the person goes back to the list. Only when the focus is the reader's to give: on the page, in the reader, or in a dialog opened from it |
 | `shown` | the list | each time it is drawn with its messages |
+| `search` | the search field | it takes the focus, and every key written in it |
+| `chips` | the chip that was taken off, the button that clears the search and the notice of an empty list | each of them is pressed, before the change of the address is on its way |
 
 **Who reads**, each time the list is drawn with its messages (a list still on
 its way reads nothing and uses nothing up):
@@ -185,6 +189,8 @@ its way reads nothing and uses nothing up):
 | `held` | the focus goes to a control outside the rows; a press outside its row; another control takes it |
 | `acted` | the next action replaces it; its row is gone and the row after was brought into view (a list with no rows has no row after it, so the action waits for one); a press outside the list |
 | `held`, `acted`, `shown`, `heirs` | a list of another address is drawn |
+| `search` | the focus goes to a control outside the field; a press outside it; Tab or Escape |
+| `chips` | the chips are drawn again without the chip that was taken off, and the focus has gone to the chip that took its place or to the search field |
 | `scroll` | never within a page load, but only the 20 most recent addresses are kept |
 | all | `forgetListMemory()`, for tests only, after each case |
 

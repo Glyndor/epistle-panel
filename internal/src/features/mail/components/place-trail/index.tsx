@@ -18,7 +18,7 @@ import {
 import { parseListParams } from "@/features/mail/schemas/mail-input";
 import { requireSession } from "@/lib/auth/require-session";
 
-type ListParams = Pick<MailView, "page" | "filter" | "q">;
+type ListParams = Pick<MailView, "page" | "conditions">;
 
 /** A folder of an address as the trail names it. */
 function trailPlace(place: PlaceRef): MailTrailPlace {
@@ -58,8 +58,8 @@ async function SubjectTrail({
  * The trail of a folder's page, for the header of the mail area: the folder of
  * the address at once and, with a message open, its subject streamed in behind
  * a bar that holds its place. The message is the one the reader shows, read
- * once for both. The folder's link keeps what narrows its list
- * (`?page=&filter=&q=`), each parameter checked on its own.
+ * once for both. The folder's link keeps what narrows its list (the page and
+ * the conditions), each parameter checked on its own.
  */
 export async function PlaceTrail({
 	place,

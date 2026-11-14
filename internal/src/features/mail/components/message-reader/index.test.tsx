@@ -15,6 +15,7 @@ import {
 } from "@/features/mail/components/message-list/list-memory";
 import { useKeptFocus } from "@/features/mail/components/message-list/use-kept-focus";
 import { mailKeys } from "@/features/mail/queries/mail-query-keys";
+import { EMPTY_CONDITIONS } from "@/features/mail/schemas/list-conditions-model";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
 import { clearSecretCache } from "@/lib/config/secret";
 import { settled, testQueryClient, withQuery } from "@/test/query-wrapper";
@@ -32,8 +33,7 @@ const view = {
 	box: "INBOX",
 	role: "inbox",
 	page: 2,
-	filter: "unread",
-	q: "x",
+	conditions: { ...EMPTY_CONDITIONS, unread: true, q: "x" },
 } as const;
 
 beforeEach(async () => {
@@ -157,7 +157,7 @@ describe("MessageReader", () => {
 		expect(title).toHaveAttribute("tabindex", "-1");
 		expect(screen.getByRole("link", { name: "back" })).toHaveAttribute(
 			"href",
-			"/app/mail/inbox?page=2&filter=unread&q=x",
+			"/app/mail/inbox?page=2&q=x&unread=1",
 		);
 	});
 

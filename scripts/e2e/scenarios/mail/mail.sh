@@ -78,7 +78,60 @@ scenario_mail() {
 	assert_contains "the flagged filter keeps the starred message" "$(cat "$work/b")" "Starred and answered"
 	assert_absent "and leaves the others out" "$(cat "$work/b")" "Weekly newsletter"
 	fetch "/app/mail/inbox?q=newsletter" "$good"
+	# Translation strings may be in the RSC scripts even on a healthy page.
+	# Check the server markup, including streamed segments, without scripts.
+	local search_html
+	search_html=$(perl -0777 -pe 's/<script\b[^>]*>.*?<\/script>//sg' "$work/b")
+	assert_eq "a word search renders successfully" "$status" 200
+	assert_absent "a word search does not render the error boundary" "$search_html" "Something went wrong"
+	assert_absent "a word search does not render the error explanation" "$search_html" "The page could not be shown."
+	assert_contains "a word search keeps the search field" "$search_html" 'id="mail-search-words"'
 	assert_contains "a search finds by subject" "$(cat "$work/b")" "Weekly newsletter"
+	# curl executes no script: the native disclosure and all its fields must
+	# already be inside the GET form, and both conditions must narrow the list.
+	local search_form
+	search_form=$(perl -0777 -ne 'print $1 if /(<form\b(?=[^>]*role="search")[^>]*>.*?<\/form>)/s' "$work/b")
+	assert_contains "the no-script search is a GET form" "$search_form" 'method="get"'
+	assert_contains "it submits to the current folder" "$search_form" 'action="/app/mail/inbox"'
+	assert_contains "advanced fields open with a native disclosure" "$search_form" '<details'
+	assert_contains "the disclosure has a native trigger" "$search_form" '<summary'
+	assert_contains "the sender field is in the server HTML" "$search_form" 'name="from"'
+	assert_contains "the subject field is in the server HTML" "$search_form" 'name="subject"'
+	fetch "/app/mail/inbox?from=news%40example.org&subject=newsletter" "$good"
+	assert_eq "no-script GET with sender and subject" "$status" 200
+	assert_contains "the advanced search returns its matching message" "$(cat "$work/b")" "Weekly newsletter"
+	assert_absent "the advanced search excludes other messages" "$(cat "$work/b")" "Welcome to your mailbox"
+	fetch "/app/mail/inbox?from=ana%40example.org&subject=newsletter" "$good"
+	assert_absent "the sender condition is applied with the subject" "$(cat "$work/b")" "Weekly newsletter"
+	fetch "/app/mail/inbox?from=news%40example.org&subject=Welcome" "$good"
+	assert_absent "the subject condition is applied with the sender" "$(cat "$work/b")" "Weekly newsletter"
+
+	# The address of a search narrows the list, and nothing of what it carries
+	# becomes markup in the page.
+	fetch "/app/mail/inbox?q=newsletter&folder=INBOX" "$good"
+	assert_eq "GET the address of a search" "$status" 200
+	assert_contains "the search returns the message it found" "$(cat "$work/b")" "Weekly newsletter"
+	assert_absent "and leaves the others out" "$(cat "$work/b")" "Welcome to your mailbox"
+	assert_absent "and no script comes with the words of the address" "$(cat "$work/b")" "<script>alert("
+
+	# A hostile word in the address is text in the page, never markup.
+	fetch "/app/mail/inbox?q=%3Cscript%3Ealert(1)%3C%2Fscript%3E" "$good"
+	assert_eq "GET a search with hostile words" "$status" 200
+	assert_absent "the hostile words are not markup" "$(cat "$work/b")" "<script>alert(1)</script>"
+	assert_contains "they are text in the field of the search" "$(cat "$work/b")" "&lt;script&gt;"
+
+	# A word over the limit is not applied, and the page names the condition
+	# it did not apply. The page carries the address it was asked for, which
+	# holds the word, so the field is what is looked at.
+	local long_word
+	long_word=$(printf 'a%.0s' {1..201})
+	fetch "/app/mail/inbox?q=$long_word" "$good"
+	assert_eq "GET a search with a word over the limit" "$status" 200
+	assert_contains "the page names the condition it did not apply" "$(cat "$work/b")" "was not valid and was not applied"
+	assert_contains "and says which one it was" "$(cat "$work/b")" "Words"
+	assert_absent "and the word over the limit is not in the field" \
+		"$({ grep -o '<input[^>]*name="q"[^>]*>' "$work/b" || true; })" "$long_word"
+
 	fetch /app/mail/archive "$good"
 	assert_eq "GET a folder by its role" "$status" 200
 	assert_contains "another folder lists its own message" "$(cat "$work/b")" "Old thread"

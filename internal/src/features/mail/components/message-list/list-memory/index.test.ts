@@ -73,6 +73,7 @@ describe("the list's memory", () => {
 		listMemory.acted = "b";
 		listMemory.shown = ["b"];
 		listMemory.search = { text: "sale", max: 200 };
+		listMemory.chips = "from";
 		rememberScroll("inbox", 5);
 
 		forgetListMemory();
@@ -85,6 +86,7 @@ describe("the list's memory", () => {
 			heirs: new Map(),
 			address: null,
 			search: null,
+			chips: null,
 		});
 	});
 });

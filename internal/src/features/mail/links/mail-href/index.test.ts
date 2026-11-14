@@ -1,5 +1,7 @@
 import { describe, expect, it } from "bun:test";
 
+import { EMPTY_CONDITIONS } from "@/features/mail/schemas/list-conditions-model";
+
 import { attachmentHref, bodyHref, composeHref, mailHref } from ".";
 
 const ID = "01890a5d-ac96-774b-b9aa-9be4c3bd6b0e";
@@ -7,9 +9,12 @@ const ID = "01890a5d-ac96-774b-b9aa-9be4c3bd6b0e";
 describe("mailHref", () => {
 	it("is the inbox for the default view", () => {
 		expect<string>(mailHref({})).toBe("/app/mail/inbox");
-		expect<string>(mailHref({ page: 1, filter: "all", q: "" })).toBe(
-			"/app/mail/inbox",
-		);
+		expect<string>(
+			mailHref({
+				page: 1,
+				conditions: { ...EMPTY_CONDITIONS, q: "" },
+			}),
+		).toBe("/app/mail/inbox");
 	});
 
 	it("names a folder with a role by the role, whatever its id is", () => {
@@ -44,12 +49,15 @@ describe("mailHref", () => {
 			mailHref({
 				box: "Work/Q4 & more",
 				page: 3,
-				filter: "unread",
-				q: "a b&c=d",
+				conditions: {
+					...EMPTY_CONDITIONS,
+					q: "a b&c=d",
+					unread: true,
+				},
 				msg: ID,
 			}),
 		).toBe(
-			`/app/mail/folder/Work_2FQ4_20_26_20more/${ID}?page=3&filter=unread&q=a+b%26c%3Dd`,
+			`/app/mail/folder/Work_2FQ4_20_26_20more/${ID}?page=3&q=a+b%26c%3Dd&unread=1`,
 		);
 		expect<string>(mailHref({ role: "sent", msg: ID })).toBe(
 			`/app/mail/sent/${ID}`,

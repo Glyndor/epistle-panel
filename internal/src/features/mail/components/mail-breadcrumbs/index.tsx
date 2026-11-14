@@ -48,7 +48,7 @@ export function MailBreadcrumbs({
 	/** Left out, the trail is the mail area alone. */
 	place?: MailTrailPlace | undefined;
 	/** What narrows the folder's list, kept in the folder's link. */
-	list?: Pick<MailView, "page" | "filter" | "q"> | undefined;
+	list?: Pick<MailView, "page" | "conditions"> | undefined;
 	subject?: string | null | false | undefined;
 }) {
 	const t = useTranslations("mail");

@@ -1,13 +1,17 @@
 import type { Route } from "next";
-import type { ListFilter } from "@/features/mail/schemas/mail-input";
+import {
+	conditionsToQuery,
+	EMPTY_CONDITIONS,
+	type ListConditions,
+} from "@/features/mail/schemas/list-conditions-model";
 import type { MailboxRole } from "@/features/mail/schemas/mail-view";
 import { folderToSegment } from "@/lib/folder-segment";
 import { PUBLIC_ROUTES } from "@/lib/routes";
 
 /**
  * What identifies a view of the webmail in its address. The folder is the
- * place and so is in the path; the page, the filter and the search narrow it
- * and are parameters. Anything left out is the default.
+ * place and so is in the path; the page and the conditions narrow it and are
+ * parameters. Anything left out is the default.
  */
 export interface MailView {
 	/** The folder's id. Left out with no `role`, the view is the inbox. */
@@ -15,8 +19,8 @@ export interface MailView {
 	/** The folder's role, when it is the account's folder of that role: its path is then the role's. */
 	readonly role?: MailboxRole | null | undefined;
 	readonly page?: number | undefined;
-	readonly filter?: ListFilter | undefined;
-	readonly q?: string | undefined;
+	/** What narrows the list: the words, the fields, the quick filters and the order. */
+	readonly conditions?: ListConditions | undefined;
 	/** The open message, the last segment of the path. */
 	readonly msg?: string | undefined;
 }
@@ -26,8 +30,7 @@ export interface ListAddress {
 	readonly box: string;
 	readonly role: MailboxRole | null;
 	readonly page: number;
-	readonly filter: ListFilter;
-	readonly q: string;
+	readonly conditions: ListConditions;
 }
 
 /** The path of a folder: `/app/mail/inbox` for a folder with a role, `/app/mail/folder/<name>` for any other. */
@@ -43,20 +46,19 @@ export function folderPath(view: Pick<MailView, "box" | "role">): string {
 
 /**
  * The address of a view of the webmail: the folder's path, the open message
- * after it, and only the parameters that differ from the default (page 1,
- * filter all, no search), so a view can be bookmarked and the back button
- * walks the views.
+ * after it, and only the parameters that differ from the default (the page
+ * beyond the first, and the conditions that narrow the list), so a view can be
+ * bookmarked and the back button walks the views.
  */
 export function mailHref(view: MailView): Route {
 	const query = new URLSearchParams();
 	if (view.page && view.page > 1) {
 		query.set("page", String(view.page));
 	}
-	if (view.filter && view.filter !== "all") {
-		query.set("filter", view.filter);
-	}
-	if (view.q) {
-		query.set("q", view.q);
+	for (const [name, value] of conditionsToQuery(
+		view.conditions ?? EMPTY_CONDITIONS,
+	)) {
+		query.set(name, value);
 	}
 	const message = view.msg ? `/${encodeURIComponent(view.msg)}` : "";
 	const suffix = query.size > 0 ? `?${query}` : "";

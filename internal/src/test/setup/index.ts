@@ -4,7 +4,7 @@ import { GlobalRegistrator } from "@happy-dom/global-registrator";
 import { TEST_ADMIN_ID } from "../../lib/config/test-support/admin-id";
 import { installBrowserPattern } from "../browser-pattern";
 import { removeScriptsLeftInHead } from "../left-in-head";
-import { installNextIntlMocks, registerStandIn } from "../next-intl";
+import { installNextIntlMocks, registerStandIn, resetIntl } from "../next-intl";
 import { headersStandIn, navigationStandIn } from "../next-navigation";
 import { betweenCases } from "../query-wrapper";
 import { installShortNodePrint } from "../short-node-print";
@@ -52,11 +52,16 @@ process.env["EPISTLE_PANEL_SESSION_SECRET"] ??=
 	"test-session-secret-at-least-32-bytes-long";
 process.env["EPISTLE_PANEL_ADMIN_ID"] ??= TEST_ADMIN_ID;
 
-// Two things a case can leave for the next one, taken away before it begins: a
-// request still on its way, which would reach the next stub (`betweenCases`),
-// and a script in the document's head, which the next case would count
-// (`removeScriptsLeftInHead`).
+// Three things a case can leave for the next one, taken away before it begins:
+// a request still on its way, which would reach the next stub (`betweenCases`),
+// a script in the document's head, which the next case would count
+// (`removeScriptsLeftInHead`), and the record of what the server components
+// said, which the next case would count as its own (`resetIntl`: the stand-in
+// keeps one list for the whole run, and a file that draws the sidebar asks for
+// the version once per draw).
 beforeEach(async () => {
 	removeScriptsLeftInHead();
 	await betweenCases();
+	// Last, so that what settled above is emptied too.
+	resetIntl();
 });

@@ -24,6 +24,18 @@ afterEach(() => {
 	globalThis.fetch = originalFetch;
 });
 
+const FOLDERS = [
+	{
+		id: "INBOX",
+		name: "INBOX",
+		role: "inbox" as const,
+		parentId: null,
+		depth: 0,
+		unread: 1,
+		total: 2,
+	},
+];
+
 describe("FolderPane", () => {
 	it("waits, then shows the tree", async () => {
 		stubJmap({
@@ -43,7 +55,7 @@ describe("FolderPane", () => {
 		const { container } = render(
 			withQuery(
 				<SidebarProvider>
-					<FolderPane />
+					<FolderPane boxes={undefined} />
 				</SidebarProvider>,
 			),
 		);
@@ -56,9 +68,28 @@ describe("FolderPane", () => {
 		).toHaveAttribute("href", "/app/mail/inbox");
 	});
 
+	it("shows the folders the server read, without waiting for the browser", () => {
+		// The tree is in the page the server sends: the folders it read are
+		// the tree's first paint, not only the state of a query.
+		const { container } = render(
+			withQuery(
+				<SidebarProvider>
+					<FolderPane boxes={FOLDERS} />
+				</SidebarProvider>,
+			),
+		);
+		expect(container.querySelector("[aria-busy=true]")).toBeNull();
+		expect(
+			screen.getByRole("navigation", { name: "folders" }),
+		).toBeInTheDocument();
+		expect(
+			screen.getByRole("link", { name: /role_inbox/ }),
+		).toHaveAttribute("href", "/app/mail/inbox");
+	});
+
 	it("says the server is unreachable", async () => {
 		stubJmap({});
-		render(withQuery(<FolderPane />));
+		render(withQuery(<FolderPane boxes={undefined} />));
 		const notice = await screen.findByRole("alert");
 		expect(notice).toHaveTextContent("unavailable");
 		// The rail collapsed to icons has no room for the sentence.

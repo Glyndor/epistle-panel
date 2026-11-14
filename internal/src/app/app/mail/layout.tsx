@@ -24,9 +24,11 @@ import { adminRoutes, PUBLIC_ROUTES } from "@/lib/routes";
  * The frame of the webmail: the panel's shell with the mail area's own parts.
  * The sidebar holds the way into the composer and the account's folders, and
  * the account's storage at its foot; the header holds the trail of the page
- * (the `trail` slot, a page of its own beside each page). Its middle is not
- * kept for the search until there is one: the shell's `reserveSearch` is the
- * switch. Nothing of the frame scrolls: each pane of a page does.
+ * (the `trail` slot, a page of its own beside each page) and the search of the
+ * area (the `search` slot, beside it). The middle of the bar is kept for the
+ * search, which is there on every page that has a folder to search in; the
+ * composer has none, and the bar keeps no empty cell for it. Nothing of the
+ * frame scrolls: each pane of a page does.
  *
  * Without a session it redirects to sign-in before anything renders. Whether
  * the sidebar starts collapsed, and whether its folders start closed, are read
@@ -36,7 +38,12 @@ import { adminRoutes, PUBLIC_ROUTES } from "@/lib/routes";
 export default async function MailLayout({
 	children,
 	trail,
-}: Readonly<{ children: React.ReactNode; trail: React.ReactNode }>) {
+	search,
+}: Readonly<{
+	children: React.ReactNode;
+	trail: React.ReactNode;
+	search: React.ReactNode;
+}>) {
 	const session = await requireSession();
 	// The way into the administration exists only for an admin session, in an
 	// installation whose admin area is on; its address, id included, is built here.
@@ -66,6 +73,8 @@ export default async function MailLayout({
 				}
 				homeHref={PUBLIC_ROUTES.mail}
 				subtitle={t("heading")}
+				search={search}
+				reserveSearch={search !== null && search !== undefined}
 				sheet={{
 					title: t("navTitle"),
 					description: t("foldersDescription"),
