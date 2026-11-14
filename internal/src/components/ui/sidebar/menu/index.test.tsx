@@ -230,4 +230,75 @@ describe("SidebarMenuButton", () => {
 			"group-data-[collapsible=icon]:data-[active=true]:before:block",
 		);
 	});
+	it("draws a focus ring that fits in the room between two entries, on a link as on a button", () => {
+		const { container } = render(
+			<SidebarProvider>
+				<SidebarMenu>
+					<SidebarMenuItem>
+						<SidebarMenuButton asChild>
+							<a href="/domains">Domains</a>
+						</SidebarMenuButton>
+					</SidebarMenuItem>
+					<SidebarMenuItem>
+						<SidebarMenuButton isActive>Accounts</SidebarMenuButton>
+					</SidebarMenuItem>
+				</SidebarMenu>
+			</SidebarProvider>,
+		);
+		/** The number a class of the element ends with, of the ones that start with `prefix`. */
+		const number = (element: Element | null, prefix: string) => {
+			const found = Array.from(element?.classList ?? []).filter(
+				(name) =>
+					name.startsWith(prefix) &&
+					/^[\d.]+$/.test(name.slice(prefix.length)),
+			);
+			return found.length === 1
+				? Number((found[0] ?? "").slice(prefix.length))
+				: Number.NaN;
+		};
+		// A unit of the spacing scale is 4 px.
+		const room =
+			number(
+				container.querySelector("[data-slot='sidebar-menu']"),
+				"gap-",
+			) * 4;
+		expect(room).toBe(2);
+
+		for (const entry of [
+			screen.getByRole("link", { name: "Domains" }),
+			screen.getByRole("button", { name: "Accounts" }),
+		]) {
+			const width = number(entry, "focus-visible:outline-");
+			// Said outright: a link with no offset of its own gets the
+			// browser's 1 px, and the ring's outer line then falls on the
+			// entry below, under its fill when that one is the current page.
+			const offset = number(entry, "focus-visible:outline-offset-");
+			expect([entry.textContent, width, offset]).toEqual([
+				entry.textContent,
+				2,
+				0,
+			]);
+			expect(width + offset).toBeLessThanOrEqual(room);
+			// And the entry with the focus is drawn over its neighbours.
+			expect(entry).toHaveClass("relative", "focus-visible:z-10");
+		}
+	});
+
+	it("lets a caller move the ring off a filled entry, without a second offset left behind", () => {
+		render(
+			<SidebarProvider>
+				<SidebarMenu>
+					<SidebarMenuItem>
+						<SidebarMenuButton className="focus-visible:outline-offset-2">
+							Write
+						</SidebarMenuButton>
+					</SidebarMenuItem>
+				</SidebarMenu>
+			</SidebarProvider>,
+		);
+
+		const entry = screen.getByRole("button", { name: "Write" });
+		expect(entry).toHaveClass("focus-visible:outline-offset-2");
+		expect(entry).not.toHaveClass("focus-visible:outline-offset-0");
+	});
 });
