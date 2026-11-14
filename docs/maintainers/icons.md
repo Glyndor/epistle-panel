@@ -23,6 +23,34 @@ another host would be blocked.
    with `currentColor` and the stroke above, and add a row to the table below
    with its source and licence.
 
+## One size and one stroke for each role
+
+An icon takes its size from the component that holds it and its stroke from the
+icon set (2 px on the 24 px grid), so two entries, two actions or two rows
+never differ by the weight of their icon. A screen passes neither a size class
+nor a `strokeWidth` to an icon of a control; `src/test/icon-roles` reads the
+source and fails when one does.
+
+| Role | Size | Set by |
+|---|---|---|
+| An entry of the sidebar's navigation, in both areas | 16 px | `SidebarMenuButton` (`[&>svg]:size-4`) |
+| An action of a bar: a button with an icon, alone or beside its name | 16 px | `Button` (`[&_svg:not([class*='size-'])]:size-4`) |
+| A row of a menu and the heading of a run of rows | 16 px | `DropdownMenuItem`, `DropdownMenuRadioItem`, `DropdownMenuLabel` (`[&_svg]:size-4`) |
+| The mark between two steps of a trail | 14 px | `BreadcrumbSeparator` |
+| The arrow that says how a column is sorted, the marks of a message's state in its row | 14 px | the mark itself; they are not the icon of a control |
+| The tick inside a 16 px box | 12 px | `DropdownMenuCheckboxItem` |
+
+A control that is an icon alone has an accessible name (text of the control
+that is not drawn, or `aria-label`) and is the child of a `Tooltip`
+(`components/ui/tooltip`), which shows that name, and the control's key when it
+has one, on hover and on keyboard focus. `src/test/icon-only-has-tooltip` holds
+it for every button of the icon size.
+
+Every row of a menu that is an action carries an icon. A row that is one of a
+set of choices carries the mark of the set (a dot, a tick); the theme's choices
+carry their own icon as well, the one the theme button shows. A language is
+told by its name: the icon is on the heading of the run.
+
 ## Inventory
 
 | Icon | Where | Source | Licence |
@@ -30,6 +58,8 @@ another host would be blocked.
 | `EpistleMark` | sidebar header | drawn for this panel, `components/icons/epistle-mark` | the repository's own (MIT) |
 | Lucide: `LayoutDashboardIcon`, `GlobeIcon`, `UsersIcon`, `InboxIcon`, `BanIcon`, `HistoryIcon`, `ShieldIcon`, `LogOutIcon`, `SunIcon`, `MoonIcon`, `MonitorIcon`, `PanelLeftIcon`, `XIcon`, `ChevronRightIcon`, `InboxIcon` | navigation, the administration entry and sign out of the profile menu, the theme button, sidebar toggle, sheet close, breadcrumb mark, empty tables | `lucide-react` | ISC |
 | Lucide: `ListFilterIcon`, `CheckIcon`, `ChevronLeftIcon`, `ChevronRightIcon`, `MoreHorizontalIcon` | the Filters button of a table, the tick of a menu box, previous and next page, the gap between page numbers | `lucide-react` | ISC |
+| Lucide: `ChevronDownIcon`, `PenLineIcon`, `InboxIcon`, `FileEditIcon`, `SendIcon`, `ArchiveIcon`, `ShieldAlertIcon`, `Trash2Icon`, `FolderIcon` | the heading of a navigation group, the composer and the folders of the mail area's sidebar | `lucide-react` | ISC |
+| Lucide: `PaletteIcon`, `LanguagesIcon`, `UserCogIcon`, `Trash2Icon` | the headings of the theme and language runs of the profile menu, the two actions of an account's row | `lucide-react` | ISC |
 
 The custom component's test asserts the properties above: decorative, 24 px
 `viewBox`, `currentColor`, and no script, style or external reference.

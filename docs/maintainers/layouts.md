@@ -10,7 +10,7 @@ role.
 | Area | Path | Who | Frame |
 |---|---|---|---|
 | Sign-in | `/` (`(auth)/page.tsx`) | anyone without a session; a visitor with one is sent to `/app/mail` | `(auth)/layout.tsx`: a bare `main`, no navigation |
-| Mail | `/app/mail` (`app/app/mail`) | a session of any role | `mail/layout.tsx`: checks the session, then its own frame (header with the way into the admin for an admin session, one `main`, three named panes); `/app/mail/body/[id]` and `/app/mail/attachment/[id]/[part]` are its route handlers. See `mail.md` |
+| Mail | `/app/mail` (`app/app/mail`) | a session of any role | `mail/layout.tsx`: checks the session, then `AppShell` with the mail's own parts (the composer and the folders in the sidebar, the storage at its foot, the way into the admin for an admin session in the profile menu); `/app/mail/body/[id]` and `/app/mail/attachment/[id]/[part]` are its route handlers. See `mail.md` |
 | Admin | `/app/{id}/...` (`app/app/[adminId]`) | a session with the admin role, and the installation's id | `[adminId]/layout.tsx`: checks the role and the id, then `AppShell` with the admin navigation |
 
 `{id}` is a UUID v4 that belongs to the installation (`EPISTLE_PANEL_ADMIN_ID`).
@@ -18,9 +18,11 @@ It is one more layer of obscurity, not a secret: the session and the role are th
 barrier. Without the variable the admin area is off. Everything that does not
 answer is one 404 (see "How the 404 stays one" below).
 
-The two areas never share a layout, so the admin shell does not load the mail
-area's code and the reverse. The mail frame is its own (`app/app/mail/layout.tsx`, three panes, no sidebar) and
-does not touch the admin tree. There is one session and no separate admin cookie: the role
+The two areas never share a layout, so the admin area does not load the mail
+area's code and the reverse. What they share is the shell
+(`components/layout/app-shell`), which knows neither: each layout hands it its
+own navigation, the trail of its header and what it adds to the sidebar's
+foot. There is one session and no separate admin cookie: the role
 (`admin` or `user`) is signed into the token at sign-in from the epistle API's
 `/auth/verify` answer, and each admin page, each admin Server Action
 (`lib/query/run-action`) and the proxy read it again from the token. A `user`
@@ -33,8 +35,8 @@ until the session ends.
 `features/navigation/config/items` builds the list of entries (path, icon name,
 label key, group, roles) from the admin paths, `navItems(routes)`.
 `queries/nav-for-role` returns the groups a role sees and drops every entry whose
-roles do not include it. The sidebar knows no route: `AppShell` and `AppSidebar`
-take the groups and the home link as props. To add a page, add an entry (and its
+roles do not include it. The sidebar knows no route: `NavMain` takes the groups
+and the admin layout hands it to the shell as its navigation. To add a page, add an entry (and its
 icon name and label keys to the schema and the `nav` messages) and the route; the
 shell needs no change. An entry's href must be an absolute in-app path, which
 `schemas/nav-item` enforces, and a route that exists in the app tree: `typedRoutes`
@@ -63,21 +65,36 @@ without a second `main` landmark.
 
 ## Breadcrumbs
 
-Every admin page draws the trail to itself above its heading, with
-`AdminBreadcrumbs` (`features/navigation/components/admin-breadcrumbs`): the
-administration, the page and, on a page about one thing (an account), that
-thing. `queries/admin-trail` builds it from the admin routes and the key of the
-page's navigation label, so a trail cannot name a path the panel does not have
-and the name of the thing is never part of an address. The last step is the
-current page (`aria-current="page"`, not a link).
+The trail to the current page is in the header of both areas, drawn by
+`components/layout/trail`: one line, each step cut short where the header has
+no room (the last one first), and below 768 px the area itself left out. The
+last step is the current page (`aria-current="page"`, not a link).
 
-A page passes the routes it got from `requireAdmin()`. Its `loading.tsx` is
-given no parameters, so it takes them from `queries/loading-routes` and renders
-the same call: the trail is in the first paint and does not move when the page
-arrives. The account page's loading state does not know the account, so a bar
-holds the place of the last step. To add a page, add its navigation entry (the
-trail reads the same label) and render `AdminBreadcrumbs` in the page and in
-its `loading.tsx`; `streaming.test.tsx` compares the two.
+A layout cannot know which page it frames, so the trail is a parallel route:
+each layout has a `trail` slot (`@trail`), with a page of its own beside each
+page of the area, reached by the same address and rendered on the server like
+the page. A `default.tsx` answers for an address with no trail. A trail page
+checks the session itself, like every page (`role-gate.test.tsx` lists the
+admin ones). A trail that waits for the API streams inside its own `Suspense`,
+with a bar in the place of the name it does not know yet, so it never holds
+the frame back.
+
+- **Administration**: `AdminBreadcrumbs`
+  (`features/navigation/components/admin-breadcrumbs`) draws the
+  administration, the page and, on a page about one thing (an account), that
+  thing. `queries/admin-trail` builds it from the admin routes and the key of
+  the page's navigation label, so a trail cannot name a path the panel does not
+  have. The account is the last step only once the accounts list says it is
+  one (`queries/account-leaf`, by the rule the page follows and in the same
+  call); a name that is no account leaves the accounts list as a link and
+  marks no current page.
+- **Mail**: `MailBreadcrumbs` (`features/mail/components/mail-breadcrumbs`)
+  draws the mail, the folder and the subject of the open message; see
+  `mail.md`.
+
+To add a page, add its navigation entry (the trail reads the same label) and a
+`page.tsx` under `@trail` at the same path; `streaming.test.tsx` holds the
+trail of every admin page.
 
 A `loading.tsx` is the first paint of every page in the folders below it, not
 only of the page beside it. So a page that has other pages below it (the status
@@ -140,13 +157,44 @@ header is a row with a least height that wraps, so on a narrow window without
 script that end goes under the rest of the bar and the page is not pushed
 sideways.
 
+## The header
+
+`components/layout/site-header` is one row of one least height in both areas
+(48 px, 56 px on a coarse pointer), on a surface of its own: the sidebar
+toggle, the trail, a cell in its middle that an area keeps for its search
+(`reserveSearch`; the mail does, from 1024 px, and the cell is empty until the
+search is built) and the far end below. The trail never takes a second line.
+What may wrap is the far end, on a narrow window without script.
+
 ## The shell and its contract
 
 `components/layout/app-shell` draws the skip link, the sidebar, the header and
-the single `main` landmark. A surface that needs a different frame, such as the
-webmail's folder tree, message list and reader, does not extend it. It renders
-its own layout from the parts in `components/ui/sidebar` (the provider, the
-rail and its regions are separate leaves) and keeps the same rules:
+the single `main` landmark, for both areas.
+
+- **Three zones, no line.** The rail (`bg-sidebar`), the bar (`bg-header`) and
+  the canvas (`bg-background`) are told apart by tone; a work panel is a
+  raised, rounded surface on the canvas (`bg-surface`). The tones are tokens
+  and a test holds them apart (`customising.md`).
+- **Nothing of the frame scrolls.** The shell is as tall as the window. The
+  sidebar, its foot and the header stay in place. `content="page"` scrolls the
+  page as a whole inside `main` (the administration); `content="panes"` leaves
+  the scrolling to the panes of the page (the mail). The padded column of a
+  page is a child of the scrolling box and not the box itself: a flex column
+  of a fixed height squeezes a table that scrolls sideways.
+- **No page footer.** What one would hold is at the foot of the sidebar: what
+  the area adds (the mail's storage), the version of the panel
+  (`lib/panel-version`, from the manifest the release workflow holds to the
+  tag) and the copyright notice.
+- **Groups open and close.** A group of the navigation sits under a heading
+  that is a button (`components/layout/nav-section`): it says whether the
+  group is open and what it controls, and a closed group keeps its entries out
+  of the page. Collapsed to icons there is no heading, so every group shows
+  its entries.
+- **The rail collapses to icons** from the header's toggle or Ctrl+B (Cmd+B),
+  each entry named in a tooltip. The state is the `sidebar_state` cookie, read
+  by each layout on the server, so the first paint is the one the person left.
+
+Every frame keeps these rules:
 
 - one `main` landmark, and the skip link is the first focusable element;
 - each region is a named landmark, so no control sits outside one;
