@@ -46,6 +46,17 @@ const field = (name: string) =>
 /** The field of the words. */
 const words = () => screen.getByRole("searchbox") as HTMLInputElement;
 
+/**
+ * The button that opens the panel of the fields: the summary of the
+ * browser's own disclosure.
+ */
+const panelButton = () =>
+	screen.getByText("searchFields").closest("summary") as HTMLElement;
+
+/** The disclosure that holds the fields. */
+const disclosure = () =>
+	panelButton().closest("details") as HTMLDetailsElement;
+
 /** Write a value in a field, as a person typing would. */
 function write(name: string, value: string) {
 	fireEvent.change(field(name), { target: { value } });
@@ -53,7 +64,7 @@ function write(name: string, value: string) {
 
 /** Open the panel of the fields, so what they say is seen. */
 function openPanel() {
-	fireEvent.click(screen.getByRole("button", { name: "searchFields" }));
+	fireEvent.click(panelButton());
 }
 
 /** The address the form sends, as a browser would build it. */
@@ -254,34 +265,46 @@ describe("the search form", () => {
 		expect(html).not.toContain("<script>");
 	});
 
-	it("keeps the fields in the page while the panel is closed, but out of sight and out of the tab order", () => {
-		const { container, form } = draw();
+	it("keeps the fields in the page while the panel is closed, so a search keeps what was typed in them", () => {
+		const { form } = draw();
 
-		const button = screen.getByRole("button", { name: "searchFields" });
-		const panel = container.querySelector<HTMLElement>(
-			'[data-slot="collapsible-content"]',
-		);
-		expect(button).toHaveAttribute("aria-expanded", "false");
-		expect(panel?.hidden).toBe(true);
-		expect(field("from")).not.toBeVisible();
+		// The fields are inside the browser's own disclosure: while it is
+		// closed it takes them out of sight and out of the tab order, and it
+		// does it without any script.
+		expect(disclosure().open).toBe(false);
+		expect(disclosure().contains(field("from"))).toBe(true);
 
 		write("from", "ana");
 		const sent = address(form);
 		expect(sent.get("from")).toBe("ana");
 
 		openPanel();
-		expect(panel?.hidden).toBe(false);
-		expect(field("from")).toBeVisible();
+		expect(disclosure().open).toBe(true);
 	});
 
 	it("opens and closes the panel of the fields", () => {
 		draw();
-		const button = screen.getByRole("button", { name: "searchFields" });
 
-		expect(button).toHaveAttribute("aria-expanded", "false");
-		fireEvent.click(button);
-		expect(button).toHaveAttribute("aria-expanded", "true");
-		fireEvent.click(button);
-		expect(button).toHaveAttribute("aria-expanded", "false");
+		expect(disclosure().open).toBe(false);
+		openPanel();
+		expect(disclosure().open).toBe(true);
+		fireEvent.click(panelButton());
+		expect(disclosure().open).toBe(false);
+	});
+
+	it("opens the fields with the browser's own button, before any script has loaded", () => {
+		const html = renderToString(
+			withQuery(
+				<SearchForm path="/app/mail/inbox" conditions={EMPTY_CONDITIONS} />,
+			),
+		);
+
+		// What the browser gets before any script runs: a disclosure with a
+		// summary in it and the fields inside. The browser opens and closes
+		// it on its own, with no script of the panel's.
+		expect(html).toContain("<details");
+		expect(html).toContain("<summary");
+		expect(html).toContain('name="from"');
+		expect(html).toContain('name="subject"');
 	});
 });

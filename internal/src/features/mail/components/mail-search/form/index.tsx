@@ -6,10 +6,10 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
-	Collapsible,
-	CollapsibleContent,
-	CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+	Disclosure,
+	DisclosureContent,
+	DisclosureTrigger,
+} from "@/components/ui/disclosure";
 import { Tooltip } from "@/components/ui/tooltip";
 import {
 	FieldError,
@@ -70,7 +70,6 @@ export function SearchForm({
 	conditions: ListConditions;
 }) {
 	const t = useTranslations("mail");
-	const [open, setOpen] = useState(false);
 	const [errors, setErrors] = useState<Record<string, string>>({});
 	const wordsError = errors["q"];
 	const wordsMessage =
@@ -108,11 +107,7 @@ export function SearchForm({
 			className="flex min-w-0 flex-1 items-center gap-2"
 		>
 			{carried(conditions)}
-			<Collapsible
-				open={open}
-				onOpenChange={setOpen}
-				className="min-w-0 flex-1"
-			>
+			<div className="min-w-0 flex-1">
 				<div className="relative">
 					<SearchIcon
 						aria-hidden="true"
@@ -136,34 +131,31 @@ export function SearchForm({
 						}
 						className="min-w-0 w-full ps-9 pe-10"
 					/>
-					<CollapsibleTrigger asChild>
-						<Tooltip label={t("searchFields")} align="end">
-							<Button
-								type="button"
-								variant="ghost"
-								size="icon"
-								className="absolute end-1 top-1/2 -translate-y-1/2"
-							>
-								<SlidersHorizontalIcon aria-hidden="true" />
-								<span className="sr-only">
-									{t("searchFields")}
+					{/* The fields are behind the browser's own disclosure, so they
+					    are there before any script has loaded: the summary is the
+					    button that opens them, and the browser opens and closes
+					    them with it. */}
+					<Disclosure>
+						<DisclosureTrigger className="absolute end-1 top-1/2 -translate-y-1/2">
+							<Tooltip label={t("searchFields")} align="end">
+								<span>
+									<SlidersHorizontalIcon aria-hidden="true" />
+									<span className="sr-only">
+										{t("searchFields")}
+									</span>
 								</span>
-							</Button>
-						</Tooltip>
-					</CollapsibleTrigger>
+							</Tooltip>
+						</DisclosureTrigger>
+						<DisclosureContent className="absolute end-0 top-full z-30 mt-2 w-[min(40rem,calc(100vw_-_2rem))] rounded-xl bg-surface-raised p-3 shadow-raised">
+							<SearchFields
+								conditions={conditions}
+								errors={errors}
+							/>
+						</DisclosureContent>
+					</Disclosure>
 				</div>
 				<FieldError id="mail-search-words" error={wordsMessage} />
-				{/* The fields stay in the page while the panel is closed: the
-				    form carries them, and a search keeps what was typed in
-				    them. */}
-				<CollapsibleContent
-					forceMount
-					hidden={!open}
-					className="absolute inset-x-0 top-full z-30 mt-2 rounded-xl bg-surface-raised p-3 shadow-raised"
-				>
-					<SearchFields conditions={conditions} errors={errors} />
-				</CollapsibleContent>
-			</Collapsible>
+			</div>
 			<Tooltip label={t("searchSubmit")} align="end">
 				<Button type="submit" variant="outline" size="icon">
 					<SearchIcon aria-hidden="true" />
