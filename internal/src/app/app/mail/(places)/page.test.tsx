@@ -112,4 +112,31 @@ describe("/app/mail", () => {
 		expect(asked).not.toContainEqual({ inMailbox: "Sent" });
 		expect(screen.getByText("readerEmpty")).toBeInTheDocument();
 	});
+	it("paints the list pane in the density the reader chose, and the switch agrees", async () => {
+		const pane = () => screen.getByRole("region", { name: "listLabel" });
+		const toggle = () =>
+			screen.getByRole("button", { name: "densityCompact" });
+
+		await home();
+		expect(pane()).toHaveAttribute("data-density", "comfortable");
+		// The rows read the density through the pane's group, and are inside it.
+		expect(pane()).toHaveClass("group/list");
+		expect(
+			pane().querySelector('[data-slot="message-row"]'),
+		).not.toBeNull();
+		expect(toggle()).toHaveAttribute("aria-pressed", "false");
+		await settled();
+		cleanup();
+
+		cookies.jar.set("mail-density", "compact");
+		await home();
+		expect(pane()).toHaveAttribute("data-density", "compact");
+		expect(toggle()).toHaveAttribute("aria-pressed", "true");
+		await settled();
+		cleanup();
+
+		cookies.jar.set("mail-density", '"><script>');
+		await home();
+		expect(pane()).toHaveAttribute("data-density", "comfortable");
+	});
 });

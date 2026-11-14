@@ -5,6 +5,8 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tooltip } from "@/components/ui/tooltip";
+import { DensityToggle } from "@/features/mail/components/density-toggle";
+import type { ListDensity } from "@/features/mail/config/list-density";
 import { folderPath, mailHref } from "@/features/mail/links/mail-href";
 import {
 	LIST_FILTERS,
@@ -28,19 +30,23 @@ const FILTER_LABELS = {
  * folder's own page, so it works before any script has loaded and a result can
  * be bookmarked; the filters are links. Both stay in the folder, which is the
  * path, and a new search or filter starts again at the first page. The search field says what the search
- * reads (the server has no text search, see `load-message-list`).
+ * reads (the server has no text search, see `load-message-list`). The switch
+ * between the comfortable and the compact list sits at the end of the filters.
  */
 export function ListToolbar({
 	box,
 	folderRole: role,
 	filter,
 	q,
+	density,
 }: {
 	box: string;
 	/** The folder's role, when its path is the role's. Not named `role`, which on an element is ARIA's. */
 	folderRole: MailboxRole | null;
 	filter: ListFilter;
 	q: string;
+	/** The density the server read from the cookie and painted on the pane. */
+	density: ListDensity;
 }) {
 	const t = useTranslations("mail");
 
@@ -84,27 +90,35 @@ export function ListToolbar({
 					{t("searchNote", { count: SCAN_LIMIT })}
 				</p>
 			)}
-			<nav aria-label={t("filtersLabel")}>
-				<ul className="flex flex-wrap gap-1">
-					{LIST_FILTERS.map((value) => (
-						<li key={value}>
-							<Link
-								href={mailHref({ box, role, filter: value, q })}
-								aria-current={
-									value === filter ? "true" : undefined
-								}
-								className={cn(
-									"inline-flex min-h-8 items-center rounded-full bg-muted px-3 text-xs hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring pointer-coarse:min-h-11 pointer-coarse:px-3",
-									value === filter &&
-										"bg-accent font-medium text-accent-foreground",
-								)}
-							>
-								{t(FILTER_LABELS[value])}
-							</Link>
-						</li>
-					))}
-				</ul>
-			</nav>
+			<div className="flex items-start gap-2">
+				<nav aria-label={t("filtersLabel")} className="min-w-0 flex-1">
+					<ul className="flex flex-wrap gap-1">
+						{LIST_FILTERS.map((value) => (
+							<li key={value}>
+								<Link
+									href={mailHref({
+										box,
+										role,
+										filter: value,
+										q,
+									})}
+									aria-current={
+										value === filter ? "true" : undefined
+									}
+									className={cn(
+										"inline-flex min-h-8 items-center rounded-full bg-muted px-3 text-xs hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring pointer-coarse:min-h-11 pointer-coarse:px-3",
+										value === filter &&
+											"bg-accent font-medium text-accent-foreground",
+									)}
+								>
+									{t(FILTER_LABELS[value])}
+								</Link>
+							</li>
+						))}
+					</ul>
+				</nav>
+				<DensityToggle density={density} />
+			</div>
 		</div>
 	);
 }
