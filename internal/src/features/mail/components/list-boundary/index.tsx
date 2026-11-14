@@ -88,7 +88,10 @@ export async function ListBoundary({
 				q={q}
 				density={density}
 			/>
-			<div className="relative min-h-0 flex-1 scroll-pt-8 overflow-y-auto">
+			<div
+				data-list-scroller=""
+				className="relative min-h-0 flex-1 scroll-pt-8 overflow-y-auto"
+			>
 				<MessageList
 					view={{ ...input, role: resolved.role }}
 					selectedId={selectedId}

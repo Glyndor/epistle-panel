@@ -25,7 +25,7 @@ roles (`--background`, `--foreground`, `--primary`, `--muted`, `--accent`,
 colours of the charts, checked pair by pair, and `--chart-missing`, the band of
 a column the server may not have returned (see `charts.md`), `--label-1` to
 `--label-8`, the tones of a message's labels (see "The label tones" in
-`mail.md`)), the four surface roles
+`mail-list.md`)), the four surface roles
 (`--background` the canvas, `--surface` a card or table, `--surface-sunken` a
 stripe or quiet callout, `--surface-raised` a menu, toast or dialog, with its
 shadow `--elevation`; `--card` and `--popover` follow them), `--radius`, the

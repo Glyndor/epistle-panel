@@ -6,7 +6,7 @@ import {
 	screen,
 	waitFor,
 } from "@testing-library/react";
-
+import { forgetListMemory } from "@/features/mail/components/message-list/list-memory";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
 import { clearSecretCache } from "@/lib/config/secret";
 import { settled, withQuery } from "@/test/query-wrapper";
@@ -35,8 +35,7 @@ beforeEach(async () => {
 	await cookies.signIn("admin");
 });
 afterEach(async () => {
-	// What the page remembers of the focus goes with a press on nothing.
-	fireEvent.pointerDown(document.body);
+	forgetListMemory();
 	await settled();
 	process.env = { ...savedEnv };
 	cleanup();

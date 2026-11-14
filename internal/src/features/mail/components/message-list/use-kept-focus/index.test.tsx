@@ -1,58 +1,19 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
-import { handFocusToList, useKeptFocus } from ".";
+import {
+	forgetListMemory,
+	handFocusToList,
+} from "@/features/mail/components/message-list/list-memory";
+import {
+	control,
+	RowList as List,
+} from "@/features/mail/test-support/row-list";
 
 afterEach(() => {
-	// What the page remembers of the focus goes with a press on nothing.
-	fireEvent.pointerDown(document.body);
 	cleanup();
+	forgetListMemory();
 });
-
-/** A list with the parts the hook looks for: rows, their link and their two marks. */
-function List({
-	ids,
-	redrawn = false,
-	settled = true,
-}: {
-	ids: readonly string[];
-	/** Whether the list has its messages, or is still on its way. */
-	settled?: boolean;
-	/** Draw the rows again whenever the first one changes, as a group keyed by its first row did. */
-	redrawn?: boolean;
-}) {
-	const focus = useKeptFocus(ids, settled);
-	return (
-		<>
-			<div ref={focus.list}>
-				<h2>Messages</h2>
-				{ids.length === 0 ? (
-					<div ref={focus.empty} tabIndex={-1}>
-						nothing here
-					</div>
-				) : null}
-				<ul key={redrawn ? ids[0] : "list"}>
-					{ids.map((id) => (
-						<li key={id} data-slot="message-row">
-							<a href={`#${id}`} data-message-id={id}>
-								open {id}
-							</a>
-							<button type="button" data-mark="important">
-								important {id}
-							</button>
-							<button type="button" data-mark="star">
-								star {id}
-							</button>
-						</li>
-					))}
-				</ul>
-			</div>
-			<button type="button">outside</button>
-		</>
-	);
-}
-const control = (name: string) =>
-	screen.getByRole(name.startsWith("open") ? "link" : "button", { name });
 
 describe("useKeptFocus", () => {
 	it("moves the focus to the same button of the row that came after the one that left", () => {
@@ -156,70 +117,6 @@ describe("useKeptFocus", () => {
 		expect(document.activeElement).toBe(control("open c"));
 	});
 
-	describe("the list's scroll", () => {
-		const focus = HTMLElement.prototype.focus;
-		let asked: Array<FocusOptions | undefined> = [];
-		const watch = () => {
-			asked = [];
-			HTMLElement.prototype.focus = function (options?: FocusOptions) {
-				asked.push(options);
-				focus.call(this, options);
-			};
-		};
-		afterEach(() => {
-			HTMLElement.prototype.focus = focus;
-		});
-
-		it("does not follow the focus when the row left on its own", () => {
-			const view = render(<List ids={["a", "b", "c"]} />);
-			control("open b").focus();
-			watch();
-
-			// The list was read again in the background.
-			view.rerender(<List ids={["a", "c"]} />);
-
-			expect(document.activeElement).toBe(control("open c"));
-			expect(asked).toEqual([{ preventScroll: true }]);
-		});
-
-		it("follows the focus when a press in the row made it leave", () => {
-			const view = render(<List ids={["a", "b", "c"]} />);
-			control("star b").focus();
-			fireEvent.click(control("star b"));
-			watch();
-
-			view.rerender(<List ids={["a", "c"]} />);
-
-			expect(document.activeElement).toBe(control("star c"));
-			expect(asked).toEqual([{ preventScroll: false }]);
-		});
-
-		it("forgets a press once the list changed, and does not count one made in another row", () => {
-			const view = render(<List ids={["a", "b", "c", "d"]} />);
-			control("star c").focus();
-			fireEvent.click(control("star c"));
-			// The list changes for another reason, and c stays.
-			view.rerender(<List ids={["b", "c", "d"]} />);
-			expect(document.activeElement).toBe(control("star c"));
-			watch();
-
-			// Later c leaves on its own: the press is long past.
-			view.rerender(<List ids={["b", "d"]} />);
-
-			expect(document.activeElement).toBe(control("star d"));
-			expect(asked).toEqual([{ preventScroll: true }]);
-			cleanup();
-
-			const other = render(<List ids={["a", "b", "c"]} />);
-			control("star b").focus();
-			fireEvent.click(control("star a"));
-			watch();
-			other.rerender(<List ids={["a", "c"]} />);
-
-			expect(asked).toEqual([{ preventScroll: true }]);
-		});
-	});
-
 	it("keeps to the link when the link had the focus", () => {
 		const view = render(<List ids={["a", "b", "c"]} />);
 		control("open b").focus();
@@ -247,34 +144,22 @@ describe("useKeptFocus", () => {
 		expect(document.activeElement).toBe(control("star b"));
 	});
 
-	it("does not follow a focus the person took to another control", () => {
+	it("does not follow a focus the person took to another control, also when that control is gone by then", () => {
 		const view = render(<List ids={["a", "b", "c"]} />);
 		const star = control("star b");
 		const outside = control("outside");
 		star.focus();
-		outside.focus();
-		// What a browser sends with it: where the focus went.
+		// What a browser sends when the focus moves: where it went. The
+		// other control then goes with its own part of the page, which
+		// leaves the focus on the page: only what was heard here says that
+		// the person had taken it away.
 		fireEvent.focusOut(star, { relatedTarget: outside });
+		star.blur();
+		expect(document.activeElement).toBe(document.body);
 
 		view.rerender(<List ids={["a", "c"]} />);
 
-		expect(document.activeElement).toBe(outside);
-	});
-
-	it("does not pull back a focus that was taken elsewhere and then dropped", () => {
-		const view = render(<List ids={["a", "b", "c"]} />);
-		const star = control("star b");
-		const outside = control("outside");
-		star.focus();
-		outside.focus();
-		fireEvent.focusOut(star, { relatedTarget: outside });
-		// The other control lets go of it: the focus is on the page again.
-		outside.blur();
-
-		view.rerender(<List ids={["a", "c"]} />);
-
-		expect(document.activeElement).not.toBe(control("star c"));
-		expect(document.activeElement?.closest("ul")).toBeNull();
+		expect(document.activeElement).toBe(document.body);
 	});
 
 	it("does not pull the focus back after a press outside the row", () => {
@@ -296,5 +181,69 @@ describe("useKeptFocus", () => {
 		view.rerender(<List ids={["a"]} />);
 
 		expect(document.activeElement).toBe(document.body);
+	});
+	it("gives the focus to the row after one that had already left when it was handed over", () => {
+		const view = render(<List ids={["a", "b", "c"]} />);
+		// The list was read again and b went, with the focus in the reader.
+		view.rerender(<List ids={["a", "c"]} />);
+		expect(document.activeElement).toBe(document.body);
+
+		// Only then does the reader hear that b left, and hands the focus over.
+		handFocusToList("b");
+		view.unmount();
+		render(<List ids={["a", "c"]} />);
+
+		expect(document.activeElement).toBe(control("open c"));
+	});
+
+	it("comes back to the row that was opened last, also when its link could not take the focus", () => {
+		const first = render(<List ids={["a", "b", "c"]} />);
+		control("open a").focus();
+		// `j` in the reader, with the list out of view: a click on the
+		// link of the next row, and no focus.
+		fireEvent.click(control("open b"));
+		first.unmount();
+
+		render(<List ids={["a", "b", "c"]} />);
+
+		expect(document.activeElement).toBe(control("open b"));
+	});
+
+	it("forgets the rows of one list when another is drawn", () => {
+		const view = render(<List ids={["a", "b", "c"]} address="inbox" />);
+		control("star b").focus();
+		view.unmount();
+
+		// Another folder, which happens to hold a message of the same id.
+		render(<List ids={["x", "b"]} address="archive" />);
+
+		expect(document.activeElement).toBe(document.body);
+	});
+	it("gives up remembered row focus when another control takes it between drawings", () => {
+		const first = render(<List ids={["a", "b"]} />);
+		control("star b").focus();
+		first.unmount();
+		const button = document.createElement("button");
+		document.body.append(button);
+		button.focus();
+		button.remove();
+
+		render(<List ids={["a", "b"]} />);
+
+		expect(document.activeElement).toBe(document.body);
+	});
+
+	it("keeps the reader's successor through several list updates before handoff", () => {
+		const shown = render(<List ids={["a", "b", "c", "d", "x"]} />);
+		control("outside").focus();
+		shown.rerender(<List ids={["a", "c", "d", "x"]} />);
+		shown.rerender(<List ids={["a", "d", "x"]} />);
+		shown.rerender(<List ids={["a", "d"]} />);
+		handFocusToList("b");
+		shown.unmount();
+
+		render(<List ids={["a", "d"]} />);
+
+		expect(document.activeElement).toBe(control("open d"));
 	});
 });

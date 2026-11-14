@@ -36,20 +36,33 @@ export function MessageList({
 	selectedId: string | undefined;
 }) {
 	const t = useTranslations("mail");
-	const { data, isPending, isError, refetch, isFetching } = useQuery(
-		messageListQueryOptions(
-			// The folder's role addresses it and is no part of what is asked.
-			{ box: view.box, page: view.page, filter: view.filter, q: view.q },
-			fetchList,
-		),
-	);
+	const { data, isPending, isError, refetch, isFetching, isPlaceholderData } =
+		useQuery(
+			messageListQueryOptions(
+				// The folder's role addresses it and is no part of what is asked.
+				{
+					box: view.box,
+					page: view.page,
+					filter: view.filter,
+					q: view.q,
+				},
+				fetchList,
+			),
+		);
 	const ids = data?.items.map((item) => item.id) ?? [];
 	useMailShortcuts({ ids, selectedId });
-	const focus = useKeptFocus(ids, data !== undefined);
+	// What names this list among the lists of the page: its scroll is kept
+	// by it. The previous page, left on screen while this one is on its way,
+	// is not this list yet.
+	const focus = useKeptFocus(
+		ids,
+		data !== undefined && !isPlaceholderData && !isError,
+		[view.box, view.page, view.filter, view.q].join("\n"),
+	);
 	// The list's own heading, for assistive technology: the pane is named for
 	// the eye by the folder it shows. The date headings are one level under it.
 	const frame = (body: React.ReactNode) => (
-		<div ref={focus.list} className="contents">
+		<div ref={focus.list} data-slot="message-list" className="contents">
 			<h2 className="sr-only">{t("listLabel")}</h2>
 			{body}
 		</div>

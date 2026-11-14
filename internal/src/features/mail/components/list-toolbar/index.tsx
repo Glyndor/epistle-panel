@@ -3,10 +3,10 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Tooltip } from "@/components/ui/tooltip";
 import { DensityToggle } from "@/features/mail/components/density-toggle";
 import { FilterStrip } from "@/features/mail/components/filter-strip";
+import { SearchField } from "@/features/mail/components/list-toolbar/search-field";
 import type { ListDensity } from "@/features/mail/config/list-density";
 import { folderPath, mailHref } from "@/features/mail/links/mail-href";
 import {
@@ -78,14 +78,12 @@ export function ListToolbar({
 					{filter === "all" ? null : (
 						<input type="hidden" name="filter" value={filter} />
 					)}
-					<Input
-						type="search"
+					<SearchField
 						name="q"
 						defaultValue={q}
 						maxLength={MAX_QUERY_LENGTH}
 						aria-label={t("searchLabel")}
 						aria-keyshortcuts="/"
-						data-mail-search=""
 						className="min-w-0 flex-1"
 					/>
 					<Tooltip label={t("searchSubmit")} align="end">

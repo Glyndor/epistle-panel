@@ -19,7 +19,10 @@ import { AttachmentList } from "@/features/mail/components/attachment-list";
 import { BodyView } from "@/features/mail/components/body-view";
 import { HeadersDisclosure } from "@/features/mail/components/headers-disclosure";
 import { MailNotice } from "@/features/mail/components/mail-notice";
-import { handFocusToList } from "@/features/mail/components/message-list/use-kept-focus";
+import {
+	handFocusToList,
+	listMemory,
+} from "@/features/mail/components/message-list/list-memory";
 import { ReaderHeader } from "@/features/mail/components/reader-header";
 import { ReaderSkeleton } from "@/features/mail/components/reader-skeleton";
 import { ReaderToolbar } from "@/features/mail/components/reader-toolbar";
@@ -37,6 +40,42 @@ const fetchMessage = async (id: string) =>
 /** Whether the reader is the only pane in view, so it must take the focus the list has lost. */
 function readerIsAlone(): boolean {
 	return window.matchMedia("(max-width: 1023px)").matches;
+}
+
+/**
+ * Whether the focus is the reader's to take: on the page, or in the rows of
+ * the list. Anywhere else the person put it there (the search field, a
+ * dialog, the sidebar), and the keys typed there must stay text: with the
+ * focus moved to the title they became shortcuts, and `s` starred the
+ * message and `e` archived it. The search field goes with its page when a
+ * message opens, which leaves the focus on the page while the person is
+ * still typing: the list remembers that, and the title stays out of it.
+ */
+function focusIsFree(): boolean {
+	const active = document.activeElement;
+	return (
+		listMemory.search === null &&
+		(active === null ||
+			active === document.body ||
+			active.closest("[data-slot='message-list']") !== null)
+	);
+}
+
+/**
+ * Whether the focus is the reader's to give to the list: on the page, in the
+ * reader (its link back is drawn in every state of it), or in the dialog
+ * that asks before deleting for good, which is opened from the reader and
+ * drawn outside it. Any other dialog or field is the person's.
+ */
+function focusIsOurs(reader: HTMLElement | null): boolean {
+	const active = document.activeElement;
+	return (
+		listMemory.search === null &&
+		(active === null ||
+			active === document.body ||
+			reader?.contains(active) === true ||
+			active.closest("a[data-mail-back], [role='alertdialog']") !== null)
+	);
 }
 
 const never = () => () => {};
@@ -84,7 +123,7 @@ export function MessageReader({ id, view }: { id: string; view: ListAddress }) {
 	const cameWithThePage = useCameWithThePage();
 	const shown = data !== undefined && data !== null;
 	useEffect(() => {
-		if (shown && (!cameWithThePage || readerIsAlone())) {
+		if (shown && focusIsFree() && (!cameWithThePage || readerIsAlone())) {
 			document.getElementById(headingId)?.focus();
 		}
 	}, [shown, headingId, cameWithThePage]);
@@ -101,6 +140,14 @@ export function MessageReader({ id, view }: { id: string; view: ListAddress }) {
 				href={mailHref(view)}
 				scroll={false}
 				data-mail-back=""
+				// Back at the list, the focus is on the row of this message,
+				// or on the row after it when the message has left. The
+				// link is followed by the person and by the reader itself.
+				onClick={() => {
+					if (focusIsOurs(article.current)) {
+						handFocusToList(id);
+					}
+				}}
 			>
 				<ArrowLeftIcon aria-hidden="true" />
 				{t("back")}
@@ -151,14 +198,8 @@ export function MessageReader({ id, view }: { id: string; view: ListAddress }) {
 			{back}
 			<ReaderToolbar
 				message={data}
-				onLeft={() => {
-					// The reader goes with the message: the focus, when it
-					// is in here, is left to the list.
-					if (article.current?.contains(document.activeElement)) {
-						handFocusToList(id);
-					}
-					backLink.current?.click();
-				}}
+				// The reader goes with the message, through its own link.
+				onLeft={() => backLink.current?.click()}
 				inTrash={roleOf(data.mailboxId) === "trash"}
 				inDrafts={roleOf(data.mailboxId) === "drafts"}
 			/>

@@ -1,46 +1,10 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 
-/** The control of a row that had the focus: the row's link, or one of its two marks. */
-interface Held {
-	readonly id: string;
-	readonly mark: string | null;
-}
-
-/** The same control in the row of message `id`, when the list has it. */
-function controlOf(
-	list: HTMLElement | null,
-	id: string,
-	mark: string | null,
-): HTMLElement | null {
-	const link = list?.querySelector<HTMLElement>(
-		`a[data-message-id="${CSS.escape(id)}"]`,
-	);
-	if (!link || mark === null) {
-		return link ?? null;
-	}
-	return (
-		link
-			.closest("[data-slot='message-row']")
-			?.querySelector<HTMLElement>(`[data-mark="${CSS.escape(mark)}"]`) ??
-		link
-	);
-}
-
-/**
- * What the page knows of the focus in the list. It is kept for the page and
- * not for one drawing of the list: opening a message and going back to the
- * list are two pages of the same place, so the list is drawn anew between
- * them and whatever one drawing remembered would be lost with it.
- */
-const page: {
-	/** The control that has the focus, or had it when it was lost. */
-	held: Held | null;
-	/** The messages on screen, in order, as last drawn. */
-	shown: readonly string[];
-	/** The row a press or a key was last made in, until the list next changes. */
-	acted: string | null;
-	watching: boolean;
-} = { held: null, shown: [], acted: null, watching: false };
+import {
+	listMemory,
+	rememberScroll,
+	turnTo,
+} from "@/features/mail/components/message-list/list-memory";
 
 const rowOf = (target: EventTarget | null) =>
 	target instanceof Element
@@ -50,65 +14,107 @@ const idOf = (row: Element | null) =>
 	row?.querySelector("a[data-message-id]")?.getAttribute("data-message-id") ??
 	null;
 
-/** A press outside the row gives the focus up, even to nothing. Heard once for the page. */
+/** The link of message `id`'s row, when the list has it. */
+function linkOf(list: HTMLElement | null, id: string): HTMLElement | null {
+	return (
+		list?.querySelector<HTMLElement>(
+			`a[data-message-id="${CSS.escape(id)}"]`,
+		) ?? null
+	);
+}
+
+/** The control `mark` of message `id`'s row, or its link. */
+function controlOf(
+	list: HTMLElement | null,
+	id: string,
+	mark: string | null,
+): HTMLElement | null {
+	const link = linkOf(list, id);
+	if (link === null || mark === null) {
+		return link;
+	}
+	return (
+		rowOf(link)?.querySelector<HTMLElement>(
+			`[data-mark="${CSS.escape(mark)}"]`,
+		) ?? link
+	);
+}
+
+/** The message that takes the place of `id`, which was in `before` and is not in `now`: the one after it, or else the one before. */
+function heirOf(
+	before: readonly string[],
+	now: readonly string[],
+	id: string,
+): string | undefined {
+	const at = before.indexOf(id);
+	return (
+		before.slice(at + 1).find((one) => now.includes(one)) ??
+		before
+			.slice(0, Math.max(at, 0))
+			.reverse()
+			.find((one) => now.includes(one))
+	);
+}
+
+let watching = false;
+
+/** A press outside a row gives its focus up, and one outside the list ends the action. Heard once for the page. */
 function watchPresses() {
-	if (page.watching) {
+	if (watching) {
 		return;
 	}
-	page.watching = true;
+	watching = true;
+	document.addEventListener("focusin", (event) => {
+		if (rowOf(event.target) === null) {
+			listMemory.held = null;
+		}
+	});
 	document.addEventListener("pointerdown", (event) => {
-		if (page.held !== null && idOf(rowOf(event.target)) !== page.held.id) {
-			page.held = null;
+		const row = rowOf(event.target);
+		if (listMemory.held !== null && idOf(row) !== listMemory.held.id) {
+			listMemory.held = null;
+		}
+		if (row === null) {
+			listMemory.acted = null;
 		}
 	});
 }
 
 /**
- * Leave the focus to the list when message `id` is about to leave from
- * somewhere else (the reader that had it open): the list gives it to the row
- * that comes after, as if that row had been pressed. The caller makes sure
- * the focus is its own to give.
+ * The list's side of what it remembers for the page (`list-memory`, and the
+ * rules in `docs/maintainers/mail-list.md`). It writes the scroll, the control
+ * with the focus and the row acted on, and each time the list is drawn with
+ * its messages it reads them back:
+ *
+ * 1. drawn anew, the scroll of its address is put back before the paint;
+ * 2. a focus that is adrift goes back to the control that had it, or to the
+ *    same control of the row after it, or before it, or to the notice of the
+ *    empty list. Putting the focus never moves the scroll;
+ * 3. a row is brought into view, as little as it takes: drawn anew, the row
+ *    that got the focus back or the row acted on; read again in place, a
+ *    restored focus is also brought into view, even after a background update;
+ * 4. what could not happen (the list is not in view) is kept for the list
+ *    that is drawn next.
+ *
+ * `ids` are the messages on screen, in order; `settled` says they are this
+ * list's and not the nothing, or the previous page, of a list still on its
+ * way; `address` names the list (folder, page, filter, search). The refs go
+ * on an element around every state of the list and on the notice of the
+ * empty one. The box that scrolls is the nearest ancestor marked
+ * `data-list-scroller`.
  */
-export function handFocusToList(id: string): void {
-	page.held = { id, mark: null };
-	page.acted = id;
-	// The focus is given up here and now. Left where it was until the reader
-	// went, the list saw the row leave first, with the focus on a control
-	// that was still there, and took it for a focus the person had moved.
-	const active = document.activeElement;
-	if (active instanceof HTMLElement) {
-		active.blur();
-	}
-}
-
-/**
- * Keeps the focus in the list when the row that had it leaves. Taking the
- * star off under the starred filter removes the row, and the focus fell to
- * the page: the next Tab started from the top. It now goes to the same
- * control of the row that came after, or of the one before when it was the
- * last, or to the notice of the empty list when no row is left, which is in
- * view and shows the focus.
- *
- * Only a focus the list lost that way is moved. One the person took elsewhere
- * (another control, or a press anywhere outside the row) is theirs: the row
- * can leave later, when the list is read again, and nothing follows it.
- *
- * A row can also be drawn again while it stays listed: its date group is, when
- * the group changes, and the whole list is when a message is opened or closed
- * (another page of the same place). The control that had the focus is then a
- * new element, and the focus is put back on it.
- *
- * The focus moves the list's scroll only when the person made the row leave
- * (a press or a key in that row). When the list was read again on its own,
- * the focus goes to its new place without scrolling to it.
- *
- * `ids` are the messages on screen, in order; `settled` says they are the
- * list's and not the nothing of a list still on its way. The refs go on an
- * element around every state of the list and on the notice of the empty one.
- */
-export function useKeptFocus(ids: readonly string[], settled = true) {
+export function useKeptFocus(
+	ids: readonly string[],
+	settled = true,
+	address = "",
+) {
 	const list = useRef<HTMLDivElement>(null);
 	const empty = useRef<HTMLDivElement>(null);
+	// The address this drawing has taken its place for: its scroll was put
+	// back, and from then on its scroll is the one to note.
+	const placed = useRef<string | null>(null);
+	// Whether the next reading of the memory is the first for that address.
+	const anew = useRef(true);
 
 	useEffect(() => {
 		const box = list.current;
@@ -116,9 +122,10 @@ export function useKeptFocus(ids: readonly string[], settled = true) {
 			return;
 		}
 		watchPresses();
+		const scroller = box.closest<HTMLElement>("[data-list-scroller]");
 		const onFocusIn = (event: FocusEvent) => {
 			const id = idOf(rowOf(event.target));
-			page.held =
+			listMemory.held =
 				id === null
 					? null
 					: {
@@ -131,70 +138,149 @@ export function useKeptFocus(ids: readonly string[], settled = true) {
 		// The focus went to another control: it was not lost.
 		const onFocusOut = (event: FocusEvent) => {
 			if (event.relatedTarget !== null) {
-				page.held = null;
+				listMemory.held = null;
 			}
 		};
-		// A click is also what Enter and Space on a button or a link send.
+		// A click is also what Enter and Space on a button or a link send,
+		// and what `j` and `k` send to the row they open. On the link it is
+		// the row being opened: the row to come back to, also where the list
+		// is not in view and its link cannot take the focus.
 		const onClick = (event: MouseEvent) => {
-			page.acted = idOf(rowOf(event.target));
+			const id = idOf(rowOf(event.target));
+			if (id === null) {
+				return;
+			}
+			listMemory.acted = id;
+			if ((event.target as Element).closest("a[data-message-id]")) {
+				listMemory.held = { id, mark: null };
+			}
+		};
+		// Only the scroll of a list that has taken its place: a new box is
+		// at the top, and a list on its way is not this address yet.
+		const onScroll = () => {
+			if (scroller !== null && placed.current !== null) {
+				rememberScroll(placed.current, scroller.scrollTop);
+			}
 		};
 		box.addEventListener("click", onClick);
 		box.addEventListener("focusin", onFocusIn);
 		box.addEventListener("focusout", onFocusOut);
+		scroller?.addEventListener("scroll", onScroll, { passive: true });
 		return () => {
 			box.removeEventListener("click", onClick);
 			box.removeEventListener("focusin", onFocusIn);
 			box.removeEventListener("focusout", onFocusOut);
+			scroller?.removeEventListener("scroll", onScroll);
 		};
 	}, []);
 
-	const key = ids.join("\n");
-	// biome-ignore lint/correctness/useExhaustiveDependencies: `key` is `ids` by value; the array is new on every render
+	// Rule 1, before the paint: a list drawn anew stands where it stood, and
+	// one never seen stands at the top.
+	useLayoutEffect(() => {
+		if (!settled) {
+			// On its way: whatever scrolls now is not this address.
+			placed.current = null;
+			return;
+		}
+		if (placed.current === address) {
+			return;
+		}
+		turnTo(address);
+		const scroller =
+			list.current?.closest<HTMLElement>("[data-list-scroller]") ?? null;
+		if (scroller !== null) {
+			scroller.scrollTop = listMemory.scroll.get(address) ?? 0;
+		}
+		placed.current = address;
+		anew.current = true;
+	}, [address, settled]);
+
+	// Read after every drawing, not only when IDs change: a new date
+	// grouping can replace the focused row with the same messages listed.
 	useEffect(() => {
 		if (!settled) {
 			return;
 		}
-		const before = page.shown;
-		page.shown = ids;
-		// A press or a key in a row just before the list changed: the person
-		// made the change, and is looking at that row.
-		const local = page.acted;
-		page.acted = null;
-		const lost = page.held;
-		if (lost === null) {
-			return;
+		const before = listMemory.shown;
+		const left = before.filter((id) => !ids.includes(id));
+		if (left.length > 0) {
+			const heirs = new Map(listMemory.heirs);
+			// The reader can hand focus over after several refreshes. Keep
+			// its successor, and follow that successor if it leaves too.
+			for (const [id, heir] of heirs) {
+				if (heir !== undefined && left.includes(heir)) {
+					heirs.set(id, heirOf(before, ids, heir));
+				}
+			}
+			for (const id of left) {
+				heirs.delete(id);
+				heirs.set(id, heirOf(before, ids, id));
+			}
+			// Only recent departures can still have a reader handing over.
+			for (const id of heirs.keys()) {
+				if (heirs.size <= 100) {
+					break;
+				}
+				heirs.delete(id);
+			}
+			listMemory.heirs = heirs;
 		}
+		listMemory.shown = ids;
+		const first = anew.current;
+		anew.current = false;
+		const acted = listMemory.acted;
+		const lost = listMemory.held;
 		const active = document.activeElement;
 		const adrift =
 			active === null || active === document.body || !active.isConnected;
-		if (ids.includes(lost.id)) {
-			// The row is still listed, but it was drawn again and the
-			// control with the focus was replaced by a new one.
-			if (adrift) {
-				controlOf(list.current, lost.id, lost.mark)?.focus({
-					preventScroll: true,
-				});
+		// Rule 3: the row to bring into view, if any.
+		let reveal =
+			first && acted !== null && ids.includes(acted) ? acted : null;
+
+		if (lost !== null && adrift) {
+			// Rule 2: back on its control, or on the same one of its heir.
+			const stays = ids.includes(lost.id);
+			// A row handed over after it had left is not in the last
+			// drawing: its heir was noted when it went.
+			const noted = listMemory.heirs.get(lost.id);
+			const heir = stays
+				? lost.id
+				: noted !== undefined && ids.includes(noted)
+					? noted
+					: heirOf(before, ids, lost.id);
+			const target =
+				heir === undefined
+					? empty.current
+					: controlOf(list.current, heir, lost.mark);
+			target?.focus({ preventScroll: true });
+			if (target !== null && document.activeElement === target) {
+				if (heir === undefined) {
+					listMemory.held = null;
+				} else {
+					// Focus restored to a replacement element must be visible
+					// too, even when only its date group was drawn again.
+					reveal = heir;
+				}
+			} else if (heir !== undefined) {
+				// Rule 4: it could not land, the list is not in view. Kept
+				// for the list drawn next, aimed at the row that would have
+				// had it: drawn anew, that list also brings it into view.
+				listMemory.held = { id: heir, mark: lost.mark };
 			}
-			return;
+		} else if (lost !== null && !ids.includes(lost.id)) {
+			// The row is gone and the focus is the person's, somewhere else.
+			listMemory.held = null;
 		}
-		page.held = null;
-		if (!adrift) {
-			return;
+		// The action ends with its row, not with a drawing that still has it.
+		if (listMemory.acted !== null && !ids.includes(listMemory.acted)) {
+			listMemory.acted = null;
 		}
-		const at = before.indexOf(lost.id);
-		const next =
-			before.slice(at + 1).find((id) => ids.includes(id)) ??
-			before
-				.slice(0, Math.max(at, 0))
-				.reverse()
-				.find((id) => ids.includes(id));
-		// A row that left on its own (the list was read again while the person
-		// reads further down) must not pull the list to where the focus goes.
-		(next === undefined
-			? empty.current
-			: controlOf(list.current, next, lost.mark)
-		)?.focus({ preventScroll: local !== lost.id });
-	}, [key, settled]);
+		if (reveal !== null) {
+			rowOf(linkOf(list.current, reveal))?.scrollIntoView({
+				block: "nearest",
+			});
+		}
+	});
 
 	return { list, empty };
 }
