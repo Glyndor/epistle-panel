@@ -165,16 +165,25 @@ export function ConditionChips({
 					</Badge>
 				);
 			})}
-			<Button asChild variant="ghost" size="sm">
-				<Link
-					href={mailHref({ box, role, conditions: EMPTY_CONDITIONS })}
-					onClick={() => {
-						listMemory.chips = "all";
-					}}
-				>
-					{t("clearAll")}
-				</Link>
-			</Button>
+			{/* The empty list says how to get out of it, with the button that
+			    takes every condition off. Here it would be a second way to do
+			    the same, next to the one that clears the search. */}
+			{data !== undefined && data.items.length === 0 ? null : (
+				<Button asChild variant="ghost" size="sm">
+					<Link
+						href={mailHref({
+							box,
+							role,
+							conditions: EMPTY_CONDITIONS,
+						})}
+						onClick={() => {
+							listMemory.chips = "all";
+						}}
+					>
+						{t("clearAll")}
+					</Link>
+				</Button>
+			)}
 			<span className="text-muted-foreground text-xs">
 				{t("messageCount", { count: data?.total ?? 0 })}
 			</span>

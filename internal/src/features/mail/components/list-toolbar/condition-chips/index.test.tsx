@@ -183,6 +183,20 @@ describe("the chips of the active conditions", () => {
 		);
 	});
 
+	it("leave the way out of an empty list to the empty list itself", async () => {
+		stubJmap({ "Email/query": { ids: [] }, "Email/get": { list: [] } });
+		const { container } = chips({ q: "invoice" });
+
+		// The empty list says how to get out of it, with the button that takes
+		// every condition off: here it would be a second way to do the same.
+		await waitFor(() => {
+			expect(screen.queryByRole("link", { name: "clearAll" })).toBeNull();
+		});
+		expect(container.querySelectorAll('[data-slot="badge"]')).toHaveLength(
+			1,
+		);
+	});
+
 	it("say how many messages matched", async () => {
 		chips({ q: "Hello" });
 

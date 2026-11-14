@@ -47,9 +47,11 @@ const ORDERS = [
 
 /**
  * The filters and the order of the list, in one menu: the quick filters as
- * ticks of a group, and the order as the one of another group. It is the same
- * menu the tables of the administration use, and it says how many of them are
- * on.
+ * ticks of a group, and the order as the one of another group. It is drawn
+ * like the Filters menu of the tables of the administration, and it says how
+ * many of them are on, but it is not that component: that one is bound to
+ * the facets of a table and to the words of the tables, and it has no place
+ * for the order, which is a choice of its own.
  *
  * What it sets is in the address: a tick is a condition of its own, and the
  * address is what the list reads. The list is drawn again with what the
