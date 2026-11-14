@@ -50,7 +50,7 @@ export function NavSection({
 		>
 			<SidebarGroup>
 				<SidebarGroupLabel asChild>
-					<CollapsibleTrigger className="group/toggle w-full justify-between gap-2 text-left hover:cursor-pointer hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground focus-visible:outline-2 focus-visible:outline-sidebar-ring active:bg-sidebar-accent/80 pointer-coarse:h-11">
+					<CollapsibleTrigger className="group/toggle w-full justify-between gap-2 text-left hover:cursor-pointer hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sidebar-ring active:bg-sidebar-accent/80 pointer-coarse:h-11">
 						<span className="min-w-0 truncate">{label}</span>
 						<ChevronDownIcon
 							aria-hidden="true"

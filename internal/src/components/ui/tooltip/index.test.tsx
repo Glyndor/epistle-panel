@@ -119,6 +119,57 @@ describe("Tooltip", () => {
 		);
 	});
 
+	it("stands over a control that is too near the bottom of the window, and hangs under it again when there is room", () => {
+		const html = document.documentElement;
+		const height = Object.getOwnPropertyDescriptor(html, "clientHeight");
+		Object.defineProperty(html, "clientHeight", {
+			value: 800,
+			configurable: true,
+		});
+		try {
+			// The last row in view: its button ends 4 px over the window's edge.
+			const low = renderTip({ align: "end" });
+			place(low, { top: 764, bottom: 796, left: 900, right: 932 });
+			fireEvent.pointerEnter(low);
+			expect(tip()?.style.top).toBe("");
+			// Held by its lower edge at the control's upper one: 800 - 764.
+			expect(tip()?.style.bottom).toBe("36px");
+			expect(tip()).toHaveAttribute("data-side", "top");
+			expect(tip()).toHaveClass("pb-1.5");
+			expect(tip()).not.toHaveClass("pt-1.5");
+			cleanup();
+
+			// One that ends 30 px over the edge has just the room it needs.
+			const fits = renderTip({ align: "end" });
+			place(fits, { top: 738, bottom: 770, left: 900, right: 932 });
+			fireEvent.pointerEnter(fits);
+			expect(tip()?.style.top).toBe("770px");
+			expect(tip()?.style.bottom).toBe("");
+			expect(tip()).toHaveAttribute("data-side", "bottom");
+			cleanup();
+
+			// One pixel less room, and it goes over.
+			const tight = renderTip({ align: "end" });
+			place(tight, { top: 739, bottom: 771, left: 900, right: 932 });
+			fireEvent.pointerEnter(tight);
+			expect(tip()?.style.bottom).toBe("61px");
+			cleanup();
+
+			// A window so short that it fits nowhere: under, as it always was.
+			const cramped = renderTip({ align: "end" });
+			place(cramped, { top: 20, bottom: 790, left: 900, right: 932 });
+			fireEvent.pointerEnter(cramped);
+			expect(tip()?.style.top).toBe("790px");
+			expect(tip()?.style.bottom).toBe("");
+		} finally {
+			if (height === undefined) {
+				Reflect.deleteProperty(html, "clientHeight");
+			} else {
+				Object.defineProperty(html, "clientHeight", height);
+			}
+		}
+	});
+
 	it("sits beside the control, as tall as it, when told the right side", () => {
 		const button = renderTip({ side: "right" });
 		place(button, { top: 100, right: 48, height: 32 });

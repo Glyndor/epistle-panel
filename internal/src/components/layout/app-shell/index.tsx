@@ -101,8 +101,10 @@ export function AppShell({
 						data-content={content}
 						className={cn(
 							"peer min-h-0 min-w-0 flex-1 outline-none",
+							// The padding of the scroll keeps a control the keyboard
+							// reaches off the very edge, where a side of its ring is cut.
 							content === "page"
-								? "overflow-y-auto"
+								? "scroll-py-2 overflow-y-auto"
 								: "overflow-hidden",
 						)}
 					>

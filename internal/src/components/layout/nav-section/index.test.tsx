@@ -88,6 +88,8 @@ describe("NavSection", () => {
 			"h-8",
 			"pointer-coarse:h-11",
 			"focus-visible:outline-2",
+			// Inside the heading: the entry under it would cover a ring around it.
+			"focus-visible:-outline-offset-2",
 			"focus-visible:outline-sidebar-ring",
 			"hover:bg-sidebar-accent/60",
 			"active:bg-sidebar-accent/80",

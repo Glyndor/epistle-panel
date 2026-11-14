@@ -130,6 +130,8 @@ describe("AppShell", () => {
 		const main = screen.getByRole("main");
 		expect(main).toHaveAttribute("data-content", "page");
 		expect(main).toHaveClass("min-h-0", "flex-1", "overflow-y-auto");
+		// A control the keyboard reaches is kept off the very edge of the scroll.
+		expect(main).toHaveClass("scroll-py-2");
 		// The column that holds the page is inside the scrolling box and is not
 		// it: a flex column of a fixed height would squeeze what it holds.
 		expect(main).not.toHaveClass("flex");

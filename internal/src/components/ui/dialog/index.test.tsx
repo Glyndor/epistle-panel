@@ -80,6 +80,8 @@ describe("Dialog", () => {
 
 		expect(close.className).toContain("pointer-coarse:size-11");
 		expect(close.className).toContain("focus-visible:outline-2");
+		// Brought into view with room for its ring, not flush with the box's edge.
+		expect(close.className).toContain("scroll-m-2");
 		expect(close.className).not.toContain("outline-none");
 	});
 

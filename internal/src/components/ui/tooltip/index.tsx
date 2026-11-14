@@ -7,7 +7,10 @@ import { cn } from "@/lib/class-names";
 
 /** Where the tooltip is anchored, in viewport pixels, from the control's rectangle. */
 interface TooltipPlace {
-	top: number;
+	/** Set when the tooltip hangs under its control, or sits beside it. */
+	top?: number;
+	/** Set instead of `top` when the tooltip stands over its control. */
+	bottom?: number;
 	left?: number;
 	right?: number;
 	height?: number;
@@ -22,24 +25,35 @@ export type TooltipSide = "bottom" | "right";
 /** With `side="bottom"`: which edge of the control the tooltip lines up with. */
 export type TooltipAlign = "start" | "center" | "end";
 
+/** The height a tooltip of one line takes with its gap, before it has been drawn and can be measured. */
+const TOOLTIP_HEIGHT = 30;
+
 function placeOf(
 	box: DOMRect,
 	side: TooltipSide,
 	align: TooltipAlign,
+	tipHeight: number = TOOLTIP_HEIGHT,
 ): TooltipPlace {
 	if (side === "right") {
 		return { top: box.top, left: box.right, height: box.height };
 	}
+	const view = document.documentElement;
+	// Under the control, unless it would leave the window there and fits
+	// over it: a control on the last row in view is named above itself.
+	const over =
+		view.clientHeight > 0 &&
+		box.bottom + tipHeight > view.clientHeight &&
+		box.top - tipHeight >= 0;
+	const block = over
+		? { bottom: view.clientHeight - box.top }
+		: { top: box.bottom };
 	if (align === "end") {
 		// Anchored by its far edge, so a control at the end of a bar keeps its
 		// tooltip inside the window.
-		return {
-			top: box.bottom,
-			right: document.documentElement.clientWidth - box.right,
-		};
+		return { ...block, right: view.clientWidth - box.right };
 	}
 	return {
-		top: box.bottom,
+		...block,
 		left: align === "start" ? box.left : box.left + box.width / 2,
 	};
 }
@@ -48,6 +62,7 @@ function placeOf(
 function samePlace(first: TooltipPlace, second: TooltipPlace): boolean {
 	return (
 		first.top === second.top &&
+		first.bottom === second.bottom &&
 		first.left === second.left &&
 		first.right === second.right &&
 		first.height === second.height
@@ -146,6 +161,7 @@ export function Tooltip({
 	const [place, setPlace] = React.useState<TooltipPlace | null>(null);
 	const hideTimer = React.useRef<ReturnType<typeof setTimeout>>(undefined);
 	const control = React.useRef<HTMLElement | null>(null);
+	const tip = React.useRef<HTMLSpanElement | null>(null);
 
 	const show = (element: HTMLElement) => {
 		clearTimeout(hideTimer.current);
@@ -189,7 +205,12 @@ export function Tooltip({
 				setPlace(null);
 				return;
 			}
-			const next = placeOf(box, side, align);
+			const next = placeOf(
+				box,
+				side,
+				align,
+				tip.current?.offsetHeight || undefined,
+			);
 			setPlace((current) =>
 				current === null || samePlace(current, next) ? current : next,
 			);
@@ -243,14 +264,19 @@ export function Tooltip({
 			</Slot>
 			{!disabled && place ? (
 				<span
+					ref={tip}
 					aria-hidden="true"
 					data-slot={slot}
-					data-side={side}
+					data-side={place.bottom === undefined ? side : "top"}
 					onPointerEnter={() => clearTimeout(hideTimer.current)}
 					onPointerLeave={hide}
 					className={cn(
 						"fixed z-50 flex",
-						side === "right" ? "items-center ps-2" : "pt-1.5",
+						side === "right"
+							? "items-center ps-2"
+							: place.bottom === undefined
+								? "pt-1.5"
+								: "pb-1.5",
 						side === "bottom" &&
 							align === "center" &&
 							"-translate-x-1/2",
