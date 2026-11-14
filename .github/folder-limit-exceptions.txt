@@ -1,0 +1,2 @@
+# path<TAB>ceiling<TAB>reason. Use . for the repository root.
+# Keep ceilings at or below their base-commit values. Remove entries at 20 or fewer.
