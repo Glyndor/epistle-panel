@@ -4,13 +4,14 @@ import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { mailHref } from "@/features/mail/links/mail-href";
+import { folderPath, mailHref } from "@/features/mail/links/mail-href";
 import {
 	LIST_FILTERS,
 	type ListFilter,
 	MAX_QUERY_LENGTH,
 	SCAN_LIMIT,
 } from "@/features/mail/schemas/mail-input";
+import type { MailboxRole } from "@/features/mail/schemas/mail-view";
 import { cn } from "@/lib/class-names";
 
 /** Message keys of the filter links, by filter. */
@@ -22,18 +23,21 @@ const FILTER_LABELS = {
 } as const satisfies Record<ListFilter, string>;
 
 /**
- * Search and filters of the list. The search is a plain GET form to the same
- * page, so it works before any script has loaded and a result can be
- * bookmarked; the filters are links. Both keep the folder, and a new search or
- * filter starts again at the first page. The search field says what the search
+ * Search and filters of the list. The search is a plain GET form to the
+ * folder's own page, so it works before any script has loaded and a result can
+ * be bookmarked; the filters are links. Both stay in the folder, which is the
+ * path, and a new search or filter starts again at the first page. The search field says what the search
  * reads (the server has no text search, see `load-message-list`).
  */
 export function ListToolbar({
 	box,
+	folderRole: role,
 	filter,
 	q,
 }: {
 	box: string;
+	/** The folder's role, when its path is the role's. Not named `role`, which on an element is ARIA's. */
+	folderRole: MailboxRole | null;
 	filter: ListFilter;
 	q: string;
 }) {
@@ -43,11 +47,10 @@ export function ListToolbar({
 		<div className="flex flex-col gap-2 p-2">
 			<form
 				method="get"
-				action={mailHref({})}
+				action={folderPath({ box, role })}
 				aria-label={t("searchLabel")}
 				className="flex gap-2"
 			>
-				<input type="hidden" name="box" value={box} />
 				{filter === "all" ? null : (
 					<input type="hidden" name="filter" value={filter} />
 				)}
@@ -67,7 +70,7 @@ export function ListToolbar({
 				</Button>
 				{q === "" ? null : (
 					<Button asChild variant="ghost" size="sm">
-						<Link href={mailHref({ box, filter })}>
+						<Link href={mailHref({ box, role, filter })}>
 							{t("searchClear")}
 						</Link>
 					</Button>
@@ -83,7 +86,7 @@ export function ListToolbar({
 					{LIST_FILTERS.map((value) => (
 						<li key={value}>
 							<Link
-								href={mailHref({ box, filter: value, q })}
+								href={mailHref({ box, role, filter: value, q })}
 								aria-current={
 									value === filter ? "true" : undefined
 								}

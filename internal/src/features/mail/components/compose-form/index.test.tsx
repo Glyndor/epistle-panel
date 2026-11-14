@@ -79,7 +79,7 @@ describe("ComposeForm", () => {
 			inReplyTo: "o@x.org",
 			references: ["o@x.org"],
 		});
-		await waitFor(() => expect(assigned).toEqual(["/app/mail"]));
+		await waitFor(() => expect(assigned).toEqual(["/app/mail/inbox"]));
 	});
 
 	it("names the pieces that are not addresses and sends nothing", async () => {
@@ -303,7 +303,7 @@ describe("ComposeForm", () => {
 		]);
 		expect(screen.getByRole("link", { name: "discard" })).toHaveAttribute(
 			"href",
-			"/app/mail",
+			"/app/mail/inbox",
 		);
 	});
 });

@@ -48,7 +48,7 @@ scenario_streaming() {
 
 	reset_api
 	set_delay 2000
-	stream_fetch "/app/mail?box=INBOX&msg=$msg" "$good"
+	stream_fetch "/app/mail/folder/INBOX/$msg" "$good"
 	assert_eq "slow API, webmail with a folder and a message: the page answers" "$status" 200
 	# The folder is in the address: folders, list and message are asked side by
 	# side, so the page takes the two calls of the list and not a third wait.

@@ -7,7 +7,10 @@ import {
 	type MailSession,
 } from "@/features/mail/jmap/credentials";
 import { loadMailboxes } from "@/features/mail/queries/load-mailboxes";
-import type { MailboxView } from "@/features/mail/schemas/mail-view";
+import type {
+	MailboxRole,
+	MailboxView,
+} from "@/features/mail/schemas/mail-view";
 import { logApiFailure } from "@/lib/api/log-failure";
 
 /** The folder shown when the address names none and the server has no mailbox with the inbox role. */
@@ -43,15 +46,37 @@ export const requestMailboxes: () => Promise<MailboxView[] | undefined> = cache(
 	},
 );
 
+/** The folder a page asks for: the account's folder of a role, or a folder by its id. */
+export type PlaceRef =
+	| { readonly role: MailboxRole }
+	| { readonly box: string };
+
+/** The folder a place is: its id, and its role when the place was asked for by role. */
+export interface ResolvedPlace {
+	/** `null` when no folder could be named for the role asked for: see `unreadable`. */
+	readonly box: string | null;
+	readonly role: MailboxRole | null;
+	/** With no `box`: the folders could not be read (true), or they were and none has the role (false). */
+	readonly unreadable: boolean;
+}
+
 /**
- * The folder a view opens: the one the address names, or the account's inbox
- * by its role, or {@link FALLBACK_BOX} when the folders could not be read.
- * Only a view without a folder in its address waits for the folders.
+ * The folder a view opens. A place asked for by its id is that folder and
+ * waits for nothing. One asked for by role waits for the folders and is the
+ * first with that role; when there is none the inbox falls back to
+ * {@link FALLBACK_BOX}, so a mailbox whose folders could not be read still
+ * opens, and any other role has no folder.
  */
-export async function resolveBox(asked: string | undefined): Promise<string> {
-	if (asked !== undefined) {
-		return asked;
+export async function resolvePlace(place: PlaceRef): Promise<ResolvedPlace> {
+	if ("box" in place) {
+		return { box: place.box, role: null, unreadable: false };
 	}
 	const boxes = await requestMailboxes();
-	return boxes?.find((box) => box.role === "inbox")?.id ?? FALLBACK_BOX;
+	const found = boxes?.find((box) => box.role === place.role)?.id;
+	if (found !== undefined) {
+		return { box: found, role: place.role, unreadable: false };
+	}
+	return place.role === "inbox"
+		? { box: FALLBACK_BOX, role: "inbox", unreadable: false }
+		: { box: null, role: place.role, unreadable: boxes === undefined };
 }

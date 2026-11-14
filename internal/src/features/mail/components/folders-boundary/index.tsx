@@ -5,23 +5,20 @@ import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { FolderPane } from "@/features/mail/components/folder-pane";
 import { mailKeys } from "@/features/mail/queries/mail-query-keys";
 import {
+	type PlaceRef,
 	requestMailboxes,
-	resolveBox,
+	resolvePlace,
 } from "@/features/mail/queries/request-mail";
 import { makeQueryClient } from "@/lib/query/query-client";
 
 /**
  * The folder tree, streamed: it waits for the account's folders and hands them
- * to the client component, which owns them from then on. `asked` is the folder
- * of the address, if it names one. The page renders it inside `Suspense`, and
+ * to the client component, which owns them from then on. `place` is the folder
+ * of the address. The page renders it inside `Suspense`, and
  * twice (the side pane and the sheet of a narrow screen); the folders are read
  * once per request all the same. The caller checks the session first.
  */
-export async function FoldersBoundary({
-	asked,
-}: {
-	asked: string | undefined;
-}) {
+export async function FoldersBoundary({ place }: { place: PlaceRef }) {
 	const client = makeQueryClient();
 	const boxes = await requestMailboxes();
 	if (boxes !== undefined) {
@@ -30,7 +27,7 @@ export async function FoldersBoundary({
 
 	return (
 		<HydrationBoundary state={dehydrate(client)}>
-			<FolderPane activeId={await resolveBox(asked)} />
+			<FolderPane activeId={(await resolvePlace(place)).box ?? ""} />
 		</HydrationBoundary>
 	);
 }

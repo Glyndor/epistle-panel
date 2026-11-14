@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useFormatter, useTranslations } from "next-intl";
 
 import { formatReceivedAt } from "@/features/mail/format/received-at";
-import { mailHref } from "@/features/mail/links/mail-href";
+import { type ListAddress, mailHref } from "@/features/mail/links/mail-href";
 import type { MessageSummary } from "@/features/mail/schemas/mail-view";
 import { cn } from "@/lib/class-names";
 
@@ -22,12 +22,7 @@ export function MessageRow({
 	message: MessageSummary;
 	selected: boolean;
 	/** The list's own parameters, so the link keeps the folder, the filter and the page. */
-	view: {
-		box: string;
-		page: number;
-		filter: Parameters<typeof mailHref>[0]["filter"];
-		q: string;
-	};
+	view: ListAddress;
 }) {
 	const t = useTranslations("mail");
 	const format = useFormatter();

@@ -1,21 +1,25 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { cleanup, render, screen } from "@testing-library/react";
+
+import { getBrand } from "@/features/branding/queries/brand";
 import { emailFixture, stubJmap } from "@/features/mail/test-support/jmap-stub";
 import {
+	followRedirect,
 	mockRequestCookies,
-	RedirectSignal,
 } from "@/lib/auth/test-support/cookies";
 import { clearSecretCache } from "@/lib/config/secret";
 import { settled, withQuery } from "@/test/query-wrapper";
-import { firstPaint, resolveServerTree } from "@/test/server-tree";
+import { resolveServerTree } from "@/test/server-tree";
 
 const originalFetch = globalThis.fetch;
 const savedEnv = { ...process.env };
 const cookies = mockRequestCookies();
-const { default: MailPage } = await import("./page");
+const { default: MailHome, generateMetadata } = await import("./page");
 
 const ID = "00000000-0000-4000-8000-0000000000c1";
-const mailboxes = {
+
+const LISTED = "00000000-0000-4000-8000-0000000000c2";
+const answers = {
 	"Mailbox/get": {
 		list: [
 			{
@@ -23,39 +27,39 @@ const mailboxes = {
 				name: "Mail",
 				role: "inbox",
 				totalEmails: 1,
-				unreadEmails: 1,
-			},
-			{
-				id: "Sent",
-				name: "Sent",
-				role: "sent",
-				totalEmails: 0,
 				unreadEmails: 0,
 			},
 		],
 	},
-};
-const folder = {
-	"Email/query": { ids: [ID] },
-	"Email/get": { list: [emailFixture({ id: ID, subject: "Listed" })] },
-};
-/**
- * The same folder with its message already read. The reader marks an unread
- * message as read when it opens; a case that opens the reader and ends would
- * leave that call on its way, to land in the stub of the next case.
- */
-const readFolder = {
-	...folder,
+	"Email/query": { ids: [LISTED] },
 	"Email/get": {
 		list: [
 			emailFixture({
-				id: ID,
+				id: LISTED,
 				subject: "Listed",
 				keywords: { $seen: true },
 			}),
 		],
 	},
 };
+
+/** Render the home with these parameters and say which folders were asked for. */
+async function home(
+	params: Record<string, string | string[] | undefined> = {},
+) {
+	const seen = stubJmap(answers);
+	render(
+		withQuery(
+			await resolveServerTree(
+				await MailHome({ searchParams: Promise.resolve(params) }),
+			),
+		),
+	);
+	return seen
+		.flatMap((request) => request.calls)
+		.filter((call) => call[0] === "Email/query")
+		.map((call) => call[1]["filter"]);
+}
 
 beforeEach(async () => {
 	clearSecretCache();
@@ -65,141 +69,47 @@ beforeEach(async () => {
 	await cookies.signIn("admin");
 });
 afterEach(async () => {
-	// A pane whose data did not come from the server asks for it in the browser
-	// as soon as it mounts. That call is let finish against this case's stub:
-	// left on its way it lands in the next case's, with the next case's token
-	// (the token is read when the call is made).
 	await settled();
 	process.env = { ...savedEnv };
 	cleanup();
 	globalThis.fetch = originalFetch;
 });
 
-async function renderPage(
-	params: Record<string, string | string[] | undefined> = {},
-) {
-	return render(
-		withQuery(
-			await resolveServerTree(
-				await MailPage({ searchParams: Promise.resolve(params) }),
-			),
-		),
-	);
-}
-
-describe("MailPage", () => {
-	it("redirects to sign-in without a session", async () => {
+describe("/app/mail", () => {
+	it("sends a visitor without a session to sign in, whatever the address held", async () => {
 		cookies.reset();
-		const outcome = await MailPage({
-			searchParams: Promise.resolve({}),
-		}).catch((e) => e);
-		expect(outcome).toBeInstanceOf(RedirectSignal);
-	});
-
-	it("opens the inbox by its role, prefetched, with the three named regions and no reader", async () => {
-		const seen = stubJmap({ ...mailboxes, ...folder });
-		await renderPage();
-		expect(screen.getByText("Listed")).toBeInTheDocument();
-		expect(
-			screen.getByRole("region", { name: "listLabel" }),
-		).toBeInTheDocument();
-		expect(
-			screen.getByRole("region", { name: "readerLabel" }),
-		).toBeInTheDocument();
-		expect(screen.getByText("readerEmpty")).toBeInTheDocument();
-		const filters = seen
-			.flatMap((r) => r.calls)
-			.filter((c) => c[0] === "Email/query")
-			.map((c) => c[1]["filter"]);
-		expect(filters).toContainEqual({ inMailbox: "Mail" });
-	});
-
-	it("keeps the folder, filter and search from the address, dropping a bad parameter on its own", async () => {
-		const seen = stubJmap({ ...mailboxes, ...folder });
-		await renderPage({ box: "Sent", filter: "bogus", q: "x" });
-		const filters = seen
-			.flatMap((r) => r.calls)
-			.filter((c) => c[0] === "Email/query")
-			.map((c) => c[1]["filter"]);
-		expect(filters).toContainEqual({ inMailbox: "Sent" });
-		expect(screen.getByRole("searchbox")).toHaveValue("x");
-	});
-
-	it("opens the reader for a message in the address", async () => {
-		stubJmap({ ...mailboxes, ...readFolder });
-		await renderPage({ msg: ID });
-		expect(
-			await screen.findByRole("heading", { level: 2, name: "Listed" }),
-		).toBeInTheDocument();
-		expect(screen.queryByText("readerEmpty")).toBeNull();
-	});
-
-	it("sends the frame of the three panes and a skeleton in each before the mail server is asked anything", async () => {
-		// A token of its own: a call another case left on its way carries the
-		// usual one, so only what this page asks is counted.
-		process.env["EPISTLE_API_TOKEN"] = "frame-only-token";
-		clearSecretCache();
-		const seen = stubJmap({ ...mailboxes, ...readFolder });
-		const asked = () =>
-			seen.filter((r) => r.authorization === "Bearer frame-only-token");
-		const tree = await MailPage({
-			searchParams: Promise.resolve({ msg: ID }),
-		});
-
-		expect(asked()).toHaveLength(0);
-		// Every boundary gives way to its fallback and is not run; what is left of
-		// the frame (it has server components of its own) is then resolved.
-		const { container } = render(
-			withQuery(await resolveServerTree(firstPaint(tree))),
+		const signal = await followRedirect(
+			MailHome({
+				searchParams: Promise.resolve({ box: "Sent", msg: ID }),
+			}).then(resolveServerTree),
 		);
-		expect(
-			screen.getByRole("region", { name: "listLabel" }),
-		).toBeInTheDocument();
-		expect(
-			screen.getByRole("region", { name: "readerLabel" }),
-		).toBeInTheDocument();
-		// The folders (the side pane; the sheet holds its copy until opened), the list and the reader.
-		expect(
-			container.querySelectorAll('[aria-busy="true"]').length,
-		).toBeGreaterThanOrEqual(3);
-		expect(screen.getByText("loading")).toBeInTheDocument();
-		expect(screen.getByText("readerLoading")).toBeInTheDocument();
-		expect(screen.queryByText("Listed")).toBeNull();
-		expect(asked()).toHaveLength(0);
-
-		// The control: run the boundaries and the same counter sees their calls.
-		cleanup();
-		render(withQuery(await resolveServerTree(tree)));
-		expect(asked().length).toBeGreaterThan(0);
+		expect(signal.target).toBe("/");
 	});
 
-	it("opens a folder named in the address without waiting for the folder tree", async () => {
-		// The folders cannot be read; the list of the named folder still is.
-		const seen = stubJmap(folder);
-		await renderPage({ box: "Sent" });
-
-		expect(screen.getByText("Listed")).toBeInTheDocument();
-		const filters = seen
-			.flatMap((r) => r.calls)
-			.filter((c) => c[0] === "Email/query")
-			.map((c) => c[1]["filter"]);
-		expect(filters).toContainEqual({ inMailbox: "Sent" });
+	it("is the inbox itself, with no second trip, and its links are the inbox's own", async () => {
+		expect(await home()).toContainEqual({ inMailbox: "Mail" });
+		expect(screen.getByRole("link", { name: /Listed/ })).toHaveAttribute(
+			"href",
+			`/app/mail/inbox/${LISTED}`,
+		);
+		expect(await generateMetadata()).toEqual({
+			title: `role_inbox · ${getBrand().name}`,
+		});
 	});
 
-	it("still renders when the mail server is down, falling back to INBOX", async () => {
-		stubJmap({});
-		await renderPage();
-		expect(
-			screen.getByRole("region", { name: "listLabel" }),
-		).toBeInTheDocument();
-		expect(screen.getByRole("searchbox")).toBeInTheDocument();
+	it("keeps what narrows the list, which is no place", async () => {
+		await home({ filter: "unread", q: "x", page: "1" });
+		expect(screen.getByRole("searchbox")).toHaveValue("x");
+		expect(document.querySelector("input[name=filter]")).toHaveValue(
+			"unread",
+		);
 	});
 
-	it("still renders when there is no mail session at all", async () => {
-		process.env["EPISTLE_API_TOKEN_FILE"] = "/nonexistent";
-		delete process.env["EPISTLE_API_TOKEN"];
-		const seen = stubJmap({});
-		await renderPage();
-		expect(seen).toHaveLength(0);
+	it("reads no folder and no message from the query: the proxy sends such an address on before it gets here", async () => {
+		// Reached all the same, it is the inbox with no reader, never the folder named.
+		const asked = await home({ box: "Sent", msg: ID });
+		expect(asked).toContainEqual({ inMailbox: "Mail" });
+		expect(asked).not.toContainEqual({ inMailbox: "Sent" });
+		expect(screen.getByText("readerEmpty")).toBeInTheDocument();
 	});
 });

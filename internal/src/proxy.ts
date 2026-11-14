@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { captchaWideningFromEnv } from "./features/auth/captcha/config";
 import { SESSION_COOKIE, verifySession } from "./lib/auth/session";
 import { readAdminId } from "./lib/config/admin-id";
+import { isMailPath, legacyMailTarget } from "./lib/mail-paths";
 import {
 	classifyAppPath,
 	constantTimeEqual,
@@ -35,8 +36,9 @@ export const HIDDEN_PATH = "/__not-found__";
 /**
  * Gate the panel (Next 16 proxy convention) and stamp the security headers on
  * every response it emits. Only four things get on to the router: the sign-in
- * page at `/`, `/app/mail` for a session of any role (a visitor without one is
- * sent to the sign-in page), the admin area, which passes only when the first
+ * page at `/`, the routes of the mail area for a session of any role (a visitor
+ * without one is sent to the sign-in page from any path under `/app/mail`; with
+ * one, a path under it that is no route is hidden like any other), the admin area, which passes only when the first
  * segment after `/app` is the configured admin id and the session is valid and
  * carries the admin role, and the assets the matcher skips. Every other request
  * (a path no route answers, `/app` itself, no session, a user session, another
@@ -76,19 +78,34 @@ export async function proxy(request: NextRequest) {
 		adminId !== undefined &&
 		session?.role === "admin";
 
+	// An address from before a folder was a path, for a session only: without
+	// one it goes to the sign-in page like any other, and says nothing.
+	const legacy =
+		area.kind === "mail" &&
+		session &&
+		(request.method === "GET" || request.method === "HEAD")
+			? legacyMailTarget(pathname, request.nextUrl.searchParams)
+			: null;
+
 	let response: NextResponse;
-	if (
+	if (legacy !== null) {
+		// The request's own origin and the target, which starts with the mail
+		// area's path: nothing else of the old address is carried over.
+		response = NextResponse.redirect(
+			new URL(legacy, request.nextUrl.origin),
+		);
+	} else if (
 		pathname === HIDDEN_PATH ||
 		area.kind === "root" ||
 		isAdminArea ||
-		(area.kind === "mail" && session)
+		(area.kind === "mail" && session && isMailPath(pathname))
 	) {
 		// Next reads the nonce from the request's CSP header and stamps it on
 		// the inline scripts it renders.
 		const requestHeaders = new Headers(request.headers);
 		requestHeaders.set(CSP_HEADER, csp);
 		response = NextResponse.next({ request: { headers: requestHeaders } });
-	} else if (area.kind === "mail") {
+	} else if (area.kind === "mail" && !session) {
 		const url = request.nextUrl.clone();
 		url.pathname = PUBLIC_ROUTES.root;
 		url.search = "";

@@ -6,7 +6,7 @@ import {
 	mailboxIdSchema,
 	messageIdSchema,
 	messageListInputSchema,
-	parseMailParams,
+	parseListParams,
 	partIndexSchema,
 } from ".";
 
@@ -81,59 +81,28 @@ describe("messageListInputSchema", () => {
 	});
 });
 
-describe("parseMailParams", () => {
-	it("reads valid parameters", () => {
+describe("parseListParams", () => {
+	it("reads what narrows a list and nothing that names a place", () => {
 		expect(
-			parseMailParams({
-				box: "Sent",
+			parseListParams({
 				page: "3",
 				filter: "unread",
 				q: " hi ",
+				box: "Sent",
 				msg: ID,
 			}),
-		).toEqual({
-			box: "Sent",
-			page: 3,
-			filter: "unread",
-			q: "hi",
-			msg: ID,
-		});
+		).toEqual({ page: 3, filter: "unread", q: "hi" });
 	});
 
-	it("defaults what is missing and drops each bad value on its own", () => {
-		expect(parseMailParams({})).toEqual({
-			box: undefined,
-			page: 1,
-			filter: "all",
-			q: "",
-			msg: undefined,
-		});
+	it("defaults what is missing, bad or repeated", () => {
+		expect(parseListParams({})).toEqual({ page: 1, filter: "all", q: "" });
 		expect(
-			parseMailParams({
-				box: "a\nb",
-				page: "0",
-				filter: "evil",
-				q: "x\u0000",
-				msg: "../x",
-			}),
-		).toEqual({
-			box: undefined,
-			page: 1,
-			filter: "all",
-			q: "",
-			msg: undefined,
-		});
-		expect(parseMailParams({ page: "1e3" }).page).toBe(1);
-		expect(parseMailParams({ page: "99999" }).page).toBe(1);
-		expect(parseMailParams({ box: "INBOX", filter: "zzz" })).toMatchObject({
-			box: "INBOX",
-			filter: "all",
-		});
-	});
-
-	it("uses the first value of a repeated parameter", () => {
+			parseListParams({ page: "-1", filter: "zzz", q: "a\u0000b" }),
+		).toEqual({ page: 1, filter: "all", q: "" });
 		expect(
-			parseMailParams({ box: ["A", "B"], msg: [ID, "x"] }),
-		).toMatchObject({ box: "A", msg: ID });
+			parseListParams({ page: ["2", "9"], filter: ["flagged", "all"] }),
+		).toEqual({ page: 2, filter: "flagged", q: "" });
+		expect(parseListParams({ page: "201" }).page).toBe(1);
+		expect(parseListParams({ page: "200" }).page).toBe(200);
 	});
 });

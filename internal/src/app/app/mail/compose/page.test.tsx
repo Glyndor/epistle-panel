@@ -74,7 +74,7 @@ describe("ComposePage", () => {
 		expect(screen.getByLabelText("fieldTo")).toHaveValue("");
 		expect(
 			screen.getByRole("link", { name: "backToMail" }),
-		).toHaveAttribute("href", "/app/mail");
+		).toHaveAttribute("href", "/app/mail/inbox");
 		expect(seen).toHaveLength(0);
 	});
 

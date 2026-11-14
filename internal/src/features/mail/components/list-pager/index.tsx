@@ -3,8 +3,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
-import { mailHref } from "@/features/mail/links/mail-href";
-import type { ListFilter } from "@/features/mail/schemas/mail-input";
+import { type ListAddress, mailHref } from "@/features/mail/links/mail-href";
 
 /**
  * Newer and older links, with the count and the page number between them. The
@@ -17,11 +16,7 @@ export function ListPager({
 	hasNext,
 	total,
 }: {
-	view: {
-		readonly box: string;
-		readonly filter: ListFilter;
-		readonly q: string;
-	};
+	view: Omit<ListAddress, "page">;
 	page: number;
 	hasNext: boolean;
 	total: number;

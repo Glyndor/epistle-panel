@@ -35,6 +35,19 @@ const isDotDot = (segment: string) => /^(\.|%2e)(\.|%2e)$/i.test(segment);
  * and a second segment that is exactly the configured id lets an admin in; every
  * other path is hidden as a 404.
  */
+/**
+ * The routes of the mail area, written again here and not taken from the code:
+ * the home, a folder by role or by its name as one segment, a message's id
+ * after either, and the routes that are no folder.
+ */
+// An id as the page reads one: version 1 to 8, the RFC variant.
+const MESSAGE =
+	"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}";
+const FOLDER = "(?:[A-Za-z0-9-]|_[0-9A-F]{2})(?:[A-Za-z0-9.-]|_[0-9A-F]{2})*";
+const MAIL_ROUTE = new RegExp(
+	`^/app/mail(?:/(?:inbox|drafts|sent|archive|junk|trash)(?:/${MESSAGE})?|/folder/${FOLDER}(?:/${MESSAGE})?|/compose|/compose-message|/upload|/body/[^/]+|/attachment/[^/]+/[^/]+)?$`,
+);
+
 function expectedVerdict(rawPath: string, caller: Caller): Verdict {
 	// A parser drops tabs and newlines anywhere and trailing control characters
 	// and spaces, then ends the path at the first `?` or `#`.
@@ -94,7 +107,14 @@ function expectedVerdict(rawPath: string, caller: Caller): Verdict {
 		return "hidden";
 	}
 	if (second?.toLowerCase() === "mail") {
-		return caller === "anonymous" ? "gated" : "passed";
+		// Without a session every spelling goes to the sign-in page. With one,
+		// only a route of the mail area passes, read exactly as it is spelled.
+		if (caller === "anonymous") {
+			return "gated";
+		}
+		return MAIL_ROUTE.test(path.endsWith("/") ? path.slice(0, -1) : path)
+			? "passed"
+			: "hidden";
 	}
 	return caller === "admin" && second === TEST_ADMIN_ID ? "passed" : "hidden";
 }
@@ -168,6 +188,18 @@ const BASES = [
 	"/app/mail",
 	"/app/mail/",
 	"/app/mail/inbox",
+	"/app/mail/trash",
+	"/app/mail/inbox/01890a5d-ac96-774b-b9aa-9be4c3bd6b0e",
+	"/app/mail/folder/Work_2FQ4",
+	"/app/mail/folder/Work_2FQ4/01890a5d-ac96-774b-b9aa-9be4c3bd6b0e",
+	"/app/mail/compose",
+	"/app/mail/body/01890a5d-ac96-774b-b9aa-9be4c3bd6b0e",
+	"/app/mail/no-such-place",
+	"/app/mail/label/Work",
+	"/app/mail/inbox/not-an-id",
+	"/app/mail/inbox/01890a5d-ac96-074b-b9aa-9be4c3bd6b0e",
+	"/app/mail/sent/01890a5d-ac96-774b-c9aa-9be4c3bd6b0e",
+	"/app/mail/folder/Work%2FQ4",
 	"/app/Mail",
 	"/app/MAIL/x",
 	"/app/mailx",

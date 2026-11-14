@@ -7,9 +7,11 @@ import { loadMessage } from "@/features/mail/queries/load-message";
 import { mailKeys } from "@/features/mail/queries/mail-query-keys";
 import { messageQueryOptions } from "@/features/mail/queries/mail-query-options";
 import {
+	FALLBACK_BOX,
+	type PlaceRef,
 	requestMailboxes,
 	requestMailSession,
-	resolveBox,
+	resolvePlace,
 } from "@/features/mail/queries/request-mail";
 import type { ListFilter } from "@/features/mail/schemas/mail-input";
 import { prefetch } from "@/lib/query/prefetch";
@@ -22,13 +24,13 @@ import { makeQueryClient } from "@/lib/query/query-client";
  */
 export async function ReaderBoundary({
 	id,
-	asked,
+	place,
 	page,
 	filter,
 	q,
 }: {
 	id: string;
-	asked: string | undefined;
+	place: PlaceRef;
 	page: number;
 	filter: ListFilter;
 	q: string;
@@ -50,7 +52,15 @@ export async function ReaderBoundary({
 	if (boxes !== undefined) {
 		client.setQueryData(mailKeys.mailboxes, boxes);
 	}
-	const view = { box: await resolveBox(asked), page, filter, q };
+	const resolved = await resolvePlace(place);
+	// With no folder of the role asked for, the way back is the inbox.
+	const view = {
+		box: resolved.box ?? FALLBACK_BOX,
+		role: resolved.box === null ? ("inbox" as const) : resolved.role,
+		page,
+		filter,
+		q,
+	};
 
 	return (
 		<HydrationBoundary state={dehydrate(client)}>

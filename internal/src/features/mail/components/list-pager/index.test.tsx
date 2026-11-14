@@ -4,7 +4,12 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { ListPager } from ".";
 
 afterEach(cleanup);
-const view = { box: "INBOX", filter: "unread", q: "x" } as const;
+const view = {
+	box: "Work/Q4",
+	role: null,
+	filter: "unread",
+	q: "x",
+} as const;
 
 describe("ListPager", () => {
 	it("links to the next page only on the first page", () => {
@@ -12,7 +17,7 @@ describe("ListPager", () => {
 		expect(screen.queryByRole("link", { name: /newer/ })).toBeNull();
 		expect(screen.getByRole("link", { name: /older/ })).toHaveAttribute(
 			"href",
-			"/app/mail?box=INBOX&page=2&filter=unread&q=x",
+			"/app/mail/folder/Work_2FQ4?page=2&filter=unread&q=x",
 		);
 	});
 
@@ -20,7 +25,7 @@ describe("ListPager", () => {
 		render(<ListPager view={view} page={3} hasNext={false} total={120} />);
 		expect(screen.getByRole("link", { name: /newer/ })).toHaveAttribute(
 			"href",
-			"/app/mail?box=INBOX&page=2&filter=unread&q=x",
+			"/app/mail/folder/Work_2FQ4?page=2&filter=unread&q=x",
 		);
 		expect(screen.queryByRole("link", { name: /older/ })).toBeNull();
 		expect(
@@ -32,7 +37,7 @@ describe("ListPager", () => {
 		render(<ListPager view={view} page={2} hasNext total={120} />);
 		expect(screen.getByRole("link", { name: /newer/ })).toHaveAttribute(
 			"href",
-			"/app/mail?box=INBOX&filter=unread&q=x",
+			"/app/mail/folder/Work_2FQ4?filter=unread&q=x",
 		);
 	});
 });
