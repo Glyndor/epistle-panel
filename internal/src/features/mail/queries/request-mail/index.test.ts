@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 
-import { stubJmap } from "@/features/mail/test-support/jmap-stub";
+import { emailFixture, stubJmap } from "@/features/mail/test-support/jmap-stub";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
 import { clearSecretCache } from "@/lib/config/secret";
 
@@ -11,6 +11,7 @@ const {
 	FALLBACK_BOX,
 	requestMailboxes,
 	requestMailSession,
+	requestMessage,
 	requestQuota,
 	resolvePlace,
 } = await import(".");
@@ -213,5 +214,44 @@ describe("resolvePlace", () => {
 		} finally {
 			logged.mockRestore();
 		}
+	});
+});
+
+describe("requestMessage", () => {
+	const ID = "00000000-0000-4000-8000-0000000000e1";
+
+	it("reads one message, with its subject as safe text", async () => {
+		stubJmap({
+			"Email/get": {
+				list: [emailFixture({ id: ID, subject: "Hello\u202e there" })],
+			},
+		});
+
+		const message = await requestMessage(ID);
+
+		expect(message?.id).toBe(ID);
+		expect(message?.subject).toBe("Hello there");
+	});
+
+	it("is null for a message the server does not have", async () => {
+		stubJmap({ "Email/get": { list: [] } });
+
+		expect(await requestMessage(ID)).toBeNull();
+	});
+
+	it("asks nothing without a mail session", async () => {
+		cookies.reset();
+		const seen = stubJmap({ "Email/get": { list: [] } });
+
+		expect(await requestMessage(ID)).toBeUndefined();
+		expect(seen).toHaveLength(0);
+	});
+
+	it("rejects when the server fails, for its callers to answer each in its way", async () => {
+		stubJmap({});
+
+		expect(await requestMessage(ID).catch(() => "rejected")).toBe(
+			"rejected",
+		);
 	});
 });

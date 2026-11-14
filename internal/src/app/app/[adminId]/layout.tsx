@@ -19,12 +19,17 @@ import { constantTimeEqual } from "@/lib/routes";
  * `adminId` segment must be the configured id, compared without stopping at the
  * first difference. Either failing is the 404 of a path that does not exist. The
  * shell and the paths the client components link to are built from the id.
+ *
+ * The header's trail is the `trail` slot: a page of its own beside each page,
+ * so the layout does not have to know which page it frames.
  */
 export default async function AdminLayout({
 	children,
+	trail,
 	params,
 }: Readonly<{
 	children: React.ReactNode;
+	trail: React.ReactNode;
 	params: Promise<{ adminId: string }>;
 }>) {
 	const { sub, id, routes } = await requireAdmin();
@@ -49,6 +54,7 @@ export default async function AdminLayout({
 						title: t("sheetTitle"),
 						description: t("sheetDescription"),
 					}}
+					trail={trail}
 					user={{ name: sub, role: "admin" }}
 					adminHref={routes.home}
 					defaultOpen={open}

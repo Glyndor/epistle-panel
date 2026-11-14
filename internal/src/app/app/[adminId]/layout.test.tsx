@@ -31,6 +31,7 @@ const params = (adminId = TEST_ADMIN_ID) => Promise.resolve({ adminId });
 async function layoutElement(adminId = TEST_ADMIN_ID) {
 	const routes = (await AdminLayout({
 		children: <p>page</p>,
+		trail: <nav aria-label="trail">here</nav>,
 		params: params(adminId),
 	})) as React.ReactElement<{
 		children: React.ReactElement<{
@@ -118,10 +119,13 @@ describe("AdminLayout", () => {
 		expect(screen.getByRole("banner")).toBeInTheDocument();
 	});
 
-	it("scrolls the page as a whole under the header", async () => {
+	it("draws the trail of its slot in the header, and scrolls the page as a whole under it", async () => {
 		await cookies.signIn("ops");
 		await renderLayout();
 
+		expect(screen.getByRole("banner")).toContainElement(
+			screen.getByRole("navigation", { name: "trail" }),
+		);
 		expect(screen.getByRole("main")).toHaveAttribute(
 			"data-content",
 			"page",

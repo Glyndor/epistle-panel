@@ -2,7 +2,6 @@ import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
 import { PrefetchBoundary } from "@/components/prefetch-boundary";
-import { AdminBreadcrumbs } from "@/features/navigation/components/admin-breadcrumbs";
 import {
 	OutcomesCardSkeleton,
 	QueueCardSkeleton,
@@ -65,7 +64,6 @@ export default async function HomePage({
 
 	return (
 		<>
-			<AdminBreadcrumbs routes={routes} page="status" />
 			<h1 className="font-semibold text-lg">{t("heading")}</h1>
 			<Suspense key={`notice-${period}`} fallback={null}>
 				<OverviewNotice

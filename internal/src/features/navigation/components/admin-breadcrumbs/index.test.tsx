@@ -21,9 +21,6 @@ describe("AdminBreadcrumbs", () => {
 		render(<AdminBreadcrumbs routes={routes} page="queue" />);
 
 		expect(trail().querySelector("ol")).not.toBeNull();
-		// Its text lines up with the heading below: the list gives back the
-		// padding each step keeps for its hover fill.
-		expect(trail().querySelector("ol")).toHaveClass("-ms-1");
 		expect(steps()).toEqual(["administration", "queue"]);
 	});
 
@@ -141,12 +138,29 @@ describe("AdminBreadcrumbs", () => {
 		}
 	});
 
-	it("draws nothing without routes", () => {
-		const { container } = render(
-			<AdminBreadcrumbs routes={undefined} page="queue" />,
+	it("names nothing for an address that turned out to be no thing: the page stays a link and no step is current", () => {
+		render(
+			<AdminBreadcrumbs routes={routes} page="accounts" leaf={false} />,
 		);
 
-		expect(container.innerHTML).toBe("");
+		expect(steps()).toEqual(["administration", "accounts"]);
+		expect(trail().querySelector('[aria-current="page"]')).toBeNull();
+		expect(trail().querySelector('[data-slot="skeleton"]')).toBeNull();
+		expect(
+			within(trail())
+				.getAllByRole("link")
+				.map((link) => link.getAttribute("href")),
+		).toEqual([base, `${base}/accounts`]);
+	});
+
+	it("writes an account's name straight into the step that names it", () => {
+		render(
+			<AdminBreadcrumbs routes={routes} page="accounts" leaf="alice" />,
+		);
+
+		const current = trail().querySelector('[aria-current="page"]');
+		expect(current?.childElementCount).toBe(0);
+		expect(current?.textContent).toBe("alice");
 	});
 
 	it("uses no inline style", () => {

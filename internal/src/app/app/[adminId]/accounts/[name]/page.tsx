@@ -15,7 +15,6 @@ import { loadMailboxes } from "@/features/account-detail/queries/load-mailboxes"
 import { loadMasked } from "@/features/account-detail/queries/load-masked";
 import { accountsQueryOptions } from "@/features/accounts/queries/accounts-query";
 import { loadAccounts } from "@/features/accounts/queries/load-accounts";
-import { AdminBreadcrumbs } from "@/features/navigation/components/admin-breadcrumbs";
 import { parseAccountNameParam } from "@/lib/api/schemas";
 import { requireAdmin } from "@/lib/auth/require-session";
 import { prefetch, prefetchSpec } from "@/lib/query/prefetch";
@@ -36,7 +35,7 @@ export default async function AccountDetailPage({
 }: {
 	params: Promise<{ name: string }>;
 }) {
-	const { routes } = await requireAdmin();
+	await requireAdmin();
 	const name = parseAccountNameParam((await params).name);
 	if (name === undefined) {
 		notFound();
@@ -74,7 +73,6 @@ export default async function AccountDetailPage({
 
 	return (
 		<>
-			<AdminBreadcrumbs routes={routes} page="accounts" leaf={name} />
 			<h1 className="break-all font-semibold text-lg">
 				{t("heading", { name })}
 			</h1>

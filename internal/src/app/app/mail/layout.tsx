@@ -14,8 +14,9 @@ import { adminRoutes, PUBLIC_ROUTES } from "@/lib/routes";
 /**
  * The frame of the webmail: the panel's shell with the mail area's own parts.
  * The sidebar holds the way into the composer and the account's folders, and
- * the account's storage at its foot; the header keeps its middle for the
- * search. Nothing of the frame scrolls: each pane of a page does.
+ * the account's storage at its foot; the header holds the trail of the page
+ * (the `trail` slot, a page of its own beside each page) and keeps its middle
+ * for the search. Nothing of the frame scrolls: each pane of a page does.
  *
  * Without a session it redirects to sign-in before anything renders. Whether
  * the sidebar starts collapsed is read here, from its cookie, so the first
@@ -23,7 +24,8 @@ import { adminRoutes, PUBLIC_ROUTES } from "@/lib/routes";
  */
 export default async function MailLayout({
 	children,
-}: Readonly<{ children: React.ReactNode }>) {
+	trail,
+}: Readonly<{ children: React.ReactNode; trail: React.ReactNode }>) {
 	const session = await requireSession();
 	// The way into the administration exists only for an admin session, in an
 	// installation whose admin area is on; its address, id included, is built here.
@@ -47,6 +49,7 @@ export default async function MailLayout({
 					title: t("foldersTitle"),
 					description: t("foldersDescription"),
 				}}
+				trail={trail}
 				reserveSearch
 				user={{ name: session.sub, role: session.role }}
 				adminHref={

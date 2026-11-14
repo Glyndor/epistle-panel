@@ -5,21 +5,16 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
 import { ComposeForm } from "@/features/mail/components/compose-form";
 import { currentMailSession } from "@/features/mail/jmap/credentials";
-import { mailHref } from "@/features/mail/links/mail-href";
 import {
-	type ComposeMode,
-	composePrefill,
-} from "@/features/mail/queries/compose-prefill";
+	COMPOSE_TITLE,
+	composeRequest,
+} from "@/features/mail/links/compose-mode";
+import { mailHref } from "@/features/mail/links/mail-href";
+import { composePrefill } from "@/features/mail/queries/compose-prefill";
 import { loadSender } from "@/features/mail/queries/load-identity";
 import { loadEmailRecord } from "@/features/mail/queries/message-body";
-import { messageIdSchema } from "@/features/mail/schemas/mail-input";
 import { logApiFailure } from "@/lib/api/log-failure";
 import { requireSession } from "@/lib/auth/require-session";
-
-const MODES = ["reply", "replyAll", "forward", "draft"] as const;
-
-const first = (value: string | string[] | undefined) =>
-	Array.isArray(value) ? value[0] : value;
 
 /**
  * The composer page. `?mode=reply|replyAll|forward|draft&msg=<id>` opens it
@@ -35,11 +30,7 @@ export default async function ComposePage({
 	await requireSession();
 	const t = await getTranslations("mail");
 	const locale = await getLocale();
-	const params = await searchParams;
-	const modeParam = MODES.find((mode) => mode === first(params["mode"]));
-	const id = messageIdSchema.safeParse(first(params["msg"]));
-	const mode: ComposeMode =
-		modeParam !== undefined && id.success ? modeParam : "new";
+	const { mode, message } = composeRequest(await searchParams);
 
 	let initial = {
 		to: "",
@@ -48,13 +39,13 @@ export default async function ComposePage({
 		subject: "",
 		text: "",
 	} as ReturnType<typeof composePrefill>;
-	if (mode !== "new" && id.success) {
+	if (message !== undefined) {
 		try {
 			const session = await currentMailSession();
 			const email =
 				session === null
 					? null
-					: await loadEmailRecord(session, id.data);
+					: await loadEmailRecord(session, message);
 			// A draft is edited only if it is one (`$draft`): anything else named in
 			// `mode=draft` opens an empty composer, so its id never reaches the
 			// replace-and-destroy of a save (which checks the folder again).
@@ -90,14 +81,7 @@ export default async function ComposePage({
 			logApiFailure("mail compose prefill", error);
 		}
 	}
-	const title =
-		mode === "reply" || mode === "replyAll"
-			? t("replyTitle")
-			: mode === "forward"
-				? t("forwardTitle")
-				: mode === "draft"
-					? t("editDraftTitle")
-					: t("composeTitle");
+	const title = t(COMPOSE_TITLE[mode]);
 
 	return (
 		<div className="h-full overflow-y-auto p-2">

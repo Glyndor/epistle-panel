@@ -1,5 +1,4 @@
 import { getTranslations } from "next-intl/server";
-import { AdminBreadcrumbs } from "@/features/navigation/components/admin-breadcrumbs";
 import { loadingRoutes } from "@/features/navigation/queries/loading-routes";
 import {
 	OutcomesCardSkeleton,
@@ -36,7 +35,6 @@ export default async function Loading() {
 	const words = await skeletonWords(DEFAULT_PERIOD);
 	return (
 		<>
-			<AdminBreadcrumbs routes={routes} page="status" />
 			<h1 className="font-semibold text-lg">{t("heading")}</h1>
 			<StatusCardsSkeleton />
 			<DeliveriesSection

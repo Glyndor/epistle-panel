@@ -7,10 +7,12 @@ import {
 	type MailSession,
 } from "@/features/mail/jmap/credentials";
 import { loadMailboxes } from "@/features/mail/queries/load-mailboxes";
+import { loadMessage } from "@/features/mail/queries/load-message";
 import { loadQuota } from "@/features/mail/queries/load-quota";
 import type {
 	MailboxRole,
 	MailboxView,
+	MessageDetail,
 	QuotaView,
 } from "@/features/mail/schemas/mail-view";
 import { logApiFailure } from "@/lib/api/log-failure";
@@ -81,6 +83,20 @@ export const requestQuota: () => Promise<QuotaView | null | undefined> = cache(
 		}
 	},
 );
+
+/**
+ * One message, asked of the server once per request however many parts of the
+ * page show it: the reader, and the trail of the bar, which names its subject.
+ * `undefined` without a mail session and `null` for a message the server does
+ * not have. A failure rejects, for every caller alike: the reader logs it and
+ * lets the browser ask again, the trail names nothing.
+ */
+export const requestMessage: (
+	id: string,
+) => Promise<MessageDetail | null | undefined> = cache(async (id: string) => {
+	const session = await requestMailSession();
+	return session === null ? undefined : loadMessage(session, id);
+});
 
 /**
  * The folder a view opens. A place asked for by its id is that folder and

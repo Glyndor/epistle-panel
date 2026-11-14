@@ -2,7 +2,6 @@ import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
 import { PrefetchBoundary } from "@/components/prefetch-boundary";
-import { AdminBreadcrumbs } from "@/features/navigation/components/admin-breadcrumbs";
 import { SuppressionTable } from "@/features/suppression/components/suppression-table";
 import { SuppressionTableSkeleton } from "@/features/suppression/components/suppression-table-skeleton";
 import { loadSuppression } from "@/features/suppression/queries/load-suppression";
@@ -21,13 +20,12 @@ export default async function SuppressionPage({
 }: {
 	searchParams: Promise<{ after?: string | string[] }>;
 }) {
-	const { routes } = await requireAdmin();
+	await requireAdmin();
 	const t = await getTranslations("suppression");
 	const after = parseAddressParam((await searchParams).after);
 
 	return (
 		<>
-			<AdminBreadcrumbs routes={routes} page="suppression" />
 			<h1 className="font-semibold text-lg">{t("heading")}</h1>
 			<p className="text-muted-foreground">{t("description")}</p>
 			<Suspense key={after ?? ""} fallback={<SuppressionTableSkeleton />}>

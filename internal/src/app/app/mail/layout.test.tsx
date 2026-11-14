@@ -32,7 +32,10 @@ afterEach(async () => {
 	globalThis.fetch = originalFetch;
 });
 
-const slots = { children: <p>page</p> };
+const slots = {
+	children: <p>page</p>,
+	trail: <nav aria-label="trail">here</nav>,
+};
 
 const answers = {
 	"Mailbox/get": {
@@ -116,12 +119,15 @@ describe("MailLayout", () => {
 		expect(screen.getByRole("main")).toHaveClass("overflow-hidden");
 	});
 
-	it("keeps the header's middle for the search", async () => {
+	it("draws the trail of its slot in the header and keeps the header's middle for the search", async () => {
 		await cookies.signIn("ana", "user");
 		stubJmap(answers);
 		await renderLayout();
 
 		const banner = screen.getByRole("banner");
+		expect(banner).toContainElement(
+			screen.getByRole("navigation", { name: "trail" }),
+		);
 		const cell = banner.querySelector("[data-slot='header-search']");
 		expect(cell).not.toBeNull();
 		// The search is not built yet: the cell is kept, and empty.
