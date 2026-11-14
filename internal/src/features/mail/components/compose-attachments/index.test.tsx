@@ -179,4 +179,21 @@ describe("ComposeAttachments", () => {
 		expect(changes).toHaveLength(1);
 		expect(changes[0]?.length).toBe(1);
 	});
+
+	it("names the button that removes a file, an icon alone, in a tooltip", () => {
+		render(
+			<ComposeAttachments
+				attachments={[attached(1)]}
+				onChange={() => {}}
+			/>,
+		);
+
+		fireEvent.pointerEnter(
+			screen.getByRole("button", { name: "removeAttachment" }),
+		);
+
+		expect(
+			document.querySelector("[data-slot='tooltip']"),
+		).toHaveTextContent("removeAttachment");
+	});
 });

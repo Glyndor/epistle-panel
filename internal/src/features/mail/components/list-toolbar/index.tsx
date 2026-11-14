@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tooltip } from "@/components/ui/tooltip";
 import { folderPath, mailHref } from "@/features/mail/links/mail-href";
 import {
 	LIST_FILTERS,
@@ -64,10 +65,12 @@ export function ListToolbar({
 					data-mail-search=""
 					className="min-w-0 flex-1"
 				/>
-				<Button type="submit" variant="outline" size="icon">
-					<SearchIcon aria-hidden="true" />
-					<span className="sr-only">{t("searchSubmit")}</span>
-				</Button>
+				<Tooltip label={t("searchSubmit")} align="end">
+					<Button type="submit" variant="outline" size="icon">
+						<SearchIcon aria-hidden="true" />
+						<span className="sr-only">{t("searchSubmit")}</span>
+					</Button>
+				</Tooltip>
 				{q === "" ? null : (
 					<Button asChild variant="ghost" size="sm">
 						<Link href={mailHref({ box, role, filter })}>

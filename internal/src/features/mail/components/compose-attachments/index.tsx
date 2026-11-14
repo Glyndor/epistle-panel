@@ -4,6 +4,7 @@ import { useId, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toaster";
+import { Tooltip } from "@/components/ui/tooltip";
 import {
 	MAX_ATTACHMENT_BYTES,
 	MAX_COMPOSE_ATTACHMENTS,
@@ -126,26 +127,33 @@ export function ComposeAttachments({
 							<bdi className="max-w-48 truncate">
 								{attachment.name}
 							</bdi>
-							<Button
-								type="button"
-								variant="ghost"
-								size="icon"
-								onClick={() =>
-									onChange(
-										attachments.filter(
-											(a) =>
-												a.blobId !== attachment.blobId,
-										),
-									)
-								}
+							<Tooltip
+								label={t("removeAttachment", {
+									name: attachment.name,
+								})}
 							>
-								<XIcon aria-hidden="true" />
-								<span className="sr-only">
-									{t("removeAttachment", {
-										name: attachment.name,
-									})}
-								</span>
-							</Button>
+								<Button
+									type="button"
+									variant="ghost"
+									size="icon"
+									onClick={() =>
+										onChange(
+											attachments.filter(
+												(a) =>
+													a.blobId !==
+													attachment.blobId,
+											),
+										)
+									}
+								>
+									<XIcon aria-hidden="true" />
+									<span className="sr-only">
+										{t("removeAttachment", {
+											name: attachment.name,
+										})}
+									</span>
+								</Button>
+							</Tooltip>
 						</li>
 					))}
 				</ul>

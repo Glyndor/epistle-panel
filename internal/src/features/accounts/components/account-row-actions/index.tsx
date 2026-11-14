@@ -1,6 +1,6 @@
 "use client";
 
-import { MoreHorizontalIcon } from "lucide-react";
+import { MoreHorizontalIcon, Trash2Icon, UserCogIcon } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
@@ -14,13 +14,15 @@ import {
 	DropdownMenuLabel,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Tooltip } from "@/components/ui/tooltip";
 import { DeleteAccountDialog } from "@/features/accounts/components/delete-account-dialog";
 import type { AccountRow } from "@/features/accounts/schemas/accounts-view";
 import { isAccountName } from "@/lib/api/account-name-pattern";
 
 /**
  * What can be done with one account, in a menu at the end of its row: open
- * it, and delete it when the API manages it. An account declared in the
+ * it, and delete it when the API manages it. The menu's button is an icon
+ * alone, so a tooltip names it; each action carries its icon. An account declared in the
  * configuration file says so in place of the delete action, since the API
  * cannot remove it. A name the pages would not accept gets no action that
  * would put it in an address or an API path.
@@ -46,19 +48,25 @@ export function AccountRowActions({ row }: { row: AccountRow }) {
 				}}
 			>
 				<DropdownMenuTrigger asChild>
-					<Button
-						ref={trigger}
-						variant="ghost"
-						size="icon"
-						aria-label={t("actionsFor", { name: row.name })}
+					<Tooltip
+						label={t("actionsFor", { name: row.name })}
+						align="end"
 					>
-						<MoreHorizontalIcon aria-hidden="true" />
-					</Button>
+						<Button
+							ref={trigger}
+							variant="ghost"
+							size="icon"
+							aria-label={t("actionsFor", { name: row.name })}
+						>
+							<MoreHorizontalIcon aria-hidden="true" />
+						</Button>
+					</Tooltip>
 				</DropdownMenuTrigger>
 				<DropdownMenuContent align="end" container={main}>
 					{named ? (
 						<DropdownMenuItem asChild>
 							<Link href={routes.accountDetail(row.name)}>
+								<UserCogIcon aria-hidden="true" />
 								{t("open")}
 							</Link>
 						</DropdownMenuItem>
@@ -68,6 +76,7 @@ export function AccountRowActions({ row }: { row: AccountRow }) {
 							variant="destructive"
 							onSelect={() => setDeleting(true)}
 						>
+							<Trash2Icon aria-hidden="true" />
 							{t("delete")}
 						</DropdownMenuItem>
 					) : (
