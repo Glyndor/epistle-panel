@@ -240,6 +240,53 @@ describe("Tooltip", () => {
 		expect(tip()).toBeNull();
 	});
 
+	it("gives way at once to another control the pointer finds under it, and stays over its own and over nothing", () => {
+		render(
+			<>
+				<Tooltip label="Actions for one">
+					<button type="button">one</button>
+				</Tooltip>
+				<button type="button">two</button>
+				<p>plain text</p>
+			</>,
+		);
+		const one = screen.getByRole("button", { name: "one" });
+		const two = screen.getByRole("button", { name: "two" });
+		const text = screen.getByText("plain text");
+		const found = document.elementsFromPoint;
+		let under: Element[] = [];
+		document.elementsFromPoint = () => under;
+		try {
+			// Over empty space and over text it can be reached and read.
+			fireEvent.pointerEnter(one);
+			const box = tip() as HTMLElement;
+			under = [box, text, document.body];
+			fireEvent.pointerEnter(box);
+			fireEvent.pointerMove(box);
+			expect(tip()).not.toBeNull();
+
+			// Over its own control it stays.
+			under = [box, one, document.body];
+			fireEvent.pointerMove(box);
+			expect(tip()).not.toBeNull();
+
+			// Over the button of the next row it goes, with no wait: the press is that button's.
+			under = [box, two, document.body];
+			fireEvent.pointerMove(box);
+			expect(tip()).toBeNull();
+
+			// And again the next time: nothing of the first time is kept.
+			fireEvent.pointerEnter(one);
+			const again = tip() as HTMLElement;
+			expect(again).not.toBeNull();
+			under = [again, two, document.body];
+			fireEvent.pointerMove(again);
+			expect(tip()).toBeNull();
+		} finally {
+			document.elementsFromPoint = found;
+		}
+	});
+
 	it("is never shown when disabled", () => {
 		const button = renderTip({ disabled: true });
 

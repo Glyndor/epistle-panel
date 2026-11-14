@@ -101,6 +101,10 @@ function hasPopupOpen(element: HTMLElement): boolean {
  * Props it does not know go to the control, so it can stand between a Radix
  * trigger (`asChild`) and its button.
  */
+/** What a pointer can press: a tooltip lying over one of these gives way to it. */
+const CONTROLS =
+	"a[href], button, input, select, textarea, summary, label, [role='button'], [role='menuitem'], [role='tab']";
+
 /** The values of `overflow` under which a box cuts off what leaves it. */
 const CLIPS = new Set(["auto", "scroll", "hidden", "clip"]);
 
@@ -177,6 +181,24 @@ export function Tooltip({
 	const dismiss = () => {
 		clearTimeout(hideTimer.current);
 		setPlace(null);
+	};
+	// The tooltip can be reached with the pointer, so it must not stand between
+	// the pointer and another control: over one that is not its own (the
+	// button of the next row, 12 px away) it goes at once and the press lands.
+	const yieldTo = (event: React.PointerEvent<HTMLElement>) => {
+		const box = event.currentTarget;
+		const under = document
+			.elementsFromPoint?.(event.clientX, event.clientY)
+			.find((element) => !box.contains(element));
+		const other = under?.closest(CONTROLS);
+		if (
+			other !== null &&
+			other !== undefined &&
+			other !== control.current &&
+			!control.current?.contains(other)
+		) {
+			dismiss();
+		}
 	};
 	React.useEffect(() => () => clearTimeout(hideTimer.current), []);
 
@@ -268,7 +290,11 @@ export function Tooltip({
 					aria-hidden="true"
 					data-slot={slot}
 					data-side={place.bottom === undefined ? side : "top"}
-					onPointerEnter={() => clearTimeout(hideTimer.current)}
+					onPointerEnter={(event) => {
+						clearTimeout(hideTimer.current);
+						yieldTo(event);
+					}}
+					onPointerMove={yieldTo}
 					onPointerLeave={hide}
 					className={cn(
 						"fixed z-50 flex",
