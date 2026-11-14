@@ -123,12 +123,12 @@ describe("ListToolbar", () => {
 		expect(links[1]).toHaveAttribute("aria-current", "true");
 	});
 
-	it("ends the filters with the density switch, in the density the server read", () => {
+	it("puts the density switch at the end of the search's line, in the density the server read", () => {
 		for (const [density, pressed] of [
 			["comfortable", "false"],
 			["compact", "true"],
 		] as const) {
-			render(
+			const { container } = render(
 				<ListToolbar
 					box="INBOX"
 					folderRole="inbox"
@@ -137,10 +137,24 @@ describe("ListToolbar", () => {
 					density={density}
 				/>,
 			);
+			const toggle = screen.getByRole("button", {
+				name: "densityCompact",
+			});
 
+			expect(toggle).toHaveAttribute("aria-pressed", pressed);
+			// Beside the form and outside it; the filters have their line to themselves.
+			const form = container.querySelector("form");
+			expect(form?.parentElement).toBe(toggle.parentElement);
+			expect(form?.contains(toggle)).toBe(false);
 			expect(
-				screen.getByRole("button", { name: "densityCompact" }),
-			).toHaveAttribute("aria-pressed", pressed);
+				screen
+					.getByRole("navigation", { name: "filtersLabel" })
+					.contains(toggle),
+			).toBe(false);
+			expect(
+				screen.getByRole("navigation", { name: "filtersLabel" })
+					.parentElement === container.firstElementChild,
+			).toBe(true);
 			cleanup();
 		}
 	});

@@ -27,13 +27,19 @@ describe("ListSkeleton", () => {
 		);
 	});
 
-	it("holds the place of a date heading and of six rows", () => {
+	it("holds the place of a date heading and of six rows, the heading right on its rows as in the list", () => {
 		const { container } = render(<ListSkeleton />);
+		const frame = container.firstElementChild;
+		const heading = container.querySelector(".h-8");
+		const rows = heading?.nextElementSibling;
 
 		expect(
 			container.querySelectorAll('[data-slot="row-skeleton"]'),
 		).toHaveLength(6);
-		expect(container.querySelector(".h-8")).not.toBeNull();
+		// A gap between the heading and the rows moved the first message by its size.
+		expect(frame?.className).not.toMatch(/(^|\s)(gap|space-y)-/);
+		expect(rows).toHaveClass("flex", "flex-col", "gap-1");
+		expect(rows?.children).toHaveLength(6);
 	});
 
 	it("gives a row's place the height of a real row in both densities and on both pointers", () => {
@@ -70,21 +76,29 @@ describe("ListSkeleton", () => {
 		);
 	});
 
-	it("draws the initials as a circle and the lines beside it, and the preview only when comfortable", () => {
+	it("draws the initials as a circle where the row has them, the lines beside it, and the preview only when comfortable", () => {
 		const { container } = render(<ListSkeleton />);
 		const place = container.querySelector('[data-slot="row-skeleton"]');
 		const [circle, ...lines] = Array.from(place?.children ?? []);
+		const C = "group-data-[density=compact]/list:";
 
 		expect(circle).toHaveClass(
 			"rounded-full",
 			"size-8",
-			"group-data-[density=compact]/list:size-6",
+			"hidden",
+			"@xs/row:block",
+			`${C}size-6`,
+			`${C}hidden`,
+			`${C}@sm/row:block`,
 		);
 		expect(lines).toHaveLength(3);
-		expect(lines[2]).toHaveClass(
-			"group-data-[density=compact]/list:hidden",
+		expect(lines[2]).toHaveClass(`${C}hidden`);
+		expect(place).toHaveClass(
+			"@container/row",
+			"ps-5",
+			"pe-3",
+			`${C}pe-15`,
 		);
-		expect(place).toHaveClass("ps-5", "pe-3");
 	});
 
 	it("never moves: no animation and no style attribute", () => {
@@ -103,5 +117,16 @@ describe("ListPaneSkeleton", () => {
 		expect(toolbar).toHaveAttribute("aria-hidden", "true");
 		expect(list).toHaveClass("overflow-y-auto", "scroll-pt-8");
 		expect(list?.querySelector('[aria-busy="true"]')).not.toBeNull();
+	});
+
+	it("holds two bars as tall as the search field and the filters, on both pointers", () => {
+		const { container } = render(<ListPaneSkeleton />);
+		const bars = Array.from(container.firstElementChild?.children ?? []);
+
+		expect(bars).toHaveLength(2);
+		for (const bar of bars) {
+			expect(bar).toHaveClass("h-8", "pointer-coarse:h-11");
+		}
+		expect(container.firstElementChild).toHaveClass("gap-2", "p-2");
 	});
 });

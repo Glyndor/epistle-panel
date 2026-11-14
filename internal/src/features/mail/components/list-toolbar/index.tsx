@@ -31,7 +31,9 @@ const FILTER_LABELS = {
  * be bookmarked; the filters are links. Both stay in the folder, which is the
  * path, and a new search or filter starts again at the first page. The search field says what the search
  * reads (the server has no text search, see `load-message-list`). The switch
- * between the comfortable and the compact list sits at the end of the filters.
+ * between the comfortable and the compact list sits at the end of the search's
+ * line: beside the filters it pushed them onto a second line in a narrow
+ * window, and the list under them down with it.
  */
 export function ListToolbar({
 	box,
@@ -52,73 +54,73 @@ export function ListToolbar({
 
 	return (
 		<div className="flex flex-col gap-2 p-2">
-			<form
-				method="get"
-				action={folderPath({ box, role })}
-				aria-label={t("searchLabel")}
-				className="flex gap-2"
-			>
-				{filter === "all" ? null : (
-					<input type="hidden" name="filter" value={filter} />
-				)}
-				<Input
-					type="search"
-					name="q"
-					defaultValue={q}
-					maxLength={MAX_QUERY_LENGTH}
+			<div className="flex gap-2">
+				<form
+					method="get"
+					action={folderPath({ box, role })}
 					aria-label={t("searchLabel")}
-					aria-keyshortcuts="/"
-					data-mail-search=""
-					className="min-w-0 flex-1"
-				/>
-				<Tooltip label={t("searchSubmit")} align="end">
-					<Button type="submit" variant="outline" size="icon">
-						<SearchIcon aria-hidden="true" />
-						<span className="sr-only">{t("searchSubmit")}</span>
-					</Button>
-				</Tooltip>
-				{q === "" ? null : (
-					<Button asChild variant="ghost" size="sm">
-						<Link href={mailHref({ box, role, filter })}>
-							{t("searchClear")}
-						</Link>
-					</Button>
-				)}
-			</form>
+					className="flex min-w-0 flex-1 gap-2"
+				>
+					{filter === "all" ? null : (
+						<input type="hidden" name="filter" value={filter} />
+					)}
+					<Input
+						type="search"
+						name="q"
+						defaultValue={q}
+						maxLength={MAX_QUERY_LENGTH}
+						aria-label={t("searchLabel")}
+						aria-keyshortcuts="/"
+						data-mail-search=""
+						className="min-w-0 flex-1"
+					/>
+					<Tooltip label={t("searchSubmit")} align="end">
+						<Button type="submit" variant="outline" size="icon">
+							<SearchIcon aria-hidden="true" />
+							<span className="sr-only">{t("searchSubmit")}</span>
+						</Button>
+					</Tooltip>
+					{q === "" ? null : (
+						<Button asChild variant="ghost" size="sm">
+							<Link href={mailHref({ box, role, filter })}>
+								{t("searchClear")}
+							</Link>
+						</Button>
+					)}
+				</form>
+				<DensityToggle density={density} />
+			</div>
 			{q === "" ? null : (
 				<p className="text-muted-foreground text-xs">
 					{t("searchNote", { count: SCAN_LIMIT })}
 				</p>
 			)}
-			<div className="flex items-start gap-2">
-				<nav aria-label={t("filtersLabel")} className="min-w-0 flex-1">
-					<ul className="flex flex-wrap gap-1">
-						{LIST_FILTERS.map((value) => (
-							<li key={value}>
-								<Link
-									href={mailHref({
-										box,
-										role,
-										filter: value,
-										q,
-									})}
-									aria-current={
-										value === filter ? "true" : undefined
-									}
-									className={cn(
-										"inline-flex min-h-8 items-center rounded-full bg-muted px-3 text-xs hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring pointer-coarse:min-h-11 pointer-coarse:px-3",
-										value === filter &&
-											"bg-accent font-medium text-accent-foreground",
-									)}
-								>
-									{t(FILTER_LABELS[value])}
-								</Link>
-							</li>
-						))}
-					</ul>
-				</nav>
-				<DensityToggle density={density} />
-			</div>
+			<nav aria-label={t("filtersLabel")}>
+				<ul className="flex flex-wrap gap-1">
+					{LIST_FILTERS.map((value) => (
+						<li key={value}>
+							<Link
+								href={mailHref({
+									box,
+									role,
+									filter: value,
+									q,
+								})}
+								aria-current={
+									value === filter ? "true" : undefined
+								}
+								className={cn(
+									"inline-flex min-h-8 items-center rounded-full bg-muted px-3 text-xs hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring pointer-coarse:min-h-11 pointer-coarse:px-3",
+									value === filter &&
+										"bg-accent font-medium text-accent-foreground",
+								)}
+							>
+								{t(FILTER_LABELS[value])}
+							</Link>
+						</li>
+					))}
+				</ul>
+			</nav>
 		</div>
 	);
 }
