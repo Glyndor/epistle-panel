@@ -96,9 +96,10 @@ export function ListToolbar({
 				</p>
 			)}
 			<nav aria-label={t("filtersLabel")}>
-				<ul className="flex flex-wrap gap-1">
+				{/* One line whatever the language: a second line pushed the list down by its height. What does not fit scrolls sideways; the padding leaves room for a chip's focus ring inside the box that clips. */}
+				<ul className="-m-1 flex gap-1 overflow-x-auto p-1 [scrollbar-width:none]">
 					{LIST_FILTERS.map((value) => (
-						<li key={value}>
+						<li key={value} className="shrink-0">
 							<Link
 								href={mailHref({
 									box,
@@ -110,7 +111,7 @@ export function ListToolbar({
 									value === filter ? "true" : undefined
 								}
 								className={cn(
-									"inline-flex min-h-8 items-center rounded-full bg-muted px-3 text-xs hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring pointer-coarse:min-h-11 pointer-coarse:px-3",
+									"inline-flex min-h-8 items-center whitespace-nowrap rounded-full bg-muted px-2.5 text-xs hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring pointer-coarse:min-h-11 pointer-coarse:px-3",
 									value === filter &&
 										"bg-accent font-medium text-accent-foreground",
 								)}
