@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tooltip } from "@/components/ui/tooltip";
 import { DensityToggle } from "@/features/mail/components/density-toggle";
+import { FilterStrip } from "@/features/mail/components/filter-strip";
 import type { ListDensity } from "@/features/mail/config/list-density";
 import { folderPath, mailHref } from "@/features/mail/links/mail-href";
 import {
@@ -24,6 +25,19 @@ const FILTER_LABELS = {
 	flagged: "filterFlagged",
 	attachments: "filterAttachments",
 } as const satisfies Record<ListFilter, string>;
+
+/**
+ * A filter: a pill on the pane, darker under the pointer and darker again
+ * under a press. Its side padding is 10 px on a fine pointer and not 12: with
+ * 12 the four did not fit a 360 px window in Italian and Portuguese (334 and
+ * 330 px in 328), and the last was cut at rest.
+ */
+const FILTER =
+	"inline-flex min-h-8 items-center whitespace-nowrap rounded-full bg-muted px-2.5 text-xs hover:bg-foreground/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring active:bg-foreground/20 pointer-coarse:min-h-11 pointer-coarse:px-3";
+
+/** The filter in use: the accent surface and a heavier name, and its own darker steps, one further than the others'. */
+const CURRENT =
+	"bg-accent font-medium text-accent-foreground hover:bg-foreground/20 active:bg-foreground/25";
 
 /**
  * Search and filters of the list. The search is a plain GET form to the
@@ -95,33 +109,19 @@ export function ListToolbar({
 					{t("searchNote", { count: SCAN_LIMIT })}
 				</p>
 			)}
-			<nav aria-label={t("filtersLabel")}>
-				{/* One line whatever the language: a second line pushed the list down by its height. What does not fit scrolls sideways; the padding leaves room for a chip's focus ring inside the box that clips. */}
-				<ul className="-m-1 flex gap-1 overflow-x-auto p-1 [scrollbar-width:none]">
-					{LIST_FILTERS.map((value) => (
-						<li key={value} className="shrink-0">
-							<Link
-								href={mailHref({
-									box,
-									role,
-									filter: value,
-									q,
-								})}
-								aria-current={
-									value === filter ? "true" : undefined
-								}
-								className={cn(
-									"inline-flex min-h-8 items-center whitespace-nowrap rounded-full bg-muted px-2.5 text-xs hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring pointer-coarse:min-h-11 pointer-coarse:px-3",
-									value === filter &&
-										"bg-accent font-medium text-accent-foreground",
-								)}
-							>
-								{t(FILTER_LABELS[value])}
-							</Link>
-						</li>
-					))}
-				</ul>
-			</nav>
+			<FilterStrip label={t("filtersLabel")}>
+				{LIST_FILTERS.map((value) => (
+					<li key={value} className="shrink-0">
+						<Link
+							href={mailHref({ box, role, filter: value, q })}
+							aria-current={value === filter ? "true" : undefined}
+							className={cn(FILTER, value === filter && CURRENT)}
+						>
+							{t(FILTER_LABELS[value])}
+						</Link>
+					</li>
+				))}
+			</FilterStrip>
 		</div>
 	);
 }
