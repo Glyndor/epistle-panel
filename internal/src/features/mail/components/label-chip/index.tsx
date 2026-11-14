@@ -39,11 +39,20 @@ export function LabelChip({
 	className,
 	...props
 }: { label: LabelView } & React.ComponentProps<"span">) {
+	// A name of four characters or fewer is never cut, so its pill is as wide
+	// as it; a longer one gives way down to four. One least width for both
+	// left a short name in a pill wider than itself.
+	const short = Array.from(label.name).length <= 4;
+
 	return (
 		<span
 			data-slot="label-chip"
 			data-tone={label.tone}
-			className={cn(CHIP_PILL, "min-w-[calc(4ch+1.75rem)]", className)}
+			className={cn(
+				CHIP_PILL,
+				className,
+				short ? "shrink-0" : "min-w-[calc(4ch+1.75rem)]",
+			)}
 			{...props}
 		>
 			<span

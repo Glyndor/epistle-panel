@@ -24,17 +24,48 @@ describe("LabelChip", () => {
 
 	it("never draws the name narrower than four characters", () => {
 		const { container } = render(
-			<LabelChip label={{ keyword: "Work", name: "Work", tone: 1 }} />,
+			<LabelChip
+				label={{ keyword: "Invoices", name: "Invoices", tone: 1 }}
+				className="shrink"
+			/>,
 		);
 
 		// The pill's least width is four characters, the dot and the padding;
 		// the name inside gives way to it and is cut with an ellipsis.
 		expect(container.firstElementChild).toHaveClass(
 			"min-w-[calc(4ch+1.75rem)]",
+			"shrink",
 		);
+		expect(container.firstElementChild).not.toHaveClass("shrink-0");
 		expect(container.querySelector("bdi")).toHaveClass(
 			"min-w-0",
 			"truncate",
+		);
+	});
+
+	it("never cuts a name of four characters or fewer, and keeps its pill as wide as the name", () => {
+		for (const name of ["A", "Tax", "Work", "🔥🔥🔥🔥"]) {
+			const { container } = render(
+				<LabelChip
+					label={{ keyword: name, name, tone: 1 }}
+					className="shrink"
+				/>,
+			);
+
+			// Whatever the caller asks: no least width wider than the name itself.
+			expect(container.firstElementChild).toHaveClass("shrink-0");
+			expect(container.firstElementChild).not.toHaveClass("shrink");
+			expect(container.firstElementChild?.className).not.toContain(
+				"min-w-[",
+			);
+			cleanup();
+		}
+		// Five characters can be cut down to four.
+		const { container } = render(
+			<LabelChip label={{ keyword: "Later", name: "Later", tone: 1 }} />,
+		);
+		expect(container.firstElementChild).toHaveClass(
+			"min-w-[calc(4ch+1.75rem)]",
 		);
 	});
 

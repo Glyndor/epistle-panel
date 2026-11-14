@@ -97,7 +97,13 @@ describe("LabelChips", () => {
 	});
 
 	it("lets a chip give way down to four characters of its name and no further, and never the count", () => {
-		const { container } = render(<LabelChips labels={six} />);
+		const { container } = render(
+			<LabelChips
+				labels={["Invoices", "Personal", "Travelling", "Later"].map(
+					(name) => label(name),
+				)}
+			/>,
+		);
 
 		for (const chip of chips(container)) {
 			expect(chip).toHaveClass("shrink", "max-w-28");

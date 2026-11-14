@@ -210,8 +210,14 @@ the tooltip of a count.
   out of a row too narrow for them (under 20rem; under 24rem when compact).
   The row is the container these ask (`@container/row`), since its width
   follows the pane and the sidebar, not the window.
+- **The filters stay on one line** in every language: at 360 px they fitted
+  in four of the six and wrapped in Italian and Portuguese, and the list under
+  them stood a line lower than its skeleton. They do not wrap; what does not
+  fit scrolls sideways, with no scrollbar where the browser can hide it
+  (`scrollbar-width`), and the box that clips them has room for a focus ring.
 - **A chip is never drawn without a readable name.** Its least width is four
-  characters of name, its dot and its padding. Where a row's line cannot hold
+  characters of name, its dot and its padding; a name of four characters or
+  fewer is never cut and its pill is as wide as it. Where a row's line cannot hold
   that beside the subject's least width, no chip is drawn and the labels are
   a count of all of them (`+N`); they are never left out. Comfortable: a count
   under 24rem, one chip and a count from 24rem, three from 32rem. Compact: a

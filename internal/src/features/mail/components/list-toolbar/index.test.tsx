@@ -123,6 +123,30 @@ describe("ListToolbar", () => {
 		expect(links[1]).toHaveAttribute("aria-current", "true");
 	});
 
+	it("keeps the filters on one line in any language: they scroll sideways and never wrap", () => {
+		render(
+			<ListToolbar
+				box="INBOX"
+				folderRole="inbox"
+				filter="all"
+				q=""
+				density="comfortable"
+			/>,
+		);
+		const list = screen
+			.getByRole("navigation", { name: "filtersLabel" })
+			.querySelector("ul");
+
+		expect(list).toHaveClass("flex", "overflow-x-auto");
+		expect(list).not.toHaveClass("flex-wrap");
+		// Room for a chip's focus ring inside the box that clips it.
+		expect(list).toHaveClass("p-1", "-m-1");
+		for (const item of Array.from(list?.children ?? [])) {
+			expect(item).toHaveClass("shrink-0");
+			expect(item.querySelector("a")).toHaveClass("whitespace-nowrap");
+		}
+	});
+
 	it("puts the density switch at the end of the search's line, in the density the server read", () => {
 		for (const [density, pressed] of [
 			["comfortable", "false"],
