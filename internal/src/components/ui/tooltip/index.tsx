@@ -110,6 +110,13 @@ function hasPopupOpen(element: HTMLElement): boolean {
  * lost with it.
  */
 let lastInput: "tab" | "other" = "other";
+/**
+ * Set when a tooltip gave way to the control under the pointer: that control
+ * was never told the pointer came in, so the next move on it shows its name.
+ * Any key or press takes it back. It is the one case in which a move shows a
+ * tooltip: after a press or Escape on a control, moving on it must not.
+ */
+let pointerUncovered = false;
 let watching = false;
 
 /** Start noting the last key and press of the page, once. */
@@ -122,6 +129,7 @@ function watchInput() {
 		"keydown",
 		(event) => {
 			lastInput = event.key === "Tab" ? "tab" : "other";
+			pointerUncovered = false;
 		},
 		true,
 	);
@@ -129,6 +137,7 @@ function watchInput() {
 		"pointerdown",
 		() => {
 			lastInput = "other";
+			pointerUncovered = false;
 		},
 		true,
 	);
@@ -199,10 +208,6 @@ export function Tooltip({
 	const hideTimer = React.useRef<ReturnType<typeof setTimeout>>(undefined);
 	const control = React.useRef<HTMLElement | null>(null);
 	const tip = React.useRef<HTMLSpanElement | null>(null);
-	// Set by a press or a key that sent the tooltip away while the pointer is
-	// on the control, until the pointer leaves: moving on it must not bring the
-	// tooltip back in the same visit.
-	const sentAway = React.useRef(false);
 	React.useEffect(watchInput, []);
 
 	const show = (element: HTMLElement) => {
@@ -235,6 +240,7 @@ export function Tooltip({
 			other !== control.current &&
 			!control.current?.contains(other)
 		) {
+			pointerUncovered = true;
 			dismiss();
 		}
 	};
@@ -289,7 +295,6 @@ export function Tooltip({
 		// possible to dismiss it without moving the pointer.
 		const onKeyDown = (event: KeyboardEvent) => {
 			if (event.key === "Escape") {
-				sentAway.current = true;
 				clearTimeout(hideTimer.current);
 				setPlace(null);
 			}
@@ -314,20 +319,19 @@ export function Tooltip({
 					// another tooltip lay over it and gave way under the pointer.
 					if (
 						place === null &&
-						!sentAway.current &&
+						pointerUncovered &&
 						event.pointerType !== "touch"
 					) {
+						pointerUncovered = false;
 						show(event.currentTarget);
 					}
 				}}
 				onPointerLeave={(event: React.PointerEvent<HTMLElement>) => {
 					props.onPointerLeave?.(event);
-					sentAway.current = false;
 					hide();
 				}}
 				onPointerDown={(event: React.PointerEvent<HTMLElement>) => {
 					props.onPointerDown?.(event);
-					sentAway.current = true;
 					dismiss();
 				}}
 				onFocus={(event: React.FocusEvent<HTMLElement>) => {
@@ -354,7 +358,6 @@ export function Tooltip({
 							event.key === "Enter" ||
 							event.key === " ")
 					) {
-						sentAway.current = true;
 						dismiss();
 					}
 				}}

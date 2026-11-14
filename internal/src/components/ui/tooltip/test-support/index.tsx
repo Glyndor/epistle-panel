@@ -32,6 +32,15 @@ export function keyboardFocus(element: HTMLElement, visible: boolean) {
 			: original(selector)) as typeof element.matches;
 }
 
+/**
+ * End a case as a person would start the next: with a press somewhere. The
+ * tooltip notes the last key and press of the page, for every tooltip on it,
+ * and a note left by one case would be read by the next.
+ */
+export function forgetInput() {
+	fireEvent.pointerDown(document.body);
+}
+
 /** Move the focus to the control the way the Tab key does: the key, then the focus. */
 export function tabTo(element: HTMLElement) {
 	keyboardFocus(element, true);

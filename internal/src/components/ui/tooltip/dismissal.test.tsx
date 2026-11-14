@@ -2,9 +2,18 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
 import { Tooltip } from ".";
-import { keyboardFocus, renderTip, tabTo, tip } from "./test-support";
+import {
+	forgetInput,
+	keyboardFocus,
+	renderTip,
+	tabTo,
+	tip,
+} from "./test-support";
 
-afterEach(cleanup);
+afterEach(() => {
+	forgetInput();
+	cleanup();
+});
 
 /**
  * What sends a tooltip away and what brings it back: a press, Escape, another
@@ -95,42 +104,92 @@ describe("Tooltip: sent away and brought back", () => {
 		}
 	});
 
-	it("shows for a pointer that is found over the control with no entry told, and not again after a press or Escape", () => {
-		const button = renderTip();
+	it("shows for a pointer a tooltip uncovered, on its next move, and for no other move", () => {
+		render(
+			<>
+				<Tooltip label="Actions for one">
+					<button type="button">one</button>
+				</Tooltip>
+				<Tooltip label="Actions for two">
+					<button type="button">two</button>
+				</Tooltip>
+			</>,
+		);
+		const one = screen.getByRole("button", { name: "one" });
+		const two = screen.getByRole("button", { name: "two" });
+		const found = document.elementsFromPoint;
+		let under: Element[] = [];
+		document.elementsFromPoint = () => under;
+		const shown = () => tip()?.textContent ?? null;
+		try {
+			// A move on a control that nothing uncovered shows nothing: the
+			// pointer coming in is what shows a tooltip.
+			fireEvent.pointerMove(two);
+			expect(shown()).toBeNull();
 
-		// Another tooltip lay over the control and went: the pointer is on it and only moves.
-		expect(tip()).toBeNull();
-		fireEvent.pointerMove(button);
-		expect(tip()).toHaveTextContent("Toggle sidebar");
+			// The tooltip of "one" lies over "two" and gives way to it. "two"
+			// was never told the pointer came in: its next move shows its name.
+			fireEvent.pointerEnter(one);
+			under = [tip() as HTMLElement, two, document.body];
+			fireEvent.pointerMove(tip() as HTMLElement);
+			expect(shown()).toBeNull();
+			fireEvent.pointerMove(two);
+			expect(shown()).toBe("Actions for two");
 
-		// A press sends it away, and moving on the control does not bring it back.
-		fireEvent.pointerDown(button);
-		expect(tip()).toBeNull();
-		fireEvent.pointerMove(button);
-		fireEvent.pointerMove(button);
-		expect(tip()).toBeNull();
+			// A press sends it away, and moving on the control does not bring it back.
+			fireEvent.pointerDown(two);
+			expect(shown()).toBeNull();
+			fireEvent.pointerMove(two);
+			fireEvent.pointerMove(two);
+			expect(shown()).toBeNull();
+			// Leaving and coming back in does.
+			fireEvent.pointerLeave(two);
+			fireEvent.pointerEnter(two);
+			expect(shown()).toBe("Actions for two");
 
-		// A new visit starts again.
-		fireEvent.pointerLeave(button);
-		fireEvent.pointerMove(button);
-		expect(tip()).not.toBeNull();
+			// Escape sends it away the same way.
+			fireEvent.keyDown(document.body, { key: "Escape" });
+			expect(shown()).toBeNull();
+			fireEvent.pointerMove(two);
+			expect(shown()).toBeNull();
 
-		// Escape sends it away the same way, until the pointer leaves.
-		fireEvent.keyDown(button, { key: "Escape" });
-		expect(tip()).toBeNull();
-		fireEvent.pointerMove(button);
-		expect(tip()).toBeNull();
-		fireEvent.pointerLeave(button);
-		fireEvent.pointerMove(button);
-		expect(tip()).not.toBeNull();
+			// Uncovered, and then a key or a press before the move: nothing.
+			for (const before of [
+				() => fireEvent.keyDown(document.body, { key: "a" }),
+				() => fireEvent.pointerDown(document.body),
+			]) {
+				fireEvent.pointerLeave(two);
+				fireEvent.pointerEnter(one);
+				under = [tip() as HTMLElement, two, document.body];
+				fireEvent.pointerMove(tip() as HTMLElement);
+				before();
+				fireEvent.pointerMove(two);
+				expect(shown()).toBeNull();
+			}
 
-		// A finger moving on the control shows nothing.
-		fireEvent.pointerLeave(button);
-		fireEvent.pointerDown(button);
-		fireEvent.pointerLeave(button);
+			// A finger moving on an uncovered control shows nothing.
+			fireEvent.pointerEnter(one);
+			under = [tip() as HTMLElement, two, document.body];
+			fireEvent.pointerMove(tip() as HTMLElement);
+			fireEvent.pointerMove(two, { pointerType: "touch" });
+			expect(shown()).toBeNull();
+		} finally {
+			document.elementsFromPoint = found;
+		}
+	});
+
+	it("does not come back under a pointer that stays, on a button that took the place of the one pressed", () => {
+		// A menu that loads on demand swaps its button on the first press.
+		const first = renderTip();
+		fireEvent.pointerEnter(first);
+		fireEvent.pointerDown(first);
 		cleanup();
-		const touched = renderTip();
-		fireEvent.pointerMove(touched, { pointerType: "touch" });
+
+		const second = renderTip();
+		fireEvent.keyDown(document.body, { key: "Escape" });
+		fireEvent.pointerMove(second);
+		fireEvent.pointerMove(second);
+
 		expect(tip()).toBeNull();
 	});
 
@@ -161,14 +220,14 @@ describe("Tooltip: sent away and brought back", () => {
 		// The same with the focus in a field elsewhere.
 		fireEvent.pointerLeave(button);
 		field.focus();
-		fireEvent.pointerMove(button);
+		fireEvent.pointerEnter(button);
 		expect(tip()).not.toBeNull();
 		fireEvent.keyDown(field, { key: "Escape" });
 		expect(tip()).toBeNull();
 
 		// Another key leaves it alone.
 		fireEvent.pointerLeave(button);
-		fireEvent.pointerMove(button);
+		fireEvent.pointerEnter(button);
 		fireEvent.keyDown(field, { key: "a" });
 		expect(tip()).not.toBeNull();
 	});

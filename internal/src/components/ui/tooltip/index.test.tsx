@@ -9,9 +9,19 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip } from ".";
-import { keyboardFocus, place, renderTip, tabTo, tip } from "./test-support";
+import {
+	forgetInput,
+	keyboardFocus,
+	place,
+	renderTip,
+	tabTo,
+	tip,
+} from "./test-support";
 
-afterEach(cleanup);
+afterEach(() => {
+	forgetInput();
+	cleanup();
+});
 
 describe("Tooltip", () => {
 	it("is not in the page until the control is reached", () => {
