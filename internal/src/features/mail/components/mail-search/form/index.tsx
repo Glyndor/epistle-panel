@@ -21,11 +21,13 @@ import {
 	SearchField,
 } from "@/features/mail/components/mail-search/search-field";
 import {
+	conditionsToQuery,
 	type ListConditions,
 	MAX_CONDITION_TEXT,
 } from "@/features/mail/schemas/list-conditions-model";
 import {
 	isSearchFormMessage,
+	searchFormConditions,
 	searchFormSchema,
 	searchFormValues,
 } from "@/features/mail/schemas/search-form";
@@ -89,11 +91,15 @@ export function SearchForm({
 			setErrors({});
 			// The search is a change of the address, and the address is what
 			// the list reads: the page is drawn again with what it says, and
-			// the field keeps the focus and what was written in it.
+			// the field keeps the focus and what was written in it. The
+			// address says what narrows the list and nothing else: a field
+			// that narrows nothing is not in it.
 			event.preventDefault();
 			const query = new URLSearchParams();
-			for (const [name, value] of data.entries()) {
-				query.append(name, String(value));
+			for (const [name, value] of conditionsToQuery(
+				searchFormConditions(data),
+			)) {
+				query.set(name, value);
 			}
 			const suffix = query.size > 0 ? `?${query}` : "";
 			router.push(`${path}${suffix}`);

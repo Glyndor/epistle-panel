@@ -7,6 +7,7 @@ import {
 import {
 	CONDITION_TEXT_PATTERN,
 	isConditionDay,
+	type ListConditions,
 	MAX_CONDITION_TEXT,
 } from "@/features/mail/schemas/list-conditions-model";
 import { MAILBOX_ID_PATTERN } from "@/lib/mail-paths";
@@ -137,5 +138,41 @@ export function searchFormValues(data: FormData): SearchFormValues {
 		before: textOf("before"),
 		folder: textOf("folder"),
 		label: textOf("label"),
+	};
+}
+
+/**
+ * The conditions the form carries, as the address holds them: the words, the
+ * fields that narrow them, the days they are kept between, the folder and the
+ * label, and what the list was already narrowed by (the quick filters and the
+ * order, which the form carries with it).
+ *
+ * A field that narrows nothing is empty and a day that narrows nothing is
+ * none: the address of a search says what narrows the list and nothing else.
+ */
+export function searchFormConditions(data: FormData): ListConditions {
+	const textOf = (name: string) => {
+		const value = data.get(name);
+		return typeof value === "string" ? value : "";
+	};
+	const noneIfEmpty = (name: string) => {
+		const value = textOf(name);
+		return value === "" ? null : value;
+	};
+	const order = textOf("order");
+	return {
+		q: textOf("q"),
+		from: textOf("from"),
+		to: textOf("to"),
+		subject: textOf("subject"),
+		after: noneIfEmpty("after"),
+		before: noneIfEmpty("before"),
+		label: noneIfEmpty("label"),
+		folder: noneIfEmpty("folder"),
+		unread: textOf("unread") === "1",
+		starred: textOf("starred") === "1",
+		important: textOf("important") === "1",
+		attachment: textOf("attachment") === "1",
+		order: order === "oldest" || order === "largest" ? order : "newest",
 	};
 }

@@ -131,6 +131,19 @@ describe("the search form", () => {
 		expect(pushed[0]).toContain("order=oldest");
 	});
 
+	it("writes an address with no empty condition in it", () => {
+		const { form } = draw();
+		openPanel();
+		fireEvent.change(words(), { target: { value: "invoice" } });
+		write("from", "ana");
+
+		expect(fireEvent.submit(form)).toBe(false);
+
+		// A field that narrows nothing is not in the address: a link that is
+		// saved says what the search was and nothing else.
+		expect(pushed).toEqual(["/app/mail/inbox?q=invoice&from=ana"]);
+	});
+
 	it("posts to the page of the folder it was drawn for", () => {
 		const { form } = draw({}, "/app/mail/folder/Work_2FQ4");
 

@@ -1,11 +1,15 @@
 import { describe, expect, it } from "bun:test";
 
 import { parseListConditions } from "@/features/mail/schemas/list-conditions";
-import { MAX_CONDITION_TEXT } from "@/features/mail/schemas/list-conditions-model";
+import {
+	EMPTY_CONDITIONS,
+	MAX_CONDITION_TEXT,
+} from "@/features/mail/schemas/list-conditions-model";
 
 import {
 	SEARCH_FORM_MESSAGES,
 	type SearchFormValues,
+	searchFormConditions,
 	searchFormSchema,
 	searchFormValues,
 } from ".";
@@ -243,5 +247,32 @@ describe("the page's check and the server's check", () => {
 			q: "invoice",
 			from: "ana",
 		});
+	});
+
+	it("reads the conditions out of the page, and a field that narrows nothing is none", () => {
+		const data = new FormData();
+		data.set("q", "invoice");
+		data.set("after", "2026-11-01");
+		data.set("unread", "1");
+		data.set("order", "oldest");
+
+		expect(searchFormConditions(data)).toEqual({
+			...EMPTY_CONDITIONS,
+			q: "invoice",
+			after: "2026-11-01",
+			unread: true,
+			order: "oldest",
+		});
+	});
+
+	it("reads an empty field as no condition at all", () => {
+		const data = new FormData();
+		data.set("q", "");
+		data.set("after", "");
+		data.set("folder", "");
+		data.set("label", "");
+		data.set("order", "");
+
+		expect(searchFormConditions(data)).toEqual(EMPTY_CONDITIONS);
 	});
 });
