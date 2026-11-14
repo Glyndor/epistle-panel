@@ -48,7 +48,11 @@ describe("loadMessageList without a filter", () => {
 		const { ids, answers } = folder(120);
 		const seen = stubJmap(answers);
 
-		const view = await loadMessageList(SESSION, { ...base, page: 2 });
+		const view = await loadMessageList(
+			SESSION,
+			{ ...base, page: 2 },
+			new Date("2026-11-13T23:59:59Z"),
+		);
 
 		expect(view.items.map((i) => i.id)).toEqual(
 			ids.slice(PAGE_SIZE, PAGE_SIZE * 2),
@@ -58,6 +62,7 @@ describe("loadMessageList without a filter", () => {
 			total: 120,
 			hasNext: true,
 			partial: false,
+			today: "2026-11-13",
 		});
 		expect(seen[0]?.calls[0]).toEqual([
 			"Email/query",
@@ -81,6 +86,27 @@ describe("loadMessageList without a filter", () => {
 });
 
 describe("loadMessageList with a filter or a search", () => {
+	it("dates a filtered answer with the UTC day it was read, like an unfiltered one", async () => {
+		const { answers } = folder(3);
+		stubJmap(answers);
+		// 19:30 on the 12th in Bogotá is already the 13th in UTC.
+		const view = await loadMessageList(
+			SESSION,
+			{ ...base, filter: "unread" },
+			new Date("2026-11-12T19:30:00-05:00"),
+		);
+		expect(view.today).toBe("2026-11-13");
+	});
+
+	it("dates the answer with the clock when no time is given", async () => {
+		const { answers } = folder(1);
+		stubJmap(answers);
+		const before = new Date().toISOString().slice(0, 10);
+		const view = await loadMessageList(SESSION, base);
+		const after = new Date().toISOString().slice(0, 10);
+		expect([before, after]).toContain(view.today);
+	});
+
 	it("keeps the unread messages and pages the matches", async () => {
 		const { answers } = folder(130, (i) => ({
 			keywords: i % 2 === 0 ? {} : { $seen: true },

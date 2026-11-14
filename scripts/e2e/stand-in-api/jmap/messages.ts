@@ -63,7 +63,140 @@ export const IDS = {
 	textOnly: seedId(7),
 	flagged: seedId(8),
 	archived: seedId(9),
+	stateEverything: seedId(20),
+	stateNew: seedId(21),
+	stateAnswered: seedId(22),
+	stateForwarded: seedId(23),
+	stateImportantStarred: seedId(24),
+	stateForeignKeywords: seedId(25),
+	stateRightToLeft: seedId(26),
+	stateBare: seedId(27),
+	stateManyLabels: seedId(28),
+	stateLastYear: seedId(29),
 } as const;
+
+/** `days` days before now at `hour` UTC, so the list always has a message of today, of yesterday and of this week. */
+function daysAgo(days: number, hour: number, minute = 0): string {
+	const now = new Date();
+	return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - days, hour, minute))
+		.toISOString()
+		.replace(".000Z", "Z");
+}
+
+/**
+ * One message in every state a row of the list can show, alone and combined,
+ * so each can be looked at and none is taken on faith. A label is a keyword
+ * (`To_20do` is "To do", see the panel's `keyword-codec`); `$Important` and
+ * `$Forwarded` are spelled as an IMAP client sets them and `$important` as
+ * JMAP does, since the server keeps the case it was given.
+ */
+function stateMessages(): SeedMessage[] {
+	return [
+		{
+			id: IDS.stateEverything,
+			mailbox: "INBOX",
+			receivedAt: daysAgo(0, 0, 2),
+			subject: "Contract for signature, final version with the changes agreed on Tuesday",
+			from: [{ name: "Maximiliano Fernández de Córdoba y Villavicencio", email: "maximiliano.fernandez@a-rather-long-domain.example.org" }],
+			to: [ME],
+			keywords: { $important: true, $flagged: true, Work: true, To_20do: true },
+			text: "Unread, important, starred, two labels and an attachment.",
+			attachments: [{ name: "contract.pdf", type: "application/pdf", content: "%PDF-1.4 stand-in" }],
+		},
+		{
+			id: IDS.stateNew,
+			mailbox: "INBOX",
+			receivedAt: daysAgo(0, 0, 1),
+			subject: "Lunch on Friday?",
+			from: [{ name: "Bo Larsen", email: "bo@example.org" }],
+			to: [ME],
+			keywords: {},
+			text: "Unread and nothing else.",
+		},
+		{
+			id: IDS.stateAnswered,
+			mailbox: "INBOX",
+			receivedAt: daysAgo(0, 0),
+			subject: "Budget review",
+			from: [ANA],
+			to: [ME],
+			keywords: { $seen: true, $answered: true, Work: true },
+			text: "Read and answered.",
+		},
+		{
+			id: IDS.stateForwarded,
+			mailbox: "INBOX",
+			receivedAt: daysAgo(1, 15),
+			subject: "Minutes of the board meeting",
+			from: [{ name: "Chidi Okafor", email: "chidi@example.org" }],
+			to: [ME],
+			keywords: { $seen: true, $Forwarded: true, A_C3_B1o_20nuevo: true },
+			text: "Read and forwarded, with a label whose name has an accent and a space.",
+		},
+		{
+			id: IDS.stateImportantStarred,
+			mailbox: "INBOX",
+			receivedAt: daysAgo(1, 9),
+			subject: "Server certificate expires in 7 days",
+			from: [{ name: "Operations", email: "ops@example.org" }],
+			to: [ME],
+			keywords: { $Important: true, $flagged: true },
+			text: "Unread, starred, and marked important by an IMAP client.",
+		},
+		{
+			id: IDS.stateForeignKeywords,
+			mailbox: "INBOX",
+			receivedAt: daysAgo(3, 12),
+			subject: "Keywords another client set",
+			from: [ANA],
+			to: [ME],
+			// The first is not written the panel's way, the second would read as a right-to-left override, the rest belong to the protocol.
+			keywords: { $seen: true, Work_items: true, exe_E2_80_AEgpj: true, $label1: true, NonJunk: true, $MDNSent: true },
+			text: "Two labels shown as the keyword itself, and three keywords that are not labels.",
+		},
+		{
+			id: IDS.stateRightToLeft,
+			mailbox: "INBOX",
+			receivedAt: daysAgo(4, 12),
+			subject: "مرحبا، هذا موضوع الرسالة (draft 2)",
+			from: [{ name: "ليلى حسن", email: "layla@example.org" }],
+			to: [ME],
+			keywords: { _F0_9F_94_A5_20urgent: true },
+			text: "A sender and a subject in a right-to-left script, and a label with an emoji.",
+		},
+		{
+			id: IDS.stateBare,
+			mailbox: "INBOX",
+			receivedAt: daysAgo(5, 12),
+			subject: "",
+			from: [{ name: null, email: "no-name@example.org" }],
+			to: [ME],
+			keywords: {},
+			text: "",
+		},
+		{
+			id: IDS.stateManyLabels,
+			mailbox: "INBOX",
+			receivedAt: daysAgo(20, 12),
+			subject: "A message with more labels than a row has room for",
+			from: [ANA],
+			to: [ME],
+			keywords: { $seen: true, Work: true, To_20do: true, Personal: true, Invoices: true, Travel: true, Later: true },
+			text: "Six labels.",
+			attachments: [{ name: "notes.txt", type: "text/plain", content: "notes" }],
+		},
+		{
+			id: IDS.stateLastYear,
+			mailbox: "INBOX",
+			receivedAt: daysAgo(400, 12),
+			subject: "From more than a year ago",
+			from: [ANA],
+			to: [ME],
+			keywords: { $seen: true, $flagged: true },
+			text: "Old enough to sit under another year.",
+		},
+	];
+}
 
 /** Every attachment name and type below tries to be run, or to be a path, when it is saved. */
 const ATTACHMENTS: SeedAttachment[] = [
@@ -211,5 +344,5 @@ export function seedMessages(): SeedMessage[] {
 			text: `Body of bulk message ${n + 1}.`,
 		});
 	}
-	return messages;
+	return [...messages, ...stateMessages()];
 }

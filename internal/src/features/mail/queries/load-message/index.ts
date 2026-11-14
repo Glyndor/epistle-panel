@@ -2,6 +2,7 @@ import "server-only";
 
 import type { MailSession } from "@/features/mail/jmap/credentials";
 import type { EmailRecord, Part } from "@/features/mail/jmap/responses";
+import { hasKeyword, readLabels } from "@/features/mail/labels/read-keywords";
 import {
 	loadEmailRecord,
 	rawBodies,
@@ -96,6 +97,10 @@ export async function loadMessage(
 		messageId: safeLine(email.messageId?.[0] ?? "", 320) || null,
 		unread: keywords["$seen"] !== true,
 		flagged: keywords["$flagged"] === true,
+		important: hasKeyword(keywords, "$important"),
+		answered: keywords["$answered"] === true,
+		forwarded: hasKeyword(keywords, "$forwarded"),
+		labels: readLabels(keywords),
 		mailboxId:
 			Object.entries(email.mailboxIds ?? {}).find(([, on]) => on)?.[0] ??
 			null,

@@ -116,6 +116,8 @@ export const MESSAGE_OPS = [
 	"unread",
 	"star",
 	"unstar",
+	"important",
+	"unimportant",
 	"archive",
 	"trash",
 	"spam",

@@ -1,4 +1,5 @@
 import type { EmailRecord } from "@/features/mail/jmap/responses";
+import { hasKeyword, readLabels } from "@/features/mail/labels/read-keywords";
 import { safeLine } from "@/features/mail/sanitize/safe-text";
 import type {
 	AddressView,
@@ -40,9 +41,12 @@ export function toSummary(email: EmailRecord): MessageSummary {
 		preview: safeLine(email.preview ?? "", ROW_TEXT),
 		unread: keywords["$seen"] !== true,
 		flagged: keywords["$flagged"] === true,
+		important: hasKeyword(keywords, "$important"),
 		answered: keywords["$answered"] === true,
+		forwarded: hasKeyword(keywords, "$forwarded"),
 		draft: keywords["$draft"] === true,
 		hasAttachment: email.hasAttachment === true,
+		labels: readLabels(keywords),
 	};
 }
 

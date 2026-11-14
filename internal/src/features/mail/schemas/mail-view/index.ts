@@ -27,6 +27,13 @@ export interface AddressView {
 	readonly email: string;
 }
 
+/** A label on a message: the keyword that carries it, its name as safe text and its tone of the theme's label palette. */
+export interface LabelView {
+	readonly keyword: string;
+	readonly name: string;
+	readonly tone: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+}
+
 /** One row of the message list. Every text is already safe text. */
 export interface MessageSummary {
 	readonly id: string;
@@ -36,9 +43,13 @@ export interface MessageSummary {
 	readonly preview: string;
 	readonly unread: boolean;
 	readonly flagged: boolean;
+	/** Marked important by the account's own user (`$important`), never by the sender. */
+	readonly important: boolean;
 	readonly answered: boolean;
+	readonly forwarded: boolean;
 	readonly draft: boolean;
 	readonly hasAttachment: boolean;
+	readonly labels: readonly LabelView[];
 }
 
 /** One page of a folder's messages. */
@@ -50,6 +61,8 @@ export interface MessageListView {
 	readonly hasNext: boolean;
 	/** True when a filter or a search read only the newest part of a larger folder. */
 	readonly partial: boolean;
+	/** The UTC day the list was read, `YYYY-MM-DD`: what "today" means for the date groups. */
+	readonly today: string;
 }
 
 /** One attachment of a message. */
@@ -96,6 +109,11 @@ export interface MessageDetail {
 	readonly messageId: string | null;
 	readonly unread: boolean;
 	readonly flagged: boolean;
+	/** Marked important by the account's own user (`$important`), never by the sender. */
+	readonly important: boolean;
+	readonly answered: boolean;
+	readonly forwarded: boolean;
+	readonly labels: readonly LabelView[];
 	readonly mailboxId: string | null;
 	readonly body: BodyView;
 	readonly attachments: readonly AttachmentView[];

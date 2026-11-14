@@ -1,5 +1,6 @@
 import "server-only";
 
+import { utcDay } from "@/features/mail/format/date-group";
 import { jmapCall, methodResult } from "@/features/mail/jmap/call";
 import type { MailSession } from "@/features/mail/jmap/credentials";
 import {
@@ -105,12 +106,15 @@ async function fetchEmails(
  * One page of a folder. With no filter and no search the page is the slice of
  * the folder's ids and only those messages are fetched. Otherwise the newest
  * {@link SCAN_LIMIT} messages are fetched and filtered here, and `partial` says
- * so when the folder holds more.
+ * so when the folder holds more. `now` is when the list is read, which dates
+ * the groups the rows are shown under.
  */
 export async function loadMessageList(
 	session: MailSession,
 	input: MessageListInput,
+	now: Date = new Date(),
 ): Promise<MessageListView> {
+	const today = utcDay(now);
 	const queried = await jmapCall(session, [
 		[
 			"Email/query",
@@ -132,6 +136,7 @@ export async function loadMessageList(
 			total: ids.length,
 			hasNext: start + PAGE_SIZE < ids.length,
 			partial: false,
+			today,
 		};
 	}
 
@@ -146,5 +151,6 @@ export async function loadMessageList(
 		total: matching.length,
 		hasNext: start + PAGE_SIZE < matching.length,
 		partial: ids.length > SCAN_LIMIT,
+		today,
 	};
 }
