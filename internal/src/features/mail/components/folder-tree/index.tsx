@@ -53,12 +53,14 @@ const INDENT = [
  * mailbox under a heading that opens and closes them, the system folders named
  * in the reader's language, the unread counter beside each. The current folder
  * is the one the address shows, marked with `aria-current`. Collapsed to
- * icons, a folder is its icon and a tooltip says its name and what is unread.
+ * icons, a folder is its icon and a tooltip says its name, what is unread and
+ * whether it is the one that is open.
  * It is a `nav` landmark with its own name, so it can be reached from the
  * landmark list as well as by Tab.
  */
 export function FolderTree({ boxes }: { boxes: readonly MailboxView[] }) {
 	const t = useTranslations("mail");
+	const tNav = useTranslations("nav");
 	const activeId = activeFolder(usePathname(), boxes);
 	// A role's path opens the first folder with that role, so only that one is addressed by it.
 	const byRole = new Map<string, string>();
@@ -80,18 +82,27 @@ export function FolderTree({ boxes }: { boxes: readonly MailboxView[] }) {
 							box.role === null
 								? box.name
 								: t(`role_${box.role}`);
+						const said =
+							box.unread > 0
+								? t("folderWithUnread", {
+										name,
+										count: box.unread,
+									})
+								: name;
 						return (
 							<SidebarMenuItem key={box.id}>
 								<SidebarMenuButton
 									asChild
 									isActive={active}
+									// On the rail the fill and the mark say
+									// which folder is open; the tooltip
+									// says it in words.
 									tooltip={
-										box.unread > 0
-											? t("folderWithUnread", {
-													name,
-													count: box.unread,
+										active
+											? tNav("currentEntry", {
+													name: said,
 												})
-											: name
+											: said
 									}
 									className={cn(
 										INDENT[

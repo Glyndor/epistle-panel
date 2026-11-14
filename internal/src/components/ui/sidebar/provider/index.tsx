@@ -4,12 +4,27 @@ import * as React from "react";
 
 import { cn } from "@/lib/class-names";
 import { SidebarContext, type SidebarContextProps } from "../context";
+import { sidebarCookie } from "../cookie";
 import { useIsMobile } from "../use-is-mobile";
 
-/** Name of the cookie that keeps the desktop sidebar open or collapsed. */
-export const SIDEBAR_COOKIE = "sidebar_state";
-const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 const SIDEBAR_KEYBOARD_SHORTCUT = "b";
+
+/**
+ * Collapsed to icons, the heading of a group is not drawn. A heading that has
+ * the focus when the rail collapses would drop it on the page; it is handed to
+ * the sidebar's toggle instead, which is where the person can undo it.
+ */
+function handFocusToToggle(): void {
+	const focused = document.activeElement;
+	if (
+		focused instanceof HTMLElement &&
+		focused.matches("[data-slot='sidebar-group-label']")
+	) {
+		document
+			.querySelector<HTMLElement>("[data-slot='sidebar-trigger']")
+			?.focus();
+	}
+}
 
 /**
  * Holds the sidebar state and lays out the shell, which is exactly as tall as
@@ -32,13 +47,16 @@ export function SidebarProvider({
 	const setOpen = React.useCallback((value: boolean) => {
 		setOpenState(value);
 		// biome-ignore lint/suspicious/noDocumentCookie: the Cookie Store API is not Baseline widely available yet.
-		document.cookie = `${SIDEBAR_COOKIE}=${value}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}; SameSite=Lax`;
+		document.cookie = sidebarCookie(value);
 	}, []);
 
 	const toggleSidebar = React.useCallback(() => {
 		if (isMobile) {
 			setOpenMobile((current) => !current);
 		} else {
+			if (open) {
+				handFocusToToggle();
+			}
 			setOpen(!open);
 		}
 	}, [isMobile, open, setOpen]);

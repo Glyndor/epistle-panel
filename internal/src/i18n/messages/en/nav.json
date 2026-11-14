@@ -17,6 +17,7 @@
 	"version": "Version {version}",
 	"sheetTitle": "Navigation",
 	"sheetDescription": "Pages of the admin panel.",
+	"currentEntry": "{name} (current page)",
 	"close": "Close",
 	"account": "Account: {name}",
 	"role_admin": "Administrator",

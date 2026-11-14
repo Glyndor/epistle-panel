@@ -17,6 +17,7 @@
 	"version": "Version {version}",
 	"sheetTitle": "Navigation",
 	"sheetDescription": "Seiten des Verwaltungspanels.",
+	"currentEntry": "{name} (aktuelle Seite)",
 	"close": "Schließen",
 	"account": "Konto: {name}",
 	"role_admin": "Administrator",

@@ -171,6 +171,8 @@ describe("FolderTree", () => {
 	});
 
 	it("collapsed to icons, names a folder in a tooltip, with what is unread", () => {
+		// The composer is open: no folder is the current one.
+		pathname = "/app/mail/compose";
 		renderTree(boxes, false);
 		const tip = () =>
 			document.querySelector("[data-slot='sidebar-tooltip']");
@@ -189,6 +191,33 @@ describe("FolderTree", () => {
 		expect(screen.getByRole("link", { name: "Q4" })).toHaveClass(
 			"group-data-[collapsible=icon]:pl-0",
 		);
+	});
+
+	it("collapsed to icons, marks the open folder by more than its fill, and says so in its tooltip", () => {
+		pathname = "/app/mail/sent";
+		renderTree(boxes, false);
+		const tip = () =>
+			document.querySelector("[data-slot='sidebar-tooltip']");
+		const open = screen.getByRole("link", { name: /role_sent/ });
+
+		// A mark on its starting edge, drawn only on the rail and only for
+		// the current entry: a fill alone is a colour.
+		expect(open).toHaveAttribute("data-active", "true");
+		expect(open).toHaveClass(
+			"relative",
+			"before:absolute",
+			"before:start-0",
+			"before:hidden",
+			"before:bg-sidebar-foreground",
+			"group-data-[collapsible=icon]:data-[active=true]:before:block",
+		);
+		fireEvent.pointerEnter(open);
+		expect(tip()).toHaveTextContent("currentEntry");
+		fireEvent.keyDown(open, { key: "Escape" });
+
+		fireEvent.pointerEnter(screen.getByRole("link", { name: "Q4" }));
+		expect(tip()).toHaveTextContent("Q4");
+		expect(tip()).not.toHaveTextContent("currentEntry");
 	});
 
 	it("is served with its folders and no style attribute", () => {

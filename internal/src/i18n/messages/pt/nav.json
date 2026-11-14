@@ -17,6 +17,7 @@
 	"version": "Versão {version}",
 	"sheetTitle": "Navegação",
 	"sheetDescription": "Páginas do painel de administração.",
+	"currentEntry": "{name} (página atual)",
 	"close": "Fechar",
 	"account": "Conta: {name}",
 	"role_admin": "Administrador",

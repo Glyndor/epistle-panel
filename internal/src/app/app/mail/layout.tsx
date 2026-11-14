@@ -4,7 +4,10 @@ import { Suspense } from "react";
 
 import { AppShell } from "@/components/layout/app-shell";
 import { QueryProvider } from "@/components/layout/query-provider";
-import { SIDEBAR_COOKIE } from "@/components/ui/sidebar/provider";
+import {
+	SIDEBAR_COOKIE,
+	sidebarStartsOpen,
+} from "@/components/ui/sidebar/cookie";
 import { MailNav } from "@/features/mail/components/mail-nav";
 import { QuotaMeter } from "@/features/mail/components/quota-meter";
 import { requireSession } from "@/lib/auth/require-session";
@@ -31,7 +34,9 @@ export default async function MailLayout({
 	// installation whose admin area is on; its address, id included, is built here.
 	const adminId = session.role === "admin" ? await readAdminId() : undefined;
 	const t = await getTranslations("mail");
-	const open = (await cookies()).get(SIDEBAR_COOKIE)?.value !== "false";
+	const open = sidebarStartsOpen(
+		(await cookies()).get(SIDEBAR_COOKIE)?.value,
+	);
 
 	return (
 		<QueryProvider>

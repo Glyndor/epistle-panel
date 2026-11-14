@@ -103,4 +103,17 @@ describe("Sidebar", () => {
 		fireEvent.click(screen.getByText("Somewhere"));
 		expect(dialog.open).toBe(false);
 	});
+
+	it("does not animate its width for someone who asked for less motion", () => {
+		const { container } = renderSidebar();
+
+		for (const slot of ["sidebar-gap", "sidebar-container"]) {
+			expect(
+				container.querySelector(`[data-slot='${slot}']`),
+			).toHaveClass(
+				"transition-[width]",
+				"motion-reduce:transition-none",
+			);
+		}
+	});
 });

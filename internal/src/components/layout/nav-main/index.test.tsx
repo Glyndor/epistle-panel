@@ -193,3 +193,27 @@ describe("NavMain groups", () => {
 		expect(html).not.toContain("<style");
 	});
 });
+
+describe("NavMain on the rail", () => {
+	it("says in the tooltip of the current page that it is the current one, and only there", () => {
+		render(
+			<SidebarProvider defaultOpen={false}>
+				<NavMain groups={adminNav()} />
+			</SidebarProvider>,
+		);
+		const tip = () =>
+			document.querySelector("[data-slot='sidebar-tooltip']");
+		const nav = screen.getByRole("navigation", { name: "label" });
+		const current = nav.querySelector(
+			'a[aria-current="page"]',
+		) as HTMLElement;
+		const other = nav.querySelector("a:not([aria-current])") as HTMLElement;
+
+		fireEvent.pointerEnter(current);
+		expect(tip()).toHaveTextContent("currentEntry");
+		fireEvent.keyDown(current, { key: "Escape" });
+
+		fireEvent.pointerEnter(other);
+		expect(tip()).not.toHaveTextContent("currentEntry");
+	});
+});

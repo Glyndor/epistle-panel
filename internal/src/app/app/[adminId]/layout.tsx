@@ -6,7 +6,10 @@ import { AdminRoutesProvider } from "@/components/layout/admin-routes";
 import { AppShell } from "@/components/layout/app-shell";
 import { NavMain } from "@/components/layout/nav-main";
 import { QueryProvider } from "@/components/layout/query-provider";
-import { SIDEBAR_COOKIE } from "@/components/ui/sidebar/provider";
+import {
+	SIDEBAR_COOKIE,
+	sidebarStartsOpen,
+} from "@/components/ui/sidebar/cookie";
 import { navItems } from "@/features/navigation/config/items";
 import { navForRole } from "@/features/navigation/queries/nav-for-role";
 import { requireAdmin } from "@/lib/auth/require-session";
@@ -37,7 +40,9 @@ export default async function AdminLayout({
 		notFound();
 	}
 	const t = await getTranslations("nav");
-	const open = (await cookies()).get(SIDEBAR_COOKIE)?.value !== "false";
+	const open = sidebarStartsOpen(
+		(await cookies()).get(SIDEBAR_COOKIE)?.value,
+	);
 
 	return (
 		<AdminRoutesProvider adminId={id}>

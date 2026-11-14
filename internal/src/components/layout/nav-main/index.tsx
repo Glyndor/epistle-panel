@@ -67,7 +67,16 @@ export function NavMain({ groups }: { groups: readonly NavGroup[] }) {
 									<SidebarMenuButton
 										asChild
 										isActive={active}
-										tooltip={t(label)}
+										// On the rail the fill and the mark say
+										// which page this is; the tooltip says
+										// it in words.
+										tooltip={
+											active
+												? t("currentEntry", {
+														name: t(label),
+													})
+												: t(label)
+										}
 									>
 										<Link
 											href={href}
