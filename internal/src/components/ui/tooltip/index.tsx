@@ -44,6 +44,16 @@ function placeOf(
 	};
 }
 
+/** Whether two places are the same, to the pixel. */
+function samePlace(first: TooltipPlace, second: TooltipPlace): boolean {
+	return (
+		first.top === second.top &&
+		first.left === second.left &&
+		first.right === second.right &&
+		first.height === second.height
+	);
+}
+
 /** Whether the control is the button of a menu or a dialog that is open, which would sit under the tooltip. */
 function hasPopupOpen(element: HTMLElement): boolean {
 	return (
@@ -67,6 +77,11 @@ function hasPopupOpen(element: HTMLElement): boolean {
  * through `aria-keyshortcuts` on the control. Its position is set on the
  * client through the CSSOM, which `style-src 'self'` allows; it is never in
  * the server HTML.
+ *
+ * While it shows it follows its control: the place is read again on every
+ * frame, so the tooltip stays under a control that moves (the sidebar changing
+ * width, the window being resized, a pane scrolling), and it goes when the
+ * control stops being drawn.
  *
  * Props it does not know go to the control, so it can stand between a Radix
  * trigger (`asChild`) and its button.
@@ -95,10 +110,12 @@ export function Tooltip({
 } & Omit<React.HTMLAttributes<HTMLElement>, "children">) {
 	const [place, setPlace] = React.useState<TooltipPlace | null>(null);
 	const hideTimer = React.useRef<ReturnType<typeof setTimeout>>(undefined);
+	const control = React.useRef<HTMLElement | null>(null);
 
 	const show = (element: HTMLElement) => {
 		clearTimeout(hideTimer.current);
 		if (!disabled && !hasPopupOpen(element)) {
+			control.current = element;
 			setPlace(placeOf(element.getBoundingClientRect(), side, align));
 		}
 	};
@@ -111,6 +128,34 @@ export function Tooltip({
 		setPlace(null);
 	};
 	React.useEffect(() => () => clearTimeout(hideTimer.current), []);
+
+	const shown = place !== null;
+	React.useEffect(() => {
+		if (!shown) {
+			return;
+		}
+		let frame = 0;
+		const follow = () => {
+			const element = control.current;
+			// `checkVisibility` is false for a control that is no longer
+			// drawn, such as one inside a part that was just hidden.
+			if (
+				element === null ||
+				!element.isConnected ||
+				element.checkVisibility?.() === false
+			) {
+				setPlace(null);
+				return;
+			}
+			const next = placeOf(element.getBoundingClientRect(), side, align);
+			setPlace((current) =>
+				current === null || samePlace(current, next) ? current : next,
+			);
+			frame = requestAnimationFrame(follow);
+		};
+		frame = requestAnimationFrame(follow);
+		return () => cancelAnimationFrame(frame);
+	}, [shown, side, align]);
 
 	return (
 		<>

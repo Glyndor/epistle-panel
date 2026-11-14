@@ -282,4 +282,68 @@ describe("Tooltip", () => {
 
 		expect(tip()).toHaveTextContent("Toggle sidebar");
 	});
+
+	it("follows its control when the control moves, and goes when the control stops being drawn", async () => {
+		const button = renderTip({ align: "start" });
+		const frame = () =>
+			new Promise((resolve) =>
+				requestAnimationFrame(() => resolve(null)),
+			);
+		place(button, { top: 8, bottom: 40, left: 240 });
+		fireEvent.pointerEnter(button);
+		expect(tip()?.style.left).toBe("240px");
+
+		// The sidebar collapsed under the control: it is 176 px to the left.
+		place(button, { top: 8, bottom: 40, left: 64 });
+		await frame();
+		await frame();
+		expect(tip()?.style.left).toBe("64px");
+		expect(tip()?.style.top).toBe("40px");
+
+		// A pane scrolled: the control went up with it.
+		place(button, { top: -20, bottom: 12, left: 64 });
+		await frame();
+		await frame();
+		expect(tip()?.style.top).toBe("12px");
+
+		// The part that holds the control was hidden.
+		button.checkVisibility = () => false;
+		await frame();
+		await frame();
+		expect(tip()).toBeNull();
+	});
+
+	it("stops following once it is gone, and leaves no frame asked for behind it", async () => {
+		const asked: number[] = [];
+		const cancelled: number[] = [];
+		const request = globalThis.requestAnimationFrame;
+		const cancel = globalThis.cancelAnimationFrame;
+		globalThis.requestAnimationFrame = ((
+			callback: FrameRequestCallback,
+		) => {
+			const id = request(callback);
+			asked.push(id);
+			return id;
+		}) as typeof requestAnimationFrame;
+		globalThis.cancelAnimationFrame = ((id: number) => {
+			cancelled.push(id);
+			cancel(id);
+		}) as typeof cancelAnimationFrame;
+		try {
+			const button = renderTip();
+			fireEvent.pointerEnter(button);
+			expect(asked.length).toBeGreaterThan(0);
+
+			fireEvent.keyDown(button, { key: "Escape" });
+			expect(tip()).toBeNull();
+			const afterDismiss = asked.length;
+			await new Promise((resolve) => setTimeout(resolve, 60));
+
+			expect(asked.length).toBe(afterDismiss);
+			expect(cancelled).toContain(asked.at(-1) as number);
+		} finally {
+			globalThis.requestAnimationFrame = request;
+			globalThis.cancelAnimationFrame = cancel;
+		}
+	});
 });
