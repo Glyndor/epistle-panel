@@ -59,9 +59,11 @@ describe("FilterStrip", () => {
 		).toContainElement(list);
 		expect(list).toHaveClass("flex", "overflow-x-auto");
 		expect(list).not.toHaveClass("flex-wrap");
-		// Room for a filter's ring inside the box that clips it, and for the
-		// chevrons beside a filter brought into view (40 px, and 4 to spare).
-		expect(list).toHaveClass("p-1", "-m-1", "scroll-px-11");
+		// Room for a filter's ring inside the box that clips it, and beside
+		// a filter brought into view: 4 px of ring, and 4 to spare.
+		expect(list).toHaveClass("p-1", "-m-1", "scroll-px-2");
+		// The chevrons read the keyboard's focus from the strip.
+		expect(screen.getByRole("navigation")).toHaveClass("group/strip");
 	});
 
 	/** Make `:focus-visible` answer `visible` for `element`, which the test DOM does not compute. */
@@ -110,19 +112,24 @@ describe("FilterStrip", () => {
 		expect(edges(container)).toEqual([]);
 	});
 
-	it("says there is more for a single pixel out of view, at whichever end it is", () => {
+	it("shows a chevron only for more than 8 px out of view at that end", () => {
 		const { container, list } = strip();
 
-		// Measured at 320 px in English: one pixel of the last filter.
-		layOut(list, { client: 296, scroll: 297, left: 0 });
+		// The last filter reads whole with 8 px of its padding cut.
+		layOut(list, { client: 296, scroll: 304, left: 0 });
+		expect(edges(container)).toEqual([]);
+		layOut(list, { client: 296, scroll: 305, left: 0 });
 		expect(edges(container)).toEqual(["end"]);
 
-		layOut(list, { client: 296, scroll: 297, left: 1 });
-		expect(edges(container)).toEqual(["start"]);
+		layOut(list, { client: 296, scroll: 342, left: 8 });
+		expect(edges(container)).toEqual(["end"]);
+		layOut(list, { client: 296, scroll: 342, left: 9 });
+		expect(edges(container)).toEqual(["start", "end"]);
 
-		// Sizes come rounded: a fraction left over at the end is none.
-		layOut(list, { client: 296, scroll: 342, left: 45.7 });
-		expect(edges(container)).toEqual(["start"]);
+		// Gone to the end of a strip that hid 6 px: nothing to say, and the
+		// first filter takes its press at once.
+		layOut(list, { client: 296, scroll: 302, left: 6 });
+		expect(edges(container)).toEqual([]);
 	});
 
 	it("shows a chevron at the end that holds more, and at both in between", () => {
@@ -160,6 +167,100 @@ describe("FilterStrip", () => {
 		expect(moved).toEqual([150, -150]);
 	});
 
+	it("moves the other way in a right-to-left page, where the end is on the left", () => {
+		const { container, list } = strip();
+		const moved: Array<number | undefined> = [];
+		list.scrollBy = ((options?: ScrollToOptions) => {
+			moved.push(options?.left);
+		}) as typeof list.scrollBy;
+		const computed = window.getComputedStyle;
+		window.getComputedStyle = ((element: Element) =>
+			element === list
+				? { direction: "rtl" }
+				: computed(element)) as typeof window.getComputedStyle;
+		layOut(list, { client: 200, scroll: 400, left: -100 });
+
+		fireEvent.click(
+			container.querySelector('[data-edge="end"]') as HTMLElement,
+		);
+		fireEvent.click(
+			container.querySelector('[data-edge="start"]') as HTMLElement,
+		);
+		window.getComputedStyle = computed;
+
+		expect(moved).toEqual([-150, 150]);
+	});
+
+	describe("content that gets wider with the strip's own box unchanged", () => {
+		const Real = globalThis.ResizeObserver;
+		const fonts = Object.getOwnPropertyDescriptor(document, "fonts");
+		let watched: Element[] = [];
+		let resized: () => void = () => {};
+		afterEach(() => {
+			globalThis.ResizeObserver = Real;
+			if (fonts === undefined) {
+				Reflect.deleteProperty(document, "fonts");
+			} else {
+				Object.defineProperty(document, "fonts", fonts);
+			}
+		});
+		const observe = () => {
+			watched = [];
+			globalThis.ResizeObserver = class {
+				constructor(callback: () => void) {
+					resized = callback;
+				}
+				observe(element: Element) {
+					watched.push(element);
+				}
+				unobserve() {}
+				disconnect() {}
+			} as unknown as typeof ResizeObserver;
+		};
+		/** The content's width changes; the strip's box and its scroll do not, and nothing is said of it. */
+		const widen = (list: HTMLElement, scroll: number) =>
+			Object.defineProperty(list, "scrollWidth", {
+				configurable: true,
+				value: scroll,
+			});
+
+		it("reads the strip again when a filter changes size, as the one in use does", () => {
+			observe();
+			const { container, list } = strip();
+			layOut(list, { client: 296, scroll: 296, left: 0 });
+			expect(edges(container)).toEqual([]);
+			expect(watched).toEqual([list, ...Array.from(list.children)]);
+
+			// The filter in use is heavier: 20 px wider, in the same box.
+			widen(list, 316);
+			act(() => resized());
+
+			expect(edges(container)).toEqual(["end"]);
+		});
+
+		it("reads the strip again when the page's fonts have loaded", async () => {
+			let loaded: () => void = () => {};
+			Object.defineProperty(document, "fonts", {
+				configurable: true,
+				value: {
+					ready: new Promise<void>((resolve) => {
+						loaded = resolve;
+					}),
+				},
+			});
+			const { container, list } = strip();
+			layOut(list, { client: 296, scroll: 296, left: 0 });
+
+			widen(list, 316);
+			await act(async () => {
+				loaded();
+				await Promise.resolve();
+			});
+
+			expect(edges(container)).toEqual(["end"]);
+		});
+	});
+
 	it("keeps the chevrons out of the tab order and of the accessibility tree: Tab reaches every filter", () => {
 		const { container, list } = strip();
 		layOut(list, { client: 200, scroll: 400, left: 100 });
@@ -182,5 +283,24 @@ describe("FilterStrip", () => {
 		expect(screen.getAllByRole("link")).toHaveLength(3);
 		expect(screen.queryAllByRole("button")).toHaveLength(0);
 		expect(container.querySelector("[style]")).toBeNull();
+	});
+
+	it("hides both chevrons through the strip's keyboard-focus selector without covering a filter's ring", () => {
+		const { container, list } = strip();
+		layOut(list, { client: 200, scroll: 400, left: 100 });
+		const filter = screen.getAllByRole("link")[1] as HTMLElement;
+		focusFrom(filter, true);
+		filter.focus();
+
+		// happy-dom does not lay out Tailwind CSS. Check the selector
+		// contract; the independent browser audit must measure the ring.
+		for (const edge of container.querySelectorAll("[data-edge]")) {
+			expect(edge).toHaveClass("group-has-[:focus-visible]/strip:hidden");
+			expect(edge).toHaveClass("pointer-events-none");
+			expect(edge.querySelector('[data-slot="edge-press"]')).toHaveClass(
+				"pointer-events-auto",
+			);
+		}
+		expect(document.activeElement).toBe(filter);
 	});
 });
