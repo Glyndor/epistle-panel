@@ -170,7 +170,7 @@ scenario_mail() {
 	assert_contains "the answer says it was done" "$(cat "$work/b")" "done"
 	assert_contains "the message is read on the server" "$(mail_state)" "\"id\":\"$welcome\",\"mailbox\":\"INBOX\",\"keywords\":{\"\$seen\":true}"
 	mail_change "[{\"id\":\"$welcome\",\"op\":\"star\"}]" "$good" >/dev/null
-	assert_contains "star keeps the read flag and adds the star" "$(mail_state)" "\"keywords\":{\"\$seen\":true,\"\$flagged\":true}"
+	assert_contains "star keeps the read flag and adds the star" "$(mail_state)" "\"id\":\"$welcome\",\"mailbox\":\"INBOX\",\"keywords\":{\"\$seen\":true,\"\$flagged\":true}"
 	mail_change "[{\"id\":\"$flagged\",\"op\":\"unstar\"}]" "$good" >/dev/null
 	assert_contains "unstar drops only the star" "$(mail_state)" "\"id\":\"$flagged\",\"mailbox\":\"INBOX\",\"keywords\":{\"\$answered\":true,\"\$seen\":true}"
 	# The fourth message of the state samples is read, answered and labelled; the sixth carries `$Important` as an IMAP client spells it.

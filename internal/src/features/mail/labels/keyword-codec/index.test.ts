@@ -40,6 +40,16 @@ describe("labelToKeyword", () => {
 		expect(labelToKeyword("An\u0303o")).toBe("A_C3_B1o");
 	});
 
+	it("writes a name that is a mail client's own keyword as another keyword", () => {
+		expect(labelToKeyword("Junk")).toBe("_4Aunk");
+		expect(labelToKeyword("NonJunk")).toBe("_4EonJunk");
+		expect(labelToKeyword("notjunk")).toBe("_6Eotjunk");
+		expect(keywordToLabel("_4Aunk")).toBe("Junk");
+		// Not one of them: left alone.
+		expect(labelToKeyword("Junk mail")).toBe("Junk_20mail");
+		expect(labelToKeyword("Junks")).toBe("Junks");
+	});
+
 	it("refuses what is not a name", () => {
 		expect(labelToKeyword("")).toBeNull();
 		expect(labelToKeyword("   ")).toBeNull();
@@ -78,6 +88,9 @@ describe("labelToKeyword", () => {
 			"UPPER lower",
 			"..",
 			"-",
+			"Junk",
+			"NonJunk",
+			"notjunk",
 		];
 		for (const name of names) {
 			const keyword = labelToKeyword(name);
@@ -143,6 +156,17 @@ describe("keywordToLabel", () => {
 		expect(keywordToLabel("a_E2_80_8Bb")).toBe("a_E2_80_8Bb");
 		expect(keywordToLabel("a_E2_80_A8b")).toBe("a_E2_80_A8b");
 		expect(keywordToLabel("_EF_BB_BFa")).toBe("_EF_BB_BFa");
+	});
+
+	it("never shows two keywords as one name", () => {
+		// "A", "b" and "." stand for themselves: written as digits they are another keyword.
+		expect(keywordToLabel("_41bc")).toBe("_41bc");
+		expect(keywordToLabel("a_2Eb")).toBe("a_2Eb");
+		expect(keywordToLabel("_4Aunks")).toBe("_4Aunks");
+		expect(keywordToLabel("Abc")).toBe("Abc");
+		// The same keyword in another case is the same label.
+		expect(keywordToLabel("to_20DO")).toBe("to DO");
+		expect(keywordToLabel("A_c3_b1o")).toBe("Año");
 	});
 
 	it("shows as it is a keyword that reads as a name written another way", () => {

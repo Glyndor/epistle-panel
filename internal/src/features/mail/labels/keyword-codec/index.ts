@@ -57,6 +57,24 @@ export function normalizeLabelName(name: string): string | null {
 	return normal === "" ? null : normal;
 }
 
+/** Keywords mail clients write without the `$` that marks a system keyword. */
+const UNMARKED_SYSTEM = new Set(["junk", "nonjunk", "notjunk"]);
+
+/**
+ * Whether a keyword is a label. One that starts with `$` or `\` belongs to the
+ * protocol (`$seen`, `$Important`, `$Forwarded`, `$label1`), and a few are
+ * written by mail clients as their own bookkeeping; none of those is offered
+ * or shown as a label.
+ */
+export function isLabelKeyword(keyword: string): boolean {
+	return (
+		keyword !== "" &&
+		!keyword.startsWith("$") &&
+		!keyword.startsWith("\\") &&
+		!UNMARKED_SYSTEM.has(keyword.toLowerCase())
+	);
+}
+
 /**
  * The keyword that carries a label of this name, or `null` when the name is
  * not one (see {@link normalizeLabelName}) or its keyword would pass the
@@ -76,7 +94,14 @@ export function labelToKeyword(name: string): string | null {
 			return null;
 		}
 	}
-	return keyword;
+	if (!isLabelKeyword(keyword)) {
+		// A name like "Junk" is a keyword mail clients keep for themselves.
+		// Its first letter is written as digits, so the label is another
+		// keyword, still reads back as the name, and is shown as a label.
+		const first = keyword.charCodeAt(0).toString(16).toUpperCase();
+		keyword = `_${first}${keyword.slice(1)}`;
+	}
+	return keyword.length > MAX_KEYWORD_BYTES ? null : keyword;
 }
 
 const HEX_PAIR = /^[0-9A-Fa-f]{2}$/;
@@ -107,7 +132,9 @@ function decodeBytes(keyword: string): Uint8Array | null {
  * name it was made from. Any other keyword (one an IMAP client set, with a
  * character that is not written this way, an escape that is not UTF-8, or one
  * that would read as a control or a bidirectional override) is shown as it
- * is, so it can still be seen and taken off.
+ * is, so it can still be seen and taken off. So is one that reads as a name
+ * but is not how that name is written (`_41bc` beside `Abc`): two keywords
+ * never show as one name.
  */
 export function keywordToLabel(keyword: string): string {
 	const bytes = decodeBytes(keyword);
@@ -126,25 +153,9 @@ export function keywordToLabel(keyword: string): string {
 	} catch {
 		return keyword;
 	}
-	return normalizeLabelName(name) === name ? name : keyword;
-}
-
-/** Keywords mail clients write without the `$` that marks a system keyword. */
-const UNMARKED_SYSTEM = new Set(["junk", "nonjunk", "notjunk"]);
-
-/**
- * Whether a keyword is a label. One that starts with `$` or `\` belongs to the
- * protocol (`$seen`, `$Important`, `$Forwarded`, `$label1`), and a few are
- * written by mail clients as their own bookkeeping; none of those is offered
- * or shown as a label.
- */
-export function isLabelKeyword(keyword: string): boolean {
-	return (
-		keyword !== "" &&
-		!keyword.startsWith("$") &&
-		!keyword.startsWith("\\") &&
-		!UNMARKED_SYSTEM.has(keyword.toLowerCase())
-	);
+	return labelToKeyword(name)?.toLowerCase() === keyword.toLowerCase()
+		? name
+		: keyword;
 }
 
 /** What makes two keywords the same label: the server matches a keyword without regard to case. */
