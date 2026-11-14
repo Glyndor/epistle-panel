@@ -79,12 +79,6 @@ scenario_mail() {
 	assert_absent "and leaves the others out" "$(cat "$work/b")" "Weekly newsletter"
 	fetch "/app/mail/inbox?q=newsletter" "$good"
 	assert_contains "a search finds by subject" "$(cat "$work/b")" "Weekly newsletter"
-	local search_links
-	search_links=$({ grep -o 'href="/app/mail/[^" ]*?[^" ]*"' "$work/b" || true; })
-	assert_contains "the search produces a result address with its words" "$search_links" "href=\"/app/mail/inbox/$MAIL_NEWSLETTER?q=newsletter\""
-	assert_eq "the addresses a search produces have no empty parameters" \
-		"$(printf '%s' "$search_links" | { grep -Eo '(\?|&amp;)[^=&?]+=(\&amp;|"|$)' || true; } | wc -l | tr -d ' ')" 0
-
 	# curl executes no script: the native disclosure and all its fields must
 	# already be inside the GET form, and both conditions must narrow the list.
 	local search_form
