@@ -158,6 +158,15 @@ describe("the page's check and the server's check", () => {
 		}
 	});
 
+	it("takes a bidi override out of the words the server keeps", () => {
+		const hostile = `invoice${char(0x202e)}receipt`;
+
+		expect(formVerdict({ q: hostile }).success).toBe(true);
+		const server = serverVerdict({ q: hostile });
+		expect(server.rejected).toEqual([]);
+		expect(server.conditions.q).toBe("invoicereceipt");
+	});
+
 	it("refuse a range whose first day is later than its last, in both", () => {
 		const form = formVerdict({ after: "2026-11-10", before: "2026-11-01" });
 		const server = serverVerdict({

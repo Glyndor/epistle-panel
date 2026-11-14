@@ -120,12 +120,12 @@ describe("parseListConditions: text conditions", () => {
 		}
 	});
 
-	it("keeps text in any script, and a format character that is no control", () => {
+	it("keeps text in any script and takes a bidi override out", () => {
 		const parsed = parseListConditions({
 			subject: `Año ${char(0x202e)}fdp.exe`,
 			to: "José Ñúñez",
 		});
-		expect(parsed.conditions.subject).toBe(`Año ${char(0x202e)}fdp.exe`);
+		expect(parsed.conditions.subject).toBe("Año fdp.exe");
 		expect(parsed.conditions.to).toBe("José Ñúñez");
 		expect(parsed.rejected).toEqual([]);
 	});

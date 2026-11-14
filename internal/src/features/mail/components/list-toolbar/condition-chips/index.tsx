@@ -11,6 +11,7 @@ import { Tooltip } from "@/components/ui/tooltip";
 import { getMessageListAction } from "@/features/mail/actions/get-message-list";
 import { mailHref } from "@/features/mail/links/mail-href";
 import { messageListQueryOptions } from "@/features/mail/queries/mail-query-options";
+import { stripBidi } from "@/features/mail/sanitize/safe-text";
 import {
 	activeConditions,
 	CONDITION_LABELS,
@@ -30,7 +31,8 @@ function chipValue(conditions: ListConditions, name: string): string | null {
 	if (typeof value !== "string" || value === "") {
 		return null;
 	}
-	return value.length > 32 ? `${value.slice(0, 32)}…` : value;
+	const shown = stripBidi(value);
+	return shown.length > 32 ? `${shown.slice(0, 32)}…` : shown;
 }
 
 /**

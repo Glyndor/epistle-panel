@@ -54,6 +54,7 @@ afterAll(() => {
 
 const A = "00000000-0000-4000-8000-0000000000a1";
 const B = "00000000-0000-4000-8000-0000000000a2";
+const char = (code: number) => String.fromCodePoint(code);
 
 /** The server as it is: two messages that a search finds. */
 function twoMessages() {
@@ -110,6 +111,14 @@ describe("the chips of the active conditions", () => {
 			"searchWords: invoice",
 		);
 		expect(badge(container, "from")).toHaveTextContent("from: ana");
+	});
+
+	it("take a bidi override out of the words they show", () => {
+		const { container } = chips({ q: `invoice${char(0x202e)}receipt` });
+
+		const chip = badge(container, "searchWords");
+		expect(chip).toHaveTextContent("searchWords: invoicereceipt");
+		expect(chip?.textContent).not.toContain(char(0x202e));
 	});
 
 	it("are in a navigation of their own, named", () => {

@@ -4,6 +4,7 @@ import {
 	isKeywordAtom,
 	isLabelKeyword,
 } from "@/features/mail/labels/keyword-codec";
+import { stripBidi } from "@/features/mail/sanitize/safe-text";
 import {
 	CONDITION_NAMES,
 	CONDITION_TEXT_PATTERN,
@@ -42,13 +43,14 @@ export {
 /**
  * A text condition (`q`, `from`, `to`, `subject`): at most
  * {@link MAX_CONDITION_TEXT} characters as written, no control character and
- * no line or paragraph separator, trimmed. The same rule `q` has always had.
+ * no line or paragraph separator, bidirectional controls removed and the
+ * ends trimmed. The same rule `q` has always had.
  */
 export const conditionTextSchema = z
 	.string()
 	.max(MAX_CONDITION_TEXT)
 	.regex(CONDITION_TEXT_PATTERN)
-	.transform((value) => value.trim());
+	.transform((value) => stripBidi(value).trim());
 
 /**
  * A day condition (`after`, `before`): exactly `YYYY-MM-DD`, a real day of
