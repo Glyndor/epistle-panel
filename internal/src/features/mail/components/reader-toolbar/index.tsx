@@ -13,9 +13,9 @@ import {
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
-
 import { ConfirmAction } from "@/components/confirm-action";
 import { Button } from "@/components/ui/button";
+import { BUSY_MARK } from "@/features/mail/components/busy-mark";
 import { MoveMenu } from "@/features/mail/components/move-menu";
 import { useMessageChange } from "@/features/mail/components/reader-toolbar/use-message-change";
 import { composeHref } from "@/features/mail/links/mail-href";
@@ -58,7 +58,10 @@ export function ReaderToolbar({
 	inDrafts: boolean;
 }) {
 	const t = useTranslations("mail");
-	const { change, pending } = useMessageChange({
+	// `pending`: a change is on its way. `moving`: it takes the message away,
+	// so nothing more can be asked of it. A flag can be changed while another
+	// flag waits: the changes are written one after the other.
+	const { change, pending, moving } = useMessageChange({
 		id: message.id,
 		mailboxId: message.mailboxId,
 		onLeft,
@@ -158,7 +161,10 @@ export function ReaderToolbar({
 				size="sm"
 				aria-pressed={message.flagged}
 				aria-keyshortcuts="s"
-				disabled={pending}
+				aria-busy={pending ? true : undefined}
+				disabled={moving}
+				data-flag="star"
+				className={BUSY_MARK}
 				onClick={() => change(message.flagged ? "unstar" : "star")}
 			>
 				<StarIcon aria-hidden="true" />
@@ -168,7 +174,10 @@ export function ReaderToolbar({
 				type="button"
 				variant="ghost"
 				size="sm"
-				disabled={pending}
+				aria-busy={pending ? true : undefined}
+				disabled={moving}
+				data-flag="read"
+				className={BUSY_MARK}
 				onClick={() => change(message.unread ? "read" : "unread")}
 			>
 				{message.unread ? (
