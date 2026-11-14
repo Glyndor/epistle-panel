@@ -96,6 +96,9 @@ function label(rng: Rng): string | null {
 
 /** A valid set of conditions: built through the schemas, with an ordered range. */
 function conditions(rng: Rng): ListConditions {
+	if (rng.chance(0.05)) {
+		return { ...EMPTY_CONDITIONS };
+	}
 	let [after, before] = [day(rng), day(rng)];
 	if (after !== null && before !== null && after > before) {
 		[after, before] = [before, after];
@@ -142,7 +145,7 @@ describe("conditionsToQuery and parseListConditions", () => {
 		expect(seen.day).toBeGreaterThan(200);
 		expect(seen.label).toBeGreaterThan(500);
 		expect(seen.order).toBeGreaterThan(1000);
-		expect(seen.none).toBeGreaterThan(0);
+		expect(seen.none).toBeGreaterThan(50);
 	});
 
 	it("are what the strict schema accepts and gives back unchanged", async () => {
