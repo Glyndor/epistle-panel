@@ -135,8 +135,8 @@ not do: the page's own payload names the path it answered. A `notFound()` from a
 layout would not do either: the shell streams first, so the status is 200.) The
 id is compared in constant time, in the proxy and again in the admin layout, and
 `requireAdmin` ends every admin page and Server Action in the same 404 when the
-role is missing or the area is off. `scripts/e2e/scenarios/noauth.sh` compares the
-bytes on a real server.
+role is missing or the area is off. `scripts/e2e/scenarios/auth/noauth.sh`
+compares the bytes on a real server.
 
 The proxy matcher stays wide so every page, public or not, gets the nonce-bearing
 CSP; the decision is in the proxy function, not in the matcher, and the pages and

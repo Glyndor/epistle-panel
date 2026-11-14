@@ -15,6 +15,9 @@
 #
 # Usage: scripts/e2e/run.sh [scenario...]
 #   scenarios: headers logout limiter limiter-global noauth degraded rotation idle theme theme-choice profile-menu body-limit captcha csrf set-locale unknown-variable suppression deliveries account-detail accounts breadcrumbs admin-id mail streaming tables overview
+# The name is the same wherever the file lives: the scripts are in
+# scripts/e2e/scenarios/, one folder per concern (accounts, auth, config,
+# limits, locale, mail, rendering, security, theme).
 # With no argument every scenario runs. Exit status is non-zero when any check
 # fails. Override the ports with PANEL_PORT and STAND_IN_PORT.
 set -euo pipefail
@@ -98,61 +101,61 @@ cp -R "$internal/.next/static" "$standalone/.next/static"
 . "$root/scripts/e2e/lib/processes.sh"
 # shellcheck source=scripts/e2e/lib/http.sh
 . "$root/scripts/e2e/lib/http.sh"
-# shellcheck source=scripts/e2e/scenarios/headers.sh
-. "$root/scripts/e2e/scenarios/headers.sh"
-# shellcheck source=scripts/e2e/scenarios/logout.sh
-. "$root/scripts/e2e/scenarios/logout.sh"
-# shellcheck source=scripts/e2e/scenarios/limiter.sh
-. "$root/scripts/e2e/scenarios/limiter.sh"
-# shellcheck source=scripts/e2e/scenarios/limiter-global.sh
-. "$root/scripts/e2e/scenarios/limiter-global.sh"
-# shellcheck source=scripts/e2e/scenarios/noauth.sh
-. "$root/scripts/e2e/scenarios/noauth.sh"
-# shellcheck source=scripts/e2e/scenarios/degraded.sh
-. "$root/scripts/e2e/scenarios/degraded.sh"
-# shellcheck source=scripts/e2e/scenarios/rotation.sh
-. "$root/scripts/e2e/scenarios/rotation.sh"
-# shellcheck source=scripts/e2e/scenarios/idle.sh
-. "$root/scripts/e2e/scenarios/idle.sh"
-# shellcheck source=scripts/e2e/scenarios/captcha.sh
-. "$root/scripts/e2e/scenarios/captcha.sh"
-# shellcheck source=scripts/e2e/scenarios/theme.sh
-. "$root/scripts/e2e/scenarios/theme.sh"
-# shellcheck source=scripts/e2e/scenarios/theme-choice.sh
-. "$root/scripts/e2e/scenarios/theme-choice.sh"
-# shellcheck source=scripts/e2e/scenarios/profile-menu.sh
-. "$root/scripts/e2e/scenarios/profile-menu.sh"
-# shellcheck source=scripts/e2e/scenarios/body-limit.sh
-. "$root/scripts/e2e/scenarios/body-limit.sh"
-# shellcheck source=scripts/e2e/scenarios/csrf.sh
-. "$root/scripts/e2e/scenarios/csrf.sh"
-# shellcheck source=scripts/e2e/scenarios/set-locale.sh
-. "$root/scripts/e2e/scenarios/set-locale.sh"
-# shellcheck source=scripts/e2e/scenarios/unknown-variable.sh
-. "$root/scripts/e2e/scenarios/unknown-variable.sh"
-# shellcheck source=scripts/e2e/scenarios/suppression.sh
-. "$root/scripts/e2e/scenarios/suppression.sh"
-# shellcheck source=scripts/e2e/scenarios/deliveries.sh
-. "$root/scripts/e2e/scenarios/deliveries.sh"
+# shellcheck source=scripts/e2e/scenarios/security/headers.sh
+. "$root/scripts/e2e/scenarios/security/headers.sh"
+# shellcheck source=scripts/e2e/scenarios/auth/logout.sh
+. "$root/scripts/e2e/scenarios/auth/logout.sh"
+# shellcheck source=scripts/e2e/scenarios/auth/limiter.sh
+. "$root/scripts/e2e/scenarios/auth/limiter.sh"
+# shellcheck source=scripts/e2e/scenarios/auth/limiter-global.sh
+. "$root/scripts/e2e/scenarios/auth/limiter-global.sh"
+# shellcheck source=scripts/e2e/scenarios/auth/noauth.sh
+. "$root/scripts/e2e/scenarios/auth/noauth.sh"
+# shellcheck source=scripts/e2e/scenarios/limits/degraded.sh
+. "$root/scripts/e2e/scenarios/limits/degraded.sh"
+# shellcheck source=scripts/e2e/scenarios/config/rotation.sh
+. "$root/scripts/e2e/scenarios/config/rotation.sh"
+# shellcheck source=scripts/e2e/scenarios/limits/idle.sh
+. "$root/scripts/e2e/scenarios/limits/idle.sh"
+# shellcheck source=scripts/e2e/scenarios/auth/captcha.sh
+. "$root/scripts/e2e/scenarios/auth/captcha.sh"
+# shellcheck source=scripts/e2e/scenarios/theme/theme.sh
+. "$root/scripts/e2e/scenarios/theme/theme.sh"
+# shellcheck source=scripts/e2e/scenarios/theme/theme-choice.sh
+. "$root/scripts/e2e/scenarios/theme/theme-choice.sh"
+# shellcheck source=scripts/e2e/scenarios/rendering/profile-menu.sh
+. "$root/scripts/e2e/scenarios/rendering/profile-menu.sh"
+# shellcheck source=scripts/e2e/scenarios/security/body-limit.sh
+. "$root/scripts/e2e/scenarios/security/body-limit.sh"
+# shellcheck source=scripts/e2e/scenarios/security/csrf.sh
+. "$root/scripts/e2e/scenarios/security/csrf.sh"
+# shellcheck source=scripts/e2e/scenarios/locale/set-locale.sh
+. "$root/scripts/e2e/scenarios/locale/set-locale.sh"
+# shellcheck source=scripts/e2e/scenarios/config/unknown-variable.sh
+. "$root/scripts/e2e/scenarios/config/unknown-variable.sh"
+# shellcheck source=scripts/e2e/scenarios/mail/suppression.sh
+. "$root/scripts/e2e/scenarios/mail/suppression.sh"
+# shellcheck source=scripts/e2e/scenarios/mail/deliveries.sh
+. "$root/scripts/e2e/scenarios/mail/deliveries.sh"
 
-# shellcheck source=scripts/e2e/scenarios/mail.sh
-. "$root/scripts/e2e/scenarios/mail.sh"
+# shellcheck source=scripts/e2e/scenarios/mail/mail.sh
+. "$root/scripts/e2e/scenarios/mail/mail.sh"
 
-# shellcheck source=scripts/e2e/scenarios/account-detail.sh
-. "$root/scripts/e2e/scenarios/account-detail.sh"
-# shellcheck source=scripts/e2e/scenarios/admin-id.sh
-. "$root/scripts/e2e/scenarios/admin-id.sh"
+# shellcheck source=scripts/e2e/scenarios/accounts/account-detail.sh
+. "$root/scripts/e2e/scenarios/accounts/account-detail.sh"
+# shellcheck source=scripts/e2e/scenarios/security/admin-id.sh
+. "$root/scripts/e2e/scenarios/security/admin-id.sh"
 
-# shellcheck source=scripts/e2e/scenarios/accounts.sh
-. "$root/scripts/e2e/scenarios/accounts.sh"
-# shellcheck source=scripts/e2e/scenarios/breadcrumbs.sh
-. "$root/scripts/e2e/scenarios/breadcrumbs.sh"
-# shellcheck source=scripts/e2e/scenarios/streaming.sh
-. "$root/scripts/e2e/scenarios/streaming.sh"
-# shellcheck source=scripts/e2e/scenarios/tables.sh
-. "$root/scripts/e2e/scenarios/tables.sh"
-# shellcheck source=scripts/e2e/scenarios/overview.sh
-. "$root/scripts/e2e/scenarios/overview.sh"
+# shellcheck source=scripts/e2e/scenarios/accounts/accounts.sh
+. "$root/scripts/e2e/scenarios/accounts/accounts.sh"
+# shellcheck source=scripts/e2e/scenarios/rendering/breadcrumbs.sh
+. "$root/scripts/e2e/scenarios/rendering/breadcrumbs.sh"
+# shellcheck source=scripts/e2e/scenarios/rendering/streaming.sh
+. "$root/scripts/e2e/scenarios/rendering/streaming.sh"
+# shellcheck source=scripts/e2e/scenarios/rendering/tables.sh
+. "$root/scripts/e2e/scenarios/rendering/tables.sh"
+# shellcheck source=scripts/e2e/scenarios/rendering/overview.sh
+. "$root/scripts/e2e/scenarios/rendering/overview.sh"
 
 # ---------------------------------------------------------------- main
 

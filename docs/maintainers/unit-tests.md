@@ -147,3 +147,16 @@ answered in that gap answered nothing, and the request never ended.
 A limit is tested against a literal written in the test (`28_800` for the
 session, `60` for the failure ceiling), never against the constant the module
 exports. A test that imports the constant it checks agrees with any change to it.
+
+## Folder size
+
+Run `bash scripts/folder-limit/folder-limit.sh` from the repository and
+`bash scripts/folder-limit/folder-limit.test.sh` for its shell suite (also run by
+the folder-limit and release-scripts workflows). The advisory check runs on PRs
+into `develop`, counting tracked files directly in each folder, with a limit of
+20; `.github/workflows` and any `testdata` subtree are excluded. CI loads the
+checker from BASE, using the proposed copy only on first introduction.
+`.github/folder-limit-exceptions.txt` uses tab-separated path, ceiling and written
+reason. Ceilings may only decrease; remove an exception once its count is 20 or
+fewer, or the check fails. The scenarios exception is temporary pending
+`refactor/e2e-scenario-folders`.

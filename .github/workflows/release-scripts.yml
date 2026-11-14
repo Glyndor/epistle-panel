@@ -77,7 +77,7 @@ jobs:
       - name: Shell tests
         run: |
           set -euo pipefail
-          for test in scripts/release/*/test-*.sh; do
+          for test in scripts/release/*/test-*.sh scripts/folder-limit/folder-limit.test.sh; do
             echo "== $test"
             bash "$test"
           done
