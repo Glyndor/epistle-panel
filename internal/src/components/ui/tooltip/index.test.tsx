@@ -287,6 +287,45 @@ describe("Tooltip", () => {
 		}
 	});
 
+	it("shows for a pointer that is found over the control with no entry told, and not again after a press or Escape", () => {
+		const button = renderTip();
+
+		// Another tooltip lay over the control and went: the pointer is on it and only moves.
+		expect(tip()).toBeNull();
+		fireEvent.pointerMove(button);
+		expect(tip()).toHaveTextContent("Toggle sidebar");
+
+		// A press sends it away, and moving on the control does not bring it back.
+		fireEvent.pointerDown(button);
+		expect(tip()).toBeNull();
+		fireEvent.pointerMove(button);
+		fireEvent.pointerMove(button);
+		expect(tip()).toBeNull();
+
+		// A new visit starts again.
+		fireEvent.pointerLeave(button);
+		fireEvent.pointerMove(button);
+		expect(tip()).not.toBeNull();
+
+		// Escape sends it away the same way, until the pointer leaves.
+		fireEvent.keyDown(button, { key: "Escape" });
+		expect(tip()).toBeNull();
+		fireEvent.pointerMove(button);
+		expect(tip()).toBeNull();
+		fireEvent.pointerLeave(button);
+		fireEvent.pointerMove(button);
+		expect(tip()).not.toBeNull();
+
+		// A finger moving on the control shows nothing.
+		fireEvent.pointerLeave(button);
+		fireEvent.pointerDown(button);
+		fireEvent.pointerLeave(button);
+		cleanup();
+		const touched = renderTip();
+		fireEvent.pointerMove(touched, { pointerType: "touch" });
+		expect(tip()).toBeNull();
+	});
+
 	it("is never shown when disabled", () => {
 		const button = renderTip({ disabled: true });
 

@@ -166,6 +166,9 @@ export function Tooltip({
 	const hideTimer = React.useRef<ReturnType<typeof setTimeout>>(undefined);
 	const control = React.useRef<HTMLElement | null>(null);
 	const tip = React.useRef<HTMLSpanElement | null>(null);
+	// Set by a press or a key that sent the tooltip away, until the pointer
+	// leaves or the focus moves on: it must not come back under the same visit.
+	const sentAway = React.useRef(false);
 
 	const show = (element: HTMLElement) => {
 		clearTimeout(hideTimer.current);
@@ -252,12 +255,26 @@ export function Tooltip({
 						show(event.currentTarget);
 					}
 				}}
+				onPointerMove={(event: React.PointerEvent<HTMLElement>) => {
+					props.onPointerMove?.(event);
+					// The pointer can be over the control with no entry told:
+					// another tooltip lay over it and gave way under the pointer.
+					if (
+						place === null &&
+						!sentAway.current &&
+						event.pointerType !== "touch"
+					) {
+						show(event.currentTarget);
+					}
+				}}
 				onPointerLeave={(event: React.PointerEvent<HTMLElement>) => {
 					props.onPointerLeave?.(event);
+					sentAway.current = false;
 					hide();
 				}}
 				onPointerDown={(event: React.PointerEvent<HTMLElement>) => {
 					props.onPointerDown?.(event);
+					sentAway.current = true;
 					dismiss();
 				}}
 				onFocus={(event: React.FocusEvent<HTMLElement>) => {
@@ -268,6 +285,7 @@ export function Tooltip({
 				}}
 				onBlur={(event: React.FocusEvent<HTMLElement>) => {
 					props.onBlur?.(event);
+					sentAway.current = false;
 					hide();
 				}}
 				onKeyDown={(event: React.KeyboardEvent<HTMLElement>) => {
@@ -278,6 +296,7 @@ export function Tooltip({
 							event.key === "Enter" ||
 							event.key === " ")
 					) {
+						sentAway.current = true;
 						dismiss();
 					}
 				}}
