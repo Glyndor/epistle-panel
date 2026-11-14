@@ -71,6 +71,9 @@ describe("a control that is an icon alone is named in a tooltip", () => {
 		expect(withOne).toContain(
 			"features/theme/components/theme-trigger/index.tsx",
 		);
+		// The toast's dismiss button was a hand-made button once, which
+		// this check does not see: it stays the panel's icon button.
+		expect(withOne).toContain("components/ui/toaster/index.tsx");
 		expect(withOne.length).toBeGreaterThanOrEqual(5);
 	});
 
