@@ -50,6 +50,34 @@ describe("the webmail's loading states", () => {
 		expect(await pane()).toHaveAttribute("data-density", "comfortable");
 	});
 
+	it("the mail page holds the place of the way into the composer the page draws below 768 px", async () => {
+		const { container } = render(await MailLoading());
+		const place = container.querySelector('[data-slot="write-place"]');
+		// The same box as the page's own, read from its source, so the list
+		// under it starts at the same height in both.
+		const page = await Bun.file(
+			new URL(
+				"../../../../features/mail/components/mail-place/index.tsx",
+				import.meta.url,
+			),
+		).text();
+		const box = "flex items-center gap-2 p-2 md:hidden";
+
+		expect(page).toContain(`className="${box}"`);
+		expect(place).toHaveClass(...box.split(" "));
+		expect(place).toHaveAttribute("aria-hidden", "true");
+		// As tall as the link: 24 px, 44 px on a coarse pointer.
+		expect(place?.firstElementChild).toHaveClass(
+			"h-6",
+			"pointer-coarse:h-11",
+		);
+		// And before the list's own place, inside the pane.
+		expect(place?.nextElementSibling?.getAttribute("aria-hidden")).toBe(
+			"true",
+		);
+		expect(place?.parentElement).toHaveAttribute("data-density");
+	});
+
 	it("the composer shows the place of its form", () => {
 		const { container } = render(<ComposeLoading />);
 
