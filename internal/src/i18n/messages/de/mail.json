@@ -13,6 +13,7 @@
 	"storage": "Speicher",
 	"storageUsed": "{used} von {limit}",
 	"storageUnlimited": "{used} belegt, ohne Limit",
+	"storageUnknown": "Nutzung nicht verfügbar",
 	"storageNear": "Fast voll",
 	"storageFull": "Voll",
 	"folderWithUnread": "{name}: {count} ungelesen",

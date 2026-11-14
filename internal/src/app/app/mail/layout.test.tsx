@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import { cleanup, render, screen } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
 
@@ -253,6 +253,53 @@ describe("MailLayout", () => {
 			"min-h-19",
 			"rounded-xl",
 		);
+	});
+
+	it("fills the place it held with a box of the same height whatever the mail server answers: no limit, no quota, or nothing", async () => {
+		await cookies.signIn("ops", "admin");
+		const logged = spyOn(console, "error").mockImplementation(() => {});
+		try {
+			for (const [name, quota] of [
+				[
+					"no limit",
+					{
+						list: [
+							{ resourceType: "octets", used: 5, limit: null },
+						],
+					},
+				],
+				["no quota", { list: [] }],
+				["no answer", undefined],
+			] as const) {
+				stubJmap(
+					quota === undefined
+						? { "Mailbox/get": answers["Mailbox/get"] }
+						: { ...answers, "Quota/get": quota },
+				);
+				const first = render(
+					withQuery(await resolveFirstPaint(await shell())),
+				);
+				expect([
+					name,
+					first.container.querySelector(
+						"[data-slot='quota-placeholder']",
+					) !== null,
+				]).toEqual([name, true]);
+				cleanup();
+
+				const { container } = await renderLayout();
+				const box = container.querySelector("[data-slot='quota']");
+				expect([name, box !== null]).toEqual([name, true]);
+				expect(box).toHaveClass("min-h-19", "rounded-xl");
+				expect(
+					container.querySelector("[data-slot='quota-placeholder']"),
+				).toBeNull();
+				await settled();
+				cleanup();
+			}
+		} finally {
+			logged.mockRestore();
+		}
 	});
 
 	it("holds no place for the storage of a session with no mail of its own", async () => {

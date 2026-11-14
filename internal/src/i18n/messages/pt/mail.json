@@ -13,6 +13,7 @@
 	"storage": "Armazenamento",
 	"storageUsed": "{used} de {limit}",
 	"storageUnlimited": "{used} em uso, sem limite",
+	"storageUnknown": "Uso não disponível",
 	"storageNear": "Quase cheio",
 	"storageFull": "Cheio",
 	"folderWithUnread": "{name}: {count} não lidas",

@@ -132,25 +132,85 @@ describe("QuotaMeter", () => {
 		]);
 	});
 
-	it("draws nothing for an account with no quota in bytes", async () => {
+	it("says the usage is not available, in the same box, for an account with no quota in bytes", async () => {
 		stubJmap({ "Quota/get": { list: [] } });
 
-		expect(await QuotaMeter()).toBeNull();
+		render(await QuotaMeter());
+
+		// The box that holds the place the placeholder held: nothing is
+		// taken away from the foot of the sidebar when the answer is empty.
+		expect(section()).toHaveClass("min-h-19", "rounded-xl");
+		expect(section()).toHaveAttribute("data-level", "unknown");
+		expect(
+			screen.getByRole("region", { name: "storage" }),
+		).toHaveTextContent("storageUnknown");
+		expect(screen.queryByRole("meter")).toBeNull();
 	});
 
-	it("draws nothing when the server cannot be asked or fails", async () => {
+	it("says the same for a quota that is not counted in bytes", async () => {
+		stubJmap({
+			"Quota/get": {
+				list: [{ resourceType: "count", used: 3, limit: 10 }],
+			},
+		});
+
+		render(await QuotaMeter());
+
+		expect(section()).toHaveAttribute("data-level", "unknown");
+		expect(section()).toHaveTextContent("storageUnknown");
+	});
+
+	it("says the same, in the same box, when the server fails", async () => {
 		const logged = spyOn(console, "error").mockImplementation(() => {});
 		try {
 			stubJmap({});
-			expect(await QuotaMeter()).toBeNull();
 
-			cookies.reset();
-			const seen = quota(1, 2);
-			expect(await QuotaMeter()).toBeNull();
-			expect(seen).toHaveLength(0);
+			render(await QuotaMeter());
+
+			expect(section()).toHaveClass("min-h-19", "rounded-xl");
+			expect(section()).toHaveAttribute("data-level", "unknown");
+			expect(section()).toHaveTextContent("storageUnknown");
+			expect(screen.queryByRole("meter")).toBeNull();
 		} finally {
 			logged.mockRestore();
 		}
+	});
+
+	it("is as tall with a limit, with none, with no quota and with no answer", async () => {
+		const logged = spyOn(console, "error").mockImplementation(() => {});
+		try {
+			const boxes: string[] = [];
+			for (const answer of [
+				() => quota(1, 2),
+				() => quota(1, null),
+				() => stubJmap({ "Quota/get": { list: [] } }),
+				() => stubJmap({}),
+			]) {
+				answer();
+				const view = render(await QuotaMeter());
+				boxes.push(
+					Array.from(section()?.classList ?? [])
+						.filter((name) => /^(min-h|h|p|py|gap)-/.test(name))
+						.sort()
+						.join(" "),
+				);
+				view.unmount();
+			}
+
+			expect(boxes).toEqual(
+				Array.from({ length: 4 }, () => "gap-1.5 min-h-19 p-3"),
+			);
+		} finally {
+			logged.mockRestore();
+		}
+	});
+
+	it("draws nothing for a session with no mail of its own, and asks the server nothing", async () => {
+		cookies.reset();
+		const seen = quota(1, 2);
+
+		expect(await QuotaMeter()).toBeNull();
+		expect(seen).toHaveLength(0);
 	});
 
 	it("is not drawn while the rail is collapsed to icons, and is kept for a screen reader", async () => {
