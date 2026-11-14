@@ -114,7 +114,7 @@ export function Trail({
 											// that was tried.
 											<span
 												data-slot="breadcrumb-narrow"
-												className="md:hidden"
+												className="select-none md:hidden"
 											>
 												{text}
 											</span>
