@@ -234,7 +234,9 @@ describe("the chips of the active conditions", () => {
 	it("wait for the change of the address before giving the focus away", () => {
 		const { container, rerender } = chips({ q: "invoice", from: "ana" });
 
-		fireEvent.click(container.querySelector('[data-slot="badge"] a'));
+		fireEvent.click(
+			container.querySelector('[data-slot="badge"] a') as HTMLElement,
+		);
 
 		// The chips are drawn again with the chip still there: the change of
 		// the address has not landed yet, and the focus is not given away.
@@ -247,7 +249,9 @@ describe("the chips of the active conditions", () => {
 		const { container, rerender } = chips({ q: "invoice" });
 		const field = searchField();
 
-		fireEvent.click(container.querySelector('[data-chip="q"]'));
+		fireEvent.click(
+			container.querySelector('[data-chip="q"]') as HTMLElement,
+		);
 
 		rerender(withConditions({}));
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { SearchIcon, SlidersHorizontalIcon } from "lucide-react";
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
@@ -102,7 +103,7 @@ export function SearchForm({
 				query.set(name, value);
 			}
 			const suffix = query.size > 0 ? `?${query}` : "";
-			router.push(`${path}${suffix}`);
+			router.push(`${path}${suffix}` as Route);
 			return;
 		}
 		// The browser's own check let it through: the field is named here,

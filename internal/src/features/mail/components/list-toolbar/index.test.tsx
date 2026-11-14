@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+	forgetListMemory,
+	listMemory,
+} from "@/features/mail/components/message-list/list-memory";
 import { EMPTY_CONDITIONS } from "@/features/mail/schemas/list-conditions-model";
 import { withQuery } from "@/test/query-wrapper";
 
@@ -11,7 +15,10 @@ const CONDITIONS = EMPTY_CONDITIONS;
 /** The conditions of a search: the words, and the starred ones. */
 const SEARCH = { ...EMPTY_CONDITIONS, q: "invoice", starred: true };
 
-afterEach(cleanup);
+afterEach(() => {
+	cleanup();
+	forgetListMemory();
+});
 
 describe("ListToolbar", () => {
 	it("has no search of its own: it is in the header of the bar", () => {
@@ -65,6 +72,24 @@ describe("ListToolbar", () => {
 		expect(
 			screen.getByRole("link", { name: "searchClear" }),
 		).toHaveAttribute("href", "/app/mail/inbox?starred=1");
+	});
+
+	it("remembers that the words were taken off, so the focus goes with them", () => {
+		render(
+			withQuery(
+				<ListToolbar
+					box="INBOX"
+					folderRole="inbox"
+					conditions={SEARCH}
+					page={1}
+					density="comfortable"
+				/>,
+			),
+		);
+
+		fireEvent.click(screen.getByRole("link", { name: "searchClear" }));
+
+		expect(listMemory.chips).toBe("q");
 	});
 
 	it("has the filters and the order in one menu, and says how many are on", () => {

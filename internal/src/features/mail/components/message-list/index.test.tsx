@@ -6,7 +6,10 @@ import {
 	screen,
 	waitFor,
 } from "@testing-library/react";
-import { forgetListMemory } from "@/features/mail/components/message-list/list-memory";
+import {
+	forgetListMemory,
+	listMemory,
+} from "@/features/mail/components/message-list/list-memory";
 import { EMPTY_CONDITIONS } from "@/features/mail/schemas/list-conditions-model";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
 import { clearSecretCache } from "@/lib/config/secret";
@@ -107,6 +110,10 @@ describe("MessageList", () => {
 		// The link that takes every condition off: the clean address.
 		const out = await screen.findByRole("link", { name: "clearAll" });
 		expect(out).toHaveAttribute("href", "/app/mail/inbox");
+		// It is remembered, so the chips drawn again without any give the
+		// focus to the search field.
+		fireEvent.click(out);
+		expect(listMemory.chips).toBe("all");
 		cleanup();
 
 		// A folder with nothing in it is not a search that matched nothing:
