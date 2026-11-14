@@ -160,4 +160,60 @@ describe("MessageGroups", () => {
 		);
 		expect(container.querySelector("[style]")).toBeNull();
 	});
+	it("keeps a run and its rows in the page when the run's first message leaves", () => {
+		const view = groups([
+			at(1, "2026-11-13T09:00:00Z"),
+			at(2, "2026-11-13T08:00:00Z"),
+			at(3, "2026-11-12T08:00:00Z"),
+		]);
+		const star = screen.getAllByRole("button", { name: "star" })[1];
+		const heading = screen.getByRole("heading", { name: "groupToday" });
+		star?.focus();
+
+		// The first message of today is archived from the reader.
+		view.rerender(
+			withQuery(
+				<MessageGroups
+					items={[
+						at(2, "2026-11-13T08:00:00Z"),
+						at(3, "2026-11-12T08:00:00Z"),
+					]}
+					today={TODAY}
+					selectedId={undefined}
+					view={{
+						box: "INBOX",
+						role: "inbox",
+						page: 1,
+						filter: "all",
+						q: "",
+					}}
+				/>,
+			),
+		);
+
+		// The same elements, not new ones: the focus never left its button.
+		expect(screen.getByRole("heading", { name: "groupToday" })).toBe(
+			heading,
+		);
+		expect(screen.getAllByRole("button", { name: "star" })[0]).toBe(
+			star as HTMLElement,
+		);
+		expect(document.activeElement).toBe(star as HTMLElement);
+	});
+
+	it("tells two runs of one date group apart, in the order they come", () => {
+		const { container } = groups([
+			at(1, "2026-11-13T09:00:00Z"),
+			at(2, "2026-11-12T09:00:00Z"),
+			at(3, "2026-11-13T07:00:00Z"),
+			at(4, "2026-11-12T06:00:00Z"),
+		]);
+
+		expect(
+			Array.from(
+				container.querySelectorAll('[data-slot="message-group"]'),
+			).map((run) => run.getAttribute("data-group")),
+		).toEqual(["today", "yesterday", "today", "yesterday"]);
+		expect(screen.getAllByRole("link")).toHaveLength(4);
+	});
 });

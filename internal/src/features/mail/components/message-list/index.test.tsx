@@ -35,6 +35,8 @@ beforeEach(async () => {
 	await cookies.signIn("admin");
 });
 afterEach(async () => {
+	// What the page remembers of the focus goes with a press on nothing.
+	fireEvent.pointerDown(document.body);
 	await settled();
 	process.env = { ...savedEnv };
 	cleanup();
@@ -177,16 +179,29 @@ describe("MessageList", () => {
 			screen.getByRole("button", { name: "unstar" }),
 		).toBeInTheDocument();
 	});
-	it("draws the list's own heading around every state, where the focus can go", async () => {
+	it("draws the list's own heading around every state, and an empty list that can show the focus", async () => {
 		stubJmap({ "Email/query": { ids: [] }, "Email/get": { list: [] } });
-		render(withQuery(<MessageList view={view} selectedId={undefined} />));
+		const { container } = render(
+			withQuery(<MessageList view={view} selectedId={undefined} />),
+		);
 
 		// Waiting, and then empty: the heading is there both times.
 		const heading = () => screen.getByRole("heading", { level: 2 });
 		expect(heading()).toHaveTextContent("listLabel");
-		expect(heading()).toHaveAttribute("tabindex", "-1");
 		expect(await screen.findByText("emptyFolder")).toBeInTheDocument();
 		expect(heading()).toHaveClass("sr-only");
+		// The heading is for assistive technology and takes no focus. The
+		// notice does, in view and with the ring.
+		expect(heading()).not.toHaveAttribute("tabindex");
+		const notice = container.querySelector('[data-slot="empty-list"]');
+		expect(notice).toHaveAttribute("tabindex", "-1");
+		expect(notice).toHaveClass(
+			"outline-ring",
+			"focus-visible:outline-2",
+			"focus-visible:-outline-offset-2",
+		);
+		expect(notice?.className).not.toContain("sr-only");
+		expect(notice).toHaveTextContent("emptyFolder");
 	});
 
 	it("keeps the focus in the list when taking the star off removes the row under the starred filter", async () => {
@@ -230,5 +245,47 @@ describe("MessageList", () => {
 		// One row left: the focus is on its star, not on the page.
 		const left = screen.getByRole("button", { name: "unstar" });
 		await waitFor(() => expect(document.activeElement).toBe(left));
+	});
+	it("puts the focus on the notice when the last starred message loses its star", async () => {
+		let starred = [A];
+		stubJmap({
+			"Email/query": () => ({ ids: starred }),
+			"Email/get": (args: Record<string, unknown>) => ({
+				list: ((args["ids"] as string[] | undefined) ?? starred).map(
+					(id) =>
+						emailFixture({
+							id,
+							keywords: starred.includes(id)
+								? { $seen: true, $flagged: true }
+								: { $seen: true },
+						}),
+				),
+			}),
+			"Email/set": () => {
+				starred = [];
+				return { updated: { [A]: null } };
+			},
+		});
+		const { container } = render(
+			withQuery(
+				<MessageList
+					view={{ ...view, filter: "flagged" }}
+					selectedId={undefined}
+				/>,
+			),
+		);
+		const star = await screen.findByRole("button", { name: "unstar" });
+		star.focus();
+
+		fireEvent.click(star);
+
+		await waitFor(() =>
+			expect(document.activeElement).toBe(
+				container.querySelector('[data-slot="empty-list"]'),
+			),
+		);
+		expect(document.activeElement).toHaveTextContent(
+			"emptyMatches emptyHint",
+		);
 	});
 });

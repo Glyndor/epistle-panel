@@ -45,15 +45,12 @@ export function MessageList({
 	);
 	const ids = data?.items.map((item) => item.id) ?? [];
 	useMailShortcuts({ ids, selectedId });
-	const focus = useKeptFocus(ids);
-	// The list's own heading, for assistive technology (the pane is named for
-	// the eye by the folder it shows) and for the focus when the last row
-	// leaves under it. The date headings are one level under it.
+	const focus = useKeptFocus(ids, data !== undefined);
+	// The list's own heading, for assistive technology: the pane is named for
+	// the eye by the folder it shows. The date headings are one level under it.
 	const frame = (body: React.ReactNode) => (
 		<div ref={focus.list} className="contents">
-			<h2 ref={focus.heading} tabIndex={-1} className="sr-only">
-				{t("listLabel")}
-			</h2>
+			<h2 className="sr-only">{t("listLabel")}</h2>
 			{body}
 		</div>
 	);
@@ -83,12 +80,22 @@ export function MessageList({
 	}
 	if (data.items.length === 0) {
 		const filtered = view.q !== "" || view.filter !== "all";
+		// The notice takes the focus when the last row leaves under it: it is
+		// in view and draws the ring, which a heading for assistive technology
+		// alone would not.
 		return frame(
-			<MailNotice tone="empty">
-				{filtered
-					? `${t("emptyMatches")} ${t("emptyHint")}`
-					: t("emptyFolder")}
-			</MailNotice>,
+			<div
+				ref={focus.empty}
+				tabIndex={-1}
+				data-slot="empty-list"
+				className="m-1 rounded-xl outline-ring focus-visible:outline-2 focus-visible:-outline-offset-2"
+			>
+				<MailNotice tone="empty">
+					{filtered
+						? `${t("emptyMatches")} ${t("emptyHint")}`
+						: t("emptyFolder")}
+				</MailNotice>
+			</div>,
 		);
 	}
 	return frame(
