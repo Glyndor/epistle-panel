@@ -6,7 +6,10 @@ import {
 	MailBreadcrumbs,
 	type MailTrailPlace,
 } from "@/features/mail/components/mail-breadcrumbs";
-import { folderName } from "@/features/mail/components/mail-place/place-name";
+import {
+	folderName,
+	foldersAbove,
+} from "@/features/mail/components/mail-place/place-name";
 import type { MailView } from "@/features/mail/links/mail-href";
 import {
 	type PlaceRef,
@@ -21,7 +24,12 @@ type ListParams = Pick<MailView, "page" | "filter" | "q">;
 function trailPlace(place: PlaceRef): MailTrailPlace {
 	return "role" in place
 		? { kind: "role", role: place.role }
-		: { kind: "folder", box: place.box, name: folderName(place.box) };
+		: {
+				kind: "folder",
+				box: place.box,
+				name: folderName(place.box),
+				above: foldersAbove(place.box),
+			};
 }
 
 /** The trail once the open message has answered: its subject, or nothing for one that could not be read. */

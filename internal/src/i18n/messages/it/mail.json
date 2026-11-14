@@ -1,7 +1,7 @@
 {
 	"heading": "Posta",
 	"folders": "Cartelle",
-	"foldersTitle": "Cartelle",
+	"navTitle": "Navigazione della posta",
 	"foldersDescription": "Le cartelle della tua casella.",
 	"role_inbox": "Posta in arrivo",
 	"role_drafts": "Bozze",

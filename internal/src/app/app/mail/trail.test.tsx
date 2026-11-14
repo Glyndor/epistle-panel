@@ -10,6 +10,7 @@ import {
 } from "@/lib/auth/test-support/cookies";
 import { clearSecretCache } from "@/lib/config/secret";
 import { firstPaint, resolveServerTree } from "@/test/server-tree";
+import { stepText } from "@/test/trail-steps";
 
 /**
  * The trail of the header is a page of its own beside each page of the mail
@@ -60,10 +61,7 @@ afterEach(() => {
 const show = async (tree: React.ReactNode | Promise<React.ReactNode>) =>
 	render(await resolveServerTree(await tree));
 const trail = () => screen.getByRole("navigation", { name: "breadcrumb" });
-const steps = () =>
-	within(trail())
-		.getAllByRole("listitem")
-		.map((item) => item.textContent);
+const steps = () => within(trail()).getAllByRole("listitem").map(stepText);
 const links = () =>
 	within(trail())
 		.queryAllByRole("link")
@@ -93,14 +91,15 @@ describe("the trail of a folder's page", () => {
 		expect(seen).toHaveLength(0);
 	});
 
-	it("names any other folder by the last part of its own name", async () => {
+	it("names any other folder by the last part of its own name, after the folders above it", async () => {
 		const seen = stubJmap({});
 		await show(
 			folder({ params: at({ name: "Work_2FQ4" }), searchParams: none }),
 		);
 
-		expect(steps()).toEqual(["heading", "Q4"]);
+		expect(steps()).toEqual(["heading", "Work", "Q4"]);
 		expect(current()).toEqual(["Q4"]);
+		expect(links()).toEqual(["/app/mail"]);
 		expect(seen).toHaveLength(0);
 	});
 
@@ -185,7 +184,7 @@ describe("the trail of an open message", () => {
 				searchParams: none,
 			}),
 		);
-		expect(steps()).toEqual(["heading", "Q4", "Quarterly numbers"]);
+		expect(steps()).toEqual(["heading", "Work", "Q4", "Quarterly numbers"]);
 		expect(links()).toEqual(["/app/mail", "/app/mail/folder/Work_2FQ4"]);
 	});
 

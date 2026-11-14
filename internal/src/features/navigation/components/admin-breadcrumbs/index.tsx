@@ -46,6 +46,9 @@ export function AdminBreadcrumbs({
 			text: crumb.kind === "area" ? t("administration") : t(crumb.label),
 			href: crumb.href,
 			current: leaf !== false && index === trail.length - 1,
+			// Where the bar is narrow the page is what matters; the sheet of
+			// the sidebar leads back to the administration.
+			collapse: crumb.kind === "area",
 		};
 	});
 

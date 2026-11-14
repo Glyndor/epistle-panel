@@ -28,14 +28,22 @@ export interface TrailStep {
 	 * the direction of the text around it with `bdi`.
 	 */
 	readonly foreign?: boolean | undefined;
+	/**
+	 * A step that leads up to where the person is and can go without being
+	 * drawn where the bar is narrow (the area itself, the folders above a
+	 * folder): below 768 px it is kept for a screen reader, as text, and takes
+	 * no room.
+	 */
+	readonly collapse?: boolean | undefined;
 }
 
 /**
  * The trail to the current page, drawn in the bar above the content: one line
- * whatever its steps say. Each step is cut short where the bar has no room,
- * the last one first, so the bar is as tall with a short name, with a long
- * one and with the bar that holds an unknown name's place. Below 768 px the
- * first step, the area itself, is left out: the sidebar's sheet leads there.
+ * whatever its steps say. The last step takes the room the others leave and is
+ * the one that is cut short, so the bar is as tall with a short name, with a
+ * long one and with the bar that holds an unknown name's place. A step before
+ * the last is written whole; it gives way only when it alone is wider than the
+ * bar. Below 768 px the steps marked `collapse` are not drawn.
  */
 export function Trail({
 	label,
@@ -46,10 +54,11 @@ export function Trail({
 	steps: readonly TrailStep[];
 }) {
 	return (
-		<Breadcrumb aria-label={label} className="min-w-0">
+		<Breadcrumb aria-label={label} className="min-w-0 flex-1">
 			<BreadcrumbList className="flex-nowrap">
 				{steps.map((step, index) => {
-					const first = index === 0 && steps.length > 1;
+					const last = index === steps.length - 1;
+					const collapse = step.collapse === true && !last;
 					const text = step.foreign ? (
 						<bdi>{step.text}</bdi>
 					) : (
@@ -57,21 +66,15 @@ export function Trail({
 					);
 					return (
 						<Fragment key={step.key}>
-							{index > 0 ? (
-								<BreadcrumbSeparator
-									className={cn(
-										"shrink-0",
-										index === 1 && "max-md:hidden",
-									)}
-								/>
-							) : null}
 							<BreadcrumbItem
 								className={cn(
-									"min-w-0",
-									first && "max-md:hidden",
-									step.current || step.text === null
-										? "shrink"
-										: "max-w-40 shrink-0 max-md:max-w-28",
+									// The last step has no width of its own: it
+									// takes what is left, so the steps before it
+									// are never squeezed to make it room.
+									last
+										? "min-w-6 flex-1 basis-0"
+										: "min-w-0 shrink",
+									collapse && "max-md:sr-only",
 								)}
 							>
 								{step.text === null ? (
@@ -85,18 +88,48 @@ export function Trail({
 										{text}
 									</span>
 								) : (
-									<BreadcrumbLink
-										asChild
-										className="min-w-0 max-w-full"
-									>
-										<Link href={step.href}>
-											<span className="truncate">
+									<>
+										<BreadcrumbLink
+											asChild
+											className={cn(
+												"min-w-0 max-w-full",
+												// A link nobody can see must not
+												// take the focus: where the step
+												// is not drawn the link is gone.
+												collapse && "max-md:hidden",
+											)}
+										>
+											<Link href={step.href}>
+												<span className="truncate">
+													{text}
+												</span>
+											</Link>
+										</BreadcrumbLink>
+										{collapse ? (
+											// And its words stand in for it,
+											// for a screen reader. Written a
+											// second time on purpose: a hidden
+											// link with its words left visible
+											// reached no accessibility tree
+											// that was tried.
+											<span
+												data-slot="breadcrumb-narrow"
+												className="md:hidden"
+											>
 												{text}
 											</span>
-										</Link>
-									</BreadcrumbLink>
+										) : null}
+									</>
 								)}
 							</BreadcrumbItem>
+							{last ? null : (
+								<BreadcrumbSeparator
+									className={cn(
+										"shrink-0",
+										collapse && "max-md:hidden",
+									)}
+								/>
+							)}
 						</Fragment>
 					);
 				})}

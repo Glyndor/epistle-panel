@@ -10,6 +10,7 @@ import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
 import { TEST_ADMIN_ID } from "@/lib/config/test-support/admin-id";
 import { withAdminArea } from "@/test/admin-routes";
 import { firstPaint, resolveServerTree } from "@/test/server-tree";
+import { stepText } from "@/test/trail-steps";
 
 /**
  * What every admin page sends before the API answers: its heading and the
@@ -140,9 +141,7 @@ const trails: Record<keyof typeof loadings, () => Promise<ReactNode>> = {
 function trailOnScreen() {
 	const nav = screen.getByRole("navigation", { name: "breadcrumb" });
 	return {
-		steps: within(nav)
-			.getAllByRole("listitem")
-			.map((item) => item.textContent),
+		steps: within(nav).getAllByRole("listitem").map(stepText),
 		links: within(nav)
 			.getAllByRole("link")
 			.map((link) => link.getAttribute("href")),

@@ -9,8 +9,17 @@ import { PUBLIC_ROUTES } from "@/lib/routes";
 export type MailTrailPlace =
 	/** The account's folder of a role, named in the reader's language. */
 	| { readonly kind: "role"; readonly role: MailboxRole }
-	/** Any other folder: its id, and its name already cleaned and cut to its last part. */
-	| { readonly kind: "folder"; readonly box: string; readonly name: string }
+	/**
+	 * Any other folder: its id, its name already cleaned and cut to its last
+	 * part, and the names of the folders above it, outermost first, cleaned
+	 * the same way (`Work/Q4` is "Q4" under "Work").
+	 */
+	| {
+			readonly kind: "folder";
+			readonly box: string;
+			readonly name: string;
+			readonly above?: readonly string[] | undefined;
+	  }
 	/** A page that is no folder, such as the composer, by its title already translated. */
 	| { readonly kind: "page"; readonly title: string };
 
@@ -18,8 +27,11 @@ export type MailTrailPlace =
  * The trail of a page of the mail area, in the bar above the content: the
  * mail, the folder and, with a message open, its subject. The folder follows
  * the same paths the folder links do, and carries what narrows its list back
- * to it. The last step is where the person is, marked with `aria-current` and
- * not a link.
+ * to it. A folder inside another is preceded by the folders above it, as
+ * words and not links: the address of a folder says nothing of whether the
+ * one above it can be opened. The last step is where the person is, marked
+ * with `aria-current` and not a link. Where the bar is narrow only the folder
+ * and the subject are drawn.
  *
  * `subject` is the open message's, already cleaned: `undefined` with no
  * message open, `null` while it is not known yet (a bar holds its place and no
@@ -47,11 +59,22 @@ export function MailBreadcrumbs({
 			text: t("heading"),
 			href: PUBLIC_ROUTES.mail,
 			current: place === undefined,
+			collapse: true,
 		},
 	];
 	if (place?.kind === "page") {
 		steps.push({ key: "page", text: place.title, current: true });
 	} else if (place !== undefined) {
+		if (place.kind === "folder") {
+			for (const [index, name] of (place.above ?? []).entries()) {
+				steps.push({
+					key: `above-${index}`,
+					text: name,
+					foreign: true,
+					collapse: true,
+				});
+			}
+		}
 		steps.push({
 			key: "folder",
 			text: place.kind === "role" ? t(`role_${place.role}`) : place.name,

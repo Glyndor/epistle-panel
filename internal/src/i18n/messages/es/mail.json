@@ -1,7 +1,7 @@
 {
 	"heading": "Correo",
 	"folders": "Carpetas",
-	"foldersTitle": "Carpetas",
+	"navTitle": "Navegación del correo",
 	"foldersDescription": "Las carpetas de tu buzón.",
 	"role_inbox": "Bandeja de entrada",
 	"role_drafts": "Borradores",

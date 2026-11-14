@@ -1,7 +1,7 @@
 {
 	"heading": "E-mail",
 	"folders": "Pastas",
-	"foldersTitle": "Pastas",
+	"navTitle": "Navegação do e-mail",
 	"foldersDescription": "As pastas da sua caixa de correio.",
 	"role_inbox": "Caixa de entrada",
 	"role_drafts": "Rascunhos",

@@ -1,7 +1,7 @@
 {
 	"heading": "E-Mail",
 	"folders": "Ordner",
-	"foldersTitle": "Ordner",
+	"navTitle": "E-Mail-Navigation",
 	"foldersDescription": "Die Ordner Ihres Postfachs.",
 	"role_inbox": "Posteingang",
 	"role_drafts": "Entwürfe",

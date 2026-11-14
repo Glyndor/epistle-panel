@@ -8,6 +8,7 @@ import {
 } from "@/lib/auth/test-support/cookies";
 import { clearSecretCache } from "@/lib/config/secret";
 import { firstPaint, resolveServerTree } from "@/test/server-tree";
+import { stepText } from "@/test/trail-steps";
 
 const originalFetch = globalThis.fetch;
 const savedEnv = { ...process.env };
@@ -33,7 +34,7 @@ afterEach(() => {
 const steps = () =>
 	within(screen.getByRole("navigation", { name: "breadcrumb" }))
 		.getAllByRole("listitem")
-		.map((item) => item.textContent);
+		.map(stepText);
 
 describe("PlaceTrail", () => {
 	it("redirects to sign-in without a session", async () => {
@@ -61,7 +62,7 @@ describe("PlaceTrail", () => {
 			),
 		);
 
-		expect(steps()).toEqual(["heading", "Q4"]);
+		expect(steps()).toEqual(["heading", "Work", "Q4"]);
 		expect(seen).toHaveLength(0);
 	});
 

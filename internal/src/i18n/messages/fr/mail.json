@@ -1,7 +1,7 @@
 {
 	"heading": "Courrier",
 	"folders": "Dossiers",
-	"foldersTitle": "Dossiers",
+	"navTitle": "Navigation du courrier",
 	"foldersDescription": "Les dossiers de votre boîte aux lettres.",
 	"role_inbox": "Boîte de réception",
 	"role_drafts": "Brouillons",

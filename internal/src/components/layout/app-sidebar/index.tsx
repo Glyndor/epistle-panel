@@ -84,7 +84,8 @@ export async function AppSidebar({
 					<span data-slot="panel-version">
 						{t("version", { version: PANEL_VERSION })}
 					</span>
-					<CopyrightNotice />
+					{/* A `small` is 80% of its parent: named, it is the size of the line above. */}
+					<CopyrightNotice className="text-xs" />
 				</div>
 			</SidebarFooter>
 		</Sidebar>

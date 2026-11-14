@@ -96,7 +96,7 @@ describe("MailLayout", () => {
 		const first = document.querySelector("a, button, select");
 		expect(first).toHaveAttribute("href", "#main-content");
 		expect(
-			screen.getByRole("complementary", { name: "foldersTitle" }),
+			screen.getByRole("complementary", { name: "navTitle" }),
 		).toBeInTheDocument();
 		expect(screen.getByRole("banner")).toBeInTheDocument();
 		expect(
@@ -119,7 +119,7 @@ describe("MailLayout", () => {
 		expect(screen.getByRole("main")).toHaveClass("overflow-hidden");
 	});
 
-	it("draws the trail of its slot in the header and keeps the header's middle for the search", async () => {
+	it("draws the trail of its slot in the header, and keeps no empty cell for a search that is not built yet", async () => {
 		await cookies.signIn("ana", "user");
 		stubJmap(answers);
 		await renderLayout();
@@ -128,10 +128,35 @@ describe("MailLayout", () => {
 		expect(banner).toContainElement(
 			screen.getByRole("navigation", { name: "trail" }),
 		);
-		const cell = banner.querySelector("[data-slot='header-search']");
-		expect(cell).not.toBeNull();
-		// The search is not built yet: the cell is kept, and empty.
-		expect(cell?.childElementCount).toBe(0);
+		// An empty cell took two thirds of the bar from the trail, which cut
+		// a subject short beside 563 px of nothing.
+		expect(banner.querySelector("[data-slot='header-search']")).toBeNull();
+	});
+
+	it("names the sidebar and the folders inside it differently", async () => {
+		await cookies.signIn("ops", "admin");
+		stubJmap(answers);
+		await renderLayout();
+
+		const sidebar = screen.getByRole("complementary");
+		const folders = await screen.findByRole("navigation", {
+			name: "folders",
+		});
+		expect(sidebar).toHaveAttribute("aria-label", "navTitle");
+		expect(folders.getAttribute("aria-label")).not.toBe(
+			sidebar.getAttribute("aria-label"),
+		);
+	});
+
+	it("gives the skip link a main it can move the focus to, though this main does not scroll", async () => {
+		await cookies.signIn("ana", "user");
+		stubJmap(answers);
+		await renderLayout();
+
+		const main = screen.getByRole("main");
+		expect(main).toHaveAttribute("tabindex", "-1");
+		main.focus();
+		expect(document.activeElement).toBe(main);
 	});
 
 	it("says under the brand that this is the mail, and the brand leads to its home", async () => {
@@ -206,7 +231,44 @@ describe("MailLayout", () => {
 		expect(seen.flatMap((request) => request.calls)).toEqual([]);
 	});
 
-	it("sends the frame before the mail server is asked: a skeleton for the folders, nothing yet for the storage", async () => {
+	it("holds the storage's place with a block of its own height until the mail server answers, so the foot does not move", async () => {
+		await cookies.signIn("ops", "admin");
+		stubJmap(answers);
+		const first = render(withQuery(await resolveFirstPaint(await shell())));
+		const held = first.container.querySelector(
+			"[data-slot='quota-placeholder']",
+		);
+		expect(held).not.toBeNull();
+		// 76 px: the padding, the title, the bar and the figures of the box.
+		expect(held).toHaveClass("min-h-19", "rounded-xl");
+		expect(held).toHaveAttribute("aria-hidden", "true");
+		expect(first.container.querySelector("[data-slot='quota']")).toBeNull();
+		cleanup();
+
+		const { container } = await renderLayout();
+		expect(
+			container.querySelector("[data-slot='quota-placeholder']"),
+		).toBeNull();
+		expect(container.querySelector("[data-slot='quota']")).toHaveClass(
+			"min-h-19",
+			"rounded-xl",
+		);
+	});
+
+	it("holds no place for the storage of a session with no mail of its own", async () => {
+		await cookies.signIn("ana", "user");
+		stubJmap(answers);
+
+		const { container } = render(
+			withQuery(await resolveFirstPaint(await shell())),
+		);
+
+		expect(
+			container.querySelector("[data-slot='quota-placeholder']"),
+		).toBeNull();
+	});
+
+	it("sends the frame before the mail server is asked: a skeleton for the folders, and the storage's place held", async () => {
 		await cookies.signIn("ops", "admin");
 		const seen = stubJmap(answers);
 		const { container } = render(

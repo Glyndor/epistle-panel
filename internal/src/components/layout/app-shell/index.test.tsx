@@ -170,4 +170,24 @@ describe("AppShell", () => {
 
 		expect(container.querySelector("[style]")).toBeNull();
 	});
+
+	it("gives the skip link a main it can move the focus to in both areas, with a ring inside it", async () => {
+		for (const content of ["page", "panes"] as const) {
+			await renderShell({ content });
+
+			const main = screen.getByRole("main");
+			expect([content, main.getAttribute("tabindex")]).toEqual([
+				content,
+				"-1",
+			]);
+			main.focus();
+			expect(document.activeElement).toBe(main);
+			expect(main).toHaveClass(
+				"outline-ring",
+				"focus-visible:outline-2",
+				"focus-visible:-outline-offset-2",
+			);
+			cleanup();
+		}
+	});
 });

@@ -153,4 +153,13 @@ describe("AppSidebar", () => {
 			document.querySelector<HTMLElement>("[data-slot='sidebar-footer']"),
 		);
 	});
+
+	it("writes the copyright notice at the size of the version above it, not at a small's share of it", async () => {
+		await renderSidebar();
+
+		// A `small` is 80% of its parent, which is already 12 px: it measured
+		// 9.6 px until it named its own size.
+		expect(screen.getByText(COPYRIGHT_NOTICE)).toHaveClass("text-xs");
+		expect(screen.getByText(COPYRIGHT_NOTICE).tagName).toBe("SMALL");
+	});
 });

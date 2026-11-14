@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import type { Route } from "next";
 
+import { narrowText, stepText } from "@/test/trail-steps";
 import { Trail, type TrailStep } from ".";
 
 afterEach(cleanup);
@@ -124,7 +125,7 @@ describe("Trail", () => {
 		}
 	});
 
-	it("cuts every step short where there is no room: a step before the last up to a width, the last first", () => {
+	it("writes every step before the last whole, and lets the last one take what is left and be cut short", () => {
 		for (const last of [
 			{ key: "m", text: "Hello", current: true },
 			{ key: "m", text: "a".repeat(300), current: true },
@@ -134,14 +135,16 @@ describe("Trail", () => {
 
 			const [first, second, third] = items();
 			for (const item of [first, second]) {
-				expect(item).toHaveClass("min-w-0", "shrink-0", "max-w-40");
-				expect(item?.querySelector("a")).toHaveClass("min-w-0");
-				expect(item?.querySelector("a > span")).toHaveClass("truncate");
+				// No width is taken from a step before the last to make the
+				// last one room: it has no cap, and it shrinks only when it
+				// alone is wider than the bar.
+				expect(item).toHaveClass("min-w-0", "shrink");
+				expect(item?.className).not.toMatch(/(^|\s|:)max-w-\d/);
+				expect(item?.className).not.toContain("basis-0");
 			}
-			// The last step has no width of its own to keep: it gives way.
-			expect(third).toHaveClass("min-w-0", "shrink");
-			expect(third?.className).not.toContain("shrink-0");
-			expect(third?.className).not.toContain("max-w-40");
+			// The last step has no width of its own: it starts from nothing
+			// and grows into the room the others leave.
+			expect(third).toHaveClass("min-w-6", "flex-1", "basis-0");
 			if (last.text !== null) {
 				expect(
 					third?.querySelector('[aria-current="page"]'),
@@ -151,21 +154,66 @@ describe("Trail", () => {
 		}
 	});
 
-	it("leaves the area itself out below 768 px, with the mark after it, when there is more to show", () => {
-		renderTrail([area, folder, { key: "m", text: "Hello", current: true }]);
+	it("fills the cell it is given, so the last step knows the room there is", () => {
+		renderTrail([area, { ...folder, current: true }]);
 
-		expect(items()[0]).toHaveClass("max-md:hidden");
-		expect(separators()[0]).toHaveClass("max-md:hidden");
-		expect(items()[1]).not.toHaveClass("max-md:hidden");
-		expect(separators()[1]).not.toHaveClass("max-md:hidden");
+		expect(trail()).toHaveClass("min-w-0", "flex-1");
 	});
 
-	it("keeps a trail of one step whole at every width", () => {
-		renderTrail([{ ...area, current: true }]);
+	it("does not draw a step that only leads up to the page below 768 px, and keeps its words for a screen reader", () => {
+		renderTrail([
+			{ ...area, collapse: true },
+			{ key: "above", text: "Work", foreign: true, collapse: true },
+			folder,
+			{ key: "m", text: "Hello", current: true },
+		]);
+
+		const [first, above, third, fourth] = items();
+		// Clipped, not removed: still in the list a screen reader walks.
+		expect(first).toHaveClass("max-md:sr-only");
+		expect(above).toHaveClass("max-md:sr-only");
+		expect(first?.className).not.toContain("hidden");
+		// The link itself is gone there, so Tab never lands on a link that
+		// is not drawn; its words are written again as plain text, which only
+		// the narrow bar keeps.
+		expect(first?.querySelector("a")).toHaveClass("max-md:hidden");
+		const words = first?.querySelector("[data-slot='breadcrumb-narrow']");
+		expect(words).toHaveClass("md:hidden");
+		expect(words?.textContent).toBe("Mail");
+		expect(words?.closest("a")).toBeNull();
+		expect(stepText(first as Element)).toBe("Mail");
+		// A step that was words already needs no second copy.
+		expect(above).toHaveTextContent("Work");
+		expect(above?.querySelector("a")).toBeNull();
+		expect(narrowText(above as Element)).toBeNull();
+		// The mark after each of them goes with it.
+		expect(separators()[0]).toHaveClass("max-md:hidden");
+		expect(separators()[1]).toHaveClass("max-md:hidden");
+		// The folder and the subject are drawn at every width.
+		for (const item of [third, fourth]) {
+			expect(item?.className).not.toContain("max-md:");
+		}
+		expect(third?.querySelector("a")?.className).not.toContain(
+			"max-md:hidden",
+		);
+		expect(narrowText(third as Element)).toBeNull();
+		expect(separators()[2]?.className).not.toContain("max-md:hidden");
+	});
+
+	it("never collapses the last step, which is where the person is", () => {
+		renderTrail([{ ...area, current: true, collapse: true }]);
 
 		expect(items()).toHaveLength(1);
-		expect(items()[0]).not.toHaveClass("max-md:hidden");
+		expect(items()[0]?.className).not.toContain("max-md:");
 		expect(separators()).toHaveLength(0);
+	});
+
+	it("draws every step at every width unless it is told one may go", () => {
+		renderTrail([area, folder, { key: "m", text: "Hello", current: true }]);
+
+		for (const node of [...items(), ...separators()]) {
+			expect(node.className).not.toContain("max-md:");
+		}
 	});
 
 	it("uses no inline style", () => {

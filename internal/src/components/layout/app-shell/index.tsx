@@ -25,8 +25,8 @@ import { cn } from "@/lib/class-names";
  * whole (the administration), `panes` for a page whose panes each scroll on
  * their own and fill the room themselves (the mail).
  *
- * Layout contract: one `main`, a skip link first, a named landmark per region,
- * no inline style.
+ * Layout contract: one `main`, which the skip link moves the focus to, a skip
+ * link first, a named landmark per region, no inline style.
  */
 export function AppShell({
 	navigation,
@@ -88,9 +88,12 @@ export function AppShell({
 				/>
 				<main
 					id="main-content"
+					// The skip link lands here in both areas: a `main` that
+					// does not scroll cannot take the focus on its own.
+					tabIndex={-1}
 					data-content={content}
 					className={cn(
-						"min-h-0 min-w-0 flex-1",
+						"min-h-0 min-w-0 flex-1 outline-ring focus-visible:outline-2 focus-visible:-outline-offset-2",
 						content === "page"
 							? "overflow-y-auto"
 							: "overflow-hidden",

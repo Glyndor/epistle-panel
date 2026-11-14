@@ -1,15 +1,12 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { cleanup, render, screen, within } from "@testing-library/react";
-
+import { stepText } from "@/test/trail-steps";
 import { MailBreadcrumbs } from ".";
 
 afterEach(cleanup);
 
 const trail = () => screen.getByRole("navigation", { name: "breadcrumb" });
-const steps = () =>
-	within(trail())
-		.getAllByRole("listitem")
-		.map((item) => item.textContent);
+const steps = () => within(trail()).getAllByRole("listitem").map(stepText);
 const links = () =>
 	within(trail())
 		.queryAllByRole("link")
@@ -43,6 +40,68 @@ describe("MailBreadcrumbs", () => {
 
 		expect(steps()).toEqual(["heading", "Q4"]);
 		expect(current()[0]?.querySelector("bdi")?.textContent).toBe("Q4");
+	});
+
+	it("writes the folders above a folder before it, as words kept apart from the text around them, and not as links", () => {
+		render(
+			<MailBreadcrumbs
+				place={{
+					kind: "folder",
+					box: "Work/2026/Q4",
+					name: "Q4",
+					above: ["Work", "2026"],
+				}}
+				subject="Hi"
+			/>,
+		);
+
+		expect(steps()).toEqual(["heading", "Work", "2026", "Q4", "Hi"]);
+		// Only the mail and the folder itself lead somewhere.
+		expect(links()).toEqual([
+			"/app/mail",
+			"/app/mail/folder/Work_2F2026_2FQ4",
+		]);
+		for (const name of ["Work", "2026"]) {
+			const step = screen.getByText(name);
+			expect(step.tagName).toBe("BDI");
+			expect(step.closest("a")).toBeNull();
+			// Not drawn where the bar is narrow; kept for a screen reader.
+			expect(step.closest("li")).toHaveClass("max-md:sr-only");
+		}
+		expect(screen.getByText("Q4").closest("li")?.className).not.toContain(
+			"max-md:",
+		);
+	});
+
+	it("shows a folder's name above as text, whatever it holds", () => {
+		render(
+			<MailBreadcrumbs
+				place={{
+					kind: "folder",
+					box: "x",
+					name: "Q4",
+					above: ['<img src=x onerror="alert(1)">'],
+				}}
+			/>,
+		);
+
+		expect(steps()[1]).toBe('<img src=x onerror="alert(1)">');
+		expect(trail().querySelector("img")).toBeNull();
+	});
+
+	it("does not draw the mail itself where the bar is narrow, once there is a folder to show", () => {
+		render(<MailBreadcrumbs place={inbox} subject="Hi" />);
+
+		const [area, folder, subject] = within(trail()).getAllByRole(
+			"listitem",
+		);
+		expect(area).toHaveClass("max-md:sr-only");
+		expect(folder?.className).not.toContain("max-md:");
+		expect(subject?.className).not.toContain("max-md:");
+		// The folder is never the step that is cut to make room.
+		expect(folder).toHaveClass("shrink");
+		expect(folder?.className).not.toMatch(/(^|\s|:)max-w-\d/);
+		expect(subject).toHaveClass("flex-1", "basis-0");
 	});
 
 	it("adds the subject of the open message as the current page, and the folder becomes a link on the folder's own path", () => {

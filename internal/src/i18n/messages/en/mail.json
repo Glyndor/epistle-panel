@@ -1,7 +1,7 @@
 {
 	"heading": "Mail",
 	"folders": "Folders",
-	"foldersTitle": "Folders",
+	"navTitle": "Mail navigation",
 	"foldersDescription": "The folders of your mailbox.",
 	"role_inbox": "Inbox",
 	"role_drafts": "Drafts",
