@@ -3,7 +3,7 @@ import { describe, expect, it } from "bun:test";
 import { QueryClient } from "@tanstack/react-query";
 
 import { mailKeys } from "../mail-query-keys";
-import { isGone, isKeywordOp, markGone, patchFlags } from ".";
+import { isGone, isKeywordOp, markGone, patchFlags, waitingMessages } from ".";
 
 const summary = (id: string, unread: boolean, flagged = false) => ({
 	id,
@@ -333,6 +333,94 @@ describe("patchFlags", () => {
 		expect(isGone(client, "b")).toBe(false);
 		// Another screen has not seen it leave.
 		expect(isGone(seeded(), "a")).toBe(false);
+	});
+
+	it("shows the confirmed value again when the message was read from the server while the change waited", () => {
+		const client = seeded();
+		const flagged = () =>
+			(client.getQueryData(mailKeys.message("a")) as { flagged: boolean })
+				.flagged;
+		const star = patchFlags(client, "a", "star", "INBOX");
+		// The open message is read again before the star is written: the
+		// server still answers the value from before it.
+		client.setQueryData(mailKeys.message("a"), {
+			...(client.getQueryData(mailKeys.message("a")) as object),
+			flagged: false,
+		});
+
+		star.confirm();
+
+		expect(flagged()).toBe(true);
+	});
+
+	it("leaves the screen to a later change on the same flag when the first is confirmed", () => {
+		const client = seeded();
+		const flagged = () =>
+			(client.getQueryData(mailKeys.message("a")) as { flagged: boolean })
+				.flagged;
+		const star = patchFlags(client, "a", "star", "INBOX");
+		patchFlags(client, "a", "unstar", "INBOX");
+		expect(flagged()).toBe(false);
+
+		star.confirm();
+
+		expect(flagged()).toBe(false);
+	});
+
+	it("does not count the folder again when a read mark is confirmed", () => {
+		const client = seeded();
+		const counter = () =>
+			(
+				client.getQueryData(mailKeys.mailboxes) as Array<{
+					unread: number;
+				}>
+			)[0]?.unread;
+		expect(counter()).toBe(3);
+		const read = patchFlags(client, "a", "read", "INBOX");
+		expect(counter()).toBe(2);
+		// Read again meanwhile, with the value from before the change.
+		client.setQueryData(mailKeys.message("a"), {
+			...(client.getQueryData(mailKeys.message("a")) as object),
+			unread: true,
+		});
+
+		read.confirm();
+
+		expect(counter()).toBe(2);
+		expect(
+			(client.getQueryData(mailKeys.message("a")) as { unread: boolean })
+				.unread,
+		).toBe(false);
+	});
+
+	it("leaves nothing waiting for a change that was never written, and puts nothing back", () => {
+		const client = seeded();
+		const star = patchFlags(client, "a", "star", "INBOX");
+		expect(waitingMessages(client)).toBe(1);
+
+		star.drop();
+
+		expect(waitingMessages(client)).toBe(0);
+		expect(
+			(client.getQueryData(mailKeys.message("a")) as { flagged: boolean })
+				.flagged,
+		).toBe(true);
+	});
+
+	it("remembers the 100 messages that left last", () => {
+		const client = seeded();
+		for (let n = 1; n <= 101; n++) {
+			markGone(client, `m${n}`);
+		}
+
+		expect(isGone(client, "m1")).toBe(false);
+		expect(isGone(client, "m2")).toBe(true);
+		expect(isGone(client, "m101")).toBe(true);
+		// One that leaves again counts as the last.
+		markGone(client, "m2");
+		markGone(client, "m102");
+		expect(isGone(client, "m2")).toBe(true);
+		expect(isGone(client, "m3")).toBe(false);
 	});
 
 	it("changes nothing for an operation that is not a flag, whichever way it ends", () => {

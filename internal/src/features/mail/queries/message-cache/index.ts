@@ -146,15 +146,17 @@ function show(
 	}
 }
 
-/** One change that shows and waits: what to call when the server has answered. */
+/** One change that shows and waits: what to call when it has ended, one of the three ways. */
 export interface OptimisticWrite {
 	/** The server made the change: its value is now the confirmed one. */
 	confirm(): void;
 	/** The server refused the change: the screen goes back to what still holds. */
 	refuse(): void;
+	/** The change was never written, its message left first: it waits no more, and nothing is put back. */
+	drop(): void;
 }
 
-const NOTHING: OptimisticWrite = { confirm() {}, refuse() {} };
+const NOTHING: OptimisticWrite = { confirm() {}, refuse() {}, drop() {} };
 
 /**
  * Apply a keyword operation to what is on screen at once: the open message, its
@@ -167,7 +169,10 @@ const NOTHING: OptimisticWrite = { confirm() {}, refuse() {} };
  * held) would leave a star the server does not have. Each flag keeps the value
  * the server last confirmed. A refused change leaves the flag at the value of
  * the last change still waiting on it or, with none left, at the confirmed
- * one. A change the server made becomes the confirmed value.
+ * one. A change the server made becomes the confirmed value, and is shown
+ * again unless a later change waits on the flag: the message may have been
+ * read from the server while the change waited, with the value from before
+ * it, and nothing else would put the confirmed one back on screen.
  */
 export function patchFlags(
 	client: QueryClient,
@@ -200,25 +205,42 @@ export function patchFlags(
 			all.delete(id);
 		}
 	};
+	/** The value the flag is left at: the last change still waiting on it or, with none, the confirmed one. */
+	const holds = () =>
+		writes.waiting.findLast((one) => one.flag === flag)?.value ??
+		writes.confirmed[flag];
 	return {
 		confirm() {
 			writes.confirmed[flag] = value;
 			leave();
+			// The counter moved when the change was asked for: not again.
+			show(client, id, flag, holds() ?? value, null);
 		},
 		refuse() {
 			leave();
-			const holds =
-				writes.waiting.findLast((one) => one.flag === flag)?.value ??
-				writes.confirmed[flag];
-			if (holds !== undefined) {
-				show(client, id, flag, holds, mailboxId);
+			const left = holds();
+			if (left !== undefined) {
+				show(client, id, flag, left, mailboxId);
 			}
 		},
+		drop: leave,
 	};
+}
+
+/** How many messages have a change waiting on this screen. For tests only: nothing may be left once every change has ended. */
+export function waitingMessages(client: QueryClient): number {
+	return writesOf(client).size;
 }
 
 /** The messages that left their folder on this screen, by query client. */
 const GONE = new WeakMap<QueryClient, Set<string>>();
+
+/**
+ * How many of them are remembered: the ones that left last. A change can
+ * only wait behind the move of its own message, asked for moments before, so
+ * the ones that left long ago have nothing waiting for them.
+ */
+const KEPT_GONE = 100;
 
 /**
  * Note that message `id` left its folder: the server gave it another id, so a
@@ -228,7 +250,14 @@ const GONE = new WeakMap<QueryClient, Set<string>>();
 export function markGone(client: QueryClient, id: string): void {
 	const gone = GONE.get(client) ?? new Set<string>();
 	GONE.set(client, gone);
+	gone.delete(id);
 	gone.add(id);
+	for (const oldest of gone) {
+		if (gone.size <= KEPT_GONE) {
+			break;
+		}
+		gone.delete(oldest);
+	}
 	writesOf(client).delete(id);
 }
 

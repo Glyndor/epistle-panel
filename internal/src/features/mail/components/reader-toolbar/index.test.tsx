@@ -308,6 +308,40 @@ describe("ReaderToolbar", () => {
 		);
 	});
 
+	it("takes no key for a message that is on its way out", async () => {
+		const seen = serve();
+		renderBar();
+		await new Promise((r) => setTimeout(r, 40));
+		const baseline = setCalls(seen).length;
+		// The answer to the move waits until every key has been pressed.
+		let release = () => {};
+		const held = new Promise<void>((resolve) => {
+			release = resolve;
+		});
+		const answer = globalThis.fetch;
+		globalThis.fetch = (async (...args: Parameters<typeof fetch>) => {
+			await held;
+			return answer(...args);
+		}) as typeof fetch;
+
+		fireEvent.keyDown(document.body, { key: "e" });
+		await waitFor(() =>
+			expect(screen.getByRole("button", { name: "star" })).toBeDisabled(),
+		);
+		for (const key of ["#", "!", "s", "e", "Delete"]) {
+			fireEvent.keyDown(document.body, { key });
+		}
+		globalThis.fetch = answer;
+		release();
+
+		await waitFor(() => expect(leftCount).toBe(1));
+		await new Promise((r) => setTimeout(r, 60));
+		expect(setCalls(seen)).toHaveLength(baseline + 1);
+		expect(document.querySelectorAll("[data-kind='error']")).toHaveLength(
+			0,
+		);
+	});
+
 	it("says so when the change fails, and when the account has no such folder", async () => {
 		stubJmap({
 			"Email/get": { list: [emailFixture({ id: ID })] },

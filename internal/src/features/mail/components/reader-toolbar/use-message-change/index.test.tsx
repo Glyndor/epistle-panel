@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 
 import { clearToasts, Toaster } from "@/components/ui/toaster";
 import { mailKeys } from "@/features/mail/queries/mail-query-keys";
+import { waitingMessages } from "@/features/mail/queries/message-cache";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
 import { clearSecretCache } from "@/lib/config/secret";
 import { settled, testQueryClient } from "@/test/query-wrapper";
@@ -271,6 +272,23 @@ describe("useMessageChange", () => {
 		expect(screen.toasts()).toEqual(["success:moved"]);
 		// Read at the move, though the star still waited, and again after it.
 		expect(screen.lists()).toBe(2);
+	});
+
+	it("leaves nothing waiting for a change asked of a message that has already left", async () => {
+		const server = serve();
+		const screen = screenOf();
+		act(() => screen.hook.result.current.a.change("archive"));
+		await screen.idle();
+
+		// The row was still on screen and took one more press.
+		act(() =>
+			screen.hook.result.current.a.change("star", { quiet: "success" }),
+		);
+		await screen.idle();
+
+		expect(server.writes()).toBe(1);
+		expect(screen.toasts()).toEqual(["success:moved"]);
+		expect(waitingMessages(screen.client)).toBe(0);
 	});
 
 	it("says which change is still not answered: any, or one that moves the message", async () => {

@@ -93,9 +93,12 @@ export function useMessageChange({
 		},
 		onSuccess: (result, { quiet }, context) => {
 			if (result.kind === "gone") {
+				// Never written: it waits no more.
+				context?.write?.drop();
 				return;
 			}
 			if (result.kind === "noFolder") {
+				context?.write?.drop();
 				toast.error(t("noFolder"));
 				return;
 			}

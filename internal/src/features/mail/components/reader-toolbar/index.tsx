@@ -86,7 +86,10 @@ export function ReaderToolbar({
 	};
 	useEffect(() => {
 		const onKeyDown = (event: KeyboardEvent) => {
-			if (belongsElsewhere(event)) {
+			// A message on its way out takes no more changes: its buttons
+			// are disabled, and a key asked for a second move that was
+			// dropped in silence.
+			if (belongsElsewhere(event) || moving) {
 				return;
 			}
 			if (event.key === "s") {
