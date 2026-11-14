@@ -1,12 +1,12 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 
 import { ListToolbar } from ".";
 
 afterEach(cleanup);
 
 describe("ListToolbar", () => {
-	it("is a plain GET form to the folder's own page that keeps the filter", () => {
+	it("has no search of its own: it is in the header of the bar", () => {
 		const { container } = render(
 			<ListToolbar
 				box="Work/Q4"
@@ -16,19 +16,12 @@ describe("ListToolbar", () => {
 				density="comfortable"
 			/>,
 		);
-		const form = container.querySelector("form");
-		expect(form).toHaveAttribute("method", "get");
-		expect(form).toHaveAttribute("action", "/app/mail/folder/Work_2FQ4");
-		// The folder is the path: no field names it.
-		expect(form?.querySelector("input[name=box]")).toBeNull();
-		expect(form?.querySelector("input[name=filter]")).toHaveValue("unread");
-		const search = screen.getByRole("searchbox");
-		expect(search).toHaveAttribute("name", "q");
-		expect(search).toHaveAttribute("aria-keyshortcuts", "/");
-		expect(search).toHaveAttribute("maxlength", "200");
+
+		expect(container.querySelector("form")).toBeNull();
+		expect(screen.queryByRole("searchbox")).toBeNull();
 	});
 
-	it("names the search button, an icon alone, in a tooltip", () => {
+	it("offers no clear link without a search", () => {
 		render(
 			<ListToolbar
 				box="INBOX"
@@ -39,47 +32,11 @@ describe("ListToolbar", () => {
 			/>,
 		);
 
-		fireEvent.pointerEnter(
-			screen.getByRole("button", { name: "searchSubmit" }),
-		);
-
-		expect(
-			document.querySelector("[data-slot='tooltip']"),
-		).toHaveTextContent("searchSubmit");
-	});
-
-	it("posts the search of a folder with a role to the role's page", () => {
-		const { container } = render(
-			<ListToolbar
-				box="Papelera"
-				folderRole="trash"
-				filter="all"
-				q=""
-				density="comfortable"
-			/>,
-		);
-		expect(container.querySelector("form")).toHaveAttribute(
-			"action",
-			"/app/mail/trash",
-		);
-	});
-
-	it("sends no filter field for the default filter and no clear link without a search", () => {
-		const { container } = render(
-			<ListToolbar
-				box="INBOX"
-				folderRole="inbox"
-				filter="all"
-				q=""
-				density="comfortable"
-			/>,
-		);
-		expect(container.querySelector("input[name=filter]")).toBeNull();
 		expect(screen.queryByRole("link", { name: "searchClear" })).toBeNull();
 		expect(screen.queryByText("searchNote")).toBeNull();
 	});
 
-	it("shows the search, says what it reads and offers to clear it", () => {
+	it("says what the search reads and offers to clear it", () => {
 		render(
 			<ListToolbar
 				box="INBOX"
@@ -89,7 +46,7 @@ describe("ListToolbar", () => {
 				density="comfortable"
 			/>,
 		);
-		expect(screen.getByRole("searchbox")).toHaveValue("invoice");
+
 		expect(screen.getByText("searchNote")).toBeInTheDocument();
 		expect(
 			screen.getByRole("link", { name: "searchClear" }),
@@ -201,7 +158,7 @@ describe("ListToolbar", () => {
 		]);
 	});
 
-	it("puts the density switch at the end of the search's line, in the density the server read", () => {
+	it("puts the density switch at the end of the line, in the density the server read", () => {
 		for (const [density, pressed] of [
 			["comfortable", "false"],
 			["compact", "true"],
@@ -220,10 +177,7 @@ describe("ListToolbar", () => {
 			});
 
 			expect(toggle).toHaveAttribute("aria-pressed", pressed);
-			// Beside the form and outside it; the filters have their line to themselves.
-			const form = container.querySelector("form");
-			expect(form?.parentElement).toBe(toggle.parentElement);
-			expect(form?.contains(toggle)).toBe(false);
+			// The filters have their line to themselves.
 			expect(
 				screen
 					.getByRole("navigation", { name: "filtersLabel" })

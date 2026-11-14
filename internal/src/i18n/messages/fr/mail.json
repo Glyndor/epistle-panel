@@ -22,6 +22,8 @@
 	"searchLabel": "Rechercher dans ce dossier",
 	"searchSubmit": "Rechercher",
 	"searchClear": "Effacer la recherche",
+	"searchPlaceholder": "Rechercher par mots, expéditeur ou objet",
+	"searchClose": "Fermer la recherche",
 	"searchNote": "La recherche lit l’objet, l’expéditeur, les destinataires et l’aperçu des {count} messages les plus récents de ce dossier.",
 	"filtersLabel": "Afficher",
 	"filterAll": "Tous",

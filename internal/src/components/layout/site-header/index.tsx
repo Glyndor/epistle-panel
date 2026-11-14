@@ -19,7 +19,8 @@ import type { SessionRole } from "@/lib/auth/session";
  * The middle cell is drawn from 1024 px, with twice the trail's share of the
  * room, when the area says it has a search (`reserveSearch`), also while there
  * is nothing in it yet: the trail then never grows into the place the search
- * will take.
+ * will take. Below 1024 px the cell holds only what the area draws there,
+ * which in the mail area is the icon that opens the search over the bar.
  */
 export async function SiteHeader({
 	trail,
@@ -42,7 +43,7 @@ export async function SiteHeader({
 	const t = await getTranslations("nav");
 
 	return (
-		<header className="flex min-h-12 shrink-0 flex-wrap items-center gap-x-2 gap-y-1 bg-header px-2 py-1 pointer-coarse:min-h-14 md:px-4">
+		<header className="relative flex min-h-12 shrink-0 flex-wrap items-center gap-x-2 gap-y-1 bg-header px-2 py-1 pointer-coarse:min-h-14 md:px-4">
 			<SidebarTrigger
 				label={t("toggle")}
 				shortcut={t("toggleShortcut")}
@@ -56,7 +57,10 @@ export async function SiteHeader({
 			{reserveSearch ? (
 				<div
 					data-slot="header-search"
-					className="min-w-0 flex-2 basis-0 max-lg:hidden"
+					// From 1024 px up the cell holds the search, wide. Below it
+					// the cell holds only the icon that opens the search over
+					// the bar, and the trail keeps the room.
+					className="min-w-0 flex-2 basis-0 max-lg:flex-none max-lg:w-auto"
 				>
 					{search}
 				</div>

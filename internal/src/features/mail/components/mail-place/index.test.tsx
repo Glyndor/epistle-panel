@@ -137,10 +137,11 @@ describe("MailPlace", () => {
 			"href",
 			`/app/mail/sent/${ID}`,
 		);
-		expect(document.querySelector("form")).toHaveAttribute(
-			"action",
-			"/app/mail/sent",
-		);
+		// The search is in the header of the bar, not in the page; the links
+		// of the list stay on the role's path.
+		expect(
+			screen.getByRole("link", { name: "filterUnread" }),
+		).toHaveAttribute("href", "/app/mail/sent?filter=unread");
 	});
 
 	it("says so, and asks for no messages, when the account has no folder of the role", async () => {
@@ -190,7 +191,11 @@ describe("MailPlace", () => {
 			.filter((c) => c[0] === "Email/query")
 			.map((c) => c[1]["filter"]);
 		expect(filters).toContainEqual({ inMailbox: "Sent" });
-		expect(screen.getByRole("searchbox")).toHaveValue("x");
+		// The search is in the header of the bar; the links of the list carry
+		// the words the address held.
+		expect(
+			screen.getByRole("link", { name: "filterUnread" }),
+		).toHaveAttribute("href", "/app/mail/folder/Sent?filter=unread&q=x");
 	});
 
 	it("opens the reader for a message in the address", async () => {
@@ -308,7 +313,9 @@ describe("MailPlace", () => {
 		expect(
 			screen.getByRole("region", { name: "listLabel" }),
 		).toBeInTheDocument();
-		expect(screen.getByRole("searchbox")).toBeInTheDocument();
+		expect(
+			screen.getByRole("navigation", { name: "filtersLabel" }),
+		).toBeInTheDocument();
 	});
 
 	it("still renders when there is no mail session at all", async () => {

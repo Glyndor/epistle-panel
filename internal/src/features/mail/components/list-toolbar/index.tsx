@@ -1,18 +1,14 @@
-import { SearchIcon } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
-import { Tooltip } from "@/components/ui/tooltip";
 import { DensityToggle } from "@/features/mail/components/density-toggle";
 import { FilterStrip } from "@/features/mail/components/filter-strip";
-import { SearchField } from "@/features/mail/components/list-toolbar/search-field";
 import type { ListDensity } from "@/features/mail/config/list-density";
-import { folderPath, mailHref } from "@/features/mail/links/mail-href";
+import { mailHref } from "@/features/mail/links/mail-href";
 import {
 	LIST_FILTERS,
 	type ListFilter,
-	MAX_QUERY_LENGTH,
 	SCAN_LIMIT,
 } from "@/features/mail/schemas/mail-input";
 import type { MailboxRole } from "@/features/mail/schemas/mail-view";
@@ -44,14 +40,10 @@ const CURRENT =
 	"bg-accent font-medium text-accent-foreground hover:bg-foreground/20 active:bg-foreground/25";
 
 /**
- * Search and filters of the list. The search is a plain GET form to the
- * folder's own page, so it works before any script has loaded and a result can
- * be bookmarked; the filters are links. Both stay in the folder, which is the
- * path, and a new search or filter starts again at the first page. The search field says what the search
- * reads (the server has no text search, see `load-message-list`). The switch
- * between the comfortable and the compact list sits at the end of the search's
- * line: beside the filters it pushed them onto a second line in a narrow
- * window, and the list under them down with it.
+ * What the list is narrowed by, over the results: the filters of the folder
+ * and the note that says what the search reads. The search itself is in the
+ * header of the bar (`mail-search`), where there is room for it; the filters
+ * are here, beside the list they narrow.
  */
 export function ListToolbar({
 	box,
@@ -72,38 +64,14 @@ export function ListToolbar({
 
 	return (
 		<div className="flex flex-col gap-2 p-2">
-			<div className="flex gap-2">
-				<form
-					method="get"
-					action={folderPath({ box, role })}
-					aria-label={t("searchLabel")}
-					className="flex min-w-0 flex-1 gap-2"
-				>
-					{filter === "all" ? null : (
-						<input type="hidden" name="filter" value={filter} />
-					)}
-					<SearchField
-						name="q"
-						defaultValue={q}
-						maxLength={MAX_QUERY_LENGTH}
-						aria-label={t("searchLabel")}
-						aria-keyshortcuts="/"
-						className="min-w-0 flex-1"
-					/>
-					<Tooltip label={t("searchSubmit")} align="end">
-						<Button type="submit" variant="outline" size="icon">
-							<SearchIcon aria-hidden="true" />
-							<span className="sr-only">{t("searchSubmit")}</span>
-						</Button>
-					</Tooltip>
-					{q === "" ? null : (
-						<Button asChild variant="ghost" size="sm">
-							<Link href={mailHref({ box, role, filter })}>
-								{t("searchClear")}
-							</Link>
-						</Button>
-					)}
-				</form>
+			<div className="flex items-center justify-end gap-2">
+				{q === "" ? null : (
+					<Button asChild variant="ghost" size="sm">
+						<Link href={mailHref({ box, role, filter })}>
+							{t("searchClear")}
+						</Link>
+					</Button>
+				)}
 				<DensityToggle density={density} />
 			</div>
 			{q === "" ? null : (

@@ -22,6 +22,8 @@
 	"searchLabel": "Cerca in questa cartella",
 	"searchSubmit": "Cerca",
 	"searchClear": "Cancella la ricerca",
+	"searchPlaceholder": "Cerca per parole, mittente o oggetto",
+	"searchClose": "Chiudi la ricerca",
 	"searchNote": "La ricerca legge oggetto, mittente, destinatari e anteprima dei {count} messaggi più recenti di questa cartella.",
 	"filtersLabel": "Mostra",
 	"filterAll": "Tutti",

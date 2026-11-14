@@ -93,8 +93,9 @@ describe("SiteHeader", () => {
 			.querySelector("[data-slot='header-search']");
 		expect(cell).not.toBeNull();
 		expect(cell?.childElementCount).toBe(0);
-		// Twice the trail's share from 1024 px; below that the trail has the row.
-		expect(cell).toHaveClass("flex-2", "basis-0", "max-lg:hidden");
+		// Twice the trail's share from 1024 px; below that the cell holds only
+		// what the area draws there, and the trail has the row.
+		expect(cell).toHaveClass("flex-2", "basis-0", "max-lg:w-auto");
 		cleanup();
 
 		await renderHeader({

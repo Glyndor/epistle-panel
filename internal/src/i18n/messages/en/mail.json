@@ -22,6 +22,8 @@
 	"searchLabel": "Search this folder",
 	"searchSubmit": "Search",
 	"searchClear": "Clear search",
+	"searchPlaceholder": "Search by words, sender or subject",
+	"searchClose": "Close the search",
 	"searchNote": "The search reads the subject, sender, recipients and preview of the newest {count} messages in this folder.",
 	"filtersLabel": "Show",
 	"filterAll": "All",

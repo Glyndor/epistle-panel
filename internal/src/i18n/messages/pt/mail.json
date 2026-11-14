@@ -22,6 +22,8 @@
 	"searchLabel": "Pesquisar nesta pasta",
 	"searchSubmit": "Pesquisar",
 	"searchClear": "Limpar a pesquisa",
+	"searchPlaceholder": "Pesquisar por palavras, remetente ou assunto",
+	"searchClose": "Fechar a pesquisa",
 	"searchNote": "A pesquisa lê o assunto, o remetente, os destinatários e a pré-visualização das {count} mensagens mais recentes desta pasta.",
 	"filtersLabel": "Mostrar",
 	"filterAll": "Todas",
