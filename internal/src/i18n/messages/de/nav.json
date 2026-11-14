@@ -26,6 +26,8 @@
 	"theme_light": "Hell",
 	"theme_dark": "Dunkel",
 	"themeFailed": "Das Farbschema konnte nicht gespeichert werden.",
+	"languageFailed": "Die Sprache konnte nicht gespeichert werden.",
+	"logoutFailed": "Sie sind weiterhin angemeldet: Die Abmeldung ist fehlgeschlagen. Versuchen Sie es erneut.",
 	"menuFailed": "Das Menü konnte nicht geladen werden. Versuche es erneut.",
 	"notifications": "Benachrichtigungen",
 	"dismiss": "Verwerfen"

@@ -26,6 +26,8 @@
 	"theme_light": "Light",
 	"theme_dark": "Dark",
 	"themeFailed": "The theme could not be saved.",
+	"languageFailed": "The language could not be saved.",
+	"logoutFailed": "You are still signed in: signing out did not go through. Try again.",
 	"menuFailed": "The menu could not be loaded. Try again.",
 	"notifications": "Notifications",
 	"dismiss": "Dismiss"

@@ -1,6 +1,7 @@
 "use client";
 
 import { LogOutIcon, ShieldIcon } from "lucide-react";
+import { unstable_rethrow } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useTransition } from "react";
 
@@ -13,6 +14,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { toast } from "@/components/ui/toaster";
 import { logout } from "@/features/auth/actions/logout";
 import { LanguageOptions } from "@/features/locale/components/language-options";
 import { useLocaleChoice } from "@/features/locale/hooks/use-locale-choice";
@@ -93,7 +95,17 @@ export function UserMenuPanel({
 					disabled={busy}
 					onSelect={() =>
 						startLeaving(async () => {
-							await logout();
+							try {
+								await logout();
+							} catch (error) {
+								// A sign-out that worked ends in a redirect, which
+								// arrives here as the framework's own error and goes
+								// on its way. Anything else is a request that failed:
+								// the person is still signed in, and is told so, on
+								// the page they were on.
+								unstable_rethrow(error);
+								toast.error(t("logoutFailed"));
+							}
 						})
 					}
 				>

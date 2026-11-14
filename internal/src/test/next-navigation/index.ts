@@ -15,6 +15,13 @@ export function navigationStandIn() {
 		redirect: () => {
 			throw new Error("NEXT_REDIRECT");
 		},
+		// The real one throws again an error that is the framework's own (a
+		// redirect, a not-found) and returns for any other.
+		unstable_rethrow: (error: unknown) => {
+			if (error instanceof Error && /^NEXT_/.test(error.message)) {
+				throw error;
+			}
+		},
 		notFound: () => {
 			throw new Error("NEXT_NOT_FOUND");
 		},

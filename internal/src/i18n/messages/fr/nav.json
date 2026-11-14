@@ -26,6 +26,8 @@
 	"theme_light": "Clair",
 	"theme_dark": "Sombre",
 	"themeFailed": "Le thème n’a pas pu être enregistré.",
+	"languageFailed": "La langue n’a pas pu être enregistrée.",
+	"logoutFailed": "Vous êtes toujours connecté : la déconnexion a échoué. Réessayez.",
 	"menuFailed": "Le menu n’a pas pu être chargé. Réessayez.",
 	"notifications": "Notifications",
 	"dismiss": "Fermer"
