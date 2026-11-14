@@ -37,22 +37,42 @@ describe("StatusCards", () => {
 		expect(container.querySelector("[aria-busy]")).toBeNull();
 	});
 
-	it("shows the unreachable warning when the action fails", async () => {
+	it("says the counters could not be read when the action fails, with no warning of its own", async () => {
 		stubFetchReject();
 
-		render(withQuery(<StatusCards />));
+		const { container } = render(withQuery(<StatusCards />));
 
-		expect(await screen.findByRole("alert")).toHaveTextContent(
-			"unreachable",
+		// Said once, for a screen reader; the page gives the one warning, with
+		// the link to try again.
+		expect(await screen.findByText("unavailable")).toHaveClass("sr-only");
+		expect(screen.queryByRole("alert")).toBeNull();
+		// The four cards stay where they were, each with its label and a dash,
+		// so nothing under them moves.
+		const cards = container.querySelectorAll("dl > *");
+		expect(cards).toHaveLength(4);
+		expect(Array.from(cards).map((card) => card.textContent)).toEqual([
+			"versionnone",
+			"domainsnone",
+			"accountsnone",
+			"queuenone",
+		]);
+		expect(container.querySelector("dl")).toHaveClass(
+			"grid-cols-2",
+			"@xl:grid-cols-4",
+		);
+		expect(container.querySelector("dd")).toHaveClass(
+			"text-muted-foreground",
 		);
 	});
 
-	it("shows the unreachable warning when the session has ended", async () => {
+	it("says the same when the session has ended, and shows no counter", async () => {
 		cookies.reset();
 		stubFetchJson({});
 
-		render(withQuery(<StatusCards />));
+		const { container } = render(withQuery(<StatusCards />));
 
-		expect(await screen.findByRole("alert")).toBeInTheDocument();
+		expect(await screen.findByText("unavailable")).toBeInTheDocument();
+		expect(container.querySelectorAll("dl > *")).toHaveLength(4);
+		expect(screen.getAllByText("none")).toHaveLength(4);
 	});
 });

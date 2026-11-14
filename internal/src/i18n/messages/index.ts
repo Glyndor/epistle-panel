@@ -6,6 +6,7 @@ import type { Locale } from "@/i18n/locales";
  */
 export const NAMESPACES = [
 	"dashboard",
+	"overview",
 	"nav",
 	"domains",
 	"accounts",

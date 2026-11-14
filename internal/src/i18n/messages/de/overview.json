@@ -1,0 +1,98 @@
+{
+	"unreachable": "Die Verwaltungs-API des Mailservers ist nicht erreichbar. Prüfen Sie, ob der Server läuft und das Panel konfiguriert ist.",
+	"retry": "Erneut versuchen",
+	"unavailableTitle": "Nicht geladen",
+	"unavailable": "Der Server hat für diese Karte nicht geantwortet. Versuchen Sie es über den Hinweis oben auf der Seite erneut.",
+	"viewData": "Daten anzeigen",
+	"share": "Anteil",
+	"part": "{count} {name}",
+	"period": {
+		"label": "Zeitraum der Zustellungsdiagramme",
+		"24h": "24 Stunden",
+		"7d": "7 Tage",
+		"30d": "30 Tage"
+	},
+	"inPeriod": {
+		"24h": "Letzte 24 Stunden",
+		"7d": "Letzte 7 Tage",
+		"30d": "Letzte 30 Tage"
+	},
+	"deliveries": {
+		"heading": "Zustellungen",
+		"open": "Zustellungsprotokoll",
+		"records": "{count, plural, one {Datensatz} other {Datensätze}}",
+		"disabledTitle": "Das Zustellungsprotokoll ist ausgeschaltet",
+		"disabled": "Der Server bewahrt keine Zustellungsdatensätze auf, es gibt also nichts darzustellen. Legen Sie in den Speichereinstellungen des Servers eine Aufbewahrung von mehr als 0 Tagen für das Protokoll fest.",
+		"emptyTitle": "Keine Zustellung in diesem Zeitraum",
+		"empty": "Nichts wurde gesendet, zurückgestellt oder abgelehnt. Ein längerer Zeitraum kann Datensätze enthalten.",
+		"full": "Der Server hat {limit} Datensätze geliefert, mehr gibt er nicht, also kann dieser Zeitraum weitere enthalten. Die Zahlen gelten nur für diese {limit}; im Zustellungsprotokoll lassen sie sich nach Ergebnis, Zeitraum und Empfänger eingrenzen."
+	},
+	"outcomes": {
+		"title": "Zustellungen nach Ergebnis",
+		"description": "{total, plural, one {# Zustellungsdatensatz} other {# Zustellungsdatensätze}}: {parts}.",
+		"outcome": "Ergebnis",
+		"records": "Datensätze"
+	},
+	"timeline": {
+		"title": "Zustellungen im Zeitverlauf",
+		"note": {
+			"hour": "Pro Stunde, UTC · gelesen um {time}",
+			"day": "Pro Tag, UTC · gelesen um {time}"
+		},
+		"description": "{total, plural, one {# Zustellungsdatensatz} other {# Zustellungsdatensätze}} {unit, select, hour {pro Stunde} other {pro Tag}}. Der Höchstwert, {peak}, am {when}.",
+		"hint": "{when}: {count, plural, one {# Datensatz} other {# Datensätze}}",
+		"hintParts": "{when}: {count, plural, one {# Datensatz} other {# Datensätze}} ({parts})",
+		"hintPartial": "{when}: {count, plural, one {# Datensatz} other {# Datensätze}} ({parts}), möglicherweise nur teilweise",
+		"hintMissing": "{when}: vom Server möglicherweise nicht geliefert",
+		"notReturned": "Möglicherweise nicht geliefert",
+		"full": "Der Server hat {limit} Datensätze geliefert, mehr gibt er nicht, also wurden die schattierten Spalten möglicherweise nicht oder nur teilweise geliefert. Ob es Zeiten ohne Zustellungen sind, ist nicht bekannt.",
+		"column": {
+			"hour": "Stunde (UTC)",
+			"day": "Tag (UTC)"
+		},
+		"total": "Gesamt",
+		"state": {
+			"partial": "möglicherweise teilweise",
+			"missing": "möglicherweise nicht geliefert"
+		}
+	},
+	"now": {
+		"heading": "Warteschlange und Sperrliste"
+	},
+	"queue": {
+		"title": "Warteschlange nach Wartezeit",
+		"open": "Warteschlange",
+		"waiting": "{count, plural, one {wartende Nachricht} other {wartende Nachrichten}}",
+		"read": "{count, plural, one {gelesene Nachricht} other {gelesene Nachrichten}}",
+		"recipients": "{count, plural, one {# ausstehender Empfänger} other {# ausstehende Empfänger}}",
+		"recipientsRead": "{count, plural, one {# ausstehender Empfänger} other {# ausstehende Empfänger}} in den gelesenen Nachrichten",
+		"description": "{count, plural, one {# Nachricht wartet} other {# Nachrichten warten}} in der Warteschlange: {parts}.",
+		"descriptionRead": "{count, plural, one {Die älteste Nachricht} other {Die # ältesten Nachrichten}} einer Warteschlange, die weitere enthält: {parts}.",
+		"capped": "Dies sind die {count} ältesten Nachrichten. Die Warteschlange enthält weitere, alle neuer.",
+		"emptyTitle": "Die Warteschlange ist leer",
+		"empty": "Keine Nachricht wartet auf den Versand.",
+		"age": "Wartezeit",
+		"messages": "Nachrichten",
+		"ages": {
+			"under1h": "Unter 1 Stunde",
+			"under6h": "1 bis 6 Stunden",
+			"under24h": "6 bis 24 Stunden",
+			"over24h": "Ein Tag oder mehr",
+			"unknown": "Unbekannt"
+		}
+	},
+	"suppression": {
+		"title": "Gesperrte Adressen nach Domain",
+		"open": "Sperrliste",
+		"addresses": "{count, plural, one {gesperrte Adresse} other {gesperrte Adressen}}",
+		"read": "{count, plural, one {gelesene Adresse} other {gelesene Adressen}}",
+		"description": "{count, plural, one {# gesperrte Adresse} other {# gesperrte Adressen}} nach Domain: {parts}.",
+		"descriptionRead": "{count, plural, one {Die erste gesperrte Adresse} other {Die ersten # gesperrten Adressen}} in alphabetischer Reihenfolge, aus einer Liste, die weitere enthält, nach Domain: {parts}.",
+		"capped": "Dies sind die ersten {count} Adressen in alphabetischer Reihenfolge. Die Liste enthält weitere, also gilt diese Rangfolge der Domains nur für diese {count}.",
+		"emptyTitle": "Keine Adresse ist gesperrt",
+		"empty": "Der Server lehnt keinen Empfänger ab. Eine endgültige Unzustellbarkeit fügt hier einen hinzu.",
+		"domain": "Domain",
+		"count": "Adressen",
+		"other": "Andere Domains"
+	}
+}

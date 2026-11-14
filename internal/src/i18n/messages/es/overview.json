@@ -1,0 +1,98 @@
+{
+	"unreachable": "No se puede contactar con la API de gestión del servidor de correo. Comprueba que el servidor está en marcha y que el panel está configurado.",
+	"retry": "Reintentar",
+	"unavailableTitle": "Sin cargar",
+	"unavailable": "El servidor no respondió para esta tarjeta. Reintenta desde el aviso al inicio de la página.",
+	"viewData": "Ver datos",
+	"share": "Parte",
+	"part": "{count} {name}",
+	"period": {
+		"label": "Periodo de los gráficos de entregas",
+		"24h": "24 horas",
+		"7d": "7 días",
+		"30d": "30 días"
+	},
+	"inPeriod": {
+		"24h": "Últimas 24 horas",
+		"7d": "Últimos 7 días",
+		"30d": "Últimos 30 días"
+	},
+	"deliveries": {
+		"heading": "Entregas",
+		"open": "Registro de entregas",
+		"records": "{count, plural, one {registro} other {registros}}",
+		"disabledTitle": "El registro de entregas está desactivado",
+		"disabled": "El servidor no guarda registros de entrega, así que no hay nada que dibujar. Pon una retención de más de 0 días para el registro en los ajustes de almacenamiento del servidor.",
+		"emptyTitle": "Ninguna entrega en este periodo",
+		"empty": "No se envió, aplazó ni rechazó nada. Un periodo más largo puede tener registros.",
+		"full": "El servidor devolvió {limit} registros, el máximo que da, así que este periodo puede tener más. Estas cifras son solo de esos {limit}; el registro de entregas permite acotarlos por resultado, periodo y destinatario."
+	},
+	"outcomes": {
+		"title": "Entregas por resultado",
+		"description": "{total, plural, one {# registro de entrega} other {# registros de entrega}}: {parts}.",
+		"outcome": "Resultado",
+		"records": "Registros"
+	},
+	"timeline": {
+		"title": "Entregas en el tiempo",
+		"note": {
+			"hour": "Por hora, UTC · leído a las {time}",
+			"day": "Por día, UTC · leído a las {time}"
+		},
+		"description": "{total, plural, one {# registro de entrega} other {# registros de entrega}} {unit, select, hour {por hora} other {por día}}. El máximo, {peak}, el {when}.",
+		"hint": "{when}: {count, plural, one {# registro} other {# registros}}",
+		"hintParts": "{when}: {count, plural, one {# registro} other {# registros}} ({parts})",
+		"hintPartial": "{when}: {count, plural, one {# registro} other {# registros}} ({parts}), quizá en parte",
+		"hintMissing": "{when}: puede que el servidor no lo haya devuelto",
+		"notReturned": "Puede no haberse devuelto",
+		"full": "El servidor devolvió {limit} registros, el máximo que da, así que las columnas sombreadas pueden no haberse devuelto, o solo en parte. No consta que sean momentos sin entregas.",
+		"column": {
+			"hour": "Hora (UTC)",
+			"day": "Día (UTC)"
+		},
+		"total": "Total",
+		"state": {
+			"partial": "quizá en parte",
+			"missing": "puede no haberse devuelto"
+		}
+	},
+	"now": {
+		"heading": "Cola y supresión"
+	},
+	"queue": {
+		"title": "Cola por tiempo de espera",
+		"open": "Cola",
+		"waiting": "{count, plural, one {mensaje en espera} other {mensajes en espera}}",
+		"read": "{count, plural, one {mensaje leído} other {mensajes leídos}}",
+		"recipients": "{count, plural, one {# destinatario pendiente} other {# destinatarios pendientes}}",
+		"recipientsRead": "{count, plural, one {# destinatario pendiente} other {# destinatarios pendientes}} en los mensajes leídos",
+		"description": "{count, plural, one {# mensaje espera} other {# mensajes esperan}} en la cola: {parts}.",
+		"descriptionRead": "{count, plural, one {El mensaje más antiguo} other {Los # mensajes más antiguos}} de una cola que tiene más: {parts}.",
+		"capped": "Estos son los {count} mensajes más antiguos. La cola tiene más, todos más recientes.",
+		"emptyTitle": "La cola está vacía",
+		"empty": "Ningún mensaje espera para enviarse.",
+		"age": "Tiempo de espera",
+		"messages": "Mensajes",
+		"ages": {
+			"under1h": "Menos de 1 hora",
+			"under6h": "De 1 a 6 horas",
+			"under24h": "De 6 a 24 horas",
+			"over24h": "Un día o más",
+			"unknown": "Desconocido"
+		}
+	},
+	"suppression": {
+		"title": "Direcciones suprimidas por dominio",
+		"open": "Lista de supresión",
+		"addresses": "{count, plural, one {dirección suprimida} other {direcciones suprimidas}}",
+		"read": "{count, plural, one {dirección leída} other {direcciones leídas}}",
+		"description": "{count, plural, one {# dirección suprimida} other {# direcciones suprimidas}} por dominio: {parts}.",
+		"descriptionRead": "{count, plural, one {La primera dirección suprimida} other {Las primeras # direcciones suprimidas}} por orden alfabético, de una lista que tiene más, por dominio: {parts}.",
+		"capped": "Estas son las primeras {count} direcciones por orden alfabético. La lista tiene más, así que esta clasificación de dominios es solo de esas {count}.",
+		"emptyTitle": "Ninguna dirección suprimida",
+		"empty": "El servidor no rechaza a ningún destinatario. Un rebote definitivo añade uno aquí.",
+		"domain": "Dominio",
+		"count": "Direcciones",
+		"other": "Otros dominios"
+	}
+}

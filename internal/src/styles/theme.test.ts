@@ -56,6 +56,34 @@ describe("theme.css", () => {
 		expect([...chosen.entries()]).toEqual([...preferredDark.entries()]);
 	});
 
+	it("gives the five chart colours a light value and one dark value, whichever way dark is reached", () => {
+		// A chart colour missing from the chosen dark list would draw the light
+		// palette on a dark card for whoever picked the dark theme by hand.
+		const dark = ["#3987e5", "#c98500", "#d5414b", "#995ba6", "#34a08e"];
+		const lightValues = [
+			"#2a78d6",
+			"#bb731b",
+			"#a51d2b",
+			"#732a9d",
+			"#0e8f7a",
+		];
+		for (const [index, value] of dark.entries()) {
+			const name = `--chart-${index + 1}`;
+			expect(light.get(name)).toBe(lightValues[index] ?? "");
+			expect(preferredDark.get(name)).toBe(value);
+			expect(chosenDark.get(name)).toBe(value);
+		}
+	});
+
+	it("gives the band of missing data a light value and one dark value, whichever way dark is reached", () => {
+		// The band is a mark the reader must see, 3:1 against the card: a dark
+		// list without it would draw the light grey on a dark card, or none.
+		expect(light.get("--chart-missing")).toBe("#85858d");
+		expect(preferredDark.get("--chart-missing")).toBe("#6e6e76");
+		expect(chosenDark.get("--chart-missing")).toBe("#6e6e76");
+		expect(css).toContain("--color-chart-missing: var(--chart-missing);");
+	});
+
 	it("gives every dark value a light one to replace", () => {
 		for (const name of preferredDark.keys()) {
 			expect(light.has(name)).toBe(true);

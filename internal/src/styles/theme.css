@@ -76,6 +76,24 @@
 	--sidebar-accent: oklch(0.875 0.008 286.3);
 	--sidebar-accent-foreground: oklch(0.21 0.006 285.885);
 	--sidebar-ring: oklch(0.552 0.016 285.938);
+	/* The series colours of a chart, in a fixed order that is never cycled: a
+	   chart with more than five series folds the rest into one. Each is 3:1
+	   or more against `--surface`, `--surface-sunken` and `--muted`. Any two
+	   may end up side by side, since a series of nothing is left out, so
+	   every pair of the five stays apart with a colour vision deficiency,
+	   not only the neighbours. A label and a number always sit beside a
+	   series; the colour never carries it alone. Measured values are in
+	   docs/maintainers/charts.md.
+
+	   `--chart-missing` is the band of a column whose data the server did not
+	   return. It is a mark of its own, not a surface: 3:1 or more against
+	   `--surface` and `--surface-sunken`. */
+	--chart-1: #2a78d6;
+	--chart-2: #bb731b;
+	--chart-3: #a51d2b;
+	--chart-4: #732a9d;
+	--chart-5: #0e8f7a;
+	--chart-missing: #85858d;
 }
 
 /* The dark values are written twice, once for each way of getting them: the
@@ -123,6 +141,12 @@
 		--sidebar-accent: oklch(0.29 0.007 286);
 		--sidebar-accent-foreground: oklch(0.967 0.001 286.375);
 		--sidebar-ring: oklch(0.72 0.015 286.067);
+		--chart-1: #3987e5;
+		--chart-2: #c98500;
+		--chart-3: #d5414b;
+		--chart-4: #995ba6;
+		--chart-5: #34a08e;
+		--chart-missing: #6e6e76;
 	}
 }
 
@@ -158,6 +182,12 @@
 	--sidebar-accent: oklch(0.29 0.007 286);
 	--sidebar-accent-foreground: oklch(0.967 0.001 286.375);
 	--sidebar-ring: oklch(0.72 0.015 286.067);
+	--chart-1: #3987e5;
+	--chart-2: #c98500;
+	--chart-3: #d5414b;
+	--chart-4: #995ba6;
+	--chart-5: #34a08e;
+	--chart-missing: #6e6e76;
 }
 
 /* Fonts and the spacing unit. System stacks only: the CSP is
@@ -207,6 +237,12 @@
 	--color-ring: var(--ring);
 	/* A third of the radius, for a 16px box that must still read as square. */
 	--radius-xs: calc(var(--radius) / 3);
+	--color-chart-1: var(--chart-1);
+	--color-chart-2: var(--chart-2);
+	--color-chart-3: var(--chart-3);
+	--color-chart-4: var(--chart-4);
+	--color-chart-5: var(--chart-5);
+	--color-chart-missing: var(--chart-missing);
 	--radius-sm: calc(var(--radius) - 4px);
 	--radius-md: calc(var(--radius) - 2px);
 	--radius-lg: var(--radius);

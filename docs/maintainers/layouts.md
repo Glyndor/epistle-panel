@@ -199,6 +199,12 @@ event handler or a browser API, never on a page or a layout. A table's rows, a
 section's text and a skeleton stay server components; the button, the form and
 the menu inside them are the client leaves.
 
+The status page sends more than a heading in that first part: the headings and
+period links of its charts need no data, and each chart card streams in behind
+a skeleton of its own shape, written with the title, the legend and the button
+words the card will have (`charts.md`). Those cards are Server Components that read the
+API themselves, with no client component under them but the "View data" button.
+
 The account page is the one exception to "paint first": it reads the accounts
 list before it sends anything, so an account that does not exist is a 404 and
 costs no per-account call.

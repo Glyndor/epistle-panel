@@ -1,0 +1,98 @@
+{
+	"unreachable": "The mail server's management API is unreachable. Check that the server is running and the panel is configured.",
+	"retry": "Retry",
+	"unavailableTitle": "Not loaded",
+	"unavailable": "The server did not answer for this card. Retry from the notice at the top of the page.",
+	"viewData": "View data",
+	"share": "Share",
+	"part": "{count} {name}",
+	"period": {
+		"label": "Period of the delivery charts",
+		"24h": "24 hours",
+		"7d": "7 days",
+		"30d": "30 days"
+	},
+	"inPeriod": {
+		"24h": "Last 24 hours",
+		"7d": "Last 7 days",
+		"30d": "Last 30 days"
+	},
+	"deliveries": {
+		"heading": "Deliveries",
+		"open": "Delivery log",
+		"records": "{count, plural, one {record} other {records}}",
+		"disabledTitle": "The delivery log is off",
+		"disabled": "The server keeps no delivery records, so there is nothing to chart. Set a retention above 0 days for the log in the server's storage settings.",
+		"emptyTitle": "No delivery in this period",
+		"empty": "Nothing was sent, deferred or refused. A longer period may have records.",
+		"full": "The server returned {limit} records, the most it gives, so this period may hold more. These figures are of those {limit} only; the delivery log can narrow them by outcome, period and recipient."
+	},
+	"outcomes": {
+		"title": "Deliveries by outcome",
+		"description": "{total, plural, one {# delivery record} other {# delivery records}}: {parts}.",
+		"outcome": "Outcome",
+		"records": "Records"
+	},
+	"timeline": {
+		"title": "Deliveries over time",
+		"note": {
+			"hour": "Per hour, UTC · read at {time}",
+			"day": "Per day, UTC · read at {time}"
+		},
+		"description": "{total, plural, one {# delivery record} other {# delivery records}} {unit, select, hour {per hour} other {per day}}. The most, {peak}, on {when}.",
+		"hint": "{when}: {count, plural, one {# record} other {# records}}",
+		"hintParts": "{when}: {count, plural, one {# record} other {# records}} ({parts})",
+		"hintPartial": "{when}: {count, plural, one {# record} other {# records}} ({parts}), possibly in part",
+		"hintMissing": "{when}: may not have been returned by the server",
+		"notReturned": "May not have been returned",
+		"full": "The server returned {limit} records, the most it gives, so the shaded columns may not have been returned, or only in part. They are not known to be times without deliveries.",
+		"column": {
+			"hour": "Hour (UTC)",
+			"day": "Day (UTC)"
+		},
+		"total": "Total",
+		"state": {
+			"partial": "possibly in part",
+			"missing": "may not have been returned"
+		}
+	},
+	"now": {
+		"heading": "Queue and suppression"
+	},
+	"queue": {
+		"title": "Queue by waiting time",
+		"open": "Queue",
+		"waiting": "{count, plural, one {message waiting} other {messages waiting}}",
+		"read": "{count, plural, one {message read} other {messages read}}",
+		"recipients": "{count, plural, one {# recipient pending} other {# recipients pending}}",
+		"recipientsRead": "{count, plural, one {# recipient pending} other {# recipients pending}} in the messages read",
+		"description": "{count, plural, one {# message waits} other {# messages wait}} in the queue: {parts}.",
+		"descriptionRead": "{count, plural, one {The oldest message} other {The # oldest messages}} of a queue that holds more: {parts}.",
+		"capped": "These are the {count} oldest messages. The queue holds more, all of them newer.",
+		"emptyTitle": "The queue is empty",
+		"empty": "No message is waiting to be sent.",
+		"age": "Waiting time",
+		"messages": "Messages",
+		"ages": {
+			"under1h": "Under 1 hour",
+			"under6h": "1 to 6 hours",
+			"under24h": "6 to 24 hours",
+			"over24h": "A day or more",
+			"unknown": "Unknown"
+		}
+	},
+	"suppression": {
+		"title": "Suppressed addresses by domain",
+		"open": "Suppression list",
+		"addresses": "{count, plural, one {address suppressed} other {addresses suppressed}}",
+		"read": "{count, plural, one {address read} other {addresses read}}",
+		"description": "{count, plural, one {# suppressed address} other {# suppressed addresses}} by domain: {parts}.",
+		"descriptionRead": "{count, plural, one {The first suppressed address} other {The first # suppressed addresses}} in alphabetical order, of a list that holds more, by domain: {parts}.",
+		"capped": "These are the first {count} addresses in alphabetical order. The list holds more, so this ranking of domains is of these {count} only.",
+		"emptyTitle": "No address is suppressed",
+		"empty": "The server refuses no recipient. A hard bounce adds one here.",
+		"domain": "Domain",
+		"count": "Addresses",
+		"other": "Other domains"
+	}
+}
