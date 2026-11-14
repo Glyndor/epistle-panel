@@ -1,14 +1,15 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { cleanup, render, screen } from "@testing-library/react";
 
+import { EMPTY_CONDITIONS } from "@/features/mail/schemas/list-conditions-model";
+
 import { ListPager } from ".";
 
 afterEach(cleanup);
 const view = {
 	box: "Work/Q4",
 	role: null,
-	filter: "unread",
-	q: "x",
+	conditions: { ...EMPTY_CONDITIONS, unread: true, q: "x" },
 } as const;
 
 describe("ListPager", () => {
@@ -17,7 +18,7 @@ describe("ListPager", () => {
 		expect(screen.queryByRole("link", { name: /newer/ })).toBeNull();
 		expect(screen.getByRole("link", { name: /older/ })).toHaveAttribute(
 			"href",
-			"/app/mail/folder/Work_2FQ4?page=2&filter=unread&q=x",
+			"/app/mail/folder/Work_2FQ4?page=2&q=x&unread=1",
 		);
 	});
 
@@ -25,7 +26,7 @@ describe("ListPager", () => {
 		render(<ListPager view={view} page={3} hasNext={false} total={120} />);
 		expect(screen.getByRole("link", { name: /newer/ })).toHaveAttribute(
 			"href",
-			"/app/mail/folder/Work_2FQ4?page=2&filter=unread&q=x",
+			"/app/mail/folder/Work_2FQ4?page=2&q=x&unread=1",
 		);
 		expect(screen.queryByRole("link", { name: /older/ })).toBeNull();
 		expect(
@@ -37,7 +38,7 @@ describe("ListPager", () => {
 		render(<ListPager view={view} page={2} hasNext total={120} />);
 		expect(screen.getByRole("link", { name: /newer/ })).toHaveAttribute(
 			"href",
-			"/app/mail/folder/Work_2FQ4?filter=unread&q=x",
+			"/app/mail/folder/Work_2FQ4?q=x&unread=1",
 		);
 	});
 });

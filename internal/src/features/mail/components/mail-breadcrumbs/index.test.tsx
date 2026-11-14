@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { cleanup, render, screen, within } from "@testing-library/react";
+import { EMPTY_CONDITIONS } from "@/features/mail/schemas/list-conditions-model";
 import { stepText } from "@/test/trail-steps";
 import { MailBreadcrumbs } from ".";
 
@@ -122,14 +123,21 @@ describe("MailBreadcrumbs", () => {
 		render(
 			<MailBreadcrumbs
 				place={inbox}
-				list={{ page: 3, filter: "unread", q: "invoice" }}
+				list={{
+					page: 3,
+					conditions: {
+						...EMPTY_CONDITIONS,
+						unread: true,
+						q: "invoice",
+					},
+				}}
 				subject="Hi"
 			/>,
 		);
 
 		expect(links()).toEqual([
 			"/app/mail",
-			"/app/mail/inbox?page=3&filter=unread&q=invoice",
+			"/app/mail/inbox?page=3&q=invoice&unread=1",
 		]);
 	});
 

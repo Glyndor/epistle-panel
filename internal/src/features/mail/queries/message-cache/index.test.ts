@@ -2,8 +2,14 @@ import { describe, expect, it } from "bun:test";
 
 import { QueryClient } from "@tanstack/react-query";
 
+import { EMPTY_CONDITIONS } from "@/features/mail/schemas/list-conditions-model";
+
 import { mailKeys } from "../mail-query-keys";
 import { isGone, isKeywordOp, markGone, patchFlags, waitingMessages } from ".";
+
+/** The conditions of the lists that are seeded: none, and the unread ones. */
+const ALL = EMPTY_CONDITIONS;
+const UNREAD = { ...EMPTY_CONDITIONS, unread: true };
 
 const summary = (id: string, unread: boolean, flagged = false) => ({
 	id,
@@ -40,7 +46,7 @@ const box = (id: string, unread: number) =>
 function seeded() {
 	const client = new QueryClient();
 	client.setQueryData(mailKeys.message("a"), detail("a", true));
-	client.setQueryData(mailKeys.list("INBOX", 1, "all", ""), {
+	client.setQueryData(mailKeys.list("INBOX", 1, ALL), {
 		items: [summary("a", true), summary("b", true)],
 		page: 1,
 		total: 2,
@@ -48,7 +54,7 @@ function seeded() {
 		partial: false,
 		today: "2026-11-13",
 	});
-	client.setQueryData(mailKeys.list("INBOX", 1, "unread", ""), {
+	client.setQueryData(mailKeys.list("INBOX", 1, UNREAD), {
 		items: [summary("a", true)],
 		page: 1,
 		total: 1,
@@ -98,15 +104,15 @@ describe("patchFlags", () => {
 			(client.getQueryData(mailKeys.message("a")) as { unread: boolean })
 				.unread,
 		).toBe(false);
-		expect(
-			rows(client, mailKeys.list("INBOX", 1, "all", ""))[0]?.unread,
-		).toBe(false);
-		expect(
-			rows(client, mailKeys.list("INBOX", 1, "all", ""))[1]?.unread,
-		).toBe(true);
-		expect(
-			rows(client, mailKeys.list("INBOX", 1, "unread", ""))[0]?.unread,
-		).toBe(false);
+		expect(rows(client, mailKeys.list("INBOX", 1, ALL))[0]?.unread).toBe(
+			false,
+		);
+		expect(rows(client, mailKeys.list("INBOX", 1, ALL))[1]?.unread).toBe(
+			true,
+		);
+		expect(rows(client, mailKeys.list("INBOX", 1, UNREAD))[0]?.unread).toBe(
+			false,
+		);
 		expect(
 			(
 				client.getQueryData(mailKeys.mailboxes) as Array<{
@@ -124,9 +130,9 @@ describe("patchFlags", () => {
 			(client.getQueryData(mailKeys.message("a")) as { unread: boolean })
 				.unread,
 		).toBe(true);
-		expect(
-			rows(client, mailKeys.list("INBOX", 1, "all", ""))[0]?.unread,
-		).toBe(true);
+		expect(rows(client, mailKeys.list("INBOX", 1, ALL))[0]?.unread).toBe(
+			true,
+		);
 		expect(
 			(
 				client.getQueryData(mailKeys.mailboxes) as Array<{
@@ -139,13 +145,13 @@ describe("patchFlags", () => {
 	it("stars, unstars and marks unread, counting the folder only when the read state changes", () => {
 		const client = seeded();
 		patchFlags(client, "a", "star", "INBOX");
-		expect(
-			rows(client, mailKeys.list("INBOX", 1, "all", ""))[0]?.flagged,
-		).toBe(true);
+		expect(rows(client, mailKeys.list("INBOX", 1, ALL))[0]?.flagged).toBe(
+			true,
+		);
 		patchFlags(client, "a", "unstar", "INBOX");
-		expect(
-			rows(client, mailKeys.list("INBOX", 1, "all", ""))[0]?.flagged,
-		).toBe(false);
+		expect(rows(client, mailKeys.list("INBOX", 1, ALL))[0]?.flagged).toBe(
+			false,
+		);
 		expect(
 			(
 				client.getQueryData(mailKeys.mailboxes) as Array<{
@@ -170,7 +176,7 @@ describe("patchFlags", () => {
 
 	it("marks important and back in the message and its rows, leaving the other flags and the counter", () => {
 		const client = seeded();
-		const all = mailKeys.list("INBOX", 1, "all", "");
+		const all = mailKeys.list("INBOX", 1, ALL);
 		const state = () => ({
 			message: client.getQueryData(mailKeys.message("a")),
 			row: rows(client, all)[0],
@@ -213,9 +219,10 @@ describe("patchFlags", () => {
 		undoStar.refuse();
 
 		expect(flags()).toMatchObject({ flagged: false, important: true });
-		expect(
-			rows(client, mailKeys.list("INBOX", 1, "all", ""))[0],
-		).toMatchObject({ flagged: false, important: true });
+		expect(rows(client, mailKeys.list("INBOX", 1, ALL))[0]).toMatchObject({
+			flagged: false,
+			important: true,
+		});
 
 		undoImportant.refuse();
 		expect(flags()).toMatchObject({ flagged: false, important: false });
@@ -234,9 +241,9 @@ describe("patchFlags", () => {
 
 		// Taking the second back must not take the star the first one set.
 		expect(flagged()).toBe(true);
-		expect(
-			rows(client, mailKeys.list("INBOX", 1, "all", ""))[0]?.flagged,
-		).toBe(true);
+		expect(rows(client, mailKeys.list("INBOX", 1, ALL))[0]?.flagged).toBe(
+			true,
+		);
 	});
 
 	it("ends at what the server holds when a star and its removal are both refused", () => {
@@ -244,7 +251,7 @@ describe("patchFlags", () => {
 		const flagged = () => [
 			(client.getQueryData(mailKeys.message("a")) as { flagged: boolean })
 				.flagged,
-			rows(client, mailKeys.list("INBOX", 1, "all", ""))[0]?.flagged,
+			rows(client, mailKeys.list("INBOX", 1, ALL))[0]?.flagged,
 		];
 		const star = patchFlags(client, "a", "star", "INBOX");
 		const unstar = patchFlags(client, "a", "unstar", "INBOX");
@@ -454,9 +461,9 @@ describe("patchFlags", () => {
 			)[0]?.unread,
 		).toBe(0);
 		patchFlags(client, "a", "archive", "INBOX");
-		expect(
-			rows(client, mailKeys.list("INBOX", 1, "all", ""))[0]?.flagged,
-		).toBe(false);
+		expect(rows(client, mailKeys.list("INBOX", 1, ALL))[0]?.flagged).toBe(
+			false,
+		);
 	});
 
 	it("copes with nothing cached", () => {
@@ -468,14 +475,14 @@ describe("patchFlags", () => {
 
 	it("reads the row's state when only the list is cached", () => {
 		const client = new QueryClient();
-		client.setQueryData(mailKeys.list("INBOX", 1, "all", ""), {
+		client.setQueryData(mailKeys.list("INBOX", 1, ALL), {
 			items: [summary("a", true)],
 			page: 1,
 			total: 1,
 			hasNext: false,
 			partial: false,
 		});
-		client.setQueryData(mailKeys.list("INBOX", 2, "all", ""), undefined);
+		client.setQueryData(mailKeys.list("INBOX", 2, ALL), undefined);
 		client.setQueryData(mailKeys.mailboxes, [box("INBOX", 1)]);
 		patchFlags(client, "a", "read", "INBOX");
 		expect(

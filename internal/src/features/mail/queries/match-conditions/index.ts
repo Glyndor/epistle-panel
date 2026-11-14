@@ -94,6 +94,14 @@ function matchesDays(
 }
 
 /**
+ * Whether a message was not read: the server marks a message read with
+ * `$seen`, and a message that carries no keyword at all was not read either.
+ */
+function isUnread(email: EmailRecord): boolean {
+	return email.keywords?.["$seen"] !== true;
+}
+
+/**
  * Whether a message is kept by every condition of a list. The order is not a
  * condition and is read by {@link compareBy}. A condition at its default keeps
  * every message.
@@ -110,7 +118,11 @@ export function matchesConditions(
 			holds(email.subject, fold(conditions.subject))) &&
 		matchesDays(email, conditions.after, conditions.before) &&
 		(conditions.label === null ||
-			hasKeyword(email.keywords, conditions.label))
+			hasKeyword(email.keywords, conditions.label)) &&
+		(!conditions.unread || isUnread(email)) &&
+		(!conditions.starred || hasKeyword(email.keywords, "$flagged")) &&
+		(!conditions.important || hasKeyword(email.keywords, "$important")) &&
+		(!conditions.attachment || email.hasAttachment === true)
 	);
 }
 

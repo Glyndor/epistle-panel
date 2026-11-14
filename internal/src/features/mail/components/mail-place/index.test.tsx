@@ -141,7 +141,7 @@ describe("MailPlace", () => {
 		// of the list stay on the role's path.
 		expect(
 			screen.getByRole("link", { name: "filterUnread" }),
-		).toHaveAttribute("href", "/app/mail/sent?filter=unread");
+		).toHaveAttribute("href", "/app/mail/sent?unread=1");
 	});
 
 	it("says so, and asks for no messages, when the account has no folder of the role", async () => {
@@ -195,7 +195,7 @@ describe("MailPlace", () => {
 		// the words the address held.
 		expect(
 			screen.getByRole("link", { name: "filterUnread" }),
-		).toHaveAttribute("href", "/app/mail/folder/Sent?filter=unread&q=x");
+		).toHaveAttribute("href", "/app/mail/folder/Sent?q=x&unread=1");
 	});
 
 	it("opens the reader for a message in the address", async () => {

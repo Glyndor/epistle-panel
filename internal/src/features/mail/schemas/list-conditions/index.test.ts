@@ -51,8 +51,24 @@ describe("parseListConditions: nothing given", () => {
 	});
 
 	it("ignores parameters that are no condition", () => {
-		const parsed = parseListConditions({ page: "3", filter: "unread" });
+		const parsed = parseListConditions({ page: "3", msg: "x" });
 		expect(parsed).toEqual({ conditions: EMPTY_CONDITIONS, rejected: [] });
+	});
+
+	it("reads the filter of the address from before as the quick filter it named", () => {
+		expect(
+			parseListConditions({ filter: "unread" }).conditions.unread,
+		).toBe(true);
+		expect(
+			parseListConditions({ filter: "flagged" }).conditions.starred,
+		).toBe(true);
+		expect(
+			parseListConditions({ filter: "attachments" }).conditions
+				.attachment,
+		).toBe(true);
+		expect(parseListConditions({ filter: "all" }).conditions).toEqual(
+			EMPTY_CONDITIONS,
+		);
 	});
 });
 
@@ -260,6 +276,11 @@ describe("listConditionsSchema", () => {
 		after: "2026-11-01",
 		before: "2026-11-10",
 		label: "Work",
+		folder: "Work/Q4",
+		unread: true,
+		starred: true,
+		important: true,
+		attachment: true,
 		order: "largest",
 	};
 

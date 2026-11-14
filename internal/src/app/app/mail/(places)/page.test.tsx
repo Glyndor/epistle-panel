@@ -103,7 +103,7 @@ describe("/app/mail", () => {
 		// keep what narrows it.
 		expect(
 			screen.getByRole("link", { name: "filterUnread" }),
-		).toHaveAttribute("href", "/app/mail/inbox?filter=unread&q=x");
+		).toHaveAttribute("href", "/app/mail/inbox?q=x&unread=1");
 	});
 
 	it("reads no folder and no message from the query: the proxy sends such an address on before it gets here", async () => {

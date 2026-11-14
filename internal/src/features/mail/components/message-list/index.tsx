@@ -13,6 +13,7 @@ import { useKeptFocus } from "@/features/mail/components/message-list/use-kept-f
 import { useMailShortcuts } from "@/features/mail/components/message-list/use-mail-shortcuts";
 import type { ListAddress } from "@/features/mail/links/mail-href";
 import { messageListQueryOptions } from "@/features/mail/queries/mail-query-options";
+import { hasConditions } from "@/features/mail/schemas/list-conditions-model";
 import { unwrap } from "@/lib/query/action-result";
 
 const fetchList = async (input: Parameters<typeof getMessageListAction>[0]) =>
@@ -43,8 +44,7 @@ export function MessageList({
 				{
 					box: view.box,
 					page: view.page,
-					filter: view.filter,
-					q: view.q,
+					conditions: view.conditions,
 				},
 				fetchList,
 			),
@@ -57,7 +57,7 @@ export function MessageList({
 	const focus = useKeptFocus(
 		ids,
 		data !== undefined && !isPlaceholderData && !isError,
-		[view.box, view.page, view.filter, view.q].join("\n"),
+		[view.box, view.page, JSON.stringify(view.conditions)].join("\n"),
 	);
 	// The list's own heading, for assistive technology: the pane is named for
 	// the eye by the folder it shows. The date headings are one level under it.
@@ -92,7 +92,7 @@ export function MessageList({
 		);
 	}
 	if (data.items.length === 0) {
-		const filtered = view.q !== "" || view.filter !== "all";
+		const filtered = hasConditions(view.conditions);
 		// The notice takes the focus when the last row leaves under it: it is
 		// in view and draws the ring, which a heading for assistive technology
 		// alone would not.

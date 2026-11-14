@@ -1,7 +1,15 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { cleanup, render, screen } from "@testing-library/react";
 
+import { EMPTY_CONDITIONS } from "@/features/mail/schemas/list-conditions-model";
+
 import { ListToolbar } from ".";
+
+/** The conditions the toolbar draws: nothing narrowed. */
+const CONDITIONS = EMPTY_CONDITIONS;
+
+/** The conditions of a search: the words, and the starred ones. */
+const SEARCH = { ...EMPTY_CONDITIONS, q: "invoice", starred: true };
 
 afterEach(cleanup);
 
@@ -11,8 +19,7 @@ describe("ListToolbar", () => {
 			<ListToolbar
 				box="Work/Q4"
 				folderRole={null}
-				filter="unread"
-				q=""
+				conditions={CONDITIONS}
 				density="comfortable"
 			/>,
 		);
@@ -26,8 +33,7 @@ describe("ListToolbar", () => {
 			<ListToolbar
 				box="INBOX"
 				folderRole="inbox"
-				filter="all"
-				q=""
+				conditions={CONDITIONS}
 				density="comfortable"
 			/>,
 		);
@@ -41,8 +47,7 @@ describe("ListToolbar", () => {
 			<ListToolbar
 				box="INBOX"
 				folderRole="inbox"
-				filter="flagged"
-				q="invoice"
+				conditions={SEARCH}
 				density="comfortable"
 			/>,
 		);
@@ -50,7 +55,7 @@ describe("ListToolbar", () => {
 		expect(screen.getByText("searchNote")).toBeInTheDocument();
 		expect(
 			screen.getByRole("link", { name: "searchClear" }),
-		).toHaveAttribute("href", "/app/mail/inbox?filter=flagged");
+		).toHaveAttribute("href", "/app/mail/inbox?starred=1");
 	});
 
 	it("lists the filters as links that keep the search and mark the current one", () => {
@@ -58,8 +63,7 @@ describe("ListToolbar", () => {
 			<ListToolbar
 				box="INBOX"
 				folderRole="inbox"
-				filter="unread"
-				q="a b"
+				conditions={{ ...EMPTY_CONDITIONS, q: "a b", unread: true }}
 				density="comfortable"
 			/>,
 		);
@@ -72,7 +76,7 @@ describe("ListToolbar", () => {
 			"filterAttachments",
 		]);
 		expect(links[2]?.getAttribute("href")).toBe(
-			"/app/mail/inbox?filter=flagged&q=a+b",
+			"/app/mail/inbox?q=a+b&starred=1",
 		);
 		expect(
 			links.filter((l) => l.getAttribute("aria-current") === "true"),
@@ -85,8 +89,7 @@ describe("ListToolbar", () => {
 			<ListToolbar
 				box="INBOX"
 				folderRole="inbox"
-				filter="all"
-				q=""
+				conditions={CONDITIONS}
 				density="comfortable"
 			/>,
 		);
@@ -109,8 +112,7 @@ describe("ListToolbar", () => {
 			<ListToolbar
 				box="INBOX"
 				folderRole="inbox"
-				filter="all"
-				q=""
+				conditions={CONDITIONS}
 				density="comfortable"
 			/>,
 		);
@@ -132,8 +134,7 @@ describe("ListToolbar", () => {
 			<ListToolbar
 				box="INBOX"
 				folderRole="inbox"
-				filter="unread"
-				q=""
+				conditions={{ ...EMPTY_CONDITIONS, unread: true }}
 				density="comfortable"
 			/>,
 		);
@@ -167,8 +168,7 @@ describe("ListToolbar", () => {
 				<ListToolbar
 					box="INBOX"
 					folderRole="inbox"
-					filter="all"
-					q=""
+					conditions={CONDITIONS}
 					density={density}
 				/>,
 			);

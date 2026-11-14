@@ -7,6 +7,7 @@ import {
 	waitFor,
 } from "@testing-library/react";
 import { forgetListMemory } from "@/features/mail/components/message-list/list-memory";
+import { EMPTY_CONDITIONS } from "@/features/mail/schemas/list-conditions-model";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
 import { clearSecretCache } from "@/lib/config/secret";
 import { settled, withQuery } from "@/test/query-wrapper";
@@ -23,8 +24,7 @@ const view = {
 	box: "INBOX",
 	role: "inbox",
 	page: 1,
-	filter: "all",
-	q: "",
+	conditions: EMPTY_CONDITIONS,
 } as const;
 
 beforeEach(async () => {
@@ -73,7 +73,10 @@ describe("MessageList", () => {
 		render(
 			withQuery(
 				<MessageList
-					view={{ ...view, q: "x" }}
+					view={{
+						...view,
+						conditions: { ...view.conditions, q: "x" },
+					}}
 					selectedId={undefined}
 				/>,
 			),
@@ -228,7 +231,10 @@ describe("MessageList", () => {
 		render(
 			withQuery(
 				<MessageList
-					view={{ ...view, filter: "flagged" }}
+					view={{
+						...view,
+						conditions: { ...EMPTY_CONDITIONS, starred: true },
+					}}
 					selectedId={undefined}
 				/>,
 			),
@@ -268,7 +274,10 @@ describe("MessageList", () => {
 		const { container } = render(
 			withQuery(
 				<MessageList
-					view={{ ...view, filter: "flagged" }}
+					view={{
+						...view,
+						conditions: { ...EMPTY_CONDITIONS, starred: true },
+					}}
 					selectedId={undefined}
 				/>,
 			),

@@ -1,8 +1,12 @@
 import { describe, expect, it } from "bun:test";
 
 import {
+	EMPTY_CONDITIONS,
+	MAX_CONDITION_TEXT,
+} from "@/features/mail/schemas/list-conditions-model";
+
+import {
 	MAX_PAGE,
-	MAX_QUERY_LENGTH,
 	mailboxIdSchema,
 	messageIdSchema,
 	messageListInputSchema,
@@ -53,31 +57,39 @@ describe("messageIdSchema and partIndexSchema", () => {
 });
 
 describe("messageListInputSchema", () => {
-	const ok = { box: "INBOX", page: 1, filter: "all", q: "  hello  " };
+	const ok = {
+		box: "INBOX",
+		page: 1,
+		conditions: { ...EMPTY_CONDITIONS, q: "  hello  " },
+	};
 
 	it("trims the search text and accepts the whole range of the page", () => {
-		expect(messageListInputSchema.parse(ok).q).toBe("hello");
+		expect(messageListInputSchema.parse(ok).conditions.q).toBe("hello");
 		expect(
 			messageListInputSchema.safeParse({ ...ok, page: MAX_PAGE }).success,
 		).toBe(true);
 	});
 
-	it("refuses an unknown field, a bad page, an unknown filter and a hostile search", () => {
+	it("refuses an unknown field, a bad page and a hostile condition", () => {
 		for (const bad of [
 			{ ...ok, extra: 1 },
 			{ ...ok, page: 0 },
 			{ ...ok, page: MAX_PAGE + 1 },
 			{ ...ok, page: 1.5 },
 			{ ...ok, page: "1" },
-			{ ...ok, filter: "spam" },
-			{ ...ok, q: "x".repeat(MAX_QUERY_LENGTH + 1) },
-			{ ...ok, q: "a\nb" },
+			{ ...ok, conditions: { ...EMPTY_CONDITIONS, q: "x".repeat(201) } },
+			{ ...ok, conditions: { ...EMPTY_CONDITIONS, q: "a\nb" } },
+			{ ...ok, conditions: { ...EMPTY_CONDITIONS, order: "biggest" } },
 			{ ...ok, box: "" },
 			null,
 			"x",
 		]) {
 			expect(messageListInputSchema.safeParse(bad).success).toBe(false);
 		}
+	});
+
+	it("keeps the limit of the text conditions in one place", () => {
+		expect(MAX_CONDITION_TEXT).toBe(200);
 	});
 });
 
@@ -86,22 +98,36 @@ describe("parseListParams", () => {
 		expect(
 			parseListParams({
 				page: "3",
-				filter: "unread",
+				unread: "1",
 				q: " hi ",
 				box: "Sent",
 				msg: ID,
 			}),
-		).toEqual({ page: 3, filter: "unread", q: "hi" });
+		).toEqual({
+			page: 3,
+			conditions: { ...EMPTY_CONDITIONS, q: "hi", unread: true },
+			rejected: [],
+		});
 	});
 
 	it("defaults what is missing, bad or repeated", () => {
-		expect(parseListParams({})).toEqual({ page: 1, filter: "all", q: "" });
-		expect(
-			parseListParams({ page: "-1", filter: "zzz", q: "a\u0000b" }),
-		).toEqual({ page: 1, filter: "all", q: "" });
+		expect(parseListParams({})).toEqual({
+			page: 1,
+			conditions: EMPTY_CONDITIONS,
+			rejected: [],
+		});
+		expect(parseListParams({ page: "-1", q: "a\u0000b" })).toEqual({
+			page: 1,
+			conditions: EMPTY_CONDITIONS,
+			rejected: ["q"],
+		});
 		expect(
 			parseListParams({ page: ["2", "9"], filter: ["flagged", "all"] }),
-		).toEqual({ page: 2, filter: "flagged", q: "" });
+		).toEqual({
+			page: 2,
+			conditions: { ...EMPTY_CONDITIONS, starred: true },
+			rejected: [],
+		});
 		expect(parseListParams({ page: "201" }).page).toBe(1);
 		expect(parseListParams({ page: "200" }).page).toBe(200);
 	});

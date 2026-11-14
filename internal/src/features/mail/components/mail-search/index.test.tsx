@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
+import { EMPTY_CONDITIONS } from "@/features/mail/schemas/list-conditions-model";
+
 import { MailSearch } from ".";
 
 afterEach(cleanup);
@@ -11,26 +13,36 @@ async function search(props: Partial<Parameters<typeof MailSearch>[0]> = {}) {
 		await MailSearch({
 			box: "INBOX",
 			role: "inbox",
-			q: "",
-			filter: "all",
+			conditions: EMPTY_CONDITIONS,
 			...props,
 		}),
 	);
 }
 
 describe("MailSearch", () => {
-	it("is a plain GET form to the folder's own page that keeps the filter", async () => {
-		const { container } = await search({ filter: "unread" });
+	it("is a plain GET form to the folder's own page", async () => {
+		const { container } = await search();
 		const form = container.querySelector("form");
 		expect(form).toHaveAttribute("method", "get");
 		expect(form).toHaveAttribute("action", "/app/mail/inbox");
 		// The folder is the path: no field names it.
 		expect(form?.querySelector("input[name=box]")).toBeNull();
-		expect(form?.querySelector("input[name=filter]")).toHaveValue("unread");
 		const field = screen.getByRole("searchbox");
 		expect(field).toHaveAttribute("name", "q");
 		expect(field).toHaveAttribute("aria-keyshortcuts", "/");
-		expect(field).toHaveAttribute("maxlength", "200");
+		// One character over the schema's limit: a cut paste is over it, and
+		// the server names it instead of taking it short.
+		expect(field).toHaveAttribute("maxlength", "201");
+	});
+
+	it("carries the conditions that are not fields of its own", async () => {
+		const { container } = await search({
+			conditions: { ...EMPTY_CONDITIONS, unread: true, order: "oldest" },
+		});
+		expect(container.querySelector("input[name=unread]")).toHaveValue("1");
+		expect(container.querySelector("input[name=order]")).toHaveValue(
+			"oldest",
+		);
 	});
 
 	it("says in the placeholder what the search reads", async () => {
@@ -72,14 +84,10 @@ describe("MailSearch", () => {
 		);
 	});
 
-	it("sends no filter field for the default filter", async () => {
-		const { container } = await search();
-
-		expect(container.querySelector("input[name=filter]")).toBeNull();
-	});
-
 	it("shows the words the address holds", async () => {
-		await search({ q: "invoice" });
+		await search({
+			conditions: { ...EMPTY_CONDITIONS, q: "invoice" },
+		});
 
 		expect(screen.getByRole("searchbox")).toHaveValue("invoice");
 	});

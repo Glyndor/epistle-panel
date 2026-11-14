@@ -1,12 +1,12 @@
-import type { ListFilter } from "@/features/mail/schemas/mail-input";
+import type { ListConditions } from "@/features/mail/schemas/list-conditions-model";
 
 /** Query keys of the webmail. A message list is keyed by everything that selects it. */
 export const mailKeys = {
 	all: ["mail"] as const,
 	mailboxes: ["mail", "mailboxes"] as const,
 	lists: ["mail", "list"] as const,
-	list: (box: string, page: number, filter: ListFilter, q: string) =>
-		["mail", "list", box, page, filter, q] as const,
+	list: (box: string, page: number, conditions: ListConditions) =>
+		["mail", "list", box, page, conditions] as const,
 	message: (id: string) => ["mail", "message", id] as const,
 	/** The changes made to any message: every one still on its way to the server. */
 	changes: ["mail", "change"] as const,

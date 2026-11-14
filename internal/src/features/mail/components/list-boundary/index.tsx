@@ -16,7 +16,7 @@ import {
 	requestMailSession,
 	resolvePlace,
 } from "@/features/mail/queries/request-mail";
-import type { ListFilter } from "@/features/mail/schemas/mail-input";
+import type { ListConditions } from "@/features/mail/schemas/list-conditions-model";
 import { prefetch } from "@/lib/query/prefetch";
 import { makeQueryClient } from "@/lib/query/query-client";
 
@@ -32,14 +32,12 @@ import { makeQueryClient } from "@/lib/query/query-client";
 export async function ListBoundary({
 	place,
 	page,
-	filter,
-	q,
+	conditions,
 	selectedId,
 }: {
 	place: PlaceRef;
 	page: number;
-	filter: ListFilter;
-	q: string;
+	conditions: ListConditions;
 	selectedId: string | undefined;
 }) {
 	const client = makeQueryClient();
@@ -68,7 +66,7 @@ export async function ListBoundary({
 			<MailNotice tone="empty">{t("noFolder")}</MailNotice>
 		);
 	}
-	const input = { box: resolved.box, page, filter, q };
+	const input = { box: resolved.box, page, conditions };
 	if (session !== null) {
 		await prefetch(
 			client,
@@ -84,8 +82,7 @@ export async function ListBoundary({
 			<ListToolbar
 				box={resolved.box}
 				folderRole={resolved.role}
-				filter={filter}
-				q={q}
+				conditions={conditions}
 				density={density}
 			/>
 			<div

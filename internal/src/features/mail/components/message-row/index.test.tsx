@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { cleanup, render, screen } from "@testing-library/react";
 
+import { EMPTY_CONDITIONS } from "@/features/mail/schemas/list-conditions-model";
+
 import type { MessageSummary } from "@/features/mail/schemas/mail-view";
 import { withQuery } from "@/test/query-wrapper";
 import { summary } from "../../test-support/fixtures";
@@ -14,8 +16,7 @@ const view = {
 	box: "INBOX",
 	role: "inbox",
 	page: 2,
-	filter: "unread",
-	q: "x",
+	conditions: { ...EMPTY_CONDITIONS, unread: true, q: "x" },
 } as const;
 const EVERYTHING = {
 	unread: true,
@@ -63,7 +64,7 @@ describe("MessageRow", () => {
 
 		expect(link).toHaveAttribute(
 			"href",
-			`/app/mail/inbox/${ID}?page=2&filter=unread&q=x`,
+			`/app/mail/inbox/${ID}?page=2&q=x&unread=1`,
 		);
 		expect(link).toHaveAttribute("data-message-id", ID);
 		expect(link).not.toHaveAttribute("aria-current");

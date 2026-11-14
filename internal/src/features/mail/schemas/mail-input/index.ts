@@ -1,5 +1,11 @@
 import { z } from "zod";
 
+import {
+	type ConditionName,
+	type ListConditions,
+	listConditionsSchema,
+	parseListConditions,
+} from "@/features/mail/schemas/list-conditions";
 import { MAILBOX_ID_PATTERN } from "@/lib/mail-paths";
 
 /** A mailbox id: see {@link MAILBOX_ID_PATTERN}. */
@@ -10,16 +16,6 @@ export const messageIdSchema = z.uuid();
 
 /** The index of a MIME part of a message: digits only, as the JMAP blob id `<message>.<index>` spells it. */
 export const partIndexSchema = z.string().regex(/^[0-9]{1,6}$/);
-
-/** What the list can be narrowed to besides the folder. */
-export const LIST_FILTERS = [
-	"all",
-	"unread",
-	"flagged",
-	"attachments",
-] as const;
-export const listFilterSchema = z.enum(LIST_FILTERS);
-export type ListFilter = z.infer<typeof listFilterSchema>;
 
 /** Messages on one page of the list. */
 export const PAGE_SIZE = 50;
@@ -38,23 +34,15 @@ export const GET_CHUNK = 500;
  */
 export const SCAN_LIMIT = 1000;
 
-/** Longest search text read, in characters. */
-export const MAX_QUERY_LENGTH = 200;
-
 /**
  * Input of the message-list action. Strict, so a field the client adds never
- * reaches the server call. The search text is trimmed and has no control
- * character.
+ * reaches the server call. What narrows the list is in the conditions, which
+ * the address holds and the server reads again.
  */
 export const messageListInputSchema = z.strictObject({
 	box: mailboxIdSchema,
 	page: z.number().int().min(1).max(MAX_PAGE),
-	filter: listFilterSchema,
-	q: z
-		.string()
-		.max(MAX_QUERY_LENGTH)
-		.regex(/^[^\p{Cc}\p{Zl}\p{Zp}]*$/u)
-		.transform((value) => value.trim()),
+	conditions: listConditionsSchema,
 });
 export type MessageListInput = z.output<typeof messageListInputSchema>;
 
@@ -69,11 +57,13 @@ function firstValue(value: string | string[] | undefined): string | undefined {
 	return Array.isArray(value) ? value[0] : value;
 }
 
-/** What `?page=&filter=&q=` of a folder's page holds once each is checked on its own. */
+/** What `?page=` of a folder's page and the conditions that narrow it hold, once each is checked on its own. */
 export interface ListParams {
 	readonly page: number;
-	readonly filter: ListFilter;
-	readonly q: string;
+	/** What narrows the list, as the address said it. */
+	readonly conditions: ListConditions;
+	/** The conditions the address held and the server did not apply. */
+	readonly rejected: readonly ConditionName[];
 }
 
 /**
@@ -90,14 +80,11 @@ export function parseListParams(
 			? Number(pageText)
 			: undefined,
 	);
-	const filter = listFilterSchema.safeParse(firstValue(raw["filter"]));
-	const q = messageListInputSchema.shape.q.safeParse(
-		firstValue(raw["q"]) ?? "",
-	);
+	const { conditions, rejected } = parseListConditions(raw);
 	return {
 		page: page.success ? page.data : 1,
-		filter: filter.success ? filter.data : "all",
-		q: q.success ? q.data : "",
+		conditions,
+		rejected,
 	};
 }
 

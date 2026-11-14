@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { clearToasts, Toaster } from "@/components/ui/toaster";
 import { mailKeys } from "@/features/mail/queries/mail-query-keys";
 import { waitingMessages } from "@/features/mail/queries/message-cache";
+import { EMPTY_CONDITIONS } from "@/features/mail/schemas/list-conditions-model";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
 import { clearSecretCache } from "@/lib/config/secret";
 import { settled, testQueryClient } from "@/test/query-wrapper";
@@ -99,7 +100,7 @@ function screenOf() {
 		mailKeys.message(A),
 		detail({ id: A, unread: true, mailboxId: "INBOX" }),
 	);
-	client.setQueryData(mailKeys.list("INBOX", 1, "all", ""), {
+	client.setQueryData(mailKeys.list("INBOX", 1, EMPTY_CONDITIONS), {
 		items: [summary({ id: A, unread: true }), summary({ id: B })],
 		page: 1,
 		total: 2,

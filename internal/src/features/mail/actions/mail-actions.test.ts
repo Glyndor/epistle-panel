@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 
+import { EMPTY_CONDITIONS } from "@/features/mail/schemas/list-conditions-model";
+
 import { sentRequests } from "@/lib/api/test-support/fetch";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
 import { clearSecretCache } from "@/lib/config/secret";
@@ -39,8 +41,7 @@ describe("every mail action", () => {
 				getMessageListAction({
 					box: "INBOX",
 					page: 1,
-					filter: "all",
-					q: "",
+					conditions: EMPTY_CONDITIONS,
 				}),
 		],
 		["getMessageAction", () => getMessageAction({ id: ID })],
@@ -124,8 +125,7 @@ describe("getMessageListAction", () => {
 		const result = await getMessageListAction({
 			box: "INBOX",
 			page: 1,
-			filter: "all",
-			q: "",
+			conditions: EMPTY_CONDITIONS,
 		});
 		expect(result).toMatchObject({
 			ok: true,
@@ -136,9 +136,14 @@ describe("getMessageListAction", () => {
 	it("refuses bad input before JMAP is called", async () => {
 		stubJmap({});
 		for (const input of [
-			{ box: "", page: 1, filter: "all", q: "" },
-			{ box: "INBOX", page: 0, filter: "all", q: "" },
-			{ box: "INBOX", page: 1, filter: "all", q: "", extra: true },
+			{ box: "", page: 1, conditions: EMPTY_CONDITIONS },
+			{ box: "INBOX", page: 0, conditions: EMPTY_CONDITIONS },
+			{
+				box: "INBOX",
+				page: 1,
+				conditions: EMPTY_CONDITIONS,
+				extra: true,
+			},
 			null,
 			"x",
 		]) {

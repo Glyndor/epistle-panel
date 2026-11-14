@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { cleanup, render } from "@testing-library/react";
 
+import { EMPTY_CONDITIONS } from "@/features/mail/schemas/list-conditions-model";
 import { withQuery } from "@/test/query-wrapper";
 import { summary } from "../../../test-support/fixtures";
 import { MessageRow } from "../../message-row";
@@ -32,8 +33,7 @@ describe("RowSkeleton", () => {
 							box: "INBOX",
 							role: "inbox",
 							page: 1,
-							filter: "all",
-							q: "",
+							conditions: EMPTY_CONDITIONS,
 						}}
 						datePart="time"
 					/>

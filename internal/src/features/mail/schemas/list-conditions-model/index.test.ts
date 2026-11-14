@@ -18,6 +18,11 @@ const FULL: ListConditions = {
 	after: "2026-11-01",
 	before: "2026-11-10",
 	label: "Work",
+	folder: "Work/Q4",
+	unread: true,
+	starred: true,
+	important: true,
+	attachment: true,
 	order: "oldest",
 };
 
@@ -31,6 +36,11 @@ describe("EMPTY_CONDITIONS", () => {
 			after: null,
 			before: null,
 			label: null,
+			folder: null,
+			unread: false,
+			starred: false,
+			important: false,
+			attachment: false,
 			order: "newest",
 		});
 	});
@@ -63,6 +73,11 @@ describe("hasConditions", () => {
 			{ after: "2026-11-10" },
 			{ before: "2026-11-10" },
 			{ label: "Work" },
+			{ folder: "Work/Q4" },
+			{ unread: true },
+			{ starred: true },
+			{ important: true },
+			{ attachment: true },
 		];
 		for (const condition of one) {
 			expect([
@@ -95,6 +110,11 @@ describe("conditionsToQuery", () => {
 			["after", "2026-11-01"],
 			["before", "2026-11-10"],
 			["label", "Work"],
+			["folder", "Work/Q4"],
+			["unread", "1"],
+			["starred", "1"],
+			["important", "1"],
+			["attachment", "1"],
 			["order", "oldest"],
 		]);
 	});
