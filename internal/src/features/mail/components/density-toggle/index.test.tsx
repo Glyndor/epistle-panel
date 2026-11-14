@@ -149,15 +149,18 @@ describe("DensityToggle", () => {
 		expect(compact).toContain("<svg");
 	});
 
-	it("looks different pressed, under the pointer, and both", () => {
+	it("looks different pressed, under the pointer and under a press", () => {
 		const { button } = pane("compact");
 
 		expect(button).toHaveClass(
 			"hover:bg-foreground/10",
 			"aria-pressed:bg-accent",
-			"aria-pressed:hover:bg-foreground/15",
+			"aria-pressed:hover:bg-accent/50",
+			"aria-pressed:active:bg-accent/25",
 		);
-		// The ghost button's own hover is the accent, which is the pressed look.
+		// The ghost button's own hover is the accent, which is the pressed
+		// look, and the text colour at 15% is the accent too in the dark theme.
 		expect(button).not.toHaveClass("hover:bg-accent");
+		expect(button).not.toHaveClass("aria-pressed:hover:bg-foreground/15");
 	});
 });

@@ -4,20 +4,20 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 /**
  * The place of one row: the same height, margins and parts as `MessageRow` in
- * either density (the initials, then the lines beside them), so nothing moves
- * when the messages arrive.
+ * either density (the initials where the row is wide enough for them, then
+ * the lines beside them), so nothing moves when the messages arrive.
  */
 function RowSkeleton() {
 	return (
 		<div
 			data-slot="row-skeleton"
-			className="grid h-18 grid-cols-[auto_minmax(0,1fr)] content-center items-center gap-x-3 ps-5 pe-3 group-data-[density=compact]/list:h-10 group-data-[density=compact]/list:grid-cols-[auto_5rem_minmax(0,1fr)] group-data-[density=compact]/list:gap-x-2 pointer-coarse:group-data-[density=compact]/list:h-11"
+			className="@container/row grid h-18 grid-cols-[auto_minmax(0,1fr)] content-center items-center ps-5 pe-3 group-data-[density=compact]/list:h-10 group-data-[density=compact]/list:pe-15 pointer-coarse:pe-23 pointer-coarse:group-data-[density=compact]/list:h-11 pointer-coarse:group-data-[density=compact]/list:pe-23"
 		>
-			<Skeleton className="row-span-3 mt-1 size-8 self-start rounded-full group-data-[density=compact]/list:row-span-1 group-data-[density=compact]/list:mt-0 group-data-[density=compact]/list:size-6 group-data-[density=compact]/list:self-center" />
-			<span className="col-start-2 flex h-5 items-center">
-				<Skeleton className="h-3 w-1/3 rounded-md group-data-[density=compact]/list:w-full" />
+			<Skeleton className="row-span-3 me-3 mt-1 hidden size-8 self-start rounded-full @xs/row:block group-data-[density=compact]/list:me-2 group-data-[density=compact]/list:mt-0 group-data-[density=compact]/list:row-span-2 group-data-[density=compact]/list:hidden group-data-[density=compact]/list:size-6 group-data-[density=compact]/list:self-center group-data-[density=compact]/list:@sm/row:block" />
+			<span className="col-start-2 flex h-5 items-center group-data-[density=compact]/list:h-4">
+				<Skeleton className="h-3 w-1/3 rounded-md" />
 			</span>
-			<span className="col-start-2 flex h-5 items-center group-data-[density=compact]/list:col-start-3 group-data-[density=compact]/list:row-start-1">
+			<span className="col-start-2 flex h-5 items-center group-data-[density=compact]/list:h-4">
 				<Skeleton className="h-3 w-2/3 rounded-md" />
 			</span>
 			<span className="col-start-2 flex h-4 items-center group-data-[density=compact]/list:hidden">
@@ -39,16 +39,19 @@ export function ListSkeleton() {
 	const t = useTranslations("mail");
 
 	return (
-		<div className="flex flex-col gap-1 px-2 pb-2" aria-busy="true">
+		<div className="px-2 pb-2" aria-busy="true">
 			<span className="sr-only" role="status">
 				{t("loading")}
 			</span>
 			<div className="flex h-8 items-center px-3">
 				<Skeleton className="h-3 w-16 rounded-md" />
 			</div>
-			{ROWS.map((row) => (
-				<RowSkeleton key={row} />
-			))}
+			{/* The heading stands right on its rows, as in the list: a gap here was a jump of its size when the messages came. */}
+			<div className="flex flex-col gap-1">
+				{ROWS.map((row) => (
+					<RowSkeleton key={row} />
+				))}
+			</div>
 		</div>
 	);
 }
@@ -62,8 +65,8 @@ export function ListPaneSkeleton() {
 	return (
 		<>
 			<div className="flex flex-col gap-2 p-2" aria-hidden="true">
-				<Skeleton className="h-9" />
-				<Skeleton className="h-7 w-2/3" />
+				<Skeleton className="h-8 pointer-coarse:h-11" />
+				<Skeleton className="h-8 w-2/3 pointer-coarse:h-11" />
 			</div>
 			<div className="relative min-h-0 flex-1 scroll-pt-8 overflow-y-auto">
 				<ListSkeleton />
