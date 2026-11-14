@@ -46,6 +46,8 @@ describe("composePrefill: reply", () => {
 		);
 		expect(initial.inReplyTo).toBe("orig@x.org");
 		expect(initial.references).toEqual(["orig@x.org"]);
+		// Sending it marks the original answered.
+		expect(initial.origin).toEqual({ id: "m1", as: "answered" });
 	});
 
 	it("prefers the reply-to address and does not stack a Re:", () => {
@@ -98,6 +100,8 @@ describe("composePrefill: reply", () => {
 		expect(initial.to).toBe("");
 		expect(initial.inReplyTo).toBeUndefined();
 		expect(initial.references).toBeUndefined();
+		// With no Message-ID there is no thread to link, and the original is still marked.
+		expect(initial.origin?.as).toBe("answered");
 		expect(initial.text).toBe("\n\n wrote on :\n>");
 	});
 
@@ -160,6 +164,7 @@ describe("composePrefill: forward and draft", () => {
 			"\n\n--- Forwarded ---\nFrom: Ana <ana@x.org>\nDate: D(2026-11-12T10:00:00Z)\nSubject: Hello\nTo: me@x.org, Bo <bo@x.org>\n\nline one\nline two",
 		);
 		expect(initial.inReplyTo).toBeUndefined();
+		expect(initial.origin).toEqual({ id: "m1", as: "forwarded" });
 	});
 
 	it("gives a draft back as it was, with its attachments by blob id", () => {
@@ -182,6 +187,8 @@ describe("composePrefill: forward and draft", () => {
 			texts,
 			date,
 		);
+		// A draft is its own message: opening it again marks nothing.
+		expect(initial.origin).toBeUndefined();
 		expect(initial).toMatchObject({
 			to: "me@x.org, Bo <bo@x.org>",
 			cc: "cy@x.org",

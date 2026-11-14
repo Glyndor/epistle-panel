@@ -341,6 +341,20 @@ scenario_mail() {
 	assert_contains "says why, as a category" "$(cat "$work/b")" '"reason":"forbiddenToSend"'
 	assert_absent "without the server's words" "$(cat "$work/b")" "suppression"
 	assert_contains "and keeps the work as a draft" "$(mail_state)" '"mailbox":"Drafts"'
+	# A reply or a forward marks the message it came from, once it is sent.
+	local reply="{\"op\":\"send\",\"to\":[{\"email\":\"zed@example.org\"}],\"cc\":[],\"bcc\":[],\"subject\":\"Re: text\",\"text\":\"t\",\"attachments\":[],\"origin\":{\"id\":\"$MAIL_TEXT_ONLY\",\"as\":\"answered\"}}"
+	assert_eq "sending a reply" "$(mail_post /app/mail/compose-message "$reply" "$good")" 200
+	assert_contains "it was sent" "$(cat "$work/b")" '"kind":"sent"'
+	assert_contains "the message it answers is marked answered, and keeps what it had" "$(mail_state)" "\"id\":\"$MAIL_TEXT_ONLY\",\"mailbox\":\"INBOX\",\"keywords\":{\"\$seen\":true,\"\$answered\":true}"
+	local forward="{\"op\":\"send\",\"to\":[{\"email\":\"zed@example.org\"}],\"cc\":[],\"bcc\":[],\"subject\":\"Fwd: headers\",\"text\":\"t\",\"attachments\":[],\"origin\":{\"id\":\"$MAIL_HOSTILE_HEADERS\",\"as\":\"forwarded\"}}"
+	mail_post /app/mail/compose-message "$forward" "$good" >/dev/null
+	assert_contains "a forwarded message is marked forwarded" "$(mail_state)" "\"id\":\"$MAIL_HOSTILE_HEADERS\",\"mailbox\":\"INBOX\",\"keywords\":{\"\$flagged\":true,\"\$forwarded\":true}"
+	local blocked_reply="{\"op\":\"send\",\"to\":[{\"email\":\"x@blocked.test\"}],\"cc\":[],\"bcc\":[],\"subject\":\"Re\",\"text\":\"t\",\"attachments\":[],\"origin\":{\"id\":\"$MAIL_ATTACHMENTS\",\"as\":\"answered\"}}"
+	mail_post /app/mail/compose-message "$blocked_reply" "$good" >/dev/null
+	assert_contains "a reply the server refuses marks nothing" "$(mail_state)" "\"id\":\"$MAIL_ATTACHMENTS\",\"mailbox\":\"INBOX\",\"keywords\":{}"
+	for hostile in "{\"id\":\"$MAIL_TEXT_ONLY\",\"as\":\"seen\"}" "{\"id\":\"../x\",\"as\":\"answered\"}" "{\"id\":\"$MAIL_TEXT_ONLY\",\"as\":\"answered\",\"keyword\":\"x\"}"; do
+		assert_eq "a mark that is none of the two, or names no message, is a 400" "$(mail_post /app/mail/compose-message "{\"op\":\"send\",\"to\":[{\"email\":\"zed@example.org\"}],\"cc\":[],\"bcc\":[],\"subject\":\"s\",\"text\":\"t\",\"attachments\":[],\"origin\":$hostile}" "$good")" 400
+	done
 	assert_eq "no DELETE reached the API from the composer" "$(api_count '"method":"DELETE"')" 0
 
 	assert_eq "the webmail only reads: no DELETE reached the API" "$(api_count '"method":"DELETE"')" 0

@@ -60,6 +60,7 @@ describe("ComposeForm", () => {
 					...empty,
 					inReplyTo: "o@x.org",
 					references: ["o@x.org"],
+					origin: { id: "m-1", as: "answered" },
 				}}
 			/>,
 		);
@@ -78,6 +79,8 @@ describe("ComposeForm", () => {
 			attachments: [],
 			inReplyTo: "o@x.org",
 			references: ["o@x.org"],
+			// The message answered goes with it, so the server can mark it.
+			origin: { id: "m-1", as: "answered" },
 		});
 		await waitFor(() => expect(assigned).toEqual(["/app/mail/inbox"]));
 	});

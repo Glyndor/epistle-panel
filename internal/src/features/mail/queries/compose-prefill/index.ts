@@ -128,6 +128,7 @@ export function composePrefill(
 			bcc: "",
 			subject: prefixed("Fwd", subject),
 			text: `\n\n${header}\n\n${original}`.slice(0, 1_000_000),
+			origin: { id: email.id, as: "forwarded" },
 		};
 	}
 	const first = recipients(email.replyTo)[0] ?? recipients(email.from)[0];
@@ -153,5 +154,6 @@ export function composePrefill(
 		subject: prefixed("Re", subject),
 		text: `\n\n${texts.quoteHeader(who, formatDate(email.receivedAt))}\n${quoted}`,
 		...reply,
+		origin: { id: email.id, as: "answered" },
 	};
 }

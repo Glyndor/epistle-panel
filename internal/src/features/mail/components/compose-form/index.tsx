@@ -24,7 +24,10 @@ import {
 	ComposeAttachments,
 } from "@/features/mail/components/compose-attachments";
 import { fieldMessage } from "@/features/mail/components/compose-form/field-message";
-import { useComposeSubmit } from "@/features/mail/components/compose-form/use-compose-submit";
+import {
+	type ComposeOrigin,
+	useComposeSubmit,
+} from "@/features/mail/components/compose-form/use-compose-submit";
 import { MailTextarea } from "@/features/mail/components/mail-textarea";
 import { mailHref } from "@/features/mail/links/mail-href";
 import {
@@ -44,6 +47,8 @@ export interface ComposeInitial extends ComposeFormValues {
 	readonly draftId?: string | undefined;
 	readonly inReplyTo?: string | undefined;
 	readonly references?: string[] | undefined;
+	/** The message a reply or a forward came from, to be marked once this one is sent. */
+	readonly origin?: ComposeOrigin | undefined;
 	readonly attachments?: ComposeAttachment[] | undefined;
 }
 
@@ -128,6 +133,7 @@ export function ComposeForm({ initial }: { initial: ComposeInitial }) {
 				})),
 				inReplyTo: initial.inReplyTo,
 				references: initial.references,
+				origin: initial.origin,
 			});
 			if (result.kind === "draft") {
 				setDraftId(result.id);

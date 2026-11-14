@@ -117,6 +117,14 @@ it (`features/mail/labels`), though no screen draws it yet:
   are read as one (`hasKeyword`), and taking the mark off removes every spelling.
 - **Important is the user's mark** (`$important`, the operations `important` and
   `unimportant`). What a sender declares in `Importance` or `X-Priority` is not it.
+- **Answered and forwarded are written when the reply or the forward is sent**,
+  and not before: the composer carries the id of the message it was opened from
+  and which of the two marks it leaves (`origin`), and `composeMessage` adds the
+  keyword to that message after the server has queued the new one. A draft, a
+  refused send and a failure to write the mark change nothing. A reply saved as
+  a draft and sent later from the drafts folder leaves no mark: the draft does
+  not record what it answers, and finding it by `In-Reply-To` needs a query the
+  server does not have yet (Glyndor/epistle#1790).
 - **A label's colour** is one of eight tones, chosen from the keyword
   (`label-tone`), until the server can keep the user's choice.
 - **The list is dated**: its answer carries the UTC day it was read, and

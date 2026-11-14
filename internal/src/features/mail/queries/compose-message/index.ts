@@ -5,12 +5,18 @@ import type { MailSession } from "@/features/mail/jmap/credentials";
 import {
 	emailCreateSchema,
 	emailGetSchema,
+	emailSetSchema,
 	mailboxRolesSchema,
 	submissionSetSchema,
 } from "@/features/mail/jmap/responses";
+import { hasKeyword } from "@/features/mail/labels/read-keywords";
 import { loadSender } from "@/features/mail/queries/load-identity";
 import { safeFilename } from "@/features/mail/sanitize/safe-filename";
-import type { ComposeInput } from "@/features/mail/schemas/compose-input";
+import type {
+	ComposeInput,
+	OriginMark,
+} from "@/features/mail/schemas/compose-input";
+import { logApiFailure } from "@/lib/api/log-failure";
 
 /** Why a message was not sent or saved, as a closed category the form can say. */
 export type ComposeRefusal =
@@ -212,7 +218,73 @@ export async function composeMessage(
 	}
 	await destroy(session, id);
 	await destroy(session, input.draftId);
+	await markOrigin(session, input.origin);
 	return { kind: "sent" };
+}
+
+/** The keyword each mark is. */
+const MARK_KEYWORD = {
+	answered: "$answered",
+	forwarded: "$forwarded",
+} as const satisfies Record<OriginMark, string>;
+
+/**
+ * Mark the message a reply or a forward came from, once it is sent. epistle
+ * replaces the keywords whole, so the message is read first and every keyword
+ * it has is written back with the mark added; one that already carries it, in
+ * any case, is left alone. The id comes from the browser: a message that is
+ * not the account's is not found and nothing is written. The message is sent
+ * by now, so a failure here is logged and is not the sender's problem.
+ */
+async function markOrigin(
+	session: MailSession,
+	origin: ComposeInput["origin"],
+): Promise<void> {
+	if (origin === undefined) {
+		return;
+	}
+	const keyword = MARK_KEYWORD[origin.as];
+	try {
+		const read = await jmapCall(session, [
+			[
+				"Email/get",
+				{
+					accountId: session.accountId,
+					ids: [origin.id],
+					properties: ["id", "keywords"],
+					bodyProperties: ["partId"],
+				},
+				"o",
+			],
+		]);
+		const email = methodResult(read, "o", "Email/get", emailGetSchema)
+			.list[0];
+		if (email === undefined || hasKeyword(email.keywords, keyword)) {
+			return;
+		}
+		const keywords = Object.fromEntries(
+			Object.entries(email.keywords ?? {})
+				.filter(([, on]) => on)
+				.map(([name]) => [name, true] as const),
+		);
+		const written = await jmapCall(session, [
+			[
+				"Email/set",
+				{
+					accountId: session.accountId,
+					update: {
+						[origin.id]: {
+							keywords: { ...keywords, [keyword]: true },
+						},
+					},
+				},
+				"k",
+			],
+		]);
+		methodResult(written, "k", "Email/set", emailSetSchema);
+	} catch (error) {
+		logApiFailure("mail mark origin", error);
+	}
 }
 
 /** Remove a stored message; a failure is not the caller's problem, the message just stays. */
