@@ -8,6 +8,8 @@ export const mailKeys = {
 	list: (box: string, page: number, filter: ListFilter, q: string) =>
 		["mail", "list", box, page, filter, q] as const,
 	message: (id: string) => ["mail", "message", id] as const,
+	/** The changes made to any message: every one still on its way to the server. */
+	changes: ["mail", "change"] as const,
 	/** The changes made to one message: what is still on its way to the server for it. */
 	change: (id: string) => ["mail", "change", id] as const,
 };

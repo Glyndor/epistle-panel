@@ -2,9 +2,17 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 
 import { toast } from "@/components/ui/toaster";
-import { changeMessageAction } from "@/features/mail/actions/change-message";
+import {
+	type ChangeResult,
+	changeMessageAction,
+} from "@/features/mail/actions/change-message";
 import { mailKeys } from "@/features/mail/queries/mail-query-keys";
-import { isKeywordOp, patchFlags } from "@/features/mail/queries/message-cache";
+import {
+	isGone,
+	isKeywordOp,
+	markGone,
+	patchFlags,
+} from "@/features/mail/queries/message-cache";
 import type { MessageOp } from "@/features/mail/schemas/mail-input";
 import { unwrap } from "@/lib/query/action-result";
 
@@ -13,6 +21,12 @@ export type Change = MessageOp | { readonly move: string };
 
 /** How much of a change's outcome is told with a toast: nothing, or only a failure. */
 type Quiet = boolean | "success";
+
+/** What a change ends in: the server's answer, or nothing asked of it because the message had already left. */
+type Answer = ChangeResult | typeof GONE;
+
+/** The answer to a change that waited behind a move of its message. */
+const GONE = { kind: "gone" } as const;
 
 /** What one call asks for. */
 interface Asked {
@@ -48,35 +62,46 @@ export function useMessageChange({
 		// written at once would each be built from the set before the other:
 		// the next one starts when the one before has been answered.
 		scope: { id: mailKeys.change(id).join(":") },
-		mutationFn: async ({ change }: Asked) =>
-			unwrap(
+		mutationFn: async ({ change }: Asked): Promise<Answer> => {
+			// A change that waited behind a move: the message has another id
+			// now, and writing to the old one can only fail.
+			if (isGone(client, id)) {
+				return GONE;
+			}
+			return unwrap(
 				await changeMessageAction(
 					typeof change === "string"
 						? { id, op: change }
 						: { id, op: "move", box: change.move },
 				),
-			),
+			);
+		},
 		// Runs when the change is asked for, before its turn comes: a change
 		// that waits already shows.
 		onMutate: async ({ change }) => {
 			if (typeof change !== "string" || !isKeywordOp(change)) {
-				return { undo: undefined };
+				return { write: undefined };
 			}
 			await client.cancelQueries({ queryKey: mailKeys.all });
-			return { undo: patchFlags(client, id, change, mailboxId) };
+			return { write: patchFlags(client, id, change, mailboxId) };
 		},
 		onError: (_error, { quiet }, context) => {
-			context?.undo?.();
+			context?.write?.refuse();
 			if (quiet !== true) {
 				toast.error(t("actionFailed"));
 			}
 		},
-		onSuccess: (result, { quiet }) => {
+		onSuccess: (result, { quiet }, context) => {
+			if (result.kind === "gone") {
+				return;
+			}
 			if (result.kind === "noFolder") {
 				toast.error(t("noFolder"));
 				return;
 			}
+			context?.write?.confirm();
 			if (result.outcome.left) {
+				markGone(client, id);
 				client.removeQueries({ queryKey: mailKeys.message(id) });
 				toast.success(
 					result.outcome.destroyed ? t("deletedForever") : t("moved"),
@@ -86,17 +111,25 @@ export function useMessageChange({
 				toast.success(t("changed"));
 			}
 		},
-		onSettled: () => {
-			// While another change to this message waits, what the server
-			// holds is not yet what the screen shows: reading it now would
-			// take the waiting change off the screen until its own answer.
-			if (client.isMutating({ mutationKey: mailKeys.change(id) }) > 1) {
+		onSettled: (result) => {
+			// While a change to any message waits, what the server holds is
+			// not yet what the screen shows: reading it now would take the
+			// waiting change off the screen until its own answer. The last
+			// one to be answered counts only itself, so the lists are always
+			// read in the end. A message that left is the exception: its row
+			// has to go now, and what waited for it is dropped.
+			const left = result?.kind === "done" && result.outcome.left;
+			if (
+				!left &&
+				client.isMutating({ mutationKey: mailKeys.changes }) > 1
+			) {
 				return;
 			}
 			void client.invalidateQueries({ queryKey: mailKeys.lists });
 			void client.invalidateQueries({ queryKey: mailKeys.mailboxes });
 		},
 	});
+	const asked = mutation.variables?.change;
 
 	return {
 		/**
@@ -109,5 +142,10 @@ export function useMessageChange({
 			mutation.mutate({ change, ...options }),
 		/** A change to this message, asked for from here, has not been answered yet. */
 		pending: mutation.isPending,
+		/** The change not answered yet takes the message out of its folder: nothing else can be asked of it meanwhile. */
+		moving:
+			mutation.isPending &&
+			asked !== undefined &&
+			(typeof asked !== "string" || !isKeywordOp(asked)),
 	};
 }
