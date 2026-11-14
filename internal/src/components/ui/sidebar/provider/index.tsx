@@ -12,10 +12,12 @@ const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 const SIDEBAR_KEYBOARD_SHORTCUT = "b";
 
 /**
- * Holds the sidebar state and lays out the shell. The width variables are
- * Tailwind classes, not a `style` attribute: the panel serves
- * `style-src 'self'`, and a server-rendered `style` would be blocked and break
- * the layout. On a coarse pointer the collapsed rail grows to fit a 44 px target.
+ * Holds the sidebar state and lays out the shell, which is exactly as tall as
+ * the window: the sidebar and the header stay in place and what scrolls is
+ * inside the inset. The width variables are Tailwind classes, not a `style`
+ * attribute: the panel serves `style-src 'self'`, and a server-rendered
+ * `style` would be blocked and break the layout. On a coarse pointer the
+ * collapsed rail grows to fit a 44 px target.
  */
 export function SidebarProvider({
 	defaultOpen = true,
@@ -73,7 +75,7 @@ export function SidebarProvider({
 			<div
 				data-slot="sidebar-wrapper"
 				className={cn(
-					"group/sidebar-wrapper flex min-h-svh w-full [--sidebar-width-icon:3rem] [--sidebar-width:14rem] pointer-coarse:[--sidebar-width-icon:4rem]",
+					"group/sidebar-wrapper flex h-dvh w-full [--sidebar-width-icon:3rem] [--sidebar-width:14rem] pointer-coarse:[--sidebar-width-icon:4rem]",
 					className,
 				)}
 				{...props}

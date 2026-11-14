@@ -13,6 +13,8 @@
 	"brandSubtitle": "Verwaltungspanel",
 	"manage": "Verwalten",
 	"toggle": "Seitenleiste umschalten",
+	"toggleShortcut": "Strg+B",
+	"version": "Version {version}",
 	"sheetTitle": "Navigation",
 	"sheetDescription": "Seiten des Verwaltungspanels.",
 	"close": "Schließen",

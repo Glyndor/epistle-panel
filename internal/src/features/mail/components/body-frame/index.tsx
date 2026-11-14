@@ -34,7 +34,7 @@ export function BodyFrame({
 			sandbox="allow-popups allow-popups-to-escape-sandbox"
 			referrerPolicy="no-referrer"
 			loading="eager"
-			className="h-[70vh] min-h-96 w-full border-0 bg-background"
+			className="h-[70vh] min-h-96 w-full border-0 bg-surface"
 		/>
 	);
 }

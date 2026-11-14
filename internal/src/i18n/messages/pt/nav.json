@@ -13,6 +13,8 @@
 	"brandSubtitle": "Painel de administração",
 	"manage": "Gerenciar",
 	"toggle": "Alternar barra lateral",
+	"toggleShortcut": "Ctrl+B",
+	"version": "Versão {version}",
 	"sheetTitle": "Navegação",
 	"sheetDescription": "Páginas do painel de administração.",
 	"close": "Fechar",

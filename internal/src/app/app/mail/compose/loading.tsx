@@ -4,7 +4,7 @@ import { ComposeSkeleton } from "@/features/mail/components/compose-skeleton";
 export default function Loading() {
 	return (
 		<div className="h-full overflow-y-auto p-2">
-			<div className="mx-auto max-w-3xl rounded-2xl bg-background">
+			<div className="mx-auto max-w-3xl rounded-2xl bg-surface">
 				<ComposeSkeleton />
 			</div>
 		</div>

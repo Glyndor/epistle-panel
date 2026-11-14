@@ -107,7 +107,7 @@ describe("MailPlace", () => {
 		expect(outcome).toBeInstanceOf(RedirectSignal);
 	});
 
-	it("opens the inbox by its role, prefetched, with the three named regions and no reader", async () => {
+	it("opens the inbox by its role, prefetched, with its two named regions and no reader", async () => {
 		const seen = stubJmap({ ...mailboxes, ...folder });
 		await renderPlace();
 		expect(screen.getByText("Listed")).toBeInTheDocument();
@@ -202,7 +202,7 @@ describe("MailPlace", () => {
 		expect(screen.queryByText("readerEmpty")).toBeNull();
 	});
 
-	it("sends the frame of the three panes and a skeleton in each before the mail server is asked anything", async () => {
+	it("sends the frame of the two panes and a skeleton in each before the mail server is asked anything", async () => {
 		// A token of its own: a call another case left on its way carries the
 		// usual one, so only what this page asks is counted.
 		process.env["EPISTLE_API_TOKEN"] = "frame-only-token";
@@ -228,10 +228,13 @@ describe("MailPlace", () => {
 		expect(
 			screen.getByRole("region", { name: "readerLabel" }),
 		).toBeInTheDocument();
-		// The folders (the side pane; the sheet holds its copy until opened), the list and the reader.
+		// The list and the reader; the folders are the sidebar's.
 		expect(
 			container.querySelectorAll('[aria-busy="true"]').length,
-		).toBeGreaterThanOrEqual(3);
+		).toBeGreaterThanOrEqual(2);
+		expect(
+			screen.queryByRole("navigation", { name: "folders" }),
+		).toBeNull();
 		expect(screen.getByText("loading")).toBeInTheDocument();
 		expect(screen.getByText("readerLoading")).toBeInTheDocument();
 		expect(screen.queryByText("Listed")).toBeNull();
@@ -241,6 +244,49 @@ describe("MailPlace", () => {
 		cleanup();
 		render(withQuery(await resolveServerTree(tree)));
 		expect(asked().length).toBeGreaterThan(0);
+	});
+
+	it("names the folder in the page's one heading, which is not drawn", async () => {
+		stubJmap({ ...mailboxes, ...folder });
+		await renderPlace();
+		const heading = screen.getByRole("heading", { level: 1 });
+		expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+		expect(heading).toHaveTextContent("role_inbox");
+		expect(heading).toHaveClass("sr-only");
+		cleanup();
+
+		// A folder with no role is named by the last part of its own name.
+		await renderPlace({ box: "Work/Q4" });
+		expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+			"Q4",
+		);
+		expect(
+			screen.getByRole("heading", { level: 1 }).querySelector("bdi"),
+		).not.toBeNull();
+	});
+
+	it("draws its panes as surfaces raised off the canvas, with a radius and no line", async () => {
+		stubJmap({ ...mailboxes, ...folder });
+		await renderPlace();
+
+		for (const name of ["listLabel", "readerLabel"]) {
+			const pane = screen.getByRole("region", { name });
+			expect(pane).toHaveClass("bg-surface", "rounded-2xl", "min-h-0");
+			expect(pane.className).not.toMatch(/(^|\s)(border|shadow)/);
+		}
+		// The reader scrolls on its own; the list's rows do, inside it.
+		expect(screen.getByRole("region", { name: "readerLabel" })).toHaveClass(
+			"overflow-y-auto",
+		);
+	});
+
+	it("keeps the way into the composer in reach where the sidebar is a sheet", async () => {
+		stubJmap({ ...mailboxes, ...folder });
+		await renderPlace();
+
+		const write = screen.getByRole("link", { name: "compose" });
+		expect(write).toHaveAttribute("href", "/app/mail/compose");
+		expect(write.closest("div")).toHaveClass("md:hidden");
 	});
 
 	it("opens a folder named in the address without waiting for the folder tree", async () => {

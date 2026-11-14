@@ -9,7 +9,8 @@ import { useSidebar } from "../context";
 /**
  * The sidebar: a fixed rail that collapses to icons on desktop and a sheet on
  * a narrow viewport. The sheet needs a name, so the caller passes the already
- * translated `title`, `description` and `closeLabel`.
+ * translated `title`, `description` and `closeLabel`. Following a link inside
+ * the sheet closes it, whichever component drew the link.
  */
 export function Sidebar({
 	className,
@@ -39,7 +40,19 @@ export function Sidebar({
 				data-mobile="true"
 				className="w-(--sidebar-width) bg-sidebar text-sidebar-foreground [--sidebar-width:18rem]"
 			>
-				<div className="flex h-full w-full flex-col">{children}</div>
+				{/* A link followed inside the sheet closes it; the click is read here so what is inside can stay a server-rendered child. */}
+				{/* biome-ignore lint/a11y/useKeyWithClickEvents: a link inside is already operable by keyboard and its Enter fires this same click */}
+				{/* biome-ignore lint/a11y/noStaticElementInteractions: the click only closes the sheet after a link inside it was followed; a link is already operable by keyboard and its Enter fires this same click */}
+				<div
+					className="flex h-full w-full flex-col"
+					onClick={(event) => {
+						if ((event.target as HTMLElement).closest("a")) {
+							setOpenMobile(false);
+						}
+					}}
+				>
+					{children}
+				</div>
 			</Sheet>
 		);
 	}

@@ -103,7 +103,7 @@ export default async function ComposePage({
 		<div className="h-full overflow-y-auto p-2">
 			<section
 				aria-label={title}
-				className="mx-auto max-w-3xl rounded-2xl bg-background"
+				className="mx-auto max-w-3xl rounded-2xl bg-surface"
 			>
 				<div className="flex items-center gap-2 p-2">
 					<Button asChild variant="ghost" size="sm">
@@ -112,7 +112,7 @@ export default async function ComposePage({
 							{t("backToMail")}
 						</Link>
 					</Button>
-					<h2 className="font-semibold text-lg">{title}</h2>
+					<h1 className="font-semibold text-lg">{title}</h1>
 				</div>
 				<ComposeForm initial={initial} />
 			</section>

@@ -40,6 +40,47 @@ export async function resolveServerTree(node: ReactNode): Promise<ReactNode> {
 }
 
 /**
+ * What a frame streams first when its boundaries sit below server components
+ * of its own: the async components outside every `Suspense` boundary are run,
+ * and each boundary gives way to its fallback (resolved the same way) without
+ * anything inside it being run. {@link firstPaint} alone sees only the
+ * boundaries already in the tree it is given.
+ */
+export async function resolveFirstPaint(node: ReactNode): Promise<ReactNode> {
+	if (Array.isArray(node)) {
+		const resolved = await Promise.all(node.map(resolveFirstPaint));
+		return resolved.map((child, index) =>
+			isValidElement(child) && child.key === null
+				? // biome-ignore lint/suspicious/noArrayIndexKey: the list is rebuilt once and never reordered.
+					cloneElement(child, { key: index })
+				: child,
+		);
+	}
+	if (!isValidElement<{ children?: ReactNode; fallback?: ReactNode }>(node)) {
+		return node;
+	}
+	const { type, props } = node;
+	if (type === Suspense) {
+		return resolveFirstPaint(props.fallback ?? null);
+	}
+	if (
+		typeof type === "function" &&
+		type.constructor.name === "AsyncFunction"
+	) {
+		const render = type as (props: unknown) => Promise<ReactNode>;
+		return resolveFirstPaint(await render(props));
+	}
+	if (props.children === undefined) {
+		return node;
+	}
+	return cloneElement(
+		node,
+		undefined,
+		await resolveFirstPaint(props.children),
+	);
+}
+
+/**
  * What a page streams first: every `Suspense` boundary replaced by its
  * fallback, without running anything inside it. A test renders this to assert
  * the frame and the skeleton that paint before the slow part answers.

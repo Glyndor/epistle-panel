@@ -13,6 +13,8 @@
 	"brandSubtitle": "Pannello di amministrazione",
 	"manage": "Gestisci",
 	"toggle": "Mostra o nascondi la barra laterale",
+	"toggleShortcut": "Ctrl+B",
+	"version": "Versione {version}",
 	"sheetTitle": "Navigazione",
 	"sheetDescription": "Pagine del pannello di amministrazione.",
 	"close": "Chiudi",

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { cleanup, render, screen } from "@testing-library/react";
-
+import { SidebarProvider } from "@/components/ui/sidebar/provider";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
 import { clearSecretCache } from "@/lib/config/secret";
 import { withQuery } from "@/test/query-wrapper";
@@ -25,7 +25,7 @@ afterEach(() => {
 });
 
 describe("FolderPane", () => {
-	it("waits, then shows the tree with the active folder marked", async () => {
+	it("waits, then shows the tree", async () => {
 		stubJmap({
 			"Mailbox/get": {
 				list: [
@@ -39,8 +39,13 @@ describe("FolderPane", () => {
 				],
 			},
 		});
+		// The stand-in's address is `/`, which is no folder: the tree marks none.
 		const { container } = render(
-			withQuery(<FolderPane activeId="INBOX" />),
+			withQuery(
+				<SidebarProvider>
+					<FolderPane />
+				</SidebarProvider>,
+			),
 		);
 		expect(container.querySelector("[aria-busy=true]")).not.toBeNull();
 		expect(
@@ -48,12 +53,12 @@ describe("FolderPane", () => {
 		).toBeInTheDocument();
 		expect(
 			screen.getByRole("link", { name: /role_inbox/ }),
-		).toHaveAttribute("aria-current", "page");
+		).toHaveAttribute("href", "/app/mail/inbox");
 	});
 
 	it("says the server is unreachable", async () => {
 		stubJmap({});
-		render(withQuery(<FolderPane activeId="INBOX" />));
+		render(withQuery(<FolderPane />));
 		expect(await screen.findByRole("alert")).toHaveTextContent(
 			"unavailable",
 		);

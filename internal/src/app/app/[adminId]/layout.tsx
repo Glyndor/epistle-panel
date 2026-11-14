@@ -1,8 +1,10 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 import { AdminRoutesProvider } from "@/components/layout/admin-routes";
 import { AppShell } from "@/components/layout/app-shell";
+import { NavMain } from "@/components/layout/nav-main";
 import { QueryProvider } from "@/components/layout/query-provider";
 import { SIDEBAR_COOKIE } from "@/components/ui/sidebar/provider";
 import { navItems } from "@/features/navigation/config/items";
@@ -29,14 +31,24 @@ export default async function AdminLayout({
 	if (!constantTimeEqual((await params).adminId, id)) {
 		notFound();
 	}
+	const t = await getTranslations("nav");
 	const open = (await cookies()).get(SIDEBAR_COOKIE)?.value !== "false";
 
 	return (
 		<AdminRoutesProvider adminId={id}>
 			<QueryProvider>
 				<AppShell
-					groups={navForRole("admin", navItems(routes))}
+					navigation={
+						<NavMain
+							groups={navForRole("admin", navItems(routes))}
+						/>
+					}
 					homeHref={routes.home}
+					subtitle={t("brandSubtitle")}
+					sheet={{
+						title: t("sheetTitle"),
+						description: t("sheetDescription"),
+					}}
 					user={{ name: sub, role: "admin" }}
 					adminHref={routes.home}
 					defaultOpen={open}

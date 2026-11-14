@@ -84,10 +84,18 @@ describe("AdminLayout", () => {
 
 		const { props } = await layoutElement();
 
-		expect(props.groups).toEqual(
+		const navigation = props.navigation as React.ReactElement<{
+			groups: unknown;
+		}>;
+		expect(navigation.props.groups).toEqual(
 			navForRole("admin", navItems(adminRoutes(TEST_ADMIN_ID))),
 		);
 		expect(String(props.homeHref)).toBe(`/app/${TEST_ADMIN_ID}`);
+		expect(props.subtitle).toBe("brandSubtitle");
+		expect(props.sheet).toEqual({
+			title: "sheetTitle",
+			description: "sheetDescription",
+		});
 		expect(props.user).toEqual({ name: "ops", role: "admin" });
 		expect(String(props.adminHref)).toBe(`/app/${TEST_ADMIN_ID}`);
 	});
@@ -108,6 +116,34 @@ describe("AdminLayout", () => {
 			screen.getByRole("navigation", { name: "label" }),
 		).toBeInTheDocument();
 		expect(screen.getByRole("banner")).toBeInTheDocument();
+	});
+
+	it("scrolls the page as a whole under the header", async () => {
+		await cookies.signIn("ops");
+		await renderLayout();
+
+		expect(screen.getByRole("main")).toHaveAttribute(
+			"data-content",
+			"page",
+		);
+		// The administration has no search: its header keeps no cell for one.
+		expect(
+			screen
+				.getByRole("banner")
+				.querySelector("[data-slot='header-search']"),
+		).toBeNull();
+	});
+
+	it("says the version and the copyright notice at the foot of the sidebar, and no storage", async () => {
+		await cookies.signIn("ops");
+		await renderLayout();
+
+		const foot = document.querySelector("[data-slot='sidebar-footer']");
+		expect(foot).toHaveTextContent("version");
+		expect(
+			foot?.querySelector("[data-slot='copyright-notice']"),
+		).not.toBeNull();
+		expect(foot?.querySelector("[data-slot='quota']")).toBeNull();
 	});
 
 	it("starts collapsed only when the saved state says so", async () => {
