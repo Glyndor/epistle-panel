@@ -10,7 +10,7 @@ import {
 import { clearToasts, Toaster } from "@/components/ui/toaster";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
 import { clearSecretCache } from "@/lib/config/secret";
-import { settled, withQuery } from "@/test/query-wrapper";
+import { settled, testQueryClient, withQuery } from "@/test/query-wrapper";
 import { emailFixture, stubJmap } from "../../test-support/jmap-stub";
 
 const originalFetch = globalThis.fetch;
@@ -187,61 +187,180 @@ describe("RowActions", () => {
 		expect(written(seen)[1]).not.toContain("$flagged");
 	});
 
-	it("sends nothing for a press on either button while a change is on its way", async () => {
-		// The answer is held until the case has looked at the waiting buttons.
+	/** Hold every answer of the server until `release` is called. */
+	function holdAnswers() {
 		let release = () => {};
 		const held = new Promise<void>((resolve) => {
 			release = resolve;
 		});
-		const seen = serve();
 		const answer = globalThis.fetch;
 		globalThis.fetch = (async (...args: Parameters<typeof fetch>) => {
 			await held;
 			return answer(...args);
 		}) as typeof fetch;
-		actions();
+		return () => release();
+	}
 
-		fireEvent.click(button("markImportant"));
-		// In the same instant, before anything was rendered again.
+	it("loses no press: two marks set in a row are written one after the other, each on the other's result", async () => {
+		// The server as it is: it keeps what was written and gives it back.
+		let kept: Record<string, boolean> = { $seen: true };
+		const seen = stubJmap({
+			"Email/get": () => ({
+				list: [
+					emailFixture({
+						id: ID,
+						keywords: kept,
+						mailboxIds: { INBOX: true },
+					}),
+				],
+			}),
+			"Email/set": (args: Record<string, unknown>) => {
+				const update = args["update"] as Record<
+					string,
+					{ keywords: Record<string, boolean> }
+				>;
+				kept = update[ID]?.keywords ?? kept;
+				return { updated: { [ID]: null } };
+			},
+		});
+		const release = holdAnswers();
+		const client = testQueryClient();
+		render(
+			withQuery(
+				<RowActions
+					id={ID}
+					box="INBOX"
+					flagged={false}
+					important={false}
+				/>,
+				client,
+			),
+		);
+		const asked = () => client.getMutationCache().getAll();
+
+		// In the same instant, with the server slow.
 		fireEvent.click(button("star"));
 		fireEvent.click(button("markImportant"));
-		// Both wait, and neither left the tab order to do it.
-		await waitFor(() =>
-			expect(button("star")).toHaveAttribute("aria-disabled", "true"),
-		);
-		expect(button("markImportant")).toHaveAttribute(
-			"aria-disabled",
-			"true",
-		);
-		expect(button("star")).not.toBeDisabled();
-		fireEvent.click(button("star"));
 
+		// Both were taken, and the second waits for the first: it has not
+		// read the keywords the first is about to change.
+		await waitFor(() => {
+			expect(asked()).toHaveLength(2);
+			expect(asked().every((one) => one.state.variables)).toBe(true);
+		});
+		expect(asked().map((one) => one.state.isPaused)).toEqual([false, true]);
 		release();
-		await settled();
-		// One write, and it is the first press: a second built from the same
-		// keywords would have taken the important mark off again.
-		expect(written(seen)).toEqual([["$important", "$seen"]]);
-		await waitFor(() =>
-			expect(button("star")).not.toHaveAttribute("aria-disabled"),
-		);
 
-		// And the lock opens: the next press is sent.
-		fireEvent.click(button("star"));
 		await waitFor(() => expect(written(seen)).toHaveLength(2));
+		await settled();
+		// The second was built from what the first left: both marks are there.
+		expect(written(seen)).toEqual([
+			["$flagged", "$seen"],
+			["$flagged", "$important", "$seen"],
+		]);
 	});
 
-	it("opens the lock again after a change the server refused", async () => {
-		stubJmap({ "Email/get": { list: [] } });
-		actions({}, true);
+	it("reads the list again once, after the last change that waits, not between two", async () => {
+		serve();
+		const release = holdAnswers();
+		const client = testQueryClient();
+		const read: string[] = [];
+		const invalidate = client.invalidateQueries.bind(client);
+		client.invalidateQueries = ((filters?: {
+			queryKey?: readonly unknown[];
+		}) => {
+			read.push((filters?.queryKey ?? []).join("/"));
+			return invalidate(filters as never);
+		}) as typeof client.invalidateQueries;
+		render(
+			withQuery(
+				<RowActions
+					id={ID}
+					box="INBOX"
+					flagged={false}
+					important={false}
+				/>,
+				client,
+			),
+		);
 
 		fireEvent.click(button("star"));
-		expect(await screen.findByText("actionFailed")).toBeInTheDocument();
+		fireEvent.click(button("markImportant"));
+		release();
 		await settled();
+		await waitFor(() => expect(read).toContain("mail/list"));
+
+		// Read between the two, the list would come back without the second
+		// mark and take it off the screen until its own answer.
+		expect(read.filter((key) => key === "mail/list")).toHaveLength(1);
+	});
+
+	it("says a change is on its way three ways that are not a colour, and stays pressable", async () => {
+		serve();
+		const release = holdAnswers();
+		actions();
+
+		fireEvent.click(button("star"));
+
+		await waitFor(() =>
+			expect(button("star")).toHaveAttribute("aria-busy", "true"),
+		);
+		for (const each of screen.getAllByRole("button")) {
+			expect(each).toHaveAttribute("aria-busy", "true");
+			// A press made now waits its turn: the button is not shut.
+			expect(each).not.toHaveAttribute("aria-disabled");
+			expect(each).not.toBeDisabled();
+			// The progress cursor, and a dot on its corner that takes no room.
+			expect(each).toHaveClass(
+				"relative",
+				"aria-busy:cursor-progress",
+				"aria-busy:after:absolute",
+				"aria-busy:after:size-1.5",
+				"aria-busy:after:rounded-full",
+				"size-6",
+			);
+		}
+		release();
+		await settled();
+		await waitFor(() =>
+			expect(button("star")).not.toHaveAttribute("aria-busy"),
+		);
+	});
+
+	it("says nothing when a mark was set: the row already shows it", async () => {
 		const seen = serve();
+		actions({}, true);
 
 		fireEvent.click(button("star"));
 
 		await waitFor(() => expect(written(seen)).toHaveLength(1));
+		await settled();
+		expect(screen.queryByText("changed")).toBeNull();
+		expect(screen.queryByRole("status")?.textContent ?? "").toBe("");
+	});
+
+	it("centres its buttons with no transform, which would misplace their fixed tooltips", () => {
+		const { container } = actions();
+		const box = container.querySelector('[data-slot="row-actions"]');
+
+		expect(box).toHaveClass(
+			"flex",
+			"items-center",
+			"group-data-[density=compact]/list:inset-y-0",
+			"pointer-coarse:inset-y-0",
+		);
+		// On a comfortable row it ends with the first line (4 + 24 px): two
+		// pixels lower the buttons lay over the end of the subject's line.
+		expect(box).toHaveClass("top-1");
+		expect(box).not.toHaveClass("top-1.5");
+		for (const element of [box, ...screen.getAllByRole("button")]) {
+			expect(element?.className).not.toMatch(
+				/translate|rotate|scale|skew|transform|filter|perspective/,
+			);
+		}
+		// The box takes no press: the row under it stays a link.
+		expect(box).toHaveClass("pointer-events-none");
+		expect(button("star")).toHaveClass("pointer-events-auto");
 	});
 
 	it("says so when the server refuses the change", async () => {

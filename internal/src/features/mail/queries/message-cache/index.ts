@@ -51,17 +51,33 @@ function flagsAfter(op: MessageOp, flags: Flags): Flags {
 	}
 }
 
-/**
- * Apply a keyword operation to what is on screen at once: the open message, its
- * row in every cached page, and the folder's unread counter. It returns a
- * function that puts all of it back, for a change the server refused.
- */
-export function patchFlags(
+/** The operation that takes `op` back. */
+const INVERSE: Partial<Record<MessageOp, MessageOp>> = {
+	read: "unread",
+	unread: "read",
+	star: "unstar",
+	unstar: "star",
+	important: "unimportant",
+	unimportant: "important",
+};
+
+/** Whether `op` changes any of `flags`. */
+function changes(op: MessageOp, flags: Flags): boolean {
+	const after = flagsAfter(op, flags);
+	return (
+		after.unread !== flags.unread ||
+		after.flagged !== flags.flagged ||
+		after.important !== flags.important
+	);
+}
+
+/** Apply `op` to the open message, its row in every cached page and the folder's unread counter. Answers whether it changed the message. */
+function apply(
 	client: QueryClient,
 	id: string,
 	op: MessageOp,
 	mailboxId: string | null,
-): () => void {
+): boolean {
 	const message = client.getQueryData<MessageDetail | null>(
 		mailKeys.message(id),
 	);
@@ -69,7 +85,7 @@ export function patchFlags(
 		queryKey: mailKeys.lists,
 	});
 	const boxes = client.getQueryData<MailboxView[]>(mailKeys.mailboxes);
-	let wasUnread: boolean | undefined = message?.unread;
+	let before: Flags | undefined = message ?? undefined;
 
 	if (message) {
 		client.setQueryData<MessageDetail | null>(mailKeys.message(id), {
@@ -87,7 +103,7 @@ export function patchFlags(
 				if (item.id !== id) {
 					return item;
 				}
-				wasUnread ??= item.unread;
+				before ??= item;
 				return {
 					...item,
 					...flagsAfter(op, item),
@@ -95,11 +111,14 @@ export function patchFlags(
 			}),
 		});
 	}
-	if (boxes && mailboxId !== null && wasUnread !== undefined) {
+	if (before === undefined) {
+		return false;
+	}
+	if (boxes && mailboxId !== null) {
 		const delta =
-			op === "read" && wasUnread
+			op === "read" && before.unread
 				? -1
-				: op === "unread" && !wasUnread
+				: op === "unread" && !before.unread
 					? 1
 					: 0;
 		if (delta !== 0) {
@@ -113,15 +132,30 @@ export function patchFlags(
 			);
 		}
 	}
+	return changes(op, before);
+}
+
+/**
+ * Apply a keyword operation to what is on screen at once: the open message, its
+ * row in every cached page, and the folder's unread counter. It returns a
+ * function that takes that one change back, for a change the server refused.
+ *
+ * Taking it back is the opposite operation applied to what is cached by then,
+ * not a copy of what was there before: several changes to one message wait
+ * for each other, and a copy from before the first would also take back every
+ * change made after it. An operation that changed nothing takes nothing back.
+ */
+export function patchFlags(
+	client: QueryClient,
+	id: string,
+	op: MessageOp,
+	mailboxId: string | null,
+): () => void {
+	const changed = apply(client, id, op, mailboxId);
+	const inverse = INVERSE[op];
 	return () => {
-		if (message) {
-			client.setQueryData(mailKeys.message(id), message);
-		}
-		for (const [key, list] of lists) {
-			client.setQueryData(key, list);
-		}
-		if (boxes) {
-			client.setQueryData(mailKeys.mailboxes, boxes);
+		if (changed && inverse !== undefined) {
+			apply(client, id, inverse, mailboxId);
 		}
 	};
 }
