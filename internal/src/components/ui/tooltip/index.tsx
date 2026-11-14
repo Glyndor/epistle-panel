@@ -185,6 +185,14 @@ export function Tooltip({
 		clearTimeout(hideTimer.current);
 		setPlace(null);
 	};
+	// The pointer or the focus left the control: the next time is a new visit,
+	// unless they left for the menu the control itself opened. That menu hands
+	// the focus back when it closes, and the name was read before it opened.
+	const endVisit = (element: HTMLElement) => {
+		if (!hasPopupOpen(element)) {
+			sentAway.current = false;
+		}
+	};
 	// The tooltip can be reached with the pointer, so it must not stand between
 	// the pointer and another control: over one that is not its own (the
 	// button of the next row, 12 px away) it goes at once and the press lands.
@@ -287,7 +295,7 @@ export function Tooltip({
 				}}
 				onPointerLeave={(event: React.PointerEvent<HTMLElement>) => {
 					props.onPointerLeave?.(event);
-					sentAway.current = false;
+					endVisit(event.currentTarget);
 					hide();
 				}}
 				onPointerDown={(event: React.PointerEvent<HTMLElement>) => {
@@ -308,7 +316,7 @@ export function Tooltip({
 				}}
 				onBlur={(event: React.FocusEvent<HTMLElement>) => {
 					props.onBlur?.(event);
-					sentAway.current = false;
+					endVisit(event.currentTarget);
 					hide();
 				}}
 				onKeyDown={(event: React.KeyboardEvent<HTMLElement>) => {

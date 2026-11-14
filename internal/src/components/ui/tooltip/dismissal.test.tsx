@@ -191,6 +191,59 @@ describe("Tooltip: sent away and brought back", () => {
 		expect(tip()).not.toBeNull();
 	});
 
+	it("stays away while the menu the control opened is open, and after it hands the focus back", () => {
+		render(
+			<Tooltip label="Theme">
+				<button
+					type="button"
+					aria-haspopup="menu"
+					aria-expanded="false"
+				>
+					<span className="sr-only">Theme</span>
+				</button>
+			</Tooltip>,
+		);
+		const button = screen.getByRole("button", { name: "Theme" });
+		keyboardFocus(button, true);
+		const open = (is: boolean) =>
+			button.setAttribute("aria-expanded", String(is));
+
+		for (const opened of ["pointer", "Enter", " "] as const) {
+			// It shows, the control is used, and its menu opens.
+			if (opened === "pointer") {
+				fireEvent.pointerEnter(button);
+				fireEvent.pointerDown(button);
+			} else {
+				fireEvent.focus(button);
+				fireEvent.keyDown(button, { key: opened });
+			}
+			expect(tip()).toBeNull();
+			open(true);
+			// The focus goes into the menu, and the pointer too.
+			fireEvent.blur(button);
+			fireEvent.pointerLeave(button);
+			// Escape closes the menu, which gives the focus back to its button.
+			open(false);
+			fireEvent.focus(button);
+			expect([opened, tip()]).toEqual([opened, null]);
+
+			// Tab away and back: a new visit, and the name is shown again.
+			fireEvent.blur(button);
+			fireEvent.focus(button);
+			expect([opened, tip() === null]).toEqual([opened, false]);
+			fireEvent.blur(button);
+		}
+
+		// The pointer coming back after the menu closed is a new visit too.
+		fireEvent.pointerEnter(button);
+		fireEvent.pointerDown(button);
+		open(true);
+		fireEvent.pointerLeave(button);
+		open(false);
+		fireEvent.pointerEnter(button);
+		expect(tip()).not.toBeNull();
+	});
+
 	it("takes its Escape listener off the page when it goes", () => {
 		const added: string[] = [];
 		const removed: string[] = [];
