@@ -93,4 +93,21 @@ describe("SuppressionTable", () => {
 		render(withAdminArea(<SuppressionTable after={undefined} />));
 		expect(await screen.findByRole("alert")).toHaveClass("bg-warning");
 	});
+
+	it("shows the whole page the API sent, with no second paging and no Filters menu", async () => {
+		stubFetchJson({
+			addresses: Array.from(
+				{ length: 30 },
+				(_, index) => `a${index}@example.org`,
+			),
+		});
+
+		render(withAdminArea(<SuppressionTable after={undefined} />));
+		await screen.findByText("a0@example.org");
+
+		expect(addresses()).toHaveLength(30);
+		expect(screen.queryByRole("navigation")).toBeNull();
+		expect(screen.queryByRole("combobox")).toBeNull();
+		expect(screen.queryByRole("button", { name: /filters/ })).toBeNull();
+	});
 });

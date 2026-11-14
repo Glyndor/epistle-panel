@@ -28,7 +28,8 @@ another host would be blocked.
 | Icon | Where | Source | Licence |
 |---|---|---|---|
 | `EpistleMark` | sidebar header | drawn for this panel, `components/icons/epistle-mark` | the repository's own (MIT) |
-| Lucide: `LayoutDashboardIcon`, `GlobeIcon`, `UsersIcon`, `InboxIcon`, `BanIcon`, `HistoryIcon`, `LanguagesIcon`, `LogOutIcon`, `PanelLeftIcon`, `XIcon`, `ChevronRightIcon`, `InboxIcon` | navigation, language menu, sign out, sidebar toggle, sheet close, breadcrumb mark, empty tables | `lucide-react` | ISC |
+| Lucide: `LayoutDashboardIcon`, `GlobeIcon`, `UsersIcon`, `InboxIcon`, `BanIcon`, `HistoryIcon`, `ShieldIcon`, `LogOutIcon`, `SunIcon`, `MoonIcon`, `MonitorIcon`, `PanelLeftIcon`, `XIcon`, `ChevronRightIcon`, `InboxIcon` | navigation, the administration entry and sign out of the profile menu, the theme button, sidebar toggle, sheet close, breadcrumb mark, empty tables | `lucide-react` | ISC |
+| Lucide: `ListFilterIcon`, `CheckIcon`, `ChevronLeftIcon`, `ChevronRightIcon`, `MoreHorizontalIcon` | the Filters button of a table, the tick of a menu box, previous and next page, the gap between page numbers | `lucide-react` | ISC |
 
 The custom component's test asserts the properties above: decorative, 24 px
 `viewBox`, `currentColor`, and no script, style or external reference.

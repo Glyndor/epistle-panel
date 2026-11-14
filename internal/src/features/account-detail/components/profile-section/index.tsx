@@ -1,5 +1,3 @@
-"use client";
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
@@ -9,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
 	Form,
 	FormControl,
+	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
@@ -21,7 +20,8 @@ import { SectionCard } from "@/features/account-detail/components/section-card";
 import { reportFailure } from "@/features/account-detail/queries/action-feedback";
 import {
 	DISPLAY_NAME_ERROR_KEYS,
-	DISPLAY_NAME_MAX,
+	DISPLAY_NAME_HTML_MAX,
+	DISPLAY_NAME_HTML_PATTERN,
 	type DisplayNameFormInput,
 	displayNameFormSchema,
 } from "@/features/account-detail/schemas/display-name-form";
@@ -91,7 +91,7 @@ export function ProfileSection({ account }: { account: AccountRow }) {
 							control={form.control}
 							name="displayName"
 							render={({ field }) => (
-								<FormItem>
+								<FormItem described>
 									<FormLabel>
 										{t("displayNameLabel")}
 									</FormLabel>
@@ -100,12 +100,14 @@ export function ProfileSection({ account }: { account: AccountRow }) {
 											{...field}
 											type="text"
 											autoComplete="off"
-											maxLength={DISPLAY_NAME_MAX * 2}
+											maxLength={DISPLAY_NAME_HTML_MAX}
+											pattern={DISPLAY_NAME_HTML_PATTERN}
+											title={t("displayNameFormat")}
 										/>
 									</FormControl>
-									<p className="text-muted-foreground text-xs">
+									<FormDescription>
 										{t("displayNameHelp")}
-									</p>
+									</FormDescription>
 									<FormMessage render={message} />
 								</FormItem>
 							)}

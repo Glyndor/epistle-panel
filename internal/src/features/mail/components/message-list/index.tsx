@@ -4,9 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { getMessageListAction } from "@/features/mail/actions/get-message-list";
 import { ListPager } from "@/features/mail/components/list-pager";
+import { ListSkeleton } from "@/features/mail/components/list-skeleton";
 import { MailNotice } from "@/features/mail/components/mail-notice";
 import { useMailShortcuts } from "@/features/mail/components/message-list/use-mail-shortcuts";
 import { MessageRow } from "@/features/mail/components/message-row";
@@ -49,16 +49,7 @@ export function MessageList({
 	});
 
 	if (isPending) {
-		return (
-			<div className="flex flex-col gap-2 p-3" aria-busy="true">
-				<span className="sr-only" role="status">
-					{t("loading")}
-				</span>
-				<Skeleton className="h-14" />
-				<Skeleton className="h-14" />
-				<Skeleton className="h-14" />
-			</div>
-		);
+		return <ListSkeleton />;
 	}
 	if (data === undefined || isError) {
 		return (

@@ -10,13 +10,27 @@ export const intl: {
 	locale: string;
 	messages: Record<string, unknown>;
 	providerMessages: Record<string, unknown> | undefined;
-} = { locale: "en", messages: {}, providerMessages: undefined };
+	/**
+	 * Every message a server component asked for, in order, with the values it
+	 * passed. The stand-in prints the key alone, so a test that cares what went
+	 * into a sentence reads it here.
+	 */
+	said: { key: string; values: Record<string, unknown> | undefined }[];
+} = { locale: "en", messages: {}, providerMessages: undefined, said: [] };
 
 /** Put the stand-in state back to its defaults. */
 export function resetIntl(): void {
 	intl.locale = "en";
 	intl.messages = {};
 	intl.providerMessages = undefined;
+	intl.said = [];
+}
+
+/** The values of every use of `key` by a server component since the last reset. */
+export function saidWith(key: string): (Record<string, unknown> | undefined)[] {
+	return intl.said
+		.filter((message) => message.key === key)
+		.map((message) => message.values);
 }
 
 /** Stand-in for the client provider: record the catalog it got, render the children. */
@@ -33,6 +47,19 @@ const STAND_INS: Record<string, () => object> = {
 	"next-intl/server": () => serverStandIn(),
 	"next-intl": () => clientStandIn(),
 };
+
+/**
+ * Put another module under the same protection: from now on a file that mocks
+ * `specifier` keeps its own exports and gets every other one from `standIn`.
+ * The module is mocked with the stand-in at once.
+ */
+export function registerStandIn(
+	specifier: string,
+	standIn: () => object,
+): void {
+	STAND_INS[specifier] = standIn;
+	mock.module(specifier, standIn);
+}
 
 /**
  * Wrap a per-file mock factory so what it leaves out comes from the shared
@@ -81,9 +108,15 @@ export function installNextIntlMocks(): void {
 /** Exports of the `next-intl/server` stand-in. */
 export function serverStandIn() {
 	return {
-		getTranslations: async () => (key: string) => key,
+		getTranslations:
+			async () => (key: string, values?: Record<string, unknown>) => {
+				intl.said.push({ key, values });
+				return key;
+			},
 		getFormatter: async () => ({
 			number: (value: number) => String(value),
+			dateTime: (value: Date) => value.toISOString(),
+			list: (values: Iterable<string>) => [...values].join(", "),
 		}),
 		getLocale: async () => intl.locale,
 		getMessages: async () => intl.messages,

@@ -94,6 +94,7 @@ scenario_mail() {
 	assert_contains "its policy sandboxes the response" "$(header content-security-policy)" "sandbox allow-popups allow-popups-to-escape-sandbox"
 	assert_absent "its policy has no script allowance" "$(header content-security-policy)" "allow-scripts"
 	assert_eq "it may be framed by the panel only" "$(header x-frame-options)" "SAMEORIGIN"
+	assert_eq "what came from outside sends no referrer at all, unlike the panel's own pages" "$(header referrer-policy)" "no-referrer"
 	assert_eq "it is never cached" "$(header cache-control)" "private, no-store"
 	assert_eq "it is never sniffed" "$(header x-content-type-options)" "nosniff"
 	assert_contains "it is HTML" "$(header content-type)" "text/html"
@@ -133,6 +134,16 @@ scenario_mail() {
 	assert_eq "it is never sniffed" "$(header x-content-type-options)" "nosniff"
 	assert_contains "the panel's own policy covers it, which forbids framing" "$(header content-security-policy)" "frame-ancestors 'none'"
 	assert_contains "its bytes arrive" "$(cat "$work/b")" "%PDF-1.4"
+	# A file that turns out longer than the panel relays, with no size declared:
+	# the download breaks off, so it is never saved as a whole file.
+	set_oversize_blobs true
+	local cut_exit=0 cut_size
+	cut_size=$(curl -s -o /dev/null -w '%{size_download}' -b "$good" "$panel/app/mail/attachment/$MAIL_ATTACHMENTS/2") || cut_exit=$?
+	set_oversize_blobs false
+	assert_eq "a download past 25 MiB breaks off: curl does not end it cleanly" "$([[ $cut_exit -ne 0 ]] && echo broken || echo whole)" broken
+	assert_eq "and no byte past 25 MiB was passed on" "$([[ $cut_size -le 26214400 ]] && echo within || echo "over: $cut_size")" within
+	fetch "/app/mail/attachment/$MAIL_ATTACHMENTS/2" "$good"
+	assert_eq "the next download is whole again" "$status" 200
 	fetch "/app/mail/attachment/$MAIL_ATTACHMENTS/3" "$good"
 	assert_eq "the HTML attachment is octet-stream" "$(header content-type)" "application/octet-stream"
 	assert_contains "and an attachment" "$(header content-disposition)" "attachment;"
@@ -200,7 +211,20 @@ scenario_mail() {
 
 	local draft='{"op":"draft","to":[{"email":"to@example.org"}],"cc":[],"bcc":[{"email":"hidden@example.org"}],"subject":"Draft subject","text":"draft body","attachments":[]}'
 	assert_eq "no cookie: compose route is redirected" "$(mail_post /app/mail/compose-message "$draft" "")" 307
-	assert_eq "no cookie: upload route is redirected" "$(mail_post /app/mail/upload "x" "")" 307
+	# The upload route is outside the proxy, which would hold its 25 MiB body in
+	# memory, so the route answers for itself: no redirect, its own refusal.
+	assert_eq "no cookie: the upload route refuses for itself" "$(mail_post /app/mail/upload "x" "" "$panel" application/pdf)" 401
+	assert_contains "as unauthenticated" "$(cat "$work/b")" '"reason":"unauthenticated"'
+	curl -s -o /dev/null -D "$work/h" -X POST -H "Origin: $panel" -H 'Content-Type: application/pdf' --data-binary x "$panel/app/mail/upload"
+	assert_eq "its answer carries its own policy" "$(header content-security-policy)" "default-src 'none'; frame-ancestors 'none'"
+	assert_eq "is not to be sniffed" "$(header x-content-type-options)" "nosniff"
+	assert_eq "is not to be indexed" "$(header x-robots-tag)" "noindex, nofollow, noarchive, nosnippet, noimageindex"
+	assert_eq "and is not to be kept" "$(header cache-control)" "private, no-store"
+	assert_eq "a path beside it is still the proxy's: no cookie is sent to sign in" "$(mail_post /app/mail/uploadx "x" "")" 307
+	assert_eq "and so is the path with a slash after it" "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Origin: $panel" --data-binary x "$panel/app/mail/upload/")" 308
+	# A body is declared and never sent: whoever answers has decided without it.
+	assert_eq "no cookie: the upload route refuses before any of the body arrives" "$(node "$root/scripts/e2e/lib/declare-only.mjs" "$panel/app/mail/upload?name=a.bin" 26214400)" 401
+	assert_eq "a session: a file declared over 25 MiB is refused before any of it arrives" "$(node "$root/scripts/e2e/lib/declare-only.mjs" "$panel/app/mail/upload?name=a.bin" 26214401 "$good")" 413
 	before=$(api_count '"method"')
 	assert_eq "a foreign origin is refused" "$(mail_post /app/mail/compose-message "$draft" "$good" https://evil.test)" 403
 	assert_eq "no origin is refused" "$(mail_post /app/mail/compose-message "$draft" "$good" -)" 403
@@ -236,12 +260,26 @@ scenario_mail() {
 	blob=$(grep -o '"blobId":"[^"]*"' "$work/b" | sed 's/"blobId":"//; s/"//')
 	head -c 12000000 /dev/zero >"$work/big.bin"
 	file_status=$(curl -s -o "$work/b" -w '%{http_code}' -X POST -b "$good" -H "Origin: $panel" -H 'Content-Type: application/octet-stream' --data-binary "@$work/big.bin" "$panel/app/mail/upload?name=big.bin")
-	assert_eq "a 12 MB file is uploaded whole: the proxy does not cut it at its own 10 MB buffer" "$file_status" 200
+	assert_eq "a 12 MB file is uploaded whole: it does not pass through the proxy's 2 MB buffer" "$file_status" 200
 	assert_contains "and its size is the whole file" "$(cat "$work/b")" '"size":12000000'
+	local upload_entry
+	upload_entry=$(api_log | { grep -o '{[^{}]*"path":"/jmap/upload/[^{}]*}' || true; } | tail -1)
+	assert_contains "the mail server was told its length" "$upload_entry" '"content-length"'
+	assert_absent "and did not get it in chunks of unknown total" "$upload_entry" '"transfer-encoding"'
 	head -c 27000000 /dev/zero >"$work/huge.bin"
 	file_status=$(curl -s -o "$work/b" -w '%{http_code}' -X POST -b "$good" -H "Origin: $panel" -H 'Content-Type: application/octet-stream' --data-binary "@$work/huge.bin" "$panel/app/mail/upload?name=huge.bin" || true)
 	assert_eq "a file over 25 MiB is refused" "$file_status" 413
 	rm -f "$work/big.bin" "$work/huge.bin"
+	# The proxy keeps 2 MB of a body. A message over the composer's own 1.5 MB is
+	# refused by its route from its declared size, under that buffer and over it.
+	head -c 1600000 /dev/zero | tr '\0' 'a' >"$work/long.json"
+	assert_eq "a message of 1.6 MB is refused by the composer's own limit" "$(curl -s -o "$work/b" -w '%{http_code}' -X POST -b "$good" -H "Origin: $panel" -H 'Content-Type: application/json' --data-binary "@$work/long.json" "$panel/app/mail/compose-message")" 413
+	assert_contains "with the route's own answer" "$(cat "$work/b")" '"reason":"invalid"'
+	head -c 3000000 /dev/zero | tr '\0' 'a' >"$work/long.json"
+	assert_eq "and so is one of 3 MB, which the proxy's buffer would have cut" "$(curl -s -o "$work/b" -w '%{http_code}' -X POST -b "$good" -H "Origin: $panel" -H 'Content-Type: application/json' --data-binary "@$work/long.json" "$panel/app/mail/compose-message")" 413
+	assert_contains "with the route's own answer too" "$(cat "$work/b")" '"reason":"invalid"'
+	assert_eq "a body of 3 MB with no session still gets its answer" "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Origin: $panel" --data-binary "@$work/long.json" "$panel/app/mail")" 307
+	rm -f "$work/long.json"
 
 	local send="{\"op\":\"send\",\"to\":[{\"name\":\"Zed\",\"email\":\"zed@example.org\"}],\"cc\":[],\"bcc\":[{\"email\":\"hidden@example.org\"}],\"subject\":\"Sent subject\",\"text\":\"sent body\",\"attachments\":[{\"blobId\":\"$blob\",\"name\":\"report_.pdf\",\"type\":\"application/pdf\"}],\"draftId\":\"$draft_id\"}"
 	assert_eq "sending" "$(mail_post /app/mail/compose-message "$send" "$good")" 200

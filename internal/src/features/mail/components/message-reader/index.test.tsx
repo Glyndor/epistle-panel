@@ -10,7 +10,7 @@ import { clearToasts } from "@/components/ui/toaster";
 
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
 import { clearSecretCache } from "@/lib/config/secret";
-import { withQuery } from "@/test/query-wrapper";
+import { settled, withQuery } from "@/test/query-wrapper";
 import { emailFixture, stubJmap } from "../../test-support/jmap-stub";
 
 const originalFetch = globalThis.fetch;
@@ -34,7 +34,10 @@ beforeEach(async () => {
 	})) as typeof window.matchMedia;
 });
 afterEach(clearToasts);
-afterEach(() => {
+afterEach(async () => {
+	// The reader marks an unread message as read when it opens: that call is
+	// let finish against this case's stub.
+	await settled();
 	window.matchMedia = originalMatchMedia;
 	process.env = { ...savedEnv };
 	cleanup();

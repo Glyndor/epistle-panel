@@ -1,17 +1,21 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 
+import { HOSTILE_THEME_VALUES } from "@/features/theme/test-support/hostile-choices";
 import { SUPPORTED_LOCALES } from "@/i18n/locales";
 import { loadMessages } from "@/i18n/messages";
+import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
 import { installNextIntlMocks, intl, resetIntl } from "@/test/next-intl";
 
 // Put the plain stand-ins back in case another file overrode one of them
 // before the layout is first imported.
 installNextIntlMocks();
+const cookies = mockRequestCookies();
 
 const { default: RootLayout, generateMetadata } = await import("./layout");
 
 beforeEach(async () => {
+	cookies.reset();
 	resetIntl();
 	intl.messages = await loadMessages("en");
 });
@@ -74,6 +78,49 @@ describe("RootLayout", () => {
 
 			expect(html).toStartWith(`<html lang="${locale}"`);
 			expect(html).toContain('<main id="main-content">content</main>');
+		}
+	});
+
+	it("paints a chosen theme on the html element, so the first frame is already in it", async () => {
+		for (const theme of ["light", "dark"]) {
+			cookies.jar.set("theme", theme);
+
+			expect(await renderLayout()).toStartWith(
+				`<html lang="en" data-theme="${theme}" class=`,
+			);
+		}
+	});
+
+	it("hands the choice to the client components it renders", async () => {
+		const { ThemeSwitcher } = await import(
+			"@/features/theme/components/theme-switcher"
+		);
+		for (const choice of ["system", "light", "dark"]) {
+			cookies.jar.set("theme", choice);
+
+			const html = renderToStaticMarkup(
+				await RootLayout({ children: <ThemeSwitcher /> }),
+			);
+
+			expect(html).toContain(`data-theme-choice="${choice}"`);
+		}
+	});
+
+	it("leaves the theme to the browser without a choice, and for the system choice", async () => {
+		expect(await renderLayout()).not.toContain("data-theme");
+
+		cookies.jar.set("theme", "system");
+		expect(await renderLayout()).not.toContain("data-theme");
+	});
+
+	it("never puts a tampered theme cookie in the page", async () => {
+		const clean = await renderLayout();
+		for (const value of HOSTILE_THEME_VALUES) {
+			cookies.jar.set("theme", value);
+
+			// Not as an attribute and not anywhere else: the page is the one
+			// a request without the cookie gets.
+			expect(await renderLayout()).toBe(clean);
 		}
 	});
 

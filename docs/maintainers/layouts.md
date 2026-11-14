@@ -61,6 +61,32 @@ sidebar entry; the Accounts entry is marked on it, as the page of
 `/app/{id}/accounts`. Its `not-found.tsx` in `[adminId]` renders inside the shell
 without a second `main` landmark.
 
+## Breadcrumbs
+
+Every admin page draws the trail to itself above its heading, with
+`AdminBreadcrumbs` (`features/navigation/components/admin-breadcrumbs`): the
+administration, the page and, on a page about one thing (an account), that
+thing. `queries/admin-trail` builds it from the admin routes and the key of the
+page's navigation label, so a trail cannot name a path the panel does not have
+and the name of the thing is never part of an address. The last step is the
+current page (`aria-current="page"`, not a link).
+
+A page passes the routes it got from `requireAdmin()`. Its `loading.tsx` is
+given no parameters, so it takes them from `queries/loading-routes` and renders
+the same call: the trail is in the first paint and does not move when the page
+arrives. The account page's loading state does not know the account, so a bar
+holds the place of the last step. To add a page, add its navigation entry (the
+trail reads the same label) and render `AdminBreadcrumbs` in the page and in
+its `loading.tsx`; `streaming.test.tsx` compares the two.
+
+A `loading.tsx` is the first paint of every page in the folders below it, not
+only of the page beside it. So a page that has other pages below it (the status
+page at the root of the area, the accounts list above the account page) lives
+in a route group, `(status)` and `accounts/(list)`, with its own `loading.tsx`.
+Before that, measured in Chromium against the built server, a load of the
+domains page painted the Status heading first. `streaming.test.tsx` fails when
+a loading state sits above a page that is not its own.
+
 ## How the 404 stays one
 
 The proxy lets four things on to the router: `/`, `/app/mail` with a session,
@@ -82,6 +108,36 @@ The proxy matcher stays wide so every page, public or not, gets the nonce-bearin
 CSP; the decision is in the proxy function, not in the matcher, and the pages and
 Server Actions still check the role themselves.
 
+## The header's far end
+
+`components/layout/header-actions` is the far end of both headers, the admin
+shell's and the webmail's: the theme button and the profile menu. It is one
+component, so the two areas cannot drift. The profile menu
+(`components/layout/user-menu`, its Radix code loaded on the first press) shows
+what the layout read from the session and nothing else: the account's name,
+its initials and its role, then the language, the theme, the way into the
+administration and sign out. The address of the administration is built on the
+server and handed down only for an admin session in an installation whose
+admin area is on; the menu never derives it from the role.
+
+Inside one menu, one thing goes to the server at a time: while a language or a
+theme picked there is being stored, or the session is being ended, that menu's
+button is marked busy and looks it, and its rows wait. The two menus are
+independent of each other on purpose: the theme and the language are separate
+choices, each stored by its own action, so a theme picked from the theme button
+while a language is on its way is stored as well, and both hold.
+
+Both buttons open from the keyboard with Enter, Space or the down arrow, with
+the focus on the first row, also on the first press, before the menu's code has
+arrived.
+
+The menu needs script. Sign out and the way into the administration are also
+in the served page as a plain form and a plain link, inside a `noscript`, so a
+browser without script keeps both. They take room the menu does not: the
+header is a row with a least height that wraps, so on a narrow window without
+script that end goes under the rest of the bar and the page is not pushed
+sideways.
+
 ## The shell and its contract
 
 `components/layout/app-shell` draws the skip link, the sidebar, the header and
@@ -96,3 +152,62 @@ rail and its regions are separate leaves) and keeps the same rules:
   with Tailwind's `[--name:value]`, and an overlay is measured in the built
   server for CSP violations (see `shadcn.md`);
 - 32 px controls on a fine pointer, 44 px on a coarse one.
+
+## Theme
+
+Light, dark or the system's, chosen from the theme button of each header
+(`features/theme/components/theme-switcher`). The choice lives in the `theme`
+cookie and nowhere else:
+
+- `features/theme/config/choices` is the one list (`system`, `light`, `dark`).
+- The root layout is the only reader of the cookie (`queries/theme-choice`).
+  It writes `data-theme="light"` or `data-theme="dark"` on `<html>`; for
+  `system`, no cookie or a value that is not exactly a choice there is no
+  attribute. The server paints it because the policy allows no inline script
+  that could set it before the first frame: a reload shows no other theme
+  first.
+- `styles/theme.css` holds the dark values for both ways of getting them (the
+  browser prefers dark and light was not chosen, or dark was chosen) and a test
+  keeps the two lists equal. It also sets `color-scheme`, so the list of a
+  native select and the scrollbars follow. The framed body of a message is
+  another document: the frame's address carries the pinned theme (`?theme=`,
+  parsed again by the route) and the body writes it into its own
+  `color-scheme`, so a change of theme loads the frame again in the new one.
+- The button changes the attribute at once and calls the `set-theme` Server
+  Action, which checks the session, parses the value with the same schema and
+  writes the cookie (Secure, SameSite=Lax, a year; not HttpOnly, so
+  `global-error`, which replaces the document, can read it in the browser).
+  When the action refuses, the previous theme comes back and a toast says so.
+- Every control that shows the theme reads the attribute
+  (`hooks/use-theme-choice`), so two of them on one page cannot disagree. While
+  a client component is rendered on the server there is no document to read:
+  the root layout hands the choice down through `ThemeChoiceProvider`.
+
+## Server first, streamed
+
+A page is a Server Component. It checks the session, paints its heading and
+puts the part that waits for the API inside `Suspense` with a skeleton of the
+same shape as the view that is coming (`components/skeletons/`, and one per
+feature where the view has its own shape), so the frame and the heading leave
+before the API answers. Each route also has a `loading.tsx` with that skeleton
+for the navigation between pages. `PrefetchBoundary` is the part that waits: it
+runs the page's queries on the server and hands the result to the client
+components below it.
+
+`"use client"` goes on the smallest component that needs state, an effect, an
+event handler or a browser API, never on a page or a layout. A table's rows, a
+section's text and a skeleton stay server components; the button, the form and
+the menu inside them are the client leaves.
+
+The status page sends more than a heading in that first part: the headings and
+period links of its charts need no data, and each chart card streams in behind
+a skeleton of its own shape, written with the title, the legend and the button
+words the card will have (`charts.md`). Those cards are Server Components that read the
+API themselves, with no client component under them but the "View data" button.
+
+The account page is the one exception to "paint first": it reads the accounts
+list before it sends anything, so an account that does not exist is a 404 and
+costs no per-account call.
+
+The `streaming` end-to-end scenario measures this against the built server with
+a slow API.

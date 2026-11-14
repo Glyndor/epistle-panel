@@ -9,6 +9,7 @@ import type error from "@/i18n/messages/en/error.json";
 import type mail from "@/i18n/messages/en/mail.json";
 import type nav from "@/i18n/messages/en/nav.json";
 import type notFound from "@/i18n/messages/en/notFound.json";
+import type overview from "@/i18n/messages/en/overview.json";
 import type queue from "@/i18n/messages/en/queue.json";
 import type suppression from "@/i18n/messages/en/suppression.json";
 import type table from "@/i18n/messages/en/table.json";
@@ -20,6 +21,7 @@ declare module "next-intl" {
 	interface AppConfig {
 		Messages: {
 			dashboard: typeof dashboard;
+			overview: typeof overview;
 			nav: typeof nav;
 			domains: typeof domains;
 			accounts: typeof accounts;

@@ -6,8 +6,8 @@ import {
 	RedirectSignal,
 } from "@/lib/auth/test-support/cookies";
 import { clearSecretCache } from "@/lib/config/secret";
-import { withQuery } from "@/test/query-wrapper";
-import { resolveServerTree } from "@/test/server-tree";
+import { settled, withQuery } from "@/test/query-wrapper";
+import { firstPaint, resolveServerTree } from "@/test/server-tree";
 
 const originalFetch = globalThis.fetch;
 const savedEnv = { ...process.env };
@@ -39,6 +39,23 @@ const folder = {
 	"Email/query": { ids: [ID] },
 	"Email/get": { list: [emailFixture({ id: ID, subject: "Listed" })] },
 };
+/**
+ * The same folder with its message already read. The reader marks an unread
+ * message as read when it opens; a case that opens the reader and ends would
+ * leave that call on its way, to land in the stub of the next case.
+ */
+const readFolder = {
+	...folder,
+	"Email/get": {
+		list: [
+			emailFixture({
+				id: ID,
+				subject: "Listed",
+				keywords: { $seen: true },
+			}),
+		],
+	},
+};
 
 beforeEach(async () => {
 	clearSecretCache();
@@ -47,7 +64,12 @@ beforeEach(async () => {
 	process.env["EPISTLE_API_TOKEN"] = "t";
 	await cookies.signIn("admin");
 });
-afterEach(() => {
+afterEach(async () => {
+	// A pane whose data did not come from the server asks for it in the browser
+	// as soon as it mounts. That call is let finish against this case's stub:
+	// left on its way it lands in the next case's, with the next case's token
+	// (the token is read when the call is made).
+	await settled();
 	process.env = { ...savedEnv };
 	cleanup();
 	globalThis.fetch = originalFetch;
@@ -104,12 +126,64 @@ describe("MailPage", () => {
 	});
 
 	it("opens the reader for a message in the address", async () => {
-		stubJmap({ ...mailboxes, ...folder });
+		stubJmap({ ...mailboxes, ...readFolder });
 		await renderPage({ msg: ID });
 		expect(
 			await screen.findByRole("heading", { level: 2, name: "Listed" }),
 		).toBeInTheDocument();
 		expect(screen.queryByText("readerEmpty")).toBeNull();
+	});
+
+	it("sends the frame of the three panes and a skeleton in each before the mail server is asked anything", async () => {
+		// A token of its own: a call another case left on its way carries the
+		// usual one, so only what this page asks is counted.
+		process.env["EPISTLE_API_TOKEN"] = "frame-only-token";
+		clearSecretCache();
+		const seen = stubJmap({ ...mailboxes, ...readFolder });
+		const asked = () =>
+			seen.filter((r) => r.authorization === "Bearer frame-only-token");
+		const tree = await MailPage({
+			searchParams: Promise.resolve({ msg: ID }),
+		});
+
+		expect(asked()).toHaveLength(0);
+		// Every boundary gives way to its fallback and is not run; what is left of
+		// the frame (it has server components of its own) is then resolved.
+		const { container } = render(
+			withQuery(await resolveServerTree(firstPaint(tree))),
+		);
+		expect(
+			screen.getByRole("region", { name: "listLabel" }),
+		).toBeInTheDocument();
+		expect(
+			screen.getByRole("region", { name: "readerLabel" }),
+		).toBeInTheDocument();
+		// The folders (the side pane; the sheet holds its copy until opened), the list and the reader.
+		expect(
+			container.querySelectorAll('[aria-busy="true"]').length,
+		).toBeGreaterThanOrEqual(3);
+		expect(screen.getByText("loading")).toBeInTheDocument();
+		expect(screen.getByText("readerLoading")).toBeInTheDocument();
+		expect(screen.queryByText("Listed")).toBeNull();
+		expect(asked()).toHaveLength(0);
+
+		// The control: run the boundaries and the same counter sees their calls.
+		cleanup();
+		render(withQuery(await resolveServerTree(tree)));
+		expect(asked().length).toBeGreaterThan(0);
+	});
+
+	it("opens a folder named in the address without waiting for the folder tree", async () => {
+		// The folders cannot be read; the list of the named folder still is.
+		const seen = stubJmap(folder);
+		await renderPage({ box: "Sent" });
+
+		expect(screen.getByText("Listed")).toBeInTheDocument();
+		const filters = seen
+			.flatMap((r) => r.calls)
+			.filter((c) => c[0] === "Email/query")
+			.map((c) => c[1]["filter"]);
+		expect(filters).toContainEqual({ inMailbox: "Sent" });
 	});
 
 	it("still renders when the mail server is down, falling back to INBOX", async () => {

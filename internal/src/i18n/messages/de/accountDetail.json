@@ -1,7 +1,5 @@
 {
 	"heading": "Konto {name}",
-	"back": "Alle Konten",
-	"breadcrumb": "Brotkrümelnavigation",
 	"unreachable": "Die Verwaltungs-API des Mailservers ist nicht erreichbar. Prüfen Sie, ob der Server läuft und das Panel konfiguriert ist.",
 	"gone": "Dieses Konto existiert nicht mehr.",
 	"unavailable": "Die Änderung konnte nicht abgeschlossen werden. Bitte versuchen Sie es erneut.",
@@ -18,6 +16,7 @@
 	"displayNameCleared": "Anzeigename entfernt.",
 	"displayNameTooLong": "Verwenden Sie höchstens 128 Zeichen.",
 	"displayNameControl": "Entfernen Sie die Steuerzeichen und Zeilenumbrüche.",
+	"displayNameFormat": "Ein Name in einer Zeile, ohne Steuerzeichen.",
 	"displayNameRefused": "Der Server hat diesen Namen abgelehnt.",
 	"passwordTitle": "Passwort",
 	"passwordHelp": "12 bis 64 druckbare ASCII-Zeichen. Das neue Passwort gilt sofort, das alte funktioniert nicht mehr.",

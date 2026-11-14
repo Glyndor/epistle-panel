@@ -12,6 +12,7 @@ import { type Resolver, useForm } from "react-hook-form";
 import {
 	Form,
 	FormControl,
+	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
@@ -51,6 +52,39 @@ function Harness() {
 							<FormControl>
 								<input {...field} />
 							</FormControl>
+							<FormMessage
+								render={(key) => `translated:${key}`}
+							/>
+						</FormItem>
+					)}
+				/>
+				<button type="submit">go</button>
+			</form>
+		</Form>
+	);
+}
+
+/** The same field with a help text, and one whose item forgot to say it has one. */
+function Described({ marked }: { marked: boolean }) {
+	const form = useForm<Values>({
+		defaultValues: { email: "" },
+		resolver: resolve,
+	});
+	return (
+		<Form {...form}>
+			<form onSubmit={form.handleSubmit(() => {})}>
+				<FormField
+					control={form.control}
+					name="email"
+					render={({ field }) => (
+						<FormItem described={marked}>
+							<FormLabel>Email</FormLabel>
+							<FormControl>
+								<input {...field} />
+							</FormControl>
+							<FormDescription>
+								Where we write to.
+							</FormDescription>
 							<FormMessage
 								render={(key) => `translated:${key}`}
 							/>
@@ -109,6 +143,36 @@ describe("Form", () => {
 		});
 
 		await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+	});
+
+	it("describes the control by its help text from the start, and by the help and the error once there is one", async () => {
+		render(<Described marked />);
+
+		const input = screen.getByLabelText("Email");
+		const help = screen.getByText("Where we write to.");
+		expect(input).toHaveAttribute("aria-describedby", help.id);
+		expect(input).toHaveAccessibleDescription("Where we write to.");
+
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "go" }));
+		});
+		const message = await screen.findByRole("alert");
+		expect(input).toHaveAttribute(
+			"aria-describedby",
+			`${help.id} ${message.id}`,
+		);
+	});
+
+	it("refuses a help text whose item does not say it has one, since the control would not point at it", () => {
+		const original = console.error;
+		console.error = () => {};
+		try {
+			expect(() => render(<Described marked={false} />)).toThrow(
+				"described",
+			);
+		} finally {
+			console.error = original;
+		}
 	});
 
 	it("throws when a field part is used outside a field", () => {

@@ -4,7 +4,7 @@ Admin panel for the [Epistle mail server](https://github.com/Glyndor/epistle): s
 
 [![CI](https://github.com/Glyndor/epistle-panel/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/Glyndor/epistle-panel/actions/workflows/ci.yml)
 
-> 🚧 Early development. The status, accounts (with a detail page for each), domains, queue, deliveries and suppression views work; the rest of the management API is not covered yet.
+> 🚧 Early development. The status, accounts (create, delete and a detail page for each), domains, queue, deliveries and suppression views work, and the status view charts deliveries, the queue and the suppression list from them; the rest of the management API is not covered yet.
 
 ## 🧱 Stack
 

@@ -2,14 +2,21 @@ import type { Route } from "next";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
-import { FIELD_CLASS, Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+	NativeSelect,
+	NativeSelectOption,
+} from "@/components/ui/native-select";
 import {
 	type DeliveryFilters,
 	SINCE_VALUES,
 } from "@/features/deliveries/schemas/deliveries-input";
 import { DELIVERY_OUTCOMES } from "@/lib/api/schemas";
-import { MAX_ADDRESS_LENGTH } from "@/lib/mail-address";
+import {
+	MAIL_ADDRESS_HTML_PATTERN,
+	MAX_ADDRESS_LENGTH,
+} from "@/lib/mail-address-pattern";
 
 /**
  * The filter form of the delivery log: outcome, window and recipient. A plain
@@ -38,35 +45,37 @@ export function DeliveriesFilters({
 			>
 				<div className="flex flex-col gap-2">
 					<Label htmlFor="deliveries-outcome">{t("outcome")}</Label>
-					<select
+					<NativeSelect
 						id="deliveries-outcome"
 						name="outcome"
 						defaultValue={filters.outcome ?? ""}
-						className={FIELD_CLASS}
 					>
-						<option value="">{t("any")}</option>
+						<NativeSelectOption value="">
+							{t("any")}
+						</NativeSelectOption>
 						{DELIVERY_OUTCOMES.map((outcome) => (
-							<option key={outcome} value={outcome}>
+							<NativeSelectOption key={outcome} value={outcome}>
 								{t(`outcomes.${outcome}`)}
-							</option>
+							</NativeSelectOption>
 						))}
-					</select>
+					</NativeSelect>
 				</div>
 				<div className="flex flex-col gap-2">
 					<Label htmlFor="deliveries-since">{t("since")}</Label>
-					<select
+					<NativeSelect
 						id="deliveries-since"
 						name="since"
 						defaultValue={filters.since ?? ""}
-						className={FIELD_CLASS}
 					>
-						<option value="">{t("anyTime")}</option>
+						<NativeSelectOption value="">
+							{t("anyTime")}
+						</NativeSelectOption>
 						{SINCE_VALUES.map((since) => (
-							<option key={since} value={since}>
+							<NativeSelectOption key={since} value={since}>
 								{t(`windows.${since}`)}
-							</option>
+							</NativeSelectOption>
 						))}
-					</select>
+					</NativeSelect>
 				</div>
 				<div className="flex flex-col gap-2">
 					<Label htmlFor="deliveries-recipient">
@@ -77,6 +86,8 @@ export function DeliveriesFilters({
 						name="recipient"
 						type="text"
 						maxLength={MAX_ADDRESS_LENGTH}
+						pattern={MAIL_ADDRESS_HTML_PATTERN}
+						title={t("recipientFormat")}
 						defaultValue={filters.recipient ?? ""}
 						autoComplete="off"
 						spellCheck={false}

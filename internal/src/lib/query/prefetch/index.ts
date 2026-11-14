@@ -27,3 +27,16 @@ export async function prefetch<T, K extends QueryKey>(
 		logApiFailure(operation, error);
 	}
 }
+
+/** One query a {@link prefetch} will run, with the operation name its failure is logged under. */
+export interface PrefetchSpec {
+	readonly run: (client: QueryClient) => Promise<void>;
+}
+
+/** Describe a prefetch without running it, so a list of different queries can be handed over. */
+export function prefetchSpec<T, K extends QueryKey>(
+	options: FetchQueryOptions<T, Error, T, K>,
+	operation: string,
+): PrefetchSpec {
+	return { run: (client) => prefetch(client, options, operation) };
+}

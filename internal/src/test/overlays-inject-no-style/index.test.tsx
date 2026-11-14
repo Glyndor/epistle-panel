@@ -8,9 +8,9 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sheet } from "@/components/ui/sheet";
-import { SidebarProvider } from "@/components/ui/sidebar/provider";
 import { queueEntryIdSchema } from "@/features/queue/schemas/queue-input";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
+import { withAdminArea } from "@/test/admin-routes";
 import { testQueryClient, withQuery } from "@/test/query-wrapper";
 
 /**
@@ -24,9 +24,19 @@ import { testQueryClient, withQuery } from "@/test/query-wrapper";
  * means something.
  */
 const cookies = mockRequestCookies();
-const { LanguageMenu } = await import("@/components/layout/language-menu");
+const { UserMenuPanel } = await import("@/components/layout/user-menu-panel");
+const { ThemeMenu } = await import("@/features/theme/components/theme-menu");
 const { RemoveEntryButton } = await import(
 	"@/features/queue/components/remove-entry-button"
+);
+const { CreateAccountDialog } = await import(
+	"@/features/accounts/components/create-account-dialog"
+);
+const { AccountRowActions } = await import(
+	"@/features/accounts/components/account-row-actions"
+);
+const { DataTableFiltersMenu } = await import(
+	"@/components/data-table/filters-menu"
 );
 
 afterEach(() => {
@@ -37,14 +47,29 @@ afterEach(() => {
 const styleElements = () => document.head.querySelectorAll("style").length;
 
 describe("overlays and the CSP", () => {
-	it("the language menu adds no style element when opened", async () => {
+	it("the profile menu adds no style element when opened", async () => {
 		const before = styleElements();
 		render(
-			<SidebarProvider>
-				<LanguageMenu defaultOpen={false} />
-			</SidebarProvider>,
+			<UserMenuPanel
+				name="ana"
+				sessionRole="admin"
+				adminHref="/app/x"
+				defaultOpen={false}
+			/>,
 		);
-		fireEvent.keyDown(screen.getByRole("button", { name: /language/ }), {
+		fireEvent.keyDown(screen.getByRole("button", { name: /account/ }), {
+			key: "Enter",
+		});
+		await screen.findByRole("menu");
+
+		expect(styleElements()).toBe(before);
+		expect(document.body).not.toHaveAttribute("data-scroll-locked");
+	});
+
+	it("the theme menu adds no style element when opened", async () => {
+		const before = styleElements();
+		render(<ThemeMenu defaultOpen={false} />);
+		fireEvent.keyDown(screen.getByRole("button", { name: /theme/ }), {
 			key: "Enter",
 		});
 		await screen.findByRole("menu");
@@ -129,6 +154,75 @@ describe("overlays and the CSP", () => {
 
 		const styles = [...document.head.querySelectorAll("style")];
 		expect(styles.some((style) => !style.getAttribute("nonce"))).toBe(true);
+	});
+
+	it("the new-account dialog injects a style element only with the request's nonce", async () => {
+		await cookies.signIn();
+		setNonce("request-nonce");
+		render(withQuery(<CreateAccountDialog />, testQueryClient()));
+		fireEvent.click(screen.getByRole("button", { name: "create" }));
+		await screen.findByRole("dialog");
+
+		const styles = [...document.head.querySelectorAll("style")];
+		expect(styles.length).toBeGreaterThan(0);
+		for (const style of styles) {
+			expect(style.getAttribute("nonce")).toBe("request-nonce");
+		}
+	});
+
+	it("the actions menu of an account row adds no style element when opened", async () => {
+		const before = styleElements();
+		render(
+			withAdminArea(
+				<main id="main-content">
+					<AccountRowActions
+						row={{
+							name: "alice",
+							displayName: null,
+							addresses: [],
+							dynamic: true,
+						}}
+					/>
+				</main>,
+			),
+		);
+		fireEvent.keyDown(screen.getByRole("button", { name: "actionsFor" }), {
+			key: "Enter",
+		});
+		await screen.findByRole("menu");
+
+		expect(styleElements()).toBe(before);
+		expect(document.body).not.toHaveAttribute("data-scroll-locked");
+	});
+
+	it("the Filters menu of a table adds no style element when opened, nor when a box is ticked", async () => {
+		const before = styleElements();
+		render(
+			<main id="main-content">
+				<DataTableFiltersMenu
+					facets={[
+						{
+							columnId: "state",
+							label: "State",
+							options: [{ value: "active", label: "Active" }],
+						},
+					]}
+					selection={{}}
+					onToggle={() => {}}
+					onClear={() => {}}
+				/>
+			</main>,
+		);
+		fireEvent.keyDown(screen.getByRole("button", { name: "filters" }), {
+			key: "Enter",
+		});
+		await screen.findByRole("menu");
+		fireEvent.click(
+			screen.getByRole("menuitemcheckbox", { name: "Active" }),
+		);
+
+		expect(styleElements()).toBe(before);
+		expect(document.body).not.toHaveAttribute("data-scroll-locked");
 	});
 
 	it("control: a modal Radix menu does inject one, so the checks above can fail", async () => {

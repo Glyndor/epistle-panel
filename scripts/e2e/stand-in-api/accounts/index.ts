@@ -41,7 +41,13 @@ interface AccountState {
 	masked: MaskedEntry[];
 	/** `null` answers `404 archive not available`, as a server with retention off does. */
 	archive: ArchiveEntry[] | null;
+	addresses: string[];
+	/** False for an account "declared in the configuration file": the API cannot delete it. */
+	dynamic: boolean;
 }
+
+/** The seed account the stand-in treats as declared in the configuration file. */
+export const FILE_ACCOUNT = "ops";
 
 /** What `snapshot()` reports for one account: state a check can read, never a secret. */
 export type AccountSnapshot = Omit<AccountState, "archive"> & {
@@ -110,6 +116,8 @@ export function createAccountsStore(names: readonly string[]) {
 					passwordChanges: 0,
 					masked: [],
 					archive: name === "admin" ? ARCHIVE_SEED.map((e) => ({ ...e })) : null,
+					addresses: [`${name}@example.test`],
+					dynamic: name !== FILE_ACCOUNT,
 				},
 			]),
 		);
@@ -258,7 +266,52 @@ export function createAccountsStore(names: readonly string[]) {
 		},
 		/** The account view the listing returns: the person's name and whether the API manages it. */
 		view(name: string) {
-			return { display_name: state.get(name)?.displayName ?? null, dynamic: true };
+			const account = state.get(name);
+			return { display_name: account?.displayName ?? null, dynamic: account?.dynamic ?? true };
+		},
+		/** Every account as the listing returns it, the seed ones first and then those created through the API. */
+		list() {
+			return [...state].map(([name, account]) => ({
+				name,
+				display_name: account.displayName,
+				dynamic: account.dynamic,
+				addresses: account.addresses,
+			}));
+		},
+		/** Whether the account exists and, when it does, whether the API manages it. */
+		kind(name: string): "dynamic" | "file" | "none" {
+			const account = state.get(name);
+			return account === undefined ? "none" : account.dynamic ? "dynamic" : "file";
+		},
+		/** Every address some account holds. */
+		addressesInUse(): Set<string> {
+			return new Set([...state.values()].flatMap((account) => account.addresses));
+		},
+		/** Store an account made through the API. */
+		add(name: string, displayName: string | null, addresses: string[]): void {
+			state.set(name, { displayName, totp: false, passwordChanges: 0, masked: [], archive: null, addresses, dynamic: true });
+		},
+		remove(name: string): void {
+			state.delete(name);
+		},
+		/**
+		 * Add `count` accounts named `seed-001` onwards, so a list is long
+		 * enough to page. Every fourth one stands for an account declared in
+		 * the configuration file. `reset()` takes them away.
+		 */
+		seed(count: number): void {
+			for (let index = 1; index <= count; index++) {
+				const name = `seed-${String(index).padStart(3, "0")}`;
+				state.set(name, {
+					displayName: null,
+					totp: false,
+					passwordChanges: 0,
+					masked: [],
+					archive: null,
+					addresses: [`${name}@${DOMAIN}`],
+					dynamic: index % 4 !== 0,
+				});
+			}
 		},
 		reset(): void {
 			state = fresh();

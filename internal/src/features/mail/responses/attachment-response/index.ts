@@ -1,6 +1,6 @@
 import "server-only";
 
-import { downloadBlob, JmapError } from "@/features/mail/jmap/call";
+import { JmapError, openBlob } from "@/features/mail/jmap/call";
 import { currentMailSession } from "@/features/mail/jmap/credentials";
 import { loadEmailRecord } from "@/features/mail/queries/message-body";
 import {
@@ -63,10 +63,16 @@ function plain(status: number, text: string): Response {
 
 /**
  * Download one attachment of a message. The id and the part are checked, the
- * part must be one the message lists as an attachment (the route never turns a
- * number from the URL into a blob on its own), the name is cleaned, the type
- * forced and the file sent as an attachment under a policy that allows
- * nothing, so nothing in it is ever run or drawn in the panel's origin.
+ * part must be one the message lists as an attachment, and the blob fetched is
+ * the one it lists for that part (the route never turns a number from the URL
+ * into a blob on its own); the name is cleaned, the type forced to one a
+ * browser does not render as a page, and the file sent as an attachment with
+ * `nosniff`, so nothing in it is run or drawn in the panel's origin. The file
+ * is passed on as it arrives from the mail server and is never held in memory;
+ * past 25 MiB the download breaks off. The proxy
+ * sends the panel's own security headers on this response, its
+ * Content-Security-Policy included; this handler sets none of its own, since
+ * the proxy would replace it.
  */
 export async function attachmentResponse(
 	id: string,
@@ -87,23 +93,23 @@ export async function attachmentResponse(
 		const listed = email?.attachments?.find(
 			(candidate) => candidate.partId === part && candidate.blobId,
 		);
-		if (!listed) {
+		const blobId = listed?.blobId;
+		if (!listed || !blobId) {
 			return plain(404, "Not found");
 		}
-		const blob = await downloadBlob(
-			session,
-			`${id}.${part}`,
-			MAX_ATTACHMENT_BYTES,
-		);
-		return new Response(blob.bytes as BodyInit, {
+		const blob = await openBlob(session, blobId, MAX_ATTACHMENT_BYTES);
+		return new Response(blob.body, {
 			status: 200,
 			headers: {
 				"Content-Type": forcedType(listed.type),
 				"Content-Disposition": attachmentDisposition(
 					safeFilename(listed.name),
 				),
-				"Content-Length": String(blob.bytes.byteLength),
-				"Content-Security-Policy": "default-src 'none'; sandbox",
+				// The size the mail server declared, so a download that breaks off
+				// is seen as broken and not saved as a whole file.
+				...(blob.length === null
+					? {}
+					: { "Content-Length": String(blob.length) }),
 				"X-Content-Type-Options": "nosniff",
 				"Cache-Control": "private, no-store",
 				"Referrer-Policy": "no-referrer",

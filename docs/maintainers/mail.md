@@ -108,6 +108,14 @@ A message is hostile input. What the panel does:
   segment (`safe-filename`), the type is forced to a short allow-list or
   `application/octet-stream` (HTML, SVG, XML and script types never keep theirs),
   and the file is always `Content-Disposition: attachment`, at most 25 MiB.
+  The file is passed on as it arrives from the mail server and is never held in
+  memory: one chunk is read when the browser asks for one. The headers have 60 s
+  to come; after that the download has no total time (the reader may be on a slow
+  line) but may not stand still for 30 s. A file that declares more than 25 MiB is
+  refused before a byte is sent; one that carries more without saying so breaks
+  the download off at that byte, with the stream failed and not ended, so the
+  browser reports a failed download and never saves a short file as whole. The
+  answer declares the size the mail server declared.
 - Limits: 1 MiB of body read, 1 MiB of HTML parsed, 64 levels and 20 000 elements
   kept, 120 headers listed.
 
@@ -174,10 +182,24 @@ editor and no signature.
 - **Attachments** are uploaded as soon as they are chosen, up to 20 files of 25 MiB,
   and sent by blob id. The name is reduced on the server by the same `safeFilename` as a download (it ends up in MIME headers). The type is the declared one when it is a plain
   `type/subtype` (parameters dropped), else `application/octet-stream`; the name is
-  cleaned like a download's. Next's proxy buffers a request body and cuts it at 10 MB
-  by default (its documentation; not measured here), so `proxyClientMaxBodySize` is
-  set to 26 MB; Server Actions keep their 16 KB limit. The e2e scenario uploads a
-  12 MB file whole and refuses 27 MB.
+  cleaned like a download's.
+- **The upload route is outside the proxy, and is its own only gate.** Next's proxy
+  holds in memory the body of every request it covers, before it decides anything
+  (read in `next/dist/server/body-streams.js`, and measured on the built server: a
+  request with no session got no answer until its whole body had arrived, and eight
+  of them held at 26 MB took the server from 97 MB to 306 MB). So
+  `proxyClientMaxBodySize` is 2 MB, enough for the largest body a covered route
+  reads (the composer's message, 1.5 MB), and `/app/mail/upload` is skipped by the
+  proxy's matcher as that exact path. The route does every check itself before it
+  reads a byte: same origin, the session and its role, and the size from
+  `Content-Length`, which is required. It then hands the body to the mail server as
+  it arrives, counted against that size, and never buffers it; a body that is not
+  the size it declared breaks the call off and is answered `invalid`. Its answers
+  carry their own policy (`default-src 'none'`), since the proxy's headers are not
+  laid over them. The mail server takes four uploads at a time for one caller and
+  answers 429 past that, which the route passes on as `busy`. The e2e scenario
+  declares a body and sends none of it (the route refuses at once, with and without
+  a session), uploads a 12 MB file whole and refuses 27 MB.
 - **Reply and forward** prefill on the server from cleaned text: the quoted original
   is the text part, or the sanitised HTML reduced to text, cut at 20 000 characters,
   put in a text area and never inserted as markup. A reply goes to the reply-to
@@ -191,9 +213,24 @@ editor and no signature.
   rich text, no address book or completion, no forwarding of attachments.
 - Inline `cid:` images (shown as attachments for now), conversation threads
   (epistle has none), push updates (the list polls every 30 s while visible).
-- Native `<select>`, `<details>` and `<kbd>` stand in for shadcn components that
-  are not installed yet (`language-select`, `headers-disclosure`,
-  `shortcuts-help`). They sit behind their own components so they can be replaced
-  by `select`, `collapsible` and `kbd` when those land.
 - The real JMAP was not run; the stand-in follows the source. Measure against a
   running epistle before relying on any row above.
+
+## How the page is sent
+
+`/app/mail` sends the frame of its three panes at once and each pane streams
+its own data inside `Suspense`: `FoldersBoundary` (the tree; rendered twice, for
+the side pane and for the sheet of a narrow screen), `ListBoundary` (the search,
+the filters and the page of the open folder) and `ReaderBoundary` (the open
+message). Each boundary reads on the server and hands the result to its client
+component, which owns the data from then on; the fallback of each is the same
+skeleton its client component shows while it fetches.
+
+`queries/request-mail` holds what the panes share within one request: the mail
+session and the folders, each read once (`cache` from React), and `resolveBox`.
+A view whose address names a folder never waits for the folder tree; one that
+names none waits for it, to open the inbox by its role. The mail session stays
+in server components: it is never a prop of a client component.
+
+The list costs two JMAP calls in a row (the ids, then the messages), because
+`Email/query` has no paging on the server yet.

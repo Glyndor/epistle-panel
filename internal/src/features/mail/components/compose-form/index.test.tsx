@@ -8,6 +8,7 @@ import {
 } from "@testing-library/react";
 
 import { clearToasts } from "@/components/ui/toaster";
+import { composeFormSchema } from "@/features/mail/schemas/compose-form";
 import { ComposeForm, type ComposeInitial } from ".";
 
 const originalFetch = globalThis.fetch;
@@ -145,6 +146,48 @@ describe("ComposeForm", () => {
 		expect(sent[1]?.["draftId"]).toBe("d2");
 	});
 
+	it("says the message is too large and sends nothing when its request is over what the route reads, though its characters fit", async () => {
+		const sent = server({ ok: true, result: { kind: "draft", id: "d" } });
+		render(<ComposeForm initial={empty} />);
+		// 800 000 characters are under the body's 1 000 000, and 1.6 MB as UTF-8:
+		// over the 1.5 MB the route reads.
+		const long = "я".repeat(800_000);
+		type("fieldBody", long);
+		fireEvent.click(screen.getByRole("button", { name: "saveDraft" }));
+
+		expect(await screen.findByRole("alert")).toHaveTextContent(
+			"refusal_tooLarge",
+		);
+		expect(screen.queryByText("bodyTooLong")).toBeNull();
+		expect(sent).toHaveLength(0);
+		expect(screen.getByLabelText("fieldBody")).toHaveValue(long);
+	});
+
+	it("sends a message just under what the route reads", async () => {
+		const sent = server({ ok: true, result: { kind: "draft", id: "d" } });
+		render(<ComposeForm initial={empty} />);
+		// 740 000 two-byte characters: 1.48 MB with the JSON around them.
+		type("fieldBody", "я".repeat(740_000));
+		fireEvent.click(screen.getByRole("button", { name: "saveDraft" }));
+
+		await waitFor(() => expect(sent).toHaveLength(1));
+		expect(screen.queryByRole("alert")).toBeNull();
+	});
+
+	it("says too large, not unreachable, when the route refuses the request for its size", async () => {
+		const sent = server({ ok: false, reason: "invalid" }, 413);
+		render(<ComposeForm initial={empty} />);
+		type("fieldBody", "short");
+		fireEvent.click(screen.getByRole("button", { name: "saveDraft" }));
+
+		expect(await screen.findByRole("alert")).toHaveTextContent(
+			"refusal_tooLarge",
+		);
+		expect(screen.queryByText("unavailableCompose")).toBeNull();
+		expect(sent).toHaveLength(1);
+		expect(screen.getByLabelText("fieldBody")).toHaveValue("short");
+	});
+
 	it("says so when the account has no sender, and when the server cannot be reached or answers badly", async () => {
 		server({ ok: true, result: { kind: "noSender" } });
 		render(<ComposeForm initial={{ ...empty, to: "a@x.org" }} />);
@@ -188,12 +231,50 @@ describe("ComposeForm", () => {
 		expect(screen.getByLabelText("fieldBcc")).toHaveValue("z@x.org");
 	});
 
-	it("holds the subject and the body to their limits", async () => {
+	it("gives the browser each field's length, one character over the schema's", () => {
+		render(<ComposeForm initial={{ ...empty, cc: "c@x.org" }} />);
+
+		for (const label of ["fieldTo", "fieldCc", "fieldBcc"]) {
+			expect(screen.getByLabelText(label)).toHaveAttribute(
+				"maxlength",
+				"20001",
+			);
+		}
+		expect(screen.getByLabelText("fieldSubject")).toHaveAttribute(
+			"maxlength",
+			"999",
+		);
+		expect(screen.getByLabelText("fieldBody")).toHaveAttribute(
+			"maxlength",
+			"1000001",
+		);
+		const fits = {
+			to: "a".repeat(20_000),
+			cc: "",
+			bcc: "",
+			subject: "s".repeat(998),
+			text: "t".repeat(1_000_000),
+		};
+		expect(composeFormSchema.safeParse(fits).success).toBe(true);
+		for (const field of ["to", "subject", "text"] as const) {
+			expect([
+				field,
+				composeFormSchema.safeParse({
+					...fits,
+					[field]: `${fits[field]}x`,
+				}).success,
+			]).toEqual([field, false]);
+		}
+	});
+
+	it("a value the browser cut to a field's length is stopped by the schema, which names the field in words", async () => {
 		const sent = server({ ok: true, result: { kind: "draft", id: "d" } });
 		render(<ComposeForm initial={empty} />);
+		type("fieldTo", "a".repeat(20_001));
 		type("fieldSubject", "x".repeat(999));
 		fireEvent.click(screen.getByRole("button", { name: "saveDraft" }));
 		expect(await screen.findByText("subjectTooLong")).toBeInTheDocument();
+		expect(screen.getByText("recipientsTooLong")).toBeInTheDocument();
 		expect(sent).toHaveLength(0);
 	});
 

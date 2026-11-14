@@ -10,8 +10,8 @@ import {
 	NotFoundSignal,
 } from "@/lib/auth/test-support/cookies";
 import { TEST_ADMIN_ID } from "@/lib/config/test-support/admin-id";
-
 import { withAdminArea } from "@/test/admin-routes";
+import { resolveServerTree } from "@/test/server-tree";
 
 const originalFetch = globalThis.fetch;
 const cookies = mockRequestCookies();
@@ -44,7 +44,9 @@ describe("QueuePage", () => {
 
 		render(
 			withAdminArea(
-				await QueuePage({ searchParams: Promise.resolve({}) }),
+				await resolveServerTree(
+					await QueuePage({ searchParams: Promise.resolve({}) }),
+				),
 			),
 		);
 
@@ -68,7 +70,9 @@ describe("QueuePage", () => {
 
 		render(
 			withAdminArea(
-				await QueuePage({ searchParams: Promise.resolve({}) }),
+				await resolveServerTree(
+					await QueuePage({ searchParams: Promise.resolve({}) }),
+				),
 			),
 		);
 
@@ -90,7 +94,9 @@ describe("QueuePage", () => {
 
 		render(
 			withAdminArea(
-				await QueuePage({ searchParams: Promise.resolve({}) }),
+				await resolveServerTree(
+					await QueuePage({ searchParams: Promise.resolve({}) }),
+				),
 			),
 		);
 
@@ -107,7 +113,9 @@ describe("QueuePage", () => {
 
 		render(
 			withAdminArea(
-				await QueuePage({ searchParams: Promise.resolve({}) }),
+				await resolveServerTree(
+					await QueuePage({ searchParams: Promise.resolve({}) }),
+				),
 			),
 		);
 
@@ -119,9 +127,11 @@ describe("QueuePage", () => {
 
 		render(
 			withAdminArea(
-				await QueuePage({
-					searchParams: Promise.resolve({ cursor: ID }),
-				}),
+				await resolveServerTree(
+					await QueuePage({
+						searchParams: Promise.resolve({ cursor: ID }),
+					}),
+				),
 			),
 		);
 
@@ -149,9 +159,11 @@ describe("QueuePage", () => {
 
 		render(
 			withAdminArea(
-				await QueuePage({
-					searchParams: Promise.resolve({ cursor: [ID, NEXT] }),
-				}),
+				await resolveServerTree(
+					await QueuePage({
+						searchParams: Promise.resolve({ cursor: [ID, NEXT] }),
+					}),
+				),
 			),
 		);
 
@@ -165,9 +177,11 @@ describe("QueuePage", () => {
 
 		render(
 			withAdminArea(
-				await QueuePage({
-					searchParams: Promise.resolve({ cursor: ["a", "b"] }),
-				}),
+				await resolveServerTree(
+					await QueuePage({
+						searchParams: Promise.resolve({ cursor: ["a", "b"] }),
+					}),
+				),
 			),
 		);
 

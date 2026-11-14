@@ -12,7 +12,7 @@ import {
 	stubFetchStalledBody,
 } from "@/lib/api/test-support/fetch";
 import { SESSION, stubJmap } from "../../test-support/jmap-stub";
-import { downloadBlob, JmapError, jmapCall, methodResult } from ".";
+import { JmapError, jmapCall, methodResult, openBlob } from ".";
 
 const originalFetch = globalThis.fetch;
 const savedEnv = { ...process.env };
@@ -172,17 +172,40 @@ describe("methodResult", () => {
 	});
 });
 
-describe("downloadBlob", () => {
-	it("downloads one blob with a fixed label in the URL and returns the recorded type", async () => {
+/** Read a stream to its end. */
+async function drain(body: ReadableStream<Uint8Array>): Promise<string> {
+	const reader = body.getReader();
+	let text = "";
+	for (;;) {
+		const { done, value } = await reader.read();
+		if (done) {
+			return text;
+		}
+		text += new TextDecoder().decode(value);
+	}
+}
+/** The error a call ends with; a call that does not fail is one with the failure `none`. */
+const failure = (run: Promise<unknown>): Promise<JmapError> =>
+	run.then(
+		() => new JmapError("shape", "none"),
+		(error: unknown) => error as JmapError,
+	);
+
+describe("openBlob", () => {
+	it("opens one blob with a fixed label in the URL and gives its octets, its recorded type and its declared size", async () => {
 		const seen = stubJmap(
 			{},
 			new Response("hello", {
-				headers: { "content-type": "text/plain" },
+				headers: {
+					"content-type": "text/plain",
+					"content-length": "5",
+				},
 			}),
 		);
-		const blob = await downloadBlob(SESSION, "abc.1", 100);
-		expect(new TextDecoder().decode(blob.bytes)).toBe("hello");
+		const blob = await openBlob(SESSION, "abc.1", 100);
 		expect(blob.type).toBe("text/plain");
+		expect(blob.length).toBe(5);
+		expect(await drain(blob.body)).toBe("hello");
 		expect(seen[0]?.url).toBe(
 			"http://127.0.0.1:8025/jmap/download/admin/abc.1/blob",
 		);
@@ -191,7 +214,7 @@ describe("downloadBlob", () => {
 
 	it("percent-encodes the account and the blob id so neither can change the path", async () => {
 		const seen = stubJmap({}, new Response(""));
-		await downloadBlob({ ...SESSION, accountId: "a/b" }, "../x?y#z", 10);
+		await openBlob({ ...SESSION, accountId: "a/b" }, "../x?y#z", 10);
 		expect(seen[0]?.url).toBe(
 			"http://127.0.0.1:8025/jmap/download/a%2Fb/..%2Fx%3Fy%23z/blob",
 		);
@@ -199,49 +222,220 @@ describe("downloadBlob", () => {
 
 	it("answers not found for a 404 and http for another refusal", async () => {
 		stubJmap({});
-		expect(
-			(await downloadBlob(SESSION, "x", 10).catch((e) => e)).failure,
-		).toBe("notFound");
+		expect((await failure(openBlob(SESSION, "x", 10))).failure).toBe(
+			"notFound",
+		);
 		stubFetchResponse(new Response("no", { status: 502 }));
-		const error = await downloadBlob(SESSION, "x", 10).catch((e) => e);
+		const error = await failure(openBlob(SESSION, "x", 10));
 		expect([error.failure, error.detail]).toEqual(["http", "502"]);
 	});
 
-	it("refuses a blob over the cap, by its declared size and by what the stream carries", async () => {
+	it("refuses a blob that declares more than the cap before a byte of it is passed on", async () => {
 		stubFetchResponse(
-			new Response("x", { headers: { "content-length": "999" } }),
+			new Response("x", { headers: { "content-length": "11" } }),
 		);
-		expect(
-			(await downloadBlob(SESSION, "x", 10).catch((e) => e)).detail,
-		).toBe("blob too large");
-		stubFetchResponse(new Response("x".repeat(50)));
-		expect(
-			(await downloadBlob(SESSION, "x", 10).catch((e) => e)).detail,
-		).toBe("blob too large");
+		expect((await failure(openBlob(SESSION, "x", 10))).detail).toBe(
+			"blob too large",
+		);
+		// At the cap it is taken.
+		stubFetchResponse(
+			new Response("0123456789", { headers: { "content-length": "10" } }),
+		);
+		expect(await drain((await openBlob(SESSION, "x", 10)).body)).toBe(
+			"0123456789",
+		);
 	});
 
-	it("reads a body that arrives in several chunks and an empty one", async () => {
+	it("breaks the download off at the byte past the cap when the blob did not say how long it is", async () => {
 		const chunks = new ReadableStream<Uint8Array>({
 			start(controller) {
-				controller.enqueue(new TextEncoder().encode("ab"));
-				controller.enqueue(new TextEncoder().encode("cd"));
+				for (let n = 0; n < 6; n++) {
+					controller.enqueue(new TextEncoder().encode("abcd"));
+				}
 				controller.close();
 			},
 		});
 		stubFetchResponse(new Response(chunks));
-		expect(
-			new TextDecoder().decode(
-				(await downloadBlob(SESSION, "x", 10)).bytes,
-			),
-		).toBe("abcd");
-		stubFetchResponse(new Response(null));
-		expect((await downloadBlob(SESSION, "x", 10)).bytes).toHaveLength(0);
+		const blob = await openBlob(SESSION, "x", 10);
+		expect(blob.length).toBeNull();
+
+		const reader = blob.body.getReader();
+		let passed = 0;
+		const ended = await (async () => {
+			for (;;) {
+				const { done, value } = await reader.read();
+				if (done) {
+					return "ended as if whole";
+				}
+				passed += value.byteLength;
+			}
+		})().catch((error: JmapError) => error.detail);
+
+		expect(ended).toBe("blob too large");
+		expect(passed).toBe(8);
 	});
 
-	it("times out when the server stalls", async () => {
+	it("holds a blob to the size it declared: not a byte more is passed on, and a short one fails instead of ending", async () => {
+		const chunked = (parts: string[]) =>
+			new ReadableStream<Uint8Array>({
+				start(controller) {
+					for (const part of parts) {
+						controller.enqueue(new TextEncoder().encode(part));
+					}
+					controller.close();
+				},
+			});
+		const read = async (parts: string[], declared: string) => {
+			stubFetchResponse(
+				new Response(chunked(parts), {
+					headers: { "content-length": declared },
+				}),
+			);
+			const blob = await openBlob(SESSION, "x", 100);
+			const reader = blob.body.getReader();
+			let passed = "";
+			for (;;) {
+				const step = await reader.read().catch((e: JmapError) => e);
+				if (step instanceof JmapError) {
+					return [passed, step.detail];
+				}
+				if (step.done) {
+					return [passed, "ended"];
+				}
+				passed += new TextDecoder().decode(step.value);
+			}
+		};
+
+		expect(await read(["abcd", "efgh"], "8")).toEqual([
+			"abcdefgh",
+			"ended",
+		]);
+		expect(await read(["abcd", "efgh", "ij"], "8")).toEqual([
+			"abcdefgh",
+			"blob longer than declared",
+		]);
+		expect(await read(["abcd", "efgh"], "6")).toEqual([
+			"abcd",
+			"blob longer than declared",
+		]);
+		expect(await read(["abcd"], "8")).toEqual([
+			"abcd",
+			"blob shorter than declared",
+		]);
+		expect(await read([], "3")).toEqual(["", "blob shorter than declared"]);
+	});
+
+	it("does not hold a declared size it cannot read as a count", async () => {
+		for (const header of ["abc", "-1", "1e3", "5, 5", ""]) {
+			stubFetchResponse(
+				new Response("hello", {
+					headers: { "content-length": header },
+				}),
+			);
+			expect([header, (await openBlob(SESSION, "x", 10)).length]).toEqual(
+				[header, null],
+			);
+		}
+	});
+
+	it("reads from the mail server only what the reader asks for", async () => {
+		let asked = 0;
+		const source = new ReadableStream<Uint8Array>(
+			{
+				pull(controller) {
+					asked += 1;
+					controller.enqueue(new Uint8Array(1000));
+				},
+			},
+			{ highWaterMark: 0 },
+		);
+		stubFetchResponse(new Response(source));
+		const blob = await openBlob(SESSION, "x", 1_000_000);
+		const reader = blob.body.getReader();
+		await reader.read();
+		await reader.read();
+
+		// Two chunks were read; a chunk or two more may be waiting, never the file.
+		expect(asked).toBeGreaterThanOrEqual(2);
+		expect(asked).toBeLessThanOrEqual(4);
+		await reader.cancel();
+	});
+
+	it("gives an empty stream for an answer with no body", async () => {
+		stubFetchResponse(new Response(null));
+		expect(await drain((await openBlob(SESSION, "x", 10)).body)).toBe("");
+	});
+
+	it("times out when the headers do not come", async () => {
 		stubFetchHang();
 		expect(
-			await downloadBlob(SESSION, "x", 10, 30).catch((e) => e),
+			await openBlob(SESSION, "x", 10, 30).catch((e: unknown) => e),
 		).toBeInstanceOf(EpistleApiTimeoutError);
+	});
+
+	it("breaks the download off when it stands still, and not while octets keep coming", async () => {
+		// The headers come at once and no octet follows.
+		stubFetchStalledBody();
+		const stalled = await openBlob(SESSION, "x", 10, 1000, 30);
+		const started = Date.now();
+		const outcome = await drain(stalled.body).catch(() => "broken off");
+		expect(outcome).toBe("broken off");
+		expect(Date.now() - started).toBeLessThan(500);
+
+		// A slow download that never stands still for the idle time is let finish,
+		// though it takes longer than the idle time in all.
+		// As `fetch` does, the body fails when the call is aborted.
+		let fail: (reason: unknown) => void = () => {};
+		const slow = new ReadableStream<Uint8Array>({
+			async start(controller) {
+				let failed = false;
+				fail = (reason) => {
+					failed = true;
+					controller.error(reason);
+				};
+				for (let n = 0; n < 5 && !failed; n++) {
+					await new Promise((resolve) => setTimeout(resolve, 15));
+					if (!failed) {
+						controller.enqueue(new TextEncoder().encode("ab"));
+					}
+				}
+				if (!failed) {
+					controller.close();
+				}
+			},
+		});
+		globalThis.fetch = (async (_url: unknown, init?: RequestInit) => {
+			init?.signal?.addEventListener("abort", () =>
+				fail(init.signal?.reason),
+			);
+			return new Response(slow);
+		}) as unknown as typeof fetch;
+		const steady = await openBlob(SESSION, "x", 100, 1000, 40);
+		expect(await drain(steady.body)).toBe("ababababab");
+	});
+
+	it("lets go of the mail server when the reader stops, and sets no timer against a download that is over", async () => {
+		let stopped: unknown;
+		let signal: AbortSignal | undefined;
+		const source = new ReadableStream<Uint8Array>({
+			pull(controller) {
+				controller.enqueue(new Uint8Array(10));
+			},
+			cancel(reason) {
+				stopped = reason;
+			},
+		});
+		globalThis.fetch = (async (_url: unknown, init?: RequestInit) => {
+			signal = init?.signal ?? undefined;
+			return new Response(source);
+		}) as unknown as typeof fetch;
+		const blob = await openBlob(SESSION, "x", 1000, 1000, 20);
+		const reader = blob.body.getReader();
+		await reader.read();
+		await reader.cancel("reader left");
+
+		expect(stopped).toBe("reader left");
+		await new Promise((resolve) => setTimeout(resolve, 60));
+		expect(signal?.aborted).toBe(false);
 	});
 });

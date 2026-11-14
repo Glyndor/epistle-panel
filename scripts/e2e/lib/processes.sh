@@ -70,6 +70,28 @@ set_mode() {
 	curl -s -o /dev/null -X POST "$api/__control/mode" -d "{\"mode\":\"$1\"}"
 }
 
+# set_delay MS: every data answer of the stand-in waits MS milliseconds.
+set_delay() {
+	curl -s -o /dev/null -X POST "$api/__control/delay" -d "{\"ms\":$1}"
+}
+
+# set_oversize_blobs true|false: every attachment the stand-in sends is 27 MiB
+# with no declared size, or the real ones again.
+set_oversize_blobs() {
+	curl -s -o /dev/null -X POST "$api/__control/blobs" -d "{\"oversize\":$1}"
+}
+
 reset_api() {
 	curl -s -o /dev/null -X POST "$api/__control/reset"
+}
+
+# set_sample NAME: switch the stand-in's log, queue and suppression list to one
+# of its samples (busy, quiet, log-off); reset_api puts the seeds back.
+set_sample() {
+	curl -s -o /dev/null -X POST "$api/__control/sample" -d "{\"name\":\"$1\"}"
+}
+
+# reset_log: forget the requests the stand-in has seen and keep its data.
+reset_log() {
+	curl -s -o /dev/null -X POST "$api/__control/forget"
 }

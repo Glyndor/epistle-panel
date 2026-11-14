@@ -11,6 +11,7 @@ import {
 } from "@/lib/auth/test-support/cookies";
 import { TEST_ADMIN_ID } from "@/lib/config/test-support/admin-id";
 import { withAdminArea } from "@/test/admin-routes";
+import { resolveServerTree } from "@/test/server-tree";
 
 const originalFetch = globalThis.fetch;
 const cookies = mockRequestCookies();
@@ -29,9 +30,11 @@ afterEach(() => {
 const open = async (searchParams: { after?: string | string[] } = {}) =>
 	render(
 		withAdminArea(
-			await SuppressionPage({
-				searchParams: Promise.resolve(searchParams),
-			}),
+			await resolveServerTree(
+				await SuppressionPage({
+					searchParams: Promise.resolve(searchParams),
+				}),
+			),
 		),
 	);
 

@@ -1,4 +1,5 @@
 export * from "./account-changes";
+export * from "./account-lifecycle";
 export * from "./account-name";
 export * from "./accounts";
 export * from "./api-error";

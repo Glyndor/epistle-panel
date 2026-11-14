@@ -3,5 +3,17 @@
 	"noMatches": "Nessuna riga corrisponde al filtro.",
 	"sortable": "ordinabile",
 	"sortedAscending": "ordine crescente",
-	"sortedDescending": "ordine decrescente"
+	"sortedDescending": "ordine decrescente",
+	"loading": "Caricamento",
+	"filters": "Filtri",
+	"filtersActive": "{count, plural, one {# filtro attivo} other {# filtri attivi}}",
+	"clearFilters": "Rimuovi i filtri",
+	"deselectAll": "Deseleziona tutto",
+	"range": "{from}–{to} di {count}",
+	"pageSize": "Righe per pagina",
+	"pagination": "Pagine della tabella",
+	"previous": "Precedente",
+	"next": "Successiva",
+	"pageOf": "Pagina {page} di {pages}",
+	"page": "Pagina {page}"
 }

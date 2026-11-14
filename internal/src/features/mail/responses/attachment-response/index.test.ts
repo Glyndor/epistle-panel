@@ -65,10 +65,12 @@ describe("forcedType", () => {
 });
 
 describe("attachmentResponse", () => {
-	it("sends the file as an attachment, with a clean name and a policy that allows nothing", async () => {
+	it("sends the file as an attachment, with a clean name and a type that is not rendered", async () => {
 		const seen = stubJmap(
 			{ "Email/get": { list: [withAttachment({})] } },
-			new Response("hello", { headers: { "content-type": "text/html" } }),
+			new Response("hello", {
+				headers: { "content-type": "text/html", "content-length": "5" },
+			}),
 		);
 
 		const response = await attachmentResponse(ID, "2");
@@ -80,13 +82,27 @@ describe("attachmentResponse", () => {
 			"attachment; filename=\"report.pdf\"; filename*=UTF-8''report.pdf",
 		);
 		expect(response.headers.get("content-length")).toBe("5");
-		expect(response.headers.get("content-security-policy")).toBe(
-			"default-src 'none'; sandbox",
-		);
+		// The proxy sets the panel's policy on this route; a policy set here would be replaced.
+		expect(response.headers.get("content-security-policy")).toBeNull();
 		expect(response.headers.get("x-content-type-options")).toBe("nosniff");
 		expect(response.headers.get("cache-control")).toBe("private, no-store");
 		expect(seen.at(-1)?.url).toBe(
 			`http://127.0.0.1:8025/jmap/download/admin/${ID}.2/blob`,
+		);
+	});
+
+	it("downloads the blob the message lists for that part, not one built from the ids", async () => {
+		const listedBlob = "00000000-0000-4000-8000-0000000000ee";
+		const seen = stubJmap(
+			{ "Email/get": { list: [withAttachment({ blobId: listedBlob })] } },
+			new Response("hello"),
+		);
+
+		const response = await attachmentResponse(ID, "2");
+
+		expect(response.status).toBe(200);
+		expect(seen.at(-1)?.url).toBe(
+			`http://127.0.0.1:8025/jmap/download/admin/${listedBlob}/blob`,
 		);
 	});
 
@@ -170,6 +186,57 @@ describe("attachmentResponse", () => {
 		const seen = stubJmap({});
 		expect((await attachmentResponse(ID, "2")).status).toBe(401);
 		expect(seen).toHaveLength(0);
+	});
+
+	it("declares the size the mail server declared, and none when it declared none", async () => {
+		stubJmap(
+			{ "Email/get": { list: [withAttachment({})] } },
+			new Response("hello"),
+		);
+		const response = await attachmentResponse(ID, "2");
+		expect(response.headers.get("content-length")).toBeNull();
+		expect(await response.text()).toBe("hello");
+	});
+
+	it("passes the file on as it arrives, and breaks the download off past 25 MiB instead of ending it short", async () => {
+		let asked = 0;
+		// A megabyte each time it is asked, for ever, with no declared size.
+		const endless = new ReadableStream<Uint8Array>(
+			{
+				pull(controller) {
+					asked += 1;
+					controller.enqueue(new Uint8Array(1_048_576));
+				},
+			},
+			{ highWaterMark: 0 },
+		);
+		stubJmap(
+			{ "Email/get": { list: [withAttachment({})] } },
+			new Response(endless),
+		);
+
+		const response = await attachmentResponse(ID, "2");
+		expect(response.status).toBe(200);
+		// The answer is ready before the file has been read.
+		expect(asked).toBeLessThanOrEqual(2);
+
+		const reader = (
+			response.body as ReadableStream<Uint8Array>
+		).getReader();
+		let passed = 0;
+		const ended = await (async () => {
+			for (;;) {
+				const { done, value } = await reader.read();
+				if (done) {
+					return "ended as if whole";
+				}
+				passed += value.byteLength;
+			}
+		})().catch(() => "broken off");
+
+		expect(ended).toBe("broken off");
+		// 25 MiB, and not a byte of the megabyte that crossed it.
+		expect(passed).toBe(26_214_400);
 	});
 
 	it("answers 404 when the blob is gone and 502 when the download fails or is too large", async () => {

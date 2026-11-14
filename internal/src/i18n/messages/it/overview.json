@@ -1,0 +1,98 @@
+{
+	"unreachable": "L’API di gestione del server di posta non è raggiungibile. Verifica che il server sia in esecuzione e che il pannello sia configurato.",
+	"retry": "Riprova",
+	"unavailableTitle": "Non caricato",
+	"unavailable": "Il server non ha risposto per questa scheda. Riprova dall’avviso in cima alla pagina.",
+	"viewData": "Mostra i dati",
+	"share": "Quota",
+	"part": "{count} {name}",
+	"period": {
+		"label": "Periodo dei grafici delle consegne",
+		"24h": "24 ore",
+		"7d": "7 giorni",
+		"30d": "30 giorni"
+	},
+	"inPeriod": {
+		"24h": "Ultime 24 ore",
+		"7d": "Ultimi 7 giorni",
+		"30d": "Ultimi 30 giorni"
+	},
+	"deliveries": {
+		"heading": "Consegne",
+		"open": "Registro delle consegne",
+		"records": "{count, plural, one {record} other {record}}",
+		"disabledTitle": "Il registro delle consegne è disattivato",
+		"disabled": "Il server non conserva record di consegna, quindi non c’è nulla da disegnare. Imposta una conservazione superiore a 0 giorni per il registro nelle impostazioni di archiviazione del server.",
+		"emptyTitle": "Nessuna consegna in questo periodo",
+		"empty": "Nulla è stato inviato, rinviato o rifiutato. Un periodo più lungo può avere record.",
+		"full": "Il server ha restituito {limit} record, il massimo che dà, quindi questo periodo può averne altri. Queste cifre riguardano solo quei {limit}; il registro delle consegne permette di restringerli per esito, periodo e destinatario."
+	},
+	"outcomes": {
+		"title": "Consegne per esito",
+		"description": "{total, plural, one {# record di consegna} other {# record di consegna}}: {parts}.",
+		"outcome": "Esito",
+		"records": "Record"
+	},
+	"timeline": {
+		"title": "Consegne nel tempo",
+		"note": {
+			"hour": "Per ora, UTC · letto alle {time}",
+			"day": "Per giorno, UTC · letto alle {time}"
+		},
+		"description": "{total, plural, one {# record di consegna} other {# record di consegna}} {unit, select, hour {per ora} other {per giorno}}. Il massimo, {peak}, il {when}.",
+		"hint": "{when}: {count, plural, one {# record} other {# record}}",
+		"hintParts": "{when}: {count, plural, one {# record} other {# record}} ({parts})",
+		"hintPartial": "{when}: {count, plural, one {# record} other {# record}} ({parts}), forse in parte",
+		"hintMissing": "{when}: potrebbe non essere stato restituito dal server",
+		"notReturned": "Potrebbe non essere stato restituito",
+		"full": "Il server ha restituito {limit} record, il massimo che dà, quindi le colonne ombreggiate potrebbero non essere state restituite, o solo in parte. Non risulta che siano momenti senza consegne.",
+		"column": {
+			"hour": "Ora (UTC)",
+			"day": "Giorno (UTC)"
+		},
+		"total": "Totale",
+		"state": {
+			"partial": "forse in parte",
+			"missing": "potrebbe non essere stato restituito"
+		}
+	},
+	"now": {
+		"heading": "Coda e soppressione"
+	},
+	"queue": {
+		"title": "Coda per tempo di attesa",
+		"open": "Coda",
+		"waiting": "{count, plural, one {messaggio in attesa} other {messaggi in attesa}}",
+		"read": "{count, plural, one {messaggio letto} other {messaggi letti}}",
+		"recipients": "{count, plural, one {# destinatario in sospeso} other {# destinatari in sospeso}}",
+		"recipientsRead": "{count, plural, one {# destinatario in sospeso} other {# destinatari in sospeso}} nei messaggi letti",
+		"description": "{count, plural, one {# messaggio attende} other {# messaggi attendono}} in coda: {parts}.",
+		"descriptionRead": "{count, plural, one {Il messaggio più vecchio} other {I # messaggi più vecchi}} di una coda che ne ha altri: {parts}.",
+		"capped": "Questi sono i {count} messaggi più vecchi. La coda ne ha altri, tutti più recenti.",
+		"emptyTitle": "La coda è vuota",
+		"empty": "Nessun messaggio attende di essere inviato.",
+		"age": "Tempo di attesa",
+		"messages": "Messaggi",
+		"ages": {
+			"under1h": "Meno di 1 ora",
+			"under6h": "Da 1 a 6 ore",
+			"under24h": "Da 6 a 24 ore",
+			"over24h": "Un giorno o più",
+			"unknown": "Sconosciuto"
+		}
+	},
+	"suppression": {
+		"title": "Indirizzi soppressi per dominio",
+		"open": "Elenco di soppressione",
+		"addresses": "{count, plural, one {indirizzo soppresso} other {indirizzi soppressi}}",
+		"read": "{count, plural, one {indirizzo letto} other {indirizzi letti}}",
+		"description": "{count, plural, one {# indirizzo soppresso} other {# indirizzi soppressi}} per dominio: {parts}.",
+		"descriptionRead": "{count, plural, one {Il primo indirizzo soppresso} other {I primi # indirizzi soppressi}} in ordine alfabetico, di un elenco che ne ha altri, per dominio: {parts}.",
+		"capped": "Questi sono i primi {count} indirizzi in ordine alfabetico. L’elenco ne ha altri, quindi questa classifica dei domini riguarda solo quei {count}.",
+		"emptyTitle": "Nessun indirizzo soppresso",
+		"empty": "Il server non rifiuta alcun destinatario. Un mancato recapito definitivo ne aggiunge uno qui.",
+		"domain": "Dominio",
+		"count": "Indirizzi",
+		"other": "Altri domini"
+	}
+}

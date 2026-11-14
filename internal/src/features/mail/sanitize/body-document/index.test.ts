@@ -47,4 +47,34 @@ describe("bodyDocument", () => {
 		expect(page).not.toMatch(/<style|<script|<base|<link/u);
 		expect(page).toContain('name="referrer" content="no-referrer"');
 	});
+
+	it("follows the browser's scheme without a chosen theme, and takes a chosen one", () => {
+		expect(bodyDocument("<p>x</p>")).toContain(
+			'<meta name="color-scheme" content="light dark">',
+		);
+		expect(bodyDocument("<p>x</p>", null)).toContain(
+			'name="color-scheme" content="light dark"',
+		);
+		expect(bodyDocument("<p>x</p>", "dark")).toContain(
+			'<meta name="color-scheme" content="dark">',
+		);
+		expect(bodyDocument("<p>x</p>", "light")).toContain(
+			'<meta name="color-scheme" content="light">',
+		);
+	});
+
+	it("writes nothing but the two themes into the markup, whatever it is handed", () => {
+		for (const value of [
+			"system",
+			"DARK",
+			"dark light",
+			'dark"><script>alert(1)</script>',
+			'" http-equiv="refresh',
+			"",
+		]) {
+			expect(bodyDocument("<p>x</p>", value)).toBe(
+				bodyDocument("<p>x</p>"),
+			);
+		}
+	});
 });

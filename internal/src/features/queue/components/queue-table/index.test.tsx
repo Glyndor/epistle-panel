@@ -108,4 +108,22 @@ describe("QueueTable", () => {
 		render(withAdminArea(<QueueTable cursor={undefined} />));
 		expect(await screen.findByRole("alert")).toHaveClass("bg-warning");
 	});
+
+	it("shows the whole page the API sent, with no second paging and no Filters menu", async () => {
+		stubFetchJson({
+			entries: Array.from({ length: 30 }, (_, index) => ({
+				id: `01890a5d-ac96-774b-b9aa-9be4c3bd6c${String(index).padStart(2, "0")}`,
+				reverse_path: `s${index}@example.org`,
+				recipients: ["r@example.net"],
+			})),
+		});
+
+		render(withAdminArea(<QueueTable cursor={undefined} />));
+		await screen.findByText("s0@example.org");
+
+		expect(senders()).toHaveLength(30);
+		expect(screen.queryByRole("navigation")).toBeNull();
+		expect(screen.queryByRole("combobox")).toBeNull();
+		expect(screen.queryByRole("button", { name: /filters/ })).toBeNull();
+	});
 });

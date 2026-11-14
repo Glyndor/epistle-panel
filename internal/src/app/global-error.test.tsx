@@ -30,6 +30,8 @@ afterEach(() => {
 	cleanup();
 	// biome-ignore lint/suspicious/noDocumentCookie: the page reads this cookie, so the test sets it
 	document.cookie = "locale=; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+	// biome-ignore lint/suspicious/noDocumentCookie: the page reads this cookie, so the test sets it
+	document.cookie = "theme=; expires=Thu, 01 Jan 1970 00:00:00 GMT";
 });
 
 describe("global error page", () => {
@@ -74,6 +76,49 @@ describe("global error page", () => {
 		expect(
 			view.getByRole("heading", { name: en.heading }),
 		).toBeInTheDocument();
+	});
+
+	for (const theme of ["light", "dark"]) {
+		it(`shows the ${theme} theme when the theme cookie says so`, async () => {
+			// biome-ignore lint/suspicious/noDocumentCookie: the page reads this cookie, so the test sets it
+			document.cookie = `theme=${theme}`;
+
+			const view = renderGlobalError();
+			const html = view.container.ownerDocument.documentElement;
+
+			await waitFor(() =>
+				expect(html.getAttribute("data-theme")).toBe(theme),
+			);
+		});
+	}
+
+	it("leaves the theme to the browser for no cookie, the system choice or a tampered value", async () => {
+		const spanish = (await import("@/i18n/messages/es/error.json"))
+			.default as typeof en;
+		// The locale is read in the same effect as the theme: once the page
+		// is in Spanish, the theme cookie has been read too.
+		// biome-ignore lint/suspicious/noDocumentCookie: the page reads this cookie, so the test sets it
+		document.cookie = "locale=es";
+		for (const value of [undefined, "system", "DARK", "dark%20", "x"]) {
+			if (value !== undefined) {
+				// biome-ignore lint/suspicious/noDocumentCookie: the page reads this cookie, so the test sets it
+				document.cookie = `theme=${value}`;
+			}
+
+			const view = renderGlobalError();
+			await waitFor(() =>
+				expect(
+					view.getByRole("heading", { name: spanish.heading }),
+				).toBeInTheDocument(),
+			);
+
+			expect(
+				view.container.ownerDocument.documentElement.hasAttribute(
+					"data-theme",
+				),
+			).toBe(false);
+			cleanup();
+		}
 	});
 
 	it("does not show the error message and uses no inline style", () => {

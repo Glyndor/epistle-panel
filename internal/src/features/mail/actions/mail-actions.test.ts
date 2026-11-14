@@ -88,6 +88,24 @@ describe("getMailboxesAction", () => {
 		});
 	});
 
+	it("works whether or not the admin area is configured: the webmail is not part of it", async () => {
+		delete process.env["EPISTLE_PANEL_ADMIN_ID"];
+		delete process.env["EPISTLE_PANEL_ADMIN_ID_FILE"];
+		stubJmap({ "Mailbox/get": { list: [] } });
+		expect(await getMailboxesAction()).toEqual({ ok: true, data: [] });
+	});
+
+	it("tells a signed-in user without a mail credential unavailable, never unauthenticated", async () => {
+		cookies.reset();
+		await cookies.signIn("ana", "user");
+		stubJmap({});
+		expect(await getMailboxesAction()).toEqual({
+			ok: false,
+			reason: "unavailable",
+		});
+		expect(sentRequests()).toHaveLength(0);
+	});
+
 	it("reports unavailable when JMAP fails", async () => {
 		stubJmap({});
 		expect(await getMailboxesAction()).toEqual({

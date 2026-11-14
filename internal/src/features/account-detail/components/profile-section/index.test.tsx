@@ -18,6 +18,9 @@ import { withQuery } from "@/test/query-wrapper";
 
 const cookies = mockRequestCookies();
 const { ProfileSection } = await import(".");
+const { displayNameFormSchema } = await import(
+	"@/features/account-detail/schemas/display-name-form"
+);
 
 afterEach(() => {
 	cleanup();
@@ -100,22 +103,86 @@ describe("ProfileSection", () => {
 		expect(JSON.parse(puts()[0]?.body ?? "")).toEqual({ display_name: "" });
 	});
 
-	it("names a control character or an overlong name and sends nothing", async () => {
+	it("gives the browser the name's rules: no control character, and a length it cannot count exactly", () => {
+		setup();
+
+		expect(field()).not.toBeRequired();
+		// The help describes the field; the title is the hint a browser shows
+		// with its own message, not the error.
+		expect(field()).toHaveAccessibleDescription("displayNameHelp");
+		expect(field()).toHaveAttribute("title", "displayNameFormat");
+		// `maxlength` counts UTF-16 units and the server counts code points, so
+		// the input allows twice the limit and the schema does the exact count.
+		expect(field()).toHaveAttribute("maxlength", "256");
+		const pattern = new RegExp(
+			`^(?:${field().getAttribute("pattern") ?? ""})$`,
+			"v",
+		);
+		for (const [value, accepted] of [
+			["Alice", true],
+			["", true],
+			["Ana María 👩‍💻", true],
+			["a\u0007b", false],
+			["a\nb", false],
+			["a\u0000", false],
+		] as const) {
+			expect([value, pattern.test(value)]).toEqual([value, accepted]);
+			expect([
+				value,
+				displayNameFormSchema.safeParse({ displayName: value }).success,
+			]).toEqual([value, accepted]);
+		}
+		// The one value they read differently: the schema trims first, so a tab
+		// at an end is gone before it looks; the browser asks for it to be removed.
+		expect(pattern.test("\tAlice")).toBe(false);
+		expect(
+			displayNameFormSchema.safeParse({ displayName: "\tAlice" }).success,
+		).toBe(true);
+	});
+
+	it("the browser stops a control character before any script", async () => {
 		stubRoutes([
 			["PUT", /display_name$/, { body: { display_name: null } }],
 		]);
 		setup();
 
 		await type("a\u0007b");
+		expect(field().validity.patternMismatch).toBe(true);
 		await save();
-		expect(
-			await screen.findByText("displayNameControl"),
-		).toBeInTheDocument();
+
+		expect(screen.queryByText("displayNameControl")).toBeNull();
+		expect(puts()).toHaveLength(0);
+	});
+
+	it("the schema counts what the browser cannot: 129 characters fit the input and are named too long", async () => {
+		stubRoutes([
+			["PUT", /display_name$/, { body: { display_name: null } }],
+		]);
+		setup();
+
 		await type("a".repeat(129));
+		expect(field().checkValidity()).toBe(true);
 		await save();
 
 		expect(
 			await screen.findByText("displayNameTooLong"),
+		).toBeInTheDocument();
+		expect(puts()).toHaveLength(0);
+	});
+
+	it("a form submitted past the browser's check is stopped by the schema, which names the control character", async () => {
+		stubRoutes([
+			["PUT", /display_name$/, { body: { display_name: null } }],
+		]);
+		setup();
+
+		await type("a\u0007b");
+		await act(async () => {
+			fireEvent.submit(field().closest("form") as HTMLFormElement);
+		});
+
+		expect(
+			await screen.findByText("displayNameControl"),
 		).toBeInTheDocument();
 		expect(puts()).toHaveLength(0);
 	});

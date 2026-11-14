@@ -8,8 +8,8 @@ import { columnHelper, DataTable } from "@/components/data-table";
 import { useAdminRoutes } from "@/components/layout/admin-routes";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { getQueuePageAction } from "@/features/queue/actions/get-queue-page";
+import { QueueTableSkeleton } from "@/features/queue/components/queue-table-skeleton";
 import { RemoveEntryButton } from "@/features/queue/components/remove-entry-button";
 import { queueQueryOptions } from "@/features/queue/queries/queue-query";
 import type { QueueRow } from "@/features/queue/schemas/queue-view";
@@ -33,14 +33,16 @@ export function QueueTable({ cursor }: { cursor: string | undefined }) {
 		helper.accessor("from", {
 			header: t("from"),
 			cell: (info) => (
-				<span className="break-all font-mono">{info.getValue()}</span>
+				<span className="wrap-anywhere font-mono">
+					{info.getValue()}
+				</span>
 			),
 		}),
 		helper.accessor((row) => row.recipients.join(", "), {
 			id: "to",
 			header: t("to"),
 			cell: (info) => (
-				<span className="break-all text-muted-foreground">
+				<span className="wrap-anywhere text-muted-foreground">
 					{info.getValue()}
 				</span>
 			),
@@ -61,7 +63,7 @@ export function QueueTable({ cursor }: { cursor: string | undefined }) {
 	]);
 
 	if (isPending) {
-		return <Skeleton className="h-24" aria-busy="true" />;
+		return <QueueTableSkeleton />;
 	}
 	if (data === undefined) {
 		return (
@@ -77,6 +79,8 @@ export function QueueTable({ cursor }: { cursor: string | undefined }) {
 			getRowId={getRowId}
 			filterLabel={t("filter")}
 			emptyLabel={t("empty")}
+			// The API pages this list with its cursor: not a second time here.
+			pagination={false}
 			toolbar={
 				<>
 					{cursor !== undefined ? (

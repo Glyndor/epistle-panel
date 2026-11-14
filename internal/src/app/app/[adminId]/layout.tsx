@@ -37,7 +37,8 @@ export default async function AdminLayout({
 				<AppShell
 					groups={navForRole("admin", navItems(routes))}
 					homeHref={routes.home}
-					userName={sub}
+					user={{ name: sub, role: "admin" }}
+					adminHref={routes.home}
 					defaultOpen={open}
 				>
 					{children}

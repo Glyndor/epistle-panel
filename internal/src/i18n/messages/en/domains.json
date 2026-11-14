@@ -3,5 +3,8 @@
 	"unreachable": "The mail server's management API is unreachable. Check that the server is running and the panel is configured.",
 	"empty": "No domains are configured yet.",
 	"name": "Domain",
+	"state": "State",
+	"stateActive": "Active",
+	"stateDisabled": "Switched off",
 	"filter": "Filter domains"
 }

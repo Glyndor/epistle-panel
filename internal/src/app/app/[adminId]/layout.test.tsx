@@ -88,7 +88,8 @@ describe("AdminLayout", () => {
 			navForRole("admin", navItems(adminRoutes(TEST_ADMIN_ID))),
 		);
 		expect(String(props.homeHref)).toBe(`/app/${TEST_ADMIN_ID}`);
-		expect(props.userName).toBe("ops");
+		expect(props.user).toEqual({ name: "ops", role: "admin" });
+		expect(String(props.adminHref)).toBe(`/app/${TEST_ADMIN_ID}`);
 	});
 
 	it("renders the skip link, sidebar, header and exactly one main landmark", async () => {

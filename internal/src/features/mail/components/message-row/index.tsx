@@ -1,5 +1,3 @@
-"use client";
-
 import { PaperclipIcon, StarIcon } from "lucide-react";
 import Link from "next/link";
 import { useFormatter, useTranslations } from "next-intl";

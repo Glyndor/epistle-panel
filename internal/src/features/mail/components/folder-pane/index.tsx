@@ -3,8 +3,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 
-import { Skeleton } from "@/components/ui/skeleton";
 import { getMailboxesAction } from "@/features/mail/actions/get-mailboxes";
+import { FolderSkeleton } from "@/features/mail/components/folder-skeleton";
 import { FolderTree } from "@/features/mail/components/folder-tree";
 import { MailNotice } from "@/features/mail/components/mail-notice";
 import { mailboxesQueryOptions } from "@/features/mail/queries/mail-query-options";
@@ -18,12 +18,7 @@ export function FolderPane({ activeId }: { activeId: string }) {
 	const { data, isPending } = useQuery(mailboxesQueryOptions(fetchMailboxes));
 
 	if (isPending) {
-		return (
-			<div className="flex flex-col gap-2 p-2" aria-busy="true">
-				<Skeleton className="h-8" />
-				<Skeleton className="h-8" />
-			</div>
-		);
+		return <FolderSkeleton />;
 	}
 	if (data === undefined) {
 		return <MailNotice tone="error">{t("unavailable")}</MailNotice>;

@@ -2,7 +2,6 @@ import type { Route } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { NavMain } from "@/components/layout/nav-main";
-import { NavUser } from "@/components/layout/nav-user";
 import {
 	SidebarMenu,
 	SidebarMenuButton,
@@ -20,16 +19,15 @@ import { getBrand } from "@/features/branding/queries/brand";
 import type { NavGroup } from "@/features/navigation/schemas/nav-item";
 
 /**
- * The application sidebar: brand, primary navigation and the signed-in user.
+ * The application sidebar: brand, primary navigation and the copyright notice.
+ * Who is signed in, the language and sign out are in the header's profile menu.
  * A Server Component that hands translated strings to the client parts, so the
  * sheet title and the close label are in the user's language.
  */
 export async function AppSidebar({
-	name,
 	groups,
 	homeHref,
 }: {
-	name: string;
 	groups: readonly NavGroup[];
 	homeHref: Route;
 }) {
@@ -69,7 +67,6 @@ export async function AppSidebar({
 				<NavMain groups={groups} />
 			</SidebarContent>
 			<SidebarFooter>
-				<NavUser name={name} />
 				<CopyrightNotice className="px-2 text-muted-foreground text-xs group-data-[collapsible=icon]:sr-only" />
 			</SidebarFooter>
 		</Sidebar>

@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect } from "react";
 
 /** Whether a key press is meant for a field, a dialog or a modifier combination, not for the list. */

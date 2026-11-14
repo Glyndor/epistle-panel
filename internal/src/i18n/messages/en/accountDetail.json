@@ -1,7 +1,5 @@
 {
 	"heading": "Account {name}",
-	"back": "All accounts",
-	"breadcrumb": "Breadcrumb",
 	"unreachable": "The mail server's management API is unreachable. Check that the server is running and the panel is configured.",
 	"gone": "This account no longer exists.",
 	"unavailable": "Could not complete the change. Please try again.",
@@ -18,6 +16,7 @@
 	"displayNameCleared": "Display name cleared.",
 	"displayNameTooLong": "Use at most 128 characters.",
 	"displayNameControl": "Remove the control characters and line breaks.",
+	"displayNameFormat": "A name on one line, with no control characters.",
 	"displayNameRefused": "The server refused this name.",
 	"passwordTitle": "Password",
 	"passwordHelp": "12 to 64 printable ASCII characters. The new password applies at once and the old one stops working.",

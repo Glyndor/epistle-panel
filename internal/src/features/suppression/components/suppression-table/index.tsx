@@ -7,9 +7,9 @@ import { columnHelper, DataTable } from "@/components/data-table";
 import { useAdminRoutes } from "@/components/layout/admin-routes";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { getSuppressionPageAction } from "@/features/suppression/actions/get-suppression-page";
 import { RemoveAddressButton } from "@/features/suppression/components/remove-address-button";
+import { SuppressionTableSkeleton } from "@/features/suppression/components/suppression-table-skeleton";
 import { suppressionQueryOptions } from "@/features/suppression/queries/suppression-query";
 import type { SuppressionRow } from "@/features/suppression/schemas/suppression-view";
 import { unwrap } from "@/lib/query/action-result";
@@ -37,7 +37,9 @@ export function SuppressionTable({ after }: { after: string | undefined }) {
 		helper.accessor("address", {
 			header: t("address"),
 			cell: (info) => (
-				<span className="break-all font-mono">{info.getValue()}</span>
+				<span className="wrap-anywhere font-mono">
+					{info.getValue()}
+				</span>
 			),
 		}),
 		helper.display({
@@ -55,7 +57,7 @@ export function SuppressionTable({ after }: { after: string | undefined }) {
 	]);
 
 	if (isPending) {
-		return <Skeleton className="h-24" aria-busy="true" />;
+		return <SuppressionTableSkeleton />;
 	}
 	if (data === undefined) {
 		return (
@@ -71,6 +73,8 @@ export function SuppressionTable({ after }: { after: string | undefined }) {
 			getRowId={getRowId}
 			filterLabel={t("filter")}
 			emptyLabel={t("empty")}
+			// The API pages this list with its cursor: not a second time here.
+			pagination={false}
 			toolbar={
 				<>
 					{after !== undefined ? (

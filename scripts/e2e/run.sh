@@ -14,7 +14,7 @@
 # exercises.
 #
 # Usage: scripts/e2e/run.sh [scenario...]
-#   scenarios: headers logout limiter limiter-global noauth degraded rotation idle theme body-limit captcha csrf set-locale unknown-variable suppression deliveries account-detail admin-id mail
+#   scenarios: headers logout limiter limiter-global noauth degraded rotation idle theme theme-choice profile-menu body-limit captcha csrf set-locale unknown-variable suppression deliveries account-detail accounts breadcrumbs admin-id mail streaming tables overview
 # With no argument every scenario runs. Exit status is non-zero when any check
 # fails. Override the ports with PANEL_PORT and STAND_IN_PORT.
 set -euo pipefail
@@ -118,6 +118,10 @@ cp -R "$internal/.next/static" "$standalone/.next/static"
 . "$root/scripts/e2e/scenarios/captcha.sh"
 # shellcheck source=scripts/e2e/scenarios/theme.sh
 . "$root/scripts/e2e/scenarios/theme.sh"
+# shellcheck source=scripts/e2e/scenarios/theme-choice.sh
+. "$root/scripts/e2e/scenarios/theme-choice.sh"
+# shellcheck source=scripts/e2e/scenarios/profile-menu.sh
+. "$root/scripts/e2e/scenarios/profile-menu.sh"
 # shellcheck source=scripts/e2e/scenarios/body-limit.sh
 . "$root/scripts/e2e/scenarios/body-limit.sh"
 # shellcheck source=scripts/e2e/scenarios/csrf.sh
@@ -139,9 +143,20 @@ cp -R "$internal/.next/static" "$standalone/.next/static"
 # shellcheck source=scripts/e2e/scenarios/admin-id.sh
 . "$root/scripts/e2e/scenarios/admin-id.sh"
 
+# shellcheck source=scripts/e2e/scenarios/accounts.sh
+. "$root/scripts/e2e/scenarios/accounts.sh"
+# shellcheck source=scripts/e2e/scenarios/breadcrumbs.sh
+. "$root/scripts/e2e/scenarios/breadcrumbs.sh"
+# shellcheck source=scripts/e2e/scenarios/streaming.sh
+. "$root/scripts/e2e/scenarios/streaming.sh"
+# shellcheck source=scripts/e2e/scenarios/tables.sh
+. "$root/scripts/e2e/scenarios/tables.sh"
+# shellcheck source=scripts/e2e/scenarios/overview.sh
+. "$root/scripts/e2e/scenarios/overview.sh"
+
 # ---------------------------------------------------------------- main
 
-all=(headers logout limiter limiter-global noauth degraded rotation idle theme body-limit captcha csrf set-locale unknown-variable suppression deliveries account-detail admin-id mail)
+all=(headers logout limiter limiter-global noauth degraded rotation idle theme theme-choice profile-menu body-limit captcha csrf set-locale unknown-variable suppression deliveries account-detail accounts breadcrumbs admin-id mail streaming tables overview)
 selected=("$@")
 ((${#selected[@]})) || selected=("${all[@]}")
 
@@ -156,6 +171,8 @@ for name in "${selected[@]}"; do
 	rotation) scenario_rotation ;;
 	idle) scenario_idle ;;
 	theme) scenario_theme ;;
+	theme-choice) scenario_theme_choice ;;
+	profile-menu) scenario_profile_menu ;;
 	body-limit) scenario_body_limit ;;
 	captcha) scenario_captcha ;;
 	csrf) scenario_csrf ;;
@@ -165,6 +182,11 @@ for name in "${selected[@]}"; do
 	deliveries) scenario_deliveries ;;
 	account-detail) scenario_account_detail ;;
 	mail) scenario_mail ;;
+	accounts) scenario_accounts ;;
+	breadcrumbs) scenario_breadcrumbs ;;
+	streaming) scenario_streaming ;;
+	tables) scenario_tables ;;
+	overview) scenario_overview ;;
 	admin-id) scenario_admin_id ;;
 	*)
 		echo "error: unknown scenario '$name'" >&2

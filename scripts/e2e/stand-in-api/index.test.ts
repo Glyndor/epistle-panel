@@ -119,6 +119,22 @@ describe("log", () => {
 		expect(dump).not.toContain("correct-horse");
 	});
 
+	test("a JMAP request is logged with its method names and none of its arguments", async () => {
+		await fetch(`${base}/jmap/api`, {
+			method: "POST",
+			headers: auth,
+			body: JSON.stringify({
+				methodCalls: [
+					["Mailbox/get", { accountId: "admin", ids: ["secret-id"] }, "a"],
+					["Email/query", { accountId: "admin" }, "b"],
+				],
+			}),
+		});
+		const entry = (await logged()).at(-1);
+		expect(entry?.jmap).toEqual(["Mailbox/get", "Email/query"]);
+		expect(JSON.stringify(entry)).not.toContain("secret-id");
+	});
+
 	test("control paths are not logged", async () => {
 		await logged();
 		expect(await logged()).toEqual([]);
@@ -162,6 +178,72 @@ describe("modes", () => {
 
 	test("an unknown mode is refused", async () => {
 		expect((await setMode("explode")).status).toBe(400);
+	});
+});
+
+describe("delay", () => {
+	// A stand-in of its own whose sleep records the wait instead of taking it,
+	// so the cases assert the requested delay and not a wall-clock time.
+	const waits: number[] = [];
+	const delayed = createStandIn({
+		token: TOKEN,
+		sleep: async (ms) => {
+			waits.push(ms);
+		},
+	});
+	const delayedBase = `http://127.0.0.1:${delayed.server.port}`;
+	afterAll(() => delayed.server.stop(true));
+	beforeEach(async () => {
+		waits.length = 0;
+		await fetch(`${delayedBase}/__control/reset`, { method: "POST" });
+	});
+
+	const setDelay = (ms: unknown) =>
+		fetch(`${delayedBase}/__control/delay`, {
+			method: "POST",
+			body: JSON.stringify({ ms }),
+		});
+
+	test("no delay is taken until one is set", async () => {
+		await fetch(`${delayedBase}/api/v1/status`, { headers: auth });
+		expect(waits).toEqual([]);
+	});
+
+	test("a data answer and a JMAP call wait for the delay, and the reset clears it", async () => {
+		expect((await setDelay(200)).status).toBe(200);
+		const status = await fetch(`${delayedBase}/api/v1/status`, {
+			headers: auth,
+		});
+		expect(statusSchema.parse(await status.json()).queue_size).toBeGreaterThan(0);
+		await fetch(`${delayedBase}/jmap/api`, {
+			method: "POST",
+			headers: { ...auth, "Content-Type": "application/json" },
+			body: JSON.stringify({ using: [], methodCalls: [] }),
+		});
+		expect(waits).toEqual([200, 200]);
+		await fetch(`${delayedBase}/__control/reset`, { method: "POST" });
+		await fetch(`${delayedBase}/api/v1/status`, { headers: auth });
+		expect(waits).toEqual([200, 200]);
+	});
+
+	test("sign-in is never delayed", async () => {
+		await setDelay(300);
+		const response = await fetch(`${delayedBase}/api/v1/auth/verify`, {
+			method: "POST",
+			headers: { ...auth, "Content-Type": "application/json" },
+			body: JSON.stringify({ name: "admin", password: "correct-horse" }),
+		});
+		expect(verifyResultSchema.parse(await response.json()).valid).toBe(true);
+		expect(waits).toEqual([]);
+	});
+
+	test("the bounds are accepted and anything else is refused", async () => {
+		for (const ms of [0, 30_000]) {
+			expect((await setDelay(ms)).status).toBe(200);
+		}
+		for (const ms of [-1, 1.5, 30_001, "5", null]) {
+			expect((await setDelay(ms)).status).toBe(400);
+		}
 	});
 });
 

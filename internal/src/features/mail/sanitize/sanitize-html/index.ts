@@ -12,11 +12,19 @@ type ParentNode = DefaultTreeAdapterMap["parentNode"];
 /** The namespace of ordinary HTML. An element of any other (svg, math) is dropped with its content. */
 const HTML_NAMESPACE = "http://www.w3.org/1999/xhtml";
 
-/** Deepest nesting kept; an element below it is dropped, which also bounds the walk's recursion. */
+/** Deepest nesting of written elements kept; an element below it is dropped. The walk's recursion is bounded by {@link MAX_NESTING}. */
 export const MAX_DEPTH = 64;
 
 /** Most elements kept in one body; the rest of the message is cut. */
 export const MAX_ELEMENTS = 20_000;
+
+/**
+ * How many element levels the walk descends, counting every element, those
+ * written and those unwrapped alike. {@link MAX_DEPTH} counts only written
+ * elements, so a body of thousands of nested unknown tags (`<x><x><x>…`) would
+ * otherwise recurse without bound and throw; this cap stops the walk first.
+ */
+export const MAX_NESTING = 512;
 
 /** Largest HTML input read, in UTF-16 code units. Past it the message is shown as text only. */
 export const MAX_INPUT_LENGTH = 1_048_576;
@@ -40,6 +48,8 @@ export interface SanitizedHtml {
 interface State {
 	out: string[];
 	elements: number;
+	/** Element levels the walk is inside right now, written or unwrapped. */
+	nesting: number;
 	blockedImages: number;
 	truncated: boolean;
 	remoteImages: boolean;
@@ -140,6 +150,11 @@ function emitElement(element: Element, depth: number, state: State): void {
 }
 
 function walk(parent: ParentNode, depth: number, state: State): void {
+	if (state.nesting >= MAX_NESTING) {
+		state.truncated = true;
+		return;
+	}
+	state.nesting += 1;
 	for (const child of parent.childNodes as Node[]) {
 		if (child.nodeName === "#text" && "value" in child) {
 			state.out.push(
@@ -149,6 +164,7 @@ function walk(parent: ParentNode, depth: number, state: State): void {
 			emitElement(child, depth, state);
 		}
 	}
+	state.nesting -= 1;
 }
 
 function findBody(document: ParentNode): ParentNode | null {
@@ -186,6 +202,7 @@ export function sanitizeHtml(
 	const state: State = {
 		out: [],
 		elements: 0,
+		nesting: 0,
 		blockedImages: 0,
 		truncated: input.length > MAX_INPUT_LENGTH,
 		remoteImages: options.remoteImages,

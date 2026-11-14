@@ -3,6 +3,9 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 
 import { getBrand } from "@/features/branding/queries/brand";
+import { ThemeChoiceProvider } from "@/features/theme/components/theme-choice-provider";
+import { forcedTheme } from "@/features/theme/config/choices";
+import { readThemeChoice } from "@/features/theme/queries/theme-choice";
 import { isThemeConfigured } from "@/features/theme/queries/theme-css";
 
 import { pickClientMessages } from "@/i18n/messages";
@@ -38,8 +41,17 @@ export default async function RootLayout({
 	const locale = await getLocale();
 	// Client components get only their namespaces; the server pages read the rest.
 	const messages = await getMessages();
+	// A chosen theme is painted here, on the server, so the first frame is
+	// already in it: the policy allows no inline script that could set it
+	// before the page shows. With no choice there is no attribute and the
+	// stylesheet follows `prefers-color-scheme`.
+	const choice = await readThemeChoice();
 	return (
-		<html lang={locale} className="h-full antialiased">
+		<html
+			lang={locale}
+			data-theme={forcedTheme(choice)}
+			className="h-full antialiased"
+		>
 			{isThemeConfigured() && (
 				<head>
 					{/* The operator's override, after the panel's own stylesheet.
@@ -53,7 +65,9 @@ export default async function RootLayout({
 			)}
 			<body className="min-h-full text-sm">
 				<NextIntlClientProvider messages={pickClientMessages(messages)}>
-					{children}
+					<ThemeChoiceProvider choice={choice}>
+						{children}
+					</ThemeChoiceProvider>
 				</NextIntlClientProvider>
 			</body>
 		</html>

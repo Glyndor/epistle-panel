@@ -13,6 +13,7 @@ import {
 	NotFoundSignal,
 } from "@/lib/auth/test-support/cookies";
 import { withAdminArea } from "@/test/admin-routes";
+import { resolveServerTree } from "@/test/server-tree";
 
 const originalFetch = globalThis.fetch;
 const cookies = mockRequestCookies();
@@ -56,7 +57,7 @@ describe("AccountDetailPage", () => {
 	it("heads the page with the account and prefetches the list and every section", async () => {
 		api();
 
-		render(withAdminArea(await page("alice")));
+		render(withAdminArea(await resolveServerTree(await page("alice"))));
 
 		expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
 			"heading",
@@ -115,7 +116,7 @@ describe("AccountDetailPage", () => {
 		const errors = spyOn(console, "error").mockImplementation(() => {});
 		stubFetchReject();
 
-		render(withAdminArea(await page("alice")));
+		render(withAdminArea(await resolveServerTree(await page("alice"))));
 
 		expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
 		expect(await screen.findByRole("alert")).toHaveTextContent(

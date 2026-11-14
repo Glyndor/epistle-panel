@@ -7,7 +7,6 @@ import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { getMailboxesAction } from "@/features/mail/actions/get-mailboxes";
 import { getMessageAction } from "@/features/mail/actions/get-message";
 import { AttachmentList } from "@/features/mail/components/attachment-list";
@@ -15,6 +14,7 @@ import { BodyView } from "@/features/mail/components/body-view";
 import { HeadersDisclosure } from "@/features/mail/components/headers-disclosure";
 import { MailNotice } from "@/features/mail/components/mail-notice";
 import { ReaderHeader } from "@/features/mail/components/reader-header";
+import { ReaderSkeleton } from "@/features/mail/components/reader-skeleton";
 import { ReaderToolbar } from "@/features/mail/components/reader-toolbar";
 import { mailHref } from "@/features/mail/links/mail-href";
 import {
@@ -84,16 +84,7 @@ export function MessageReader({
 	);
 
 	if (isPending) {
-		return (
-			<div className="flex flex-col" aria-busy="true">
-				{back}
-				<span className="sr-only" role="status">
-					{t("readerLoading")}
-				</span>
-				<Skeleton className="m-4 h-24" />
-				<Skeleton className="m-4 h-48" />
-			</div>
-		);
+		return <ReaderSkeleton>{back}</ReaderSkeleton>;
 	}
 	if (isError) {
 		return (

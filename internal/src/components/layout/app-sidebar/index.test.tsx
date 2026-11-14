@@ -20,12 +20,11 @@ afterEach(() => {
 });
 
 describe("AppSidebar", () => {
-	it("holds the brand, the pages and the signed-in user", async () => {
+	it("holds the brand and the pages; the account is in the header's profile menu", async () => {
 		render(
 			<SidebarProvider>
 				{
 					await AppSidebar({
-						name: "admin",
 						groups: adminNav(),
 						homeHref: TEST_ROUTES.home,
 					})
@@ -39,10 +38,8 @@ describe("AppSidebar", () => {
 		);
 		const nav = screen.getByRole("navigation", { name: "label" });
 		expect(nav.querySelectorAll("a")).toHaveLength(6);
-		expect(
-			screen.getByRole("button", { name: "logout" }),
-		).toBeInTheDocument();
-		expect(screen.getByText("signedInAs")).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "logout" })).toBeNull();
+		expect(screen.queryByRole("button", { name: "language" })).toBeNull();
 	});
 
 	it("draws the brand mark as a decorative SVG", async () => {
@@ -50,7 +47,6 @@ describe("AppSidebar", () => {
 			<SidebarProvider>
 				{
 					await AppSidebar({
-						name: "admin",
 						groups: adminNav(),
 						homeHref: TEST_ROUTES.home,
 					})
@@ -72,7 +68,6 @@ describe("AppSidebar", () => {
 			<SidebarProvider>
 				{
 					await AppSidebar({
-						name: "admin",
 						groups: adminNav(),
 						homeHref: TEST_ROUTES.home,
 					})
@@ -94,7 +89,6 @@ describe("AppSidebar", () => {
 			<SidebarProvider>
 				{
 					await AppSidebar({
-						name: "admin",
 						groups: adminNav(),
 						homeHref: TEST_ROUTES.home,
 					})

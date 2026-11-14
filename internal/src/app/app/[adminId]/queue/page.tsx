@@ -1,32 +1,45 @@
-import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { getTranslations } from "next-intl/server";
+import { Suspense } from "react";
 
+import { PrefetchBoundary } from "@/components/prefetch-boundary";
+import { AdminBreadcrumbs } from "@/features/navigation/components/admin-breadcrumbs";
 import { QueueTable } from "@/features/queue/components/queue-table";
+import { QueueTableSkeleton } from "@/features/queue/components/queue-table-skeleton";
 import { loadQueue } from "@/features/queue/queries/load-queue";
 import { queueQueryOptions } from "@/features/queue/queries/queue-query";
 import { parseCursorParam } from "@/features/queue/schemas/queue-input";
 import { requireAdmin } from "@/lib/auth/require-session";
-import { prefetch } from "@/lib/query/prefetch";
-import { getServerQueryClient } from "@/lib/query/server-query-client";
+import { prefetchSpec } from "@/lib/query/prefetch";
 
-/** The outbound queue page: one page prefetched on the server, then owned by Query. */
+/**
+ * The outbound queue page: the heading at once, one page of the queue streamed
+ * in, then owned by Query. The cursor is parsed before anything is sent.
+ */
 export default async function QueuePage({
 	searchParams,
 }: {
 	searchParams: Promise<{ cursor?: string | string[] }>;
 }) {
-	await requireAdmin();
+	const { routes } = await requireAdmin();
 	const t = await getTranslations("queue");
 	const cursor = parseCursorParam((await searchParams).cursor);
-	const client = getServerQueryClient();
-	await prefetch(client, queueQueryOptions(cursor, loadQueue), "queue fetch");
 
 	return (
 		<>
+			<AdminBreadcrumbs routes={routes} page="queue" />
 			<h1 className="font-semibold text-lg">{t("heading")}</h1>
-			<HydrationBoundary state={dehydrate(client)}>
-				<QueueTable cursor={cursor} />
-			</HydrationBoundary>
+			<Suspense key={cursor ?? ""} fallback={<QueueTableSkeleton />}>
+				<PrefetchBoundary
+					queries={[
+						prefetchSpec(
+							queueQueryOptions(cursor, loadQueue),
+							"queue fetch",
+						),
+					]}
+				>
+					<QueueTable cursor={cursor} />
+				</PrefetchBoundary>
+			</Suspense>
 		</>
 	);
 }

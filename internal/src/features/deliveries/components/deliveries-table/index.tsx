@@ -6,8 +6,8 @@ import { useTranslations } from "next-intl";
 import { columnHelper, DataTable } from "@/components/data-table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { getDeliveriesAction } from "@/features/deliveries/actions/get-deliveries";
+import { DeliveriesTableSkeleton } from "@/features/deliveries/components/deliveries-table-skeleton";
 import { deliveriesQueryOptions } from "@/features/deliveries/queries/deliveries-query";
 import { formatUtcTime } from "@/features/deliveries/queries/format-time";
 import type { DeliveryFilters } from "@/features/deliveries/schemas/deliveries-input";
@@ -62,13 +62,15 @@ export function DeliveriesTable({ filters }: { filters: DeliveryFilters }) {
 		helper.accessor("recipient", {
 			header: t("recipient"),
 			cell: (info) => (
-				<span className="break-all font-mono">{info.getValue()}</span>
+				<span className="wrap-anywhere font-mono">
+					{info.getValue()}
+				</span>
 			),
 		}),
 		helper.accessor("from", {
 			header: t("from"),
 			cell: (info) => (
-				<span className="break-all font-mono">
+				<span className="wrap-anywhere font-mono">
 					{info.getValue() || "<>"}
 				</span>
 			),
@@ -82,7 +84,7 @@ export function DeliveriesTable({ filters }: { filters: DeliveryFilters }) {
 			id: "remote",
 			header: t("remote"),
 			cell: (info) => (
-				<span className="break-all">
+				<span className="wrap-anywhere">
 					{info.getValue() || t("none")}
 				</span>
 			),
@@ -100,7 +102,7 @@ export function DeliveriesTable({ filters }: { filters: DeliveryFilters }) {
 	]);
 
 	if (isPending) {
-		return <Skeleton className="h-24" aria-busy="true" />;
+		return <DeliveriesTableSkeleton />;
 	}
 	if (data === undefined) {
 		return (

@@ -4,6 +4,13 @@ import * as z from "zod/mini";
 export const MASKED_LABEL_MAX = 64;
 
 /**
+ * The "one letter or digit" rule of the label as an HTML `pattern`, for the
+ * browser's own check. No anchors (the attribute anchors itself) and nothing a
+ * browser, which compiles it with the `v` flag, reads as a syntax error.
+ */
+export const MASKED_LABEL_HTML_PATTERN = ".*[A-Za-z0-9].*";
+
+/**
  * The label a masked address is minted from. The server keeps the letters and
  * digits as the start of the address, so one of them is required; control
  * characters are refused, and the length is the panel's own bound.

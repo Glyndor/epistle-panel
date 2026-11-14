@@ -31,6 +31,12 @@ different exports pass in one order and fail in another. So:
   those two modules keeps its own exports and loses none of the others. Prefer
   the stand-ins: a test in that folder fails when one lacks a name the panel
   imports.
+- `next/navigation` and `next/headers` are under the same wrapper
+  (`src/test/next-navigation/`, registered by the preload with
+  `registerStandIn`). A file that mocked `next/navigation` with the two exports
+  it used left every file after it without `notFound`; now its own exports win
+  and the rest come from the stand-in. A module that several files mock goes
+  through `registerStandIn` too.
 - Stores kept on `globalThis` (revocations, the login limiter) are emptied
   before each case that counts their entries.
 
@@ -68,6 +74,73 @@ GENERATED_SEED=$RANDOM bun test src/lib src/proxy-generated-inputs.test.ts
 Every failure prints `seed=<n> case=<i>`; run again with `GENERATED_SEED=<n>`
 to replay the whole run, or call `replayCase` for that one case. A value that is
 not a non-negative integer stops the run instead of falling back to the default.
+
+## A failed assertion must be cheap
+
+`waitFor` polls an assertion for one second. That only works if a failed poll
+costs almost nothing, and on a DOM node it did not: Bun printed the whole
+happy-dom object behind the node into the message. A failed
+`expect(node).toBeNull()` built 248 MB of text in about four seconds, and a
+failed jest-dom matcher took about seven (measured on a Radix dialog). One
+failed poll was longer than the whole wait, so a test whose first poll came a
+moment too early failed instead of polling again. Fifty-seven assertions in
+eighteen files were of that shape, and the tests that failed "at random" were
+among them.
+
+The preload installs a one-line print for every node
+(`src/test/short-node-print/`): tag, id, role, accessible name, the start of
+its text. A failed assertion on a node now takes about a millisecond and says
+which node. Its test fails, in seconds, if the print is not installed.
+
+Do not raise a timeout to cure a test that fails now and then. Look for what a
+failed poll costs, or for a test that ends while its action is still on its way
+to the stubbed `fetch` (the next section).
+
+## A request that outlives its case
+
+A request that outlives its case lands in the next case's `fetch` stub, with
+whatever the next case set: the API token is read when the call is made, so
+even a case that counts only requests carrying its own token counted one it
+did not make. Of 40 random orders of the mail page's file, 8 failed that way.
+It comes from a component that asks for data as it mounts, a reader that marks
+a message as read when it opens, or a mutation that reads the list again once
+it settles.
+
+Whether a case ends with a request on its way depends on the moment it ends:
+the same case leaves one in one run and none in the next. So it is not held as
+a rule after the case (a check there failed now and then in files nobody had
+touched). It is contained before the next one. The preload's `beforeEach` runs
+ahead of the file's own (measured), when the next stub is not in place yet, and
+waits there for the clients of the case before to have nothing on its way
+(`betweenCases` in `src/test/query-wrapper`). What was left finishes against
+whatever the last case left behind and reaches no stub that counts. With that
+alone the mail page's file fails in 0 of 40 orders; without it, in 5.
+
+It covers the clients made by `testQueryClient`, which is every one
+`withQuery` makes. Two things a file still does itself:
+
+- to have a request counted by the case that made it, end the file's
+  `afterEach` with `await settled()` **before** `fetch` is put back
+  (`useActionEnvironment` does it for the files that use it);
+- a request held open on purpose, to look at a pending state, is answered by
+  the case once it has looked: keep the promise's `resolve`, call it, then
+  `await settled()`. One left open for ever costs the next case a quarter of a
+  second.
+
+## A script left in the head
+
+Test files share one document. A component that loads a script (the CAPTCHA
+widget) adds a `<script>` to the head, and unmounting it does not take the
+script away. The sign-in page's file left two there, and the form's "no script
+when the CAPTCHA is off" case counted them when it ran right after: one seed in
+several failed. The preload removes the scripts in the head before every case
+(`src/test/left-in-head`), so a case sees only its own.
+
+A request held open on purpose is made **before** the `fetch` stub, and the
+stub hands it out. Taking the promise's `resolve` from inside the stub makes it
+exist only once `fetch` has been called, and the button is already disabled
+before the action reaches `fetch` (it checks the session first): a case that
+answered in that gap answered nothing, and the request never ended.
 
 ## Pinning limits
 

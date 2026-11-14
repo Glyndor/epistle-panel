@@ -16,8 +16,18 @@
 import { apiError, json } from "./responses";
 import { createDeliveriesStore } from "./deliveries";
 import { createSuppressionStore } from "./suppression";
+import {
+	parseSeed,
+	SEED_DOMAIN,
+	SEED_ERROR,
+	type SeededDomain,
+	seededDomains,
+} from "./seed";
 import { createAccountsStore } from "./accounts";
+import { handleLifecycle } from "./accounts/lifecycle";
 import { createJmapStore } from "./jmap";
+import { createQueueStore } from "./queue";
+import { buildSample } from "./sample";
 
 /** Behaviour of the data endpoints, switched at run time through the control path. */
 export type Mode = "ok" | "hang" | "huge";
@@ -34,6 +44,8 @@ export interface LoggedRequest {
 	name?: string;
 	/** For a CAPTCHA verification: whether the secret matched, and whether the token solved it. */
 	captcha?: { secret: "valid" | "wrong"; token: "solved" | "unsolved" };
+	/** For a JMAP request: the names of its method calls, in order, arguments left out. */
+	jmap?: string[];
 }
 
 /** Options of {@link createStandIn}. */
@@ -42,6 +54,11 @@ export interface StandInOptions {
 	port?: number;
 	/** Bearer token the API accepts. */
 	token: string;
+	/**
+	 * How a data answer waits for the delay set at `/__control/delay`. Tests pass
+	 * a recorder so they assert the requested wait, not a wall-clock time.
+	 */
+	sleep?: (ms: number) => Promise<void>;
 }
 
 /** Accounts the stand-in knows: name to password and admin flag. */
@@ -52,15 +69,6 @@ export const ACCOUNTS: Readonly<
 	ops: { password: "other-battery", admin: true },
 	user: { password: "plain-staple", admin: false },
 };
-
-/** Entries the queue holds at the start, in the order the API lists them. */
-const SEED_IDS = [
-	"11111111-1111-4111-8111-111111111111",
-	"22222222-2222-4222-8222-222222222222",
-	"33333333-3333-4333-8333-333333333333",
-	"44444444-4444-4444-8444-444444444444",
-	"55555555-5555-4555-8555-555555555555",
-];
 
 /** The token the stand-in CAPTCHA widget "solves" with, and the secret its verification endpoint expects. */
 export const CAPTCHA_SOLVED_TOKEN = "stand-in-solved-token";
@@ -90,8 +98,11 @@ const CAPTCHA_WIDGET_JS = `(() => {
 })();
 `;
 
-/** Entries per queue page when the caller gives no `limit`. */
-const DEFAULT_PAGE = 2;
+/**
+ * Longest delay the control path accepts. Above the panel's 10 s API budget on
+ * purpose, so a run can also show the page's timeout notice.
+ */
+const MAX_DELAY_MS = 30_000;
 
 /** Bytes the `huge` mode streams: well over the panel's 5 MiB cap. */
 const HUGE_BYTES = 64 * 1024 * 1024;
@@ -123,7 +134,12 @@ function hugeBody(): Response {
 export function createStandIn(options: StandInOptions) {
 	const log: LoggedRequest[] = [];
 	let mode: Mode = "ok";
-	let queue = [...SEED_IDS];
+	/** Milliseconds every data answer waits, so a page that streams shows its skeleton. */
+	let delayMs = 0;
+	const sleep = options.sleep ?? ((ms: number) => Bun.sleep(ms));
+	const queue = createQueueStore();
+	/** Domains added through `/__control/seed`, after the one it starts with. */
+	let moreDomains: SeededDomain[] = [];
 	const suppression = createSuppressionStore();
 	const deliveries = createDeliveriesStore();
 	const accounts = createAccountsStore(Object.keys(ACCOUNTS));
@@ -144,11 +160,18 @@ export function createStandIn(options: StandInOptions) {
 		if (path === "/__control/log") {
 			return json(log);
 		}
+		if (path === "/__control/forget") {
+			log.length = 0;
+			return json({ ok: true });
+		}
 		if (path === "/__control/reset") {
 			log.length = 0;
 			mode = "ok";
-			queue = [...SEED_IDS];
+			delayMs = 0;
+			queue.reset();
+			moreDomains = [];
 			suppression.reset();
+			deliveries.reset();
 			accounts.reset();
 			jmap.reset();
 			return json({ ok: true });
@@ -170,26 +193,55 @@ export function createStandIn(options: StandInOptions) {
 			mode = body.mode;
 			return json({ mode });
 		}
-		return json({ error: "unknown control path" }, 404);
-	}
-
-	function handleQueue(request: Request, url: URL): Response {
-		const limit = Number(url.searchParams.get("limit")) || DEFAULT_PAGE;
-		const cursor = url.searchParams.get("cursor");
-		const start = cursor === null ? 0 : queue.indexOf(cursor);
-		if (start < 0) {
-			return apiError(400, "bad_cursor", "Unknown cursor");
+		if (path === "/__control/blobs" && request.method === "POST") {
+			const body = (await request.json()) as { oversize?: unknown };
+			if (typeof body.oversize !== "boolean") {
+				return json({ error: "oversize must be true or false" }, 400);
+			}
+			jmap.oversizeBlobs(body.oversize);
+			return json({ oversize: body.oversize });
 		}
-		const ids = queue.slice(start, start + limit);
-		const next = queue[start + limit];
-		return json({
-			entries: ids.map((id) => ({
-				id,
-				reverse_path: `sender-${id.slice(0, 1)}@example.test`,
-				recipients: [`rcpt-${id.slice(0, 1)}@example.net`],
-			})),
-			...(next === undefined ? {} : { next_cursor: next }),
-		});
+		if (path === "/__control/seed" && request.method === "POST") {
+			const counts = parseSeed(await request.json());
+			if (counts === null) {
+				return json({ error: SEED_ERROR }, 400);
+			}
+			accounts.seed(counts.accounts);
+			moreDomains = seededDomains(counts.domains);
+			return json({
+				accounts: accounts.list().length,
+				domains: 1 + moreDomains.length,
+			});
+		}
+		if (path === "/__control/sample" && request.method === "POST") {
+			const body = (await request.json()) as { name?: unknown };
+			const sample = buildSample(
+				String(body.name),
+				Date.now(),
+				deliveries.started,
+			);
+			if (sample === undefined) {
+				return json({ error: "unknown sample" }, 400);
+			}
+			queue.use(sample.queue);
+			suppression.use(sample.suppressed);
+			deliveries.use(sample.deliveries);
+			return json({ sample: body.name });
+		}
+		if (path === "/__control/delay" && request.method === "POST") {
+			const body = (await request.json()) as { ms?: unknown };
+			if (
+				typeof body.ms !== "number" ||
+				!Number.isInteger(body.ms) ||
+				body.ms < 0 ||
+				body.ms > MAX_DELAY_MS
+			) {
+				return json({ error: "ms must be an integer from 0 to 30000" }, 400);
+			}
+			delayMs = body.ms;
+			return json({ delayMs });
+		}
+		return json({ error: "unknown control path" }, 404);
 	}
 
 	/** The stand-in CAPTCHA provider: a widget script and a verification endpoint. */
@@ -260,6 +312,9 @@ export function createStandIn(options: StandInOptions) {
 		if (mode === "hang") {
 			return new Promise<Response>(() => {});
 		}
+		if (delayMs > 0) {
+			await sleep(delayMs);
+		}
 		if (mode === "huge") {
 			return hugeBody();
 		}
@@ -267,24 +322,29 @@ export function createStandIn(options: StandInOptions) {
 		if (path === "/api/v1/status") {
 			return json({
 				version: "0.0.0-stand-in",
-				domains: 1,
-				accounts: Object.keys(ACCOUNTS).length,
-				queue_size: queue.length,
+				domains: 1 + moreDomains.length,
+				accounts: accounts.list().length,
+				queue_size: queue.size(),
 			});
 		}
 		if (path === "/api/v1/domains") {
-			return json({ domains: ["example.test"] });
-		}
-		if (path === "/api/v1/accounts") {
 			return json({
-				accounts: Object.keys(ACCOUNTS).map((name) => ({
-					name,
-					...accounts.view(name),
-					addresses: [`${name}@example.test`],
-				})),
+				domains: [SEED_DOMAIN, ...moreDomains.map((domain) => domain.name)],
+				disabled: moreDomains
+					.filter((domain) => domain.disabled)
+					.map((domain) => domain.name),
 			});
 		}
-		const mail = await jmap.handle(request, url);
+		if (path === "/api/v1/accounts" && request.method === "GET") {
+			return json({ accounts: accounts.list() });
+		}
+		const lifecycle = await handleLifecycle(request, url, accounts);
+		if (lifecycle !== null) {
+			return lifecycle;
+		}
+		const mail = await jmap.handle(request, url, (names) => {
+			entry.jmap = names;
+		});
 		if (mail !== null) {
 			return mail;
 		}
@@ -292,20 +352,10 @@ export function createStandIn(options: StandInOptions) {
 		if (perAccount !== null) {
 			return perAccount;
 		}
-		if (path === "/api/v1/queue" && request.method === "GET") {
-			return handleQueue(request, url);
-		}
-		const removal = /^\/api\/v1\/queue\/([^/]+)$/.exec(path);
-		if (removal && request.method === "DELETE") {
-			const id = decodeURIComponent(removal[1] ?? "");
-			if (!queue.includes(id)) {
-				return apiError(404, "not_found", "No such queue entry");
-			}
-			queue = queue.filter((other) => other !== id);
-			return json({ removed: id });
-		}
 		const answered =
-			suppression.handle(request, url) ?? deliveries.handle(request, url);
+			queue.handle(request, url) ??
+			suppression.handle(request, url) ??
+			deliveries.handle(request, url);
 		if (answered) {
 			return answered;
 		}

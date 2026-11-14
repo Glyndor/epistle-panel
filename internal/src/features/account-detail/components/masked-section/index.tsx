@@ -1,5 +1,3 @@
-"use client";
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useFormatter, useTranslations } from "next-intl";
@@ -34,10 +32,12 @@ import {
 } from "@/features/account-detail/queries/time-format";
 import {
 	MASKED_LABEL_ERROR_KEYS,
+	MASKED_LABEL_HTML_PATTERN,
 	MASKED_LABEL_MAX,
 	type MaskedLabelFormInput,
 	maskedLabelFormSchema,
 } from "@/features/account-detail/schemas/masked-label-form";
+import { fieldLength } from "@/lib/field-length";
 import { isOneOf } from "@/lib/is-one-of";
 import { unwrap } from "@/lib/query/action-result";
 
@@ -166,9 +166,14 @@ export function MaskedSection({ name }: { name: string }) {
 									<Input
 										{...field}
 										type="text"
+										required
+										maxLength={fieldLength(
+											MASKED_LABEL_MAX,
+										)}
+										pattern={MASKED_LABEL_HTML_PATTERN}
+										title={t("labelNeedsLetter")}
 										autoComplete="off"
 										spellCheck={false}
-										maxLength={MASKED_LABEL_MAX}
 									/>
 								</FormControl>
 								<FormMessage render={message} />

@@ -44,4 +44,24 @@ scenario_csrf() {
 	code=$(post_remove_with "$good" "Origin: https://evil.test" "X-Forwarded-Host: evil.test")
 	assert_eq "measured: a matching foreign Origin and X-Forwarded-Host passes Next's check" "$code" 200
 	assert_eq "measured: and the action reaches the API" "$(api_count '"method":"DELETE"')" 1
+
+	# The sign-in form works without script, so a browser posts it itself, and
+	# what it sends as Origin follows the page's Referrer-Policy: the panel's own
+	# origin under `same-origin`, `null` under `no-referrer`. The second is
+	# refused like any other `null`, which is how the form answered 500 in a
+	# browser with script off while every check here, posting with curl and no
+	# Origin, passed.
+	fresh
+	local out
+	login_extra=(-H "Origin: $panel")
+	out=$(post_login admin correct-horse "$work/h" "$work/b")
+	assert_eq "the sign-in form, posted as a browser posts it under same-origin, signs in" "${out% *}" 303
+	assert_contains "and sets the session" "$(cat "$work/h")" "$SESSION_COOKIE_NAME="
+	login_extra=(-H "Origin: null")
+	out=$(post_login admin correct-horse "$work/h" "$work/b")
+	assert_eq "the same form with Origin: null, as under no-referrer, is refused" "${out% *}" 500
+	assert_absent "and sets no session" "$(cat "$work/h")" "$SESSION_COOKIE_NAME="
+	login_extra=()
+	fetch /
+	assert_eq "so the sign-in page asks for same-origin" "$(header referrer-policy)" same-origin
 }

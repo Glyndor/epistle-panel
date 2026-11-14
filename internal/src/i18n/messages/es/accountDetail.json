@@ -1,7 +1,5 @@
 {
 	"heading": "Cuenta {name}",
-	"back": "Todas las cuentas",
-	"breadcrumb": "Ruta de navegación",
 	"unreachable": "No se puede contactar con la API de gestión del servidor de correo. Comprueba que el servidor está en marcha y que el panel está configurado.",
 	"gone": "Esta cuenta ya no existe.",
 	"unavailable": "No se pudo completar el cambio. Inténtalo de nuevo.",
@@ -18,6 +16,7 @@
 	"displayNameCleared": "Nombre visible quitado.",
 	"displayNameTooLong": "Usa 128 caracteres como máximo.",
 	"displayNameControl": "Quita los caracteres de control y los saltos de línea.",
+	"displayNameFormat": "Un nombre en una sola línea, sin caracteres de control.",
 	"displayNameRefused": "El servidor rechazó este nombre.",
 	"passwordTitle": "Contraseña",
 	"passwordHelp": "De 12 a 64 caracteres ASCII imprimibles. La nueva contraseña se aplica al instante y la anterior deja de funcionar.",

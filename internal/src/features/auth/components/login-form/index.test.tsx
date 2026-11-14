@@ -8,10 +8,6 @@ import {
 	waitFor,
 } from "@testing-library/react";
 
-import {
-	LOGIN_NAME_MAX,
-	LOGIN_PASSWORD_MAX,
-} from "@/features/auth/schemas/login";
 import { sentRequests, stubFetchJson } from "@/lib/api/test-support/fetch";
 import { resetLoginLimiter } from "@/lib/auth/login-limiter";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
@@ -40,6 +36,15 @@ const submit = () =>
 	act(async () => {
 		fireEvent.click(screen.getByRole("button", { name: "submit" }));
 	});
+/** What a script does when it submits without the browser's own validation. */
+const submitPastTheBrowser = () =>
+	act(async () => {
+		fireEvent.submit(
+			screen
+				.getByRole("button", { name: "submit" })
+				.closest("form") as HTMLFormElement,
+		);
+	});
 const type = (field: HTMLElement, value: string) =>
 	act(async () => {
 		fireEvent.change(field, { target: { value } });
@@ -53,31 +58,38 @@ describe("LoginForm", () => {
 
 		expect(name()).toHaveAttribute("autocomplete", "username");
 		expect(name()).toBeRequired();
-		expect(name()).toHaveAttribute("maxlength", String(LOGIN_NAME_MAX));
+		// One over the schema's 254 and 1024: a cut paste is over the limit.
+		expect(name()).toHaveAttribute("maxlength", "255");
 		expect(password()).toHaveAttribute("type", "password");
 		expect(password()).toHaveAttribute("autocomplete", "current-password");
 		expect(password()).toBeRequired();
-		expect(password()).toHaveAttribute(
-			"maxlength",
-			String(LOGIN_PASSWORD_MAX),
-		);
+		expect(password()).toHaveAttribute("maxlength", "1025");
 	});
 
-	it("shows no error before the first attempt and switches off the browser's own bubbles once hydrated", async () => {
+	it("shows no error before the first attempt and leaves the browser's own check on", () => {
 		const { container } = render(<LoginForm captcha={null} />);
 
 		expect(screen.queryByRole("alert")).toBeNull();
-		await waitFor(() =>
-			expect(container.querySelector("form")).toHaveAttribute(
-				"novalidate",
-			),
+		expect(container.querySelector("form")).not.toHaveAttribute(
+			"novalidate",
 		);
 	});
 
-	it("names the empty fields, sends nothing, and focuses the first one", async () => {
+	it("the browser stops an empty form before any script, and nothing is sent", async () => {
 		render(<LoginForm captcha={null} />);
 
+		expect(name().validity.valueMissing).toBe(true);
 		await submit();
+
+		expect(name().checkValidity()).toBe(false);
+		expect(screen.queryByText("nameRequired")).toBeNull();
+		expect(verifyCalls()).toHaveLength(0);
+	});
+
+	it("a form submitted past the browser's check is stopped by the schema, which names the empty fields and focuses the first", async () => {
+		render(<LoginForm captcha={null} />);
+
+		await submitPastTheBrowser();
 
 		expect(await screen.findByText("nameRequired")).toBeInTheDocument();
 		expect(screen.getByText("passwordRequired")).toBeInTheDocument();
@@ -89,7 +101,7 @@ describe("LoginForm", () => {
 
 	it("clears a field's message as soon as it is corrected", async () => {
 		render(<LoginForm captcha={null} />);
-		await submit();
+		await submitPastTheBrowser();
 		await screen.findByText("nameRequired");
 
 		await type(name(), "ops");
@@ -101,12 +113,12 @@ describe("LoginForm", () => {
 		expect(name()).not.toHaveAttribute("aria-invalid");
 	});
 
-	it("refuses a password over the cap on the client too, and sends nothing", async () => {
+	it("refuses a password over the cap in the schema too, and sends nothing", async () => {
 		render(<LoginForm captcha={null} />);
 		await type(name(), "ops");
-		await type(password(), "p".repeat(LOGIN_PASSWORD_MAX + 1));
+		await type(password(), "p".repeat(1025));
 
-		await submit();
+		await submitPastTheBrowser();
 
 		expect(await screen.findByText("passwordTooLong")).toBeInTheDocument();
 		expect(verifyCalls()).toHaveLength(0);
@@ -151,23 +163,22 @@ describe("LoginForm", () => {
 	});
 
 	it("disables the button and says so while the attempt is pending", async () => {
+		// The promise is made here, not when `fetch` is called: the button says
+		// pending before the action reaches `fetch`, and opening in that gap must
+		// still answer the request.
 		let open: () => void = () => {};
-		globalThis.fetch = mock(
-			() =>
-				new Promise<Response>((resolve) => {
-					open = () =>
-						resolve(
-							new Response(
-								JSON.stringify({ valid: false, admin: false }),
-								{
-									headers: {
-										"content-type": "application/json",
-									},
-								},
-							),
-						);
-				}),
-		) as unknown as typeof fetch;
+		const held = new Promise<Response>((resolve) => {
+			open = () =>
+				resolve(
+					new Response(
+						JSON.stringify({ valid: false, admin: false }),
+						{
+							headers: { "content-type": "application/json" },
+						},
+					),
+				);
+		});
+		globalThis.fetch = mock(() => held) as unknown as typeof fetch;
 		render(<LoginForm captcha={null} />);
 		await type(name(), "a");
 		await type(password(), "b");

@@ -1,0 +1,98 @@
+{
+	"unreachable": "L’API de gestion du serveur de messagerie est injoignable. Vérifiez que le serveur est en marche et que le panneau est configuré.",
+	"retry": "Réessayer",
+	"unavailableTitle": "Non chargé",
+	"unavailable": "Le serveur n’a pas répondu pour cette carte. Réessayez depuis l’avis en haut de la page.",
+	"viewData": "Voir les données",
+	"share": "Part",
+	"part": "{count} {name}",
+	"period": {
+		"label": "Période des graphiques de livraisons",
+		"24h": "24 heures",
+		"7d": "7 jours",
+		"30d": "30 jours"
+	},
+	"inPeriod": {
+		"24h": "Dernières 24 heures",
+		"7d": "7 derniers jours",
+		"30d": "30 derniers jours"
+	},
+	"deliveries": {
+		"heading": "Livraisons",
+		"open": "Journal des livraisons",
+		"records": "{count, plural, one {enregistrement} other {enregistrements}}",
+		"disabledTitle": "Le journal des livraisons est désactivé",
+		"disabled": "Le serveur ne garde aucun enregistrement de livraison : il n’y a rien à tracer. Définissez une rétention supérieure à 0 jour pour le journal dans les paramètres de stockage du serveur.",
+		"emptyTitle": "Aucune livraison sur cette période",
+		"empty": "Rien n’a été envoyé, différé ni refusé. Une période plus longue peut avoir des enregistrements.",
+		"full": "Le serveur a renvoyé {limit} enregistrements, son maximum, donc cette période peut en compter davantage. Ces chiffres ne portent que sur ces {limit} ; le journal des livraisons permet de les affiner par résultat, période et destinataire."
+	},
+	"outcomes": {
+		"title": "Livraisons par résultat",
+		"description": "{total, plural, one {# enregistrement de livraison} other {# enregistrements de livraison}} : {parts}.",
+		"outcome": "Résultat",
+		"records": "Enregistrements"
+	},
+	"timeline": {
+		"title": "Livraisons dans le temps",
+		"note": {
+			"hour": "Par heure, UTC · lu à {time}",
+			"day": "Par jour, UTC · lu à {time}"
+		},
+		"description": "{total, plural, one {# enregistrement de livraison} other {# enregistrements de livraison}} {unit, select, hour {par heure} other {par jour}}. Le maximum, {peak}, le {when}.",
+		"hint": "{when} : {count, plural, one {# enregistrement} other {# enregistrements}}",
+		"hintParts": "{when} : {count, plural, one {# enregistrement} other {# enregistrements}} ({parts})",
+		"hintPartial": "{when} : {count, plural, one {# enregistrement} other {# enregistrements}} ({parts}), peut-être en partie",
+		"hintMissing": "{when} : peut ne pas avoir été renvoyé par le serveur",
+		"notReturned": "Peut ne pas avoir été renvoyé",
+		"full": "Le serveur a renvoyé {limit} enregistrements, son maximum, donc les colonnes grisées peuvent ne pas avoir été renvoyées, ou seulement en partie. Rien n’indique que ce soient des moments sans livraison.",
+		"column": {
+			"hour": "Heure (UTC)",
+			"day": "Jour (UTC)"
+		},
+		"total": "Total",
+		"state": {
+			"partial": "peut-être en partie",
+			"missing": "peut ne pas avoir été renvoyé"
+		}
+	},
+	"now": {
+		"heading": "File d’attente et suppression"
+	},
+	"queue": {
+		"title": "File d’attente par durée d’attente",
+		"open": "File d’attente",
+		"waiting": "{count, plural, one {message en attente} other {messages en attente}}",
+		"read": "{count, plural, one {message lu} other {messages lus}}",
+		"recipients": "{count, plural, one {# destinataire en attente} other {# destinataires en attente}}",
+		"recipientsRead": "{count, plural, one {# destinataire en attente} other {# destinataires en attente}} dans les messages lus",
+		"description": "{count, plural, one {# message attend} other {# messages attendent}} dans la file : {parts}.",
+		"descriptionRead": "{count, plural, one {Le message le plus ancien} other {Les # messages les plus anciens}} d’une file qui en contient d’autres : {parts}.",
+		"capped": "Ce sont les {count} messages les plus anciens. La file en contient d’autres, tous plus récents.",
+		"emptyTitle": "La file d’attente est vide",
+		"empty": "Aucun message n’attend d’être envoyé.",
+		"age": "Durée d’attente",
+		"messages": "Messages",
+		"ages": {
+			"under1h": "Moins d’1 heure",
+			"under6h": "De 1 à 6 heures",
+			"under24h": "De 6 à 24 heures",
+			"over24h": "Un jour ou plus",
+			"unknown": "Inconnue"
+		}
+	},
+	"suppression": {
+		"title": "Adresses supprimées par domaine",
+		"open": "Liste de suppression",
+		"addresses": "{count, plural, one {adresse supprimée} other {adresses supprimées}}",
+		"read": "{count, plural, one {adresse lue} other {adresses lues}}",
+		"description": "{count, plural, one {# adresse supprimée} other {# adresses supprimées}} par domaine : {parts}.",
+		"descriptionRead": "{count, plural, one {La première adresse supprimée} other {Les # premières adresses supprimées}} par ordre alphabétique, d’une liste qui en contient d’autres, par domaine : {parts}.",
+		"capped": "Ce sont les {count} premières adresses par ordre alphabétique. La liste en contient d’autres, donc ce classement des domaines ne porte que sur ces {count}.",
+		"emptyTitle": "Aucune adresse supprimée",
+		"empty": "Le serveur ne refuse aucun destinataire. Un rejet définitif en ajoute un ici.",
+		"domain": "Domaine",
+		"count": "Adresses",
+		"other": "Autres domaines"
+	}
+}
