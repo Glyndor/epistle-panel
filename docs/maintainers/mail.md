@@ -257,9 +257,15 @@ A message is hostile input. What the panel does:
   mutation-XSS class). No `style`, event handler, form, frame, object, script,
   `meta` or `base`. Links keep `http`, `https`, `mailto` and `tel`, open in a new
   window with `noopener noreferrer`, and a URL with a user name is dropped.
-- **Remote images are blocked** and counted. The reader offers "load images" for
-  that message and that visit (`?images=1`); only then does the response's policy
-  allow `https:` images. `data:` raster images are kept, SVG never.
+- **Remote images follow the effective mode** and are counted. The mode is
+  the operator's `EPISTLE_PANEL_REMOTE_IMAGES` when it is set, otherwise the
+  person's `remote-images` cookie, otherwise `ask`. In `ask`, the reader offers
+  "load images" for that message and that visit (`?images=1`); only then does
+  the response's policy allow `http:` and `https:` images. In `always`, the
+  reader and the body route use that same `?images=1` path without asking. In
+  `never`, remote
+  images stay blocked, the reader offers no button and the body route ignores
+  `?images=1`. `data:` raster images are kept, SVG never.
 - **The frame** has `sandbox="allow-popups allow-popups-to-escape-sandbox"`: no
   scripts and no same-origin access. The body route answers with its own policy
   (`default-src 'none'; img-src data:; style-src 'none'; script-src 'none';
@@ -268,6 +274,9 @@ A message is hostile input. What the panel does:
   only response the panel lets be framed: `proxy.ts` and the static headers of
   `next.config.ts` skip exactly `/app/mail/body/<id>` (see `isMailBodyPath`), and
   any other spelling of the path keeps the panel's `frame-ancestors 'none'`.
+  The remote image mode does not add a second policy path: it reaches the
+  existing `bodyResponse` boolean, so the sanitizer and the CSP change together
+  only when the effective mode allows remote images.
 - **Text** (subject, names, addresses, headers, text body) is rendered as text,
   cleaned of controls, line and paragraph separators and bidi overrides/isolates
   (`safe-text`), and wrapped in `<bdi>`.

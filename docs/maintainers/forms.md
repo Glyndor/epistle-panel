@@ -81,7 +81,7 @@ Every form has the three. What each field carries:
 | Composer | `maxLength` on every field | which pieces of a recipient field are addresses; a recipient to send |
 | Delivery filters | `maxLength`, `pattern` (an address) | read again from the query, a bad value dropped |
 | Mail search | `maxLength` | read again from the query |
-| Preferences | each of the three fields is a `required` native `select` that can hold only the options of its closed list | each field is one of its list, exactly (`required` when not sent or empty, `notInList` otherwise); the action names the refused fields and stores nothing if any is |
+| Preferences | each of the four fields is a `required` native `select` that can hold only the options of its closed list; when the operator fixes remote images, that field is read-only text instead | each field is one of its list, exactly (`required` when not sent or empty, `notInList` otherwise); the action names the refused fields and stores nothing if any is |
 
 Rules for writing them:
 

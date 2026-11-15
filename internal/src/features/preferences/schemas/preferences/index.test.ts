@@ -13,7 +13,12 @@ import {
 	preferencesSchema,
 } from ".";
 
-const valid = { language: "es", theme: "dark", density: "compact" };
+const valid = {
+	language: "es",
+	theme: "dark",
+	density: "compact",
+	remoteImages: "ask",
+};
 
 /** The message the schema gives a field, or undefined when it takes it. */
 function refusalOf(input: unknown, field: "language" | "theme" | "density") {
@@ -28,7 +33,12 @@ describe("preferencesSchema", () => {
 		for (const language of SUPPORTED_LOCALES) {
 			for (const theme of THEME_CHOICES) {
 				for (const density of LIST_DENSITIES) {
-					const input = { language, theme, density };
+					const input = {
+						language,
+						theme,
+						density,
+						remoteImages: "ask" as const,
+					};
 					expect(preferencesSchema.parse(input)).toEqual(input);
 				}
 			}
@@ -96,13 +106,14 @@ describe("preferencesSchema", () => {
 			language: "",
 			theme: "x",
 			density: undefined,
+			remoteImages: "x",
 		});
 
 		expect(result.success).toBe(false);
 		const messages = result.success
 			? []
 			: result.error.issues.map((issue) => issue.message);
-		expect(messages).toHaveLength(3);
+		expect(messages).toHaveLength(4);
 		for (const message of messages) {
 			expect(isPreferenceErrorKey(message)).toBe(true);
 		}

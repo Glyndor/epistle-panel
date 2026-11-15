@@ -5,6 +5,7 @@ import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { MessageReader } from "@/features/mail/components/message-reader";
 import { mailKeys } from "@/features/mail/queries/mail-query-keys";
 import { messageQueryOptions } from "@/features/mail/queries/mail-query-options";
+import { readEffectiveRemoteImagesMode } from "@/features/mail/queries/remote-images";
 import {
 	FALLBACK_BOX,
 	type PlaceRef,
@@ -34,7 +35,10 @@ export async function ReaderBoundary({
 	conditions: ListConditions;
 }) {
 	const client = makeQueryClient();
-	const session = await requestMailSession();
+	const [session, remoteImagesMode] = await Promise.all([
+		requestMailSession(),
+		readEffectiveRemoteImagesMode(),
+	]);
 	const [boxes] = await Promise.all([
 		requestMailboxes(),
 		session === null
@@ -65,7 +69,12 @@ export async function ReaderBoundary({
 
 	return (
 		<HydrationBoundary state={dehydrate(client)}>
-			<MessageReader key={id} id={id} view={view} />
+			<MessageReader
+				key={id}
+				id={id}
+				view={view}
+				remoteImagesMode={remoteImagesMode}
+			/>
 		</HydrationBoundary>
 	);
 }

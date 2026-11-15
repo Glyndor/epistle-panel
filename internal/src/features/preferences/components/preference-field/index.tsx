@@ -9,11 +9,13 @@ import {
 	FormLabel,
 	useFormField,
 } from "@/components/ui/form";
+import { FIELD_CLASS } from "@/components/ui/input";
 import {
 	NativeSelect,
 	NativeSelectOption,
 } from "@/components/ui/native-select";
 import type { PreferenceErrorKey } from "@/features/preferences/schemas/preferences";
+import { cn } from "@/lib/class-names";
 
 /** One choice of a field: the value the list spells, and how it reads. */
 export interface PreferenceOption {
@@ -44,7 +46,7 @@ function SelectAndMessage({
 	refusal: PreferenceErrorKey | undefined;
 	renderMessage: (message: string) => string;
 	field: {
-		value: string;
+		value: string | undefined;
 		onChange: React.ChangeEventHandler<HTMLSelectElement>;
 		onBlur: () => void;
 		ref: React.Ref<HTMLSelectElement>;
@@ -91,6 +93,57 @@ function SelectAndMessage({
 				</p>
 			) : null}
 		</>
+	);
+}
+
+export function ReadOnlyPreferenceField<TValues extends FieldValues>({
+	control,
+	name,
+	label,
+	help,
+	value,
+}: {
+	control: Control<TValues>;
+	name: Path<TValues>;
+	label: string;
+	help: string;
+	value: string;
+}) {
+	return (
+		<FormField
+			control={control}
+			name={name}
+			render={() => (
+				<FormItem described>
+					<ReadOnlyValue label={label} value={value} />
+					<FormDescription>{help}</FormDescription>
+				</FormItem>
+			)}
+		/>
+	);
+}
+
+function ReadOnlyValue({ label, value }: { label: string; value: string }) {
+	const { formItemId, formDescriptionId } = useFormField();
+
+	return (
+		<fieldset
+			aria-describedby={formDescriptionId}
+			className="grid gap-2 border-0 p-0"
+		>
+			<legend className="mb-2 font-medium text-sm leading-none">
+				{label}
+			</legend>
+			<p
+				id={formItemId}
+				className={cn(
+					FIELD_CLASS,
+					"flex items-center bg-field text-muted-foreground hover:bg-field",
+				)}
+			>
+				{value}
+			</p>
+		</fieldset>
 	);
 }
 

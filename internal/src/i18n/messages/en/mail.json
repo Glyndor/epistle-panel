@@ -104,6 +104,7 @@
 	"download": "Download {name}",
 	"bodyFrame": "Message content",
 	"imagesBlocked": "{count, plural, one {# remote image was not loaded.} other {# remote images were not loaded.}} Loading them tells the sender that you opened this message.",
+	"imagesBlockedNever": "{count, plural, one {# remote image was not loaded.} other {# remote images were not loaded.}}",
 	"loadImages": "Load images",
 	"truncated": "This message is long: only the first part is shown.",
 	"showText": "Show as plain text",

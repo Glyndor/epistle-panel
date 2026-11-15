@@ -5,21 +5,33 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { BodyFrame } from "@/features/mail/components/body-frame";
 import { MailNotice } from "@/features/mail/components/mail-notice";
+import {
+	allowsRemoteImages,
+	type RemoteImageMode,
+} from "@/features/mail/config/remote-images";
 import type { MessageDetail } from "@/features/mail/schemas/mail-view";
 
 /**
  * The body of the open message. An HTML body goes into the sandboxed frame
- * with its remote images held back: they are loaded only after the reader
- * presses the button, for this message and this visit, because a remote image
- * tells whoever hosts it that the message was opened and from where. A message
- * with both versions can be switched to its plain text. A text body is shown
- * as text, never as markup.
+ * with its remote images held back unless the effective mode loads them: in
+ * `ask`, the reader presses the button for this message and this visit; in
+ * `always`, they load at once; in `never`, they stay blocked and no button is
+ * offered. A remote image tells whoever hosts it that the message was opened.
+ * A message with both versions can be switched to its plain text. A text body
+ * is shown as text, never as markup.
  */
-export function BodyView({ message }: { message: MessageDetail }) {
+export function BodyView({
+	message,
+	remoteImagesMode = "ask",
+}: {
+	message: MessageDetail;
+	remoteImagesMode?: RemoteImageMode;
+}) {
 	const t = useTranslations("mail");
 	const [images, setImages] = useState(false);
 	const [asText, setAsText] = useState(false);
 	const { body } = message;
+	const remoteImagesLoaded = allowsRemoteImages(remoteImagesMode, images);
 
 	if (body.kind === "none") {
 		return <MailNotice tone="empty">{t("noBody")}</MailNotice>;
@@ -44,20 +56,27 @@ export function BodyView({ message }: { message: MessageDetail }) {
 	return (
 		<div className="flex flex-col">
 			<div className="flex flex-wrap items-center gap-2 p-2 text-sm">
-				{body.blockedImages > 0 && !images && !asText ? (
+				{body.blockedImages > 0 && !remoteImagesLoaded && !asText ? (
 					<>
 						<p className="min-w-0 flex-1 text-muted-foreground">
-							{t("imagesBlocked", { count: body.blockedImages })}
+							{t(
+								remoteImagesMode === "never"
+									? "imagesBlockedNever"
+									: "imagesBlocked",
+								{ count: body.blockedImages },
+							)}
 						</p>
-						<Button
-							type="button"
-							variant="outline"
-							size="sm"
-							onClick={() => setImages(true)}
-						>
-							<ImageIcon aria-hidden="true" />
-							{t("loadImages")}
-						</Button>
+						{remoteImagesMode === "ask" ? (
+							<Button
+								type="button"
+								variant="outline"
+								size="sm"
+								onClick={() => setImages(true)}
+							>
+								<ImageIcon aria-hidden="true" />
+								{t("loadImages")}
+							</Button>
+						) : null}
 					</>
 				) : null}
 				{body.truncated ? (
@@ -83,7 +102,10 @@ export function BodyView({ message }: { message: MessageDetail }) {
 					{body.alternativeText}
 				</pre>
 			) : (
-				<BodyFrame messageId={message.id} remoteImages={images} />
+				<BodyFrame
+					messageId={message.id}
+					remoteImages={remoteImagesLoaded}
+				/>
 			)}
 		</div>
 	);

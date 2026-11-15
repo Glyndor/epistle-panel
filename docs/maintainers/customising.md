@@ -160,8 +160,8 @@ that kept running would show a notice nobody chose.
 ## What runtime configuration can change (no rebuild)
 
 The look is not the only thing an operator can change without a rebuild: the
-length of a session and the language the panel starts in are read from the
-environment when the process starts.
+length of a session, the language the panel starts in and the remote-image
+policy are read from the environment when the process starts.
 
 | Variable | Effect |
 |---|---|
@@ -170,6 +170,27 @@ environment when the process starts.
 | `EPISTLE_PANEL_SESSION_IDLE_TIMEOUT_MINUTES` | Optional, in whole minutes (1 to 43200): a session nobody used for that long is refused and the person goes to the sign-in page. Unset or empty leaves it off. |
 | `EPISTLE_PANEL_DEFAULT_LOCALE` | The language the panel falls back to when the person chose none and the browser asked for none of the six: `en`, `es`, `pt`, `fr`, `de` or `it`. Unset or empty keeps `en`. |
 | `EPISTLE_PANEL_COPYRIGHT_NOTICE` | The line at the foot of the pages: the operator's own text, or `none` for no line at all. Unset or empty keeps `© 2026 Glyndor`. At most 200 characters, no control character. |
+| `EPISTLE_PANEL_REMOTE_IMAGES` | Fixes how messages may load remote images for everyone: `ask`, `always` or `never`. Unset or empty leaves the choice to each person. |
+
+### Remote images
+
+`EPISTLE_PANEL_REMOTE_IMAGES` is unset when each person chooses through
+`/app/me`. The choice is kept in the `remote-images` cookie under `/app` and
+has one of three modes: `ask` blocks remote images until the reader asks for
+that message and visit, `always` loads them, and `never` blocks them without
+offering the button.
+
+When the variable holds one of those modes, it wins over the person's cookie
+for every request. `/app/me` shows the mode as read-only text and its Server
+Action refuses a posted attempt to change it. The body route and the reader
+use the same effective mode. `always` uses the existing `?images=1` path;
+`never` ignores that parameter; `ask` keeps today's behaviour. The sanitiser's
+link and URL policy does not change in any mode, and the framed body's
+`img-src` widens only through the same response path that already handled
+`?images=1`.
+
+The issue's trusted-sender mode is not available: the panel has no address
+book or trusted-sender list from which to decide it.
 
 Every one of them is checked when the server starts: a value that cannot be
 used stops the start with a message that names the variable and never the

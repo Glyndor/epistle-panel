@@ -13,6 +13,7 @@ me_list_of() {
 }
 me_locales_of() { me_list_of SUPPORTED_LOCALES src/i18n/locales/index.ts; }
 me_themes_of() { me_list_of THEME_CHOICES src/features/theme/config/choices/index.ts; }
+me_remote_images_of() { me_list_of REMOTE_IMAGE_MODES src/features/mail/config/remote-images/index.ts; }
 me_densities_of() { me_list_of LIST_DENSITIES src/features/mail/config/list-density/index.ts; }
 
 # me_post COOKIE [NAME=VALUE...]: post the preferences form the way a browser
@@ -41,7 +42,7 @@ me_post() {
 
 # prefs_set: the Set-Cookie headers of the last response that name a preference.
 me_prefs_set() {
-	{ grep -i -E '^set-cookie: (locale|theme|list-density)=' "$work/h" || true; } | tr -d '\r'
+	{ grep -i -E '^set-cookie: (locale|theme|list-density|remote-images)=' "$work/h" || true; } | tr -d '\r'
 }
 
 # prefs_set_count: how many of them there are.
@@ -89,7 +90,7 @@ scenario_me() {
 	assert_eq "a forged session cookie: redirected" "$status" 307
 	assert_eq "a forged session cookie: to the sign-in page" "$(header location)" "/"
 	reset_log
-	me_post "" language=de theme=dark density=compact
+	me_post "" language=de theme=dark density=compact remoteImages=ask
 	assert_eq "no session, post: redirected" "$status" 307
 	assert_eq "no session, post: to the sign-in page" "$(header location)" "/"
 	assert_eq "no session, post: no preference cookie is written" "$(me_prefs_set_count)" 0
@@ -119,12 +120,13 @@ scenario_me() {
 		assert_eq "$role: no script tag without the nonce" \
 			"$(unnonced_scripts "$work/b" "$(nonce_of_csp "$(header content-security-policy)")")" 0
 		assert_contains "$role: the form posts to itself, as multipart, with no script" "$(cat "$work/b")" 'encType="multipart/form-data" method="POST"'
-		for field in language theme density; do
+		for field in language theme density remoteImages; do
 			assert_contains "$role: the $field select is required" "$(perl -0777 -ne "print \$& if /<select\\b[^>]*name=\"$field\"[^>]*>/" "$work/b")" 'required'
 		done
 		assert_eq "$role: the language in force is the browser's default, English" "$(me_selected language)" en
 		assert_eq "$role: the theme in force is the system's" "$(me_selected theme)" system
 		assert_eq "$role: the density in force is the comfortable one" "$(me_selected density)" comfortable
+		assert_eq "$role: remote images ask before loading" "$(me_selected remoteImages)" ask
 		assert_eq "$role: the document says its language" "$(me_html_lang)" en
 		assert_eq "$role: and pins no theme" "$(me_html_theme)" ""
 	done
@@ -137,9 +139,9 @@ scenario_me() {
 	# --- each choice of each list is stored, with the attributes of its cookie, by a plain post
 	local locale theme density lines
 	for locale in $(me_locales_of); do
-		me_post "$admin_cookie" "language=$locale" theme=system density=comfortable
+		me_post "$admin_cookie" "language=$locale" theme=system density=comfortable remoteImages=ask
 		assert_eq "$locale: the plain post is answered" "$status" 200
-		assert_eq "$locale: three preference cookies are written" "$(me_prefs_set_count)" 3
+		assert_eq "$locale: four preference cookies are written" "$(me_prefs_set_count)" 4
 		lines=$(me_prefs_set)
 		assert_contains "$locale: the locale cookie holds it, out of reach of a script, for the whole site" "$lines" "locale=$locale; Path=/;"
 		assert_contains "$locale: and lives a year over HTTPS only, to the same site only" "$(grep -i '^set-cookie: locale=' "$work/h")" "Max-Age=31536000; Secure; HttpOnly; SameSite=lax"
@@ -149,7 +151,7 @@ scenario_me() {
 		assert_eq "$locale: the next page, with the cookie, is in it" "$(me_html_lang)" "$locale"
 	done
 	for theme in $(me_themes_of); do
-		me_post "$user_cookie" language=en "theme=$theme" density=comfortable
+		me_post "$user_cookie" language=en "theme=$theme" density=comfortable remoteImages=ask
 		assert_eq "$theme: the plain post is answered" "$status" 200
 		assert_contains "$theme: the theme cookie holds it, readable by script, for the whole site" "$(grep -i '^set-cookie: theme=' "$work/h" | tr -d '\r')" "theme=$theme; Path=/;"
 		assert_absent "$theme: the theme cookie is not HttpOnly" "$(grep -i '^set-cookie: theme=' "$work/h")" "HttpOnly"
@@ -161,28 +163,40 @@ scenario_me() {
 		assert_eq "$theme: and shows it selected" "$(me_selected theme)" "$theme"
 	done
 	for density in $(me_densities_of); do
-		me_post "$admin_cookie" language=en theme=system "density=$density"
+		me_post "$admin_cookie" language=en theme=system "density=$density" remoteImages=ask
 		assert_eq "$density: the plain post is answered" "$status" 200
 		assert_contains "$density: the density cookie holds it, out of reach of a script, under /app only" "$(grep -i '^set-cookie: list-density=' "$work/h" | tr -d '\r')" "list-density=$density; Path=/app;"
 		assert_contains "$density: with the attributes of the others" "$(grep -i '^set-cookie: list-density=' "$work/h")" "Max-Age=31536000; Secure; HttpOnly; SameSite=lax"
 		assert_eq "$density: and shows it selected" "$(me_selected density)" "$density"
 	done
-	me_post "$admin_cookie" language=de theme=dark density=compact
+	local remote_images
+	for remote_images in $(me_remote_images_of); do
+		me_post "$user_cookie" language=en theme=system density=comfortable "remoteImages=$remote_images"
+		assert_eq "$remote_images: the plain post is answered" "$status" 200
+		assert_eq "$remote_images: four preference cookies" "$(me_prefs_set_count)" 4
+		assert_contains "$remote_images: private app cookie" "$(grep -i '^set-cookie: remote-images=' "$work/h" | tr -d '\r')" "remote-images=$remote_images; Path=/app;"
+		assert_contains "$remote_images: secure cookie for a year" "$(grep -i '^set-cookie: remote-images=' "$work/h")" "Max-Age=31536000; Secure; HttpOnly; SameSite=lax"
+		assert_eq "$remote_images: the answering page shows it" "$(me_selected remoteImages)" "$remote_images"
+		fetch /app/me "$user_cookie; remote-images=$remote_images"
+		assert_eq "$remote_images: the next read shows it" "$(me_selected remoteImages)" "$remote_images"
+	done
+	me_post "$admin_cookie" language=de theme=dark density=compact remoteImages=ask
 	assert_contains "a saved post says so, in the language just chosen" "$(cat "$work/b")" 'role="status"'
-	fetch /app/me "$admin_cookie; locale=de; theme=dark; list-density=compact"
-	assert_eq "the next read has the three in force: language" "$(me_selected language)" de
-	assert_eq "the next read has the three in force: theme" "$(me_selected theme)" dark
-	assert_eq "the next read has the three in force: density" "$(me_selected density)" compact
+	fetch /app/me "$admin_cookie; locale=de; theme=dark; list-density=compact; remote-images=never"
+	assert_eq "the next read has the four in force: language" "$(me_selected language)" de
+	assert_eq "the next read has the four in force: theme" "$(me_selected theme)" dark
+	assert_eq "the next read has the four in force: density" "$(me_selected density)" compact
+	assert_eq "the next read has the four in force: remote images" "$(me_selected remoteImages)" never
 	assert_eq "and paints the theme on the html element" "$(me_html_theme)" dark
 
-	# --- a value no list holds is refused by the action, named under its field, and stores none of the three
+	# --- a value no list holds is refused by the action, named under its field, and stores none of the four
 	local field value hostile
-	local -A good=([language]=es [theme]=dark [density]=compact)
-	for field in language theme density; do
+	local -A good=([language]=es [theme]=dark [density]=compact [remoteImages]=never)
+	for field in language theme density remoteImages; do
 		for hostile in 'xx' 'ES' 'Dark' ' compact' 'dark; Path=/' '../es' '__proto__' "$(printf 'e%.0s' $(seq 1 5000))" '%00' 'dark,light' 'e2emarker' '"><e2emarker>' 'e2emarker-es'; do
 			value=$hostile
 			local args=()
-			for name in language theme density; do
+			for name in language theme density remoteImages; do
 				if [[ "$name" == "$field" ]]; then
 					args+=("$name=$value")
 				else
@@ -191,7 +205,7 @@ scenario_me() {
 			done
 			me_post "$admin_cookie" "${args[@]}"
 			assert_eq "$field=${value:0:12}: the action answers" "$status" 200
-			assert_eq "$field=${value:0:12}: no preference cookie is written, whatever the other two hold" "$(me_prefs_set_count)" 0
+			assert_eq "$field=${value:0:12}: no preference cookie is written, whatever the other three hold" "$(me_prefs_set_count)" 0
 			assert_contains "$field=${value:0:12}: the answer names the refusal under the field" "$(perl -0777 -ne 'print $& while /role="alert"[^>]*>[^<]*<\/p>/g' "$work/b")" 'That is not one of the choices.'
 			assert_contains "$field=${value:0:12}: and says nothing was saved" "$(cat "$work/b")" 'Nothing was saved.'
 			if [[ "$value" == *e2emarker* ]]; then
@@ -200,29 +214,46 @@ scenario_me() {
 		done
 	done
 	# a field missing, empty, repeated or twice with a good one first
-	me_post "$admin_cookie" theme=dark density=compact
+	me_post "$admin_cookie" theme=dark density=compact remoteImages=ask
 	assert_eq "language missing: no preference cookie" "$(me_prefs_set_count)" 0
 	assert_contains "language missing: the answer asks for a choice" "$(cat "$work/b")" 'Choose one.'
-	me_post "$admin_cookie" language= theme=dark density=compact
+	me_post "$admin_cookie" language= theme=dark density=compact remoteImages=ask
 	assert_eq "language empty: no preference cookie" "$(me_prefs_set_count)" 0
 	assert_contains "language empty: the answer asks for a choice" "$(cat "$work/b")" 'Choose one.'
-	me_post "$admin_cookie" language=es language=de theme=dark density=compact
+	me_post "$admin_cookie" language=es language=de theme=dark density=compact remoteImages=ask
 	assert_eq "language twice, the first a good one: no preference cookie" "$(me_prefs_set_count)" 0
 	assert_contains "language twice: named as outside the list" "$(cat "$work/b")" 'That is not one of the choices.'
-	me_post "$admin_cookie" language=es theme=bogus density=bogus
+	me_post "$admin_cookie" language=es theme=bogus density=bogus remoteImages=ask
 	assert_eq "two fields refused: no preference cookie" "$(me_prefs_set_count)" 0
 	assert_eq "two fields refused: both are named, each under its own field" \
 		"$(grep -o -E 'role="alert"[^>]*>That is not one of the choices\.</p>' "$work/b" | wc -l | tr -d ' ')" 2
-	me_post "$admin_cookie" language=es theme=dark density=compact 'extra=admin' 'role=admin'
-	assert_eq "an unknown field is ignored: the three are stored" "$(me_prefs_set_count)" 3
+	me_post "$admin_cookie" language=es theme=dark density=compact 'extra=admin' 'role=admin' remoteImages=ask
+	assert_eq "an unknown field is ignored: the four are stored" "$(me_prefs_set_count)" 4
+
+	for value in missing empty duplicate; do
+		local remote_args=()
+		case "$value" in
+			empty) remote_args+=(remoteImages=) ;;
+			duplicate) remote_args+=(remoteImages=never remoteImages=always) ;;
+		esac
+		me_post "$admin_cookie" language=en theme=system density=comfortable "${remote_args[@]}"
+		assert_eq "remote images $value: no preference cookie" "$(me_prefs_set_count)" 0
+		if [[ "$value" == duplicate ]]; then
+			assert_contains "remote images $value: outside list" "$(cat "$work/b")" 'That is not one of the choices.'
+		else
+			assert_contains "remote images $value: required" "$(cat "$work/b")" 'Choose one.'
+		fi
+	done
 
 	# --- the state of the form posted back is not believed, and a tampered cookie is never printed
-	fetch /app/me "$admin_cookie; locale=ES; theme=\"><script>alert(1)</script>; list-density=huge"
+	fetch /app/me "$admin_cookie; locale=ES; theme=\"><script>alert(1)</script>; list-density=huge; remote-images=\"><e2emarker>"
 	assert_eq "tampered cookies: the page still renders" "$status" 200
 	assert_eq "tampered cookies: the language falls back" "$(me_selected language)" en
 	assert_eq "tampered cookies: the theme falls back" "$(me_selected theme)" system
 	assert_eq "tampered cookies: the density falls back" "$(me_selected density)" comfortable
 	assert_absent "tampered cookies: nothing of them is printed" "$(cat "$work/b")" "alert(1)"
+	assert_eq "tampered remote images fall back" "$(me_selected remoteImages)" ask
+	assert_absent "tampered remote images are not printed" "$(cat "$work/b")" "e2emarker"
 	assert_eq "tampered cookies: no data-theme" "$(me_html_theme)" ""
 
 	# --- the action is a public endpoint: reached only through the page, which the proxy gates, and
@@ -230,10 +261,10 @@ scenario_me() {
 	local action_field
 	action_field="\$ACTION_ID_$(action_id features/preferences/actions/save-preferences/index.ts)"
 	curl -s -o "$work/b" -D "$work/h" "$panel/app/me" -b "$SESSION_COOKIE_NAME=forged.token" \
-		--form-string "$action_field=" --form-string language=de --form-string theme=dark --form-string density=compact
+		--form-string "$action_field=" --form-string language=de --form-string theme=dark --form-string density=compact --form-string remoteImages=ask
 	assert_eq "a post with a forged session writes no preference" "$(me_prefs_set_count)" 0
 	code=$(curl -s -o "$work/b" -D "$work/h" -w '%{http_code}' -b "$user_cookie" "$panel/app/me" \
-		--form-string "$action_field=" --form-string language=de --form-string theme=dark --form-string density=compact)
+		--form-string "$action_field=" --form-string language=de --form-string theme=dark --form-string density=compact --form-string remoteImages=ask)
 	assert_eq "the action called without its state argument does not fail" "$code" 200
 	assert_eq "the action called without its state argument stores nothing" "$(me_prefs_set_count)" 0
 }
