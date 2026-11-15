@@ -226,8 +226,13 @@ describe("parseListConditions over anything an address holds", () => {
 describe("a text condition", () => {
 	it("follows the rule the list's q has always had", async () => {
 		const seen = { accepted: 0, refused: 0 };
-		await runCases("same as q", 4000, (rng) => {
-			const raw = rawText(rng);
+		await runCases("same as q", 4600, (rng, index) => {
+			// Keep all 4000 adversarial draws and reserve 600 valid samples:
+			// the coverage assertion must not depend on a seed's hit rate.
+			const raw =
+				index < 600
+					? rng.string("abcXYZ019", rng.int(1, 30))
+					: rawText(rng);
 			const ours = conditionTextSchema.safeParse(raw);
 			const listQ = listConditionsSchema.shape.q.safeParse(raw);
 			expect([raw, ours.success, ours.data]).toEqual([

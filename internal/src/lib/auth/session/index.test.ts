@@ -9,8 +9,8 @@ import {
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-
 import { clearRevocations } from "../revocation";
+import { b64url, nowSeconds, signRaw } from "../test-support/token";
 
 import {
 	createSession,
@@ -18,6 +18,7 @@ import {
 	SESSION_COOKIE,
 	SESSION_COOKIE_OPTIONS,
 	SESSION_MAX_AGE_SECONDS,
+	sessionCookieOptions,
 	verifySession,
 } from ".";
 
@@ -27,35 +28,6 @@ afterEach(() => {
 	clearRevocations();
 });
 
-function b64url(bytes: Uint8Array): string {
-	return btoa(String.fromCharCode(...bytes))
-		.replaceAll("+", "-")
-		.replaceAll("/", "_")
-		.replaceAll("=", "");
-}
-
-/** Sign an arbitrary payload object with the test secret, like the minter does. */
-async function signRaw(payload: unknown): Promise<string> {
-	const key = await crypto.subtle.importKey(
-		"raw",
-		new TextEncoder().encode(
-			process.env["EPISTLE_PANEL_SESSION_SECRET"] as string,
-		),
-		{ name: "HMAC", hash: "SHA-256" },
-		false,
-		["sign"],
-	);
-	const encoded = b64url(new TextEncoder().encode(JSON.stringify(payload)));
-	const signature = await crypto.subtle.sign(
-		"HMAC",
-		key,
-		new TextEncoder().encode(encoded),
-	);
-	return `${encoded}.${b64url(new Uint8Array(signature))}`;
-}
-
-const nowSeconds = () => Math.floor(Date.now() / 1000);
-
 describe("session cookie", () => {
 	it("uses the __Host- prefix and attributes that prefix requires", () => {
 		expect(SESSION_COOKIE.startsWith("__Host-")).toBe(true);
@@ -64,9 +36,18 @@ describe("session cookie", () => {
 			path: "/",
 			httpOnly: true,
 			sameSite: "lax",
-			maxAge: SESSION_MAX_AGE_SECONDS,
 		});
 		expect(SESSION_COOKIE_OPTIONS).not.toHaveProperty("domain");
+	});
+
+	it("carries the lifetime the policy gives, and nothing more", () => {
+		expect(sessionCookieOptions(90)).toMatchObject({
+			secure: true,
+			path: "/",
+			httpOnly: true,
+			sameSite: "lax",
+			maxAge: 90,
+		});
 	});
 });
 
@@ -211,6 +192,7 @@ describe("token lifetime", () => {
 	it("rejects an exp beyond the maximum lifetime", async () => {
 		const token = await signRaw({
 			sub: "ops",
+			role: "admin",
 			exp: nowSeconds() + SESSION_MAX_AGE_SECONDS + 5,
 		});
 		expect(await verifySession(token)).toBeNull();
@@ -226,7 +208,9 @@ describe("session lifetime, in literals", () => {
 
 	it("is eight hours, for the token and for the cookie", () => {
 		expect(SESSION_MAX_AGE_SECONDS).toBe(EIGHT_HOURS);
-		expect(SESSION_COOKIE_OPTIONS.maxAge).toBe(EIGHT_HOURS);
+		expect(sessionCookieOptions(SESSION_MAX_AGE_SECONDS).maxAge).toBe(
+			EIGHT_HOURS,
+		);
 	});
 
 	it("mints a token that expires exactly eight hours from now", async () => {

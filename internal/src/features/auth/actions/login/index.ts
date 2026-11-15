@@ -15,9 +15,10 @@ import { verifyCredentials } from "@/lib/api/client";
 import { admitAttempt } from "@/lib/auth/login-limiter";
 import { holdUntilFloor } from "@/lib/auth/response-floor";
 import {
+	checkSession,
 	createSession,
 	SESSION_COOKIE,
-	SESSION_COOKIE_OPTIONS,
+	sessionCookieOptions,
 } from "@/lib/auth/session";
 import { PUBLIC_ROUTES } from "@/lib/routes";
 
@@ -98,10 +99,18 @@ export async function login(
 	admission.settle("success");
 	await holdUntilFloor(startedAt);
 	const store = await cookies();
+	const role = result.admin ? "admin" : "user";
+	const token = await createSession(name, role);
+	const session = await checkSession(token, false);
+	if (!session) {
+		return { outcome: "failed" };
+	}
 	store.set(
 		SESSION_COOKIE,
-		await createSession(name, result.admin ? "admin" : "user"),
-		SESSION_COOKIE_OPTIONS,
+		token,
+		// The cookie lives as long as the session the operator's policy gives
+		// this role, and not a moment longer.
+		sessionCookieOptions(session.expiresIn),
 	);
 	redirect(PUBLIC_ROUTES.mail);
 }

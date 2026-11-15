@@ -106,7 +106,8 @@ v4; `uuidgen -r | tr A-Z a-z` or `cat /proc/sys/kernel/random/uuid` make one).
   links the panel builds for an admin session (the mail page's link and the admin
   pages themselves), never in a public page, `robots.txt`, a 404 or a log line.
 - The role is read from the signed token, so an account demoted in Epistle keeps
-  the admin role until its session ends (at most 8 hours) or it signs out.
+  the admin role until its session ends (at most the lifetime the operator gives
+  an admin session, eight hours by default) or it signs out.
 - `epistle` generates the id and hands it to the panel when it renders the stack;
   a panel updated before that has no id, and so no admin area.
 
@@ -173,6 +174,21 @@ hosts and no other page does. A provider named without a complete setup refuses
 every sign-in, with a log line that names the variable. The provider calls are capped (16 at once, a short bounded line behind them); sustained load above that cap refuses sign-ins, the same trade-off as the API-call cap. See
 [docs/maintainers/forms.md](docs/maintainers/forms.md).
 
+### Default language
+
+The panel speaks English unless the person picks another language in the menu
+(the `locale` cookie, which is checked against the six languages the panel ships
+before it is believed) or the browser asks for one of them in its
+`Accept-Language` header.
+
+| Variable | Effect |
+|---|---|
+| `EPISTLE_PANEL_DEFAULT_LOCALE` | The language the panel falls back to when the person chose none and the browser asked for none of the six: `en`, `es`, `pt`, `fr`, `de` or `it`. Unset or empty keeps `en`. |
+
+The order is the person's own choice, then the browser, then this variable, then
+English. A value that is not one of the six stops the start with a message that
+names the variable and never the value.
+
 ### Sessions and sign-in limits
 
 - The session cookie is named `__Host-epistle_session` and is always
@@ -183,14 +199,43 @@ every sign-in, with a log line that names the variable. The provider calls are c
   `bun run dev` working; over plain HTTP on any other host the browser drops the
   cookie and sign-in does not stick. Only Chromium was checked here (see
   [docs/maintainers/e2e.md](docs/maintainers/e2e.md)); Safari and Firefox were not.
-- Sessions last 8 hours. Signing out revokes the token on the server, not only
-  in the browser. The revocation list lives in the memory of one panel process:
+- How long a session lives is the operator's decision. The absolute lifetime is
+  per role and travels in the signed token and in the cookie, so the server
+  refuses a session past its lifetime even if the browser still holds the
+  cookie.
+
+  | Variable | Effect |
+  |---|---|
+  | `EPISTLE_PANEL_SESSION_USER_MAX_AGE_MINUTES` | Absolute lifetime of a user's session, in whole minutes (1 to 43200). Unset or empty keeps eight hours (480). |
+  | `EPISTLE_PANEL_SESSION_ADMIN_MAX_AGE_MINUTES` | The same for an admin's session. Unset or empty keeps eight hours (480). |
+  | `EPISTLE_PANEL_SESSION_IDLE_TIMEOUT_MINUTES` | Optional, in whole minutes (1 to 43200): a session nobody used for that long is refused and the person goes to the sign-in page. Unset or empty leaves it off. |
+
+  A value that is not a whole number of minutes, or one outside the range,
+  stops the start with a message that names the variable and never the value.
+  The idle timeout counts from the last use, which the token carries and the
+  panel renews on admitted foreground requests, so its signed activity
+  timestamp survives a restart. Static assets, prefetches, HEAD requests, proxy
+  redirects and hidden rewrites do not renew it. Renewal preserves the original
+  issuance (`iat`), absolute expiry (`exp`), role and session id (`jti`). A page
+  left open and visible keeps the session alive (the panel refreshes its lists);
+  a hidden tab does not. Enabling the idle timeout refuses sessions without
+  activity claims. Tokens
+  issued before this token format (without `iat` or a canonical `jti`) are
+  refused: upgrading requires signing in again. Reducing a role lifetime
+  rejects sessions originally issued for longer; increasing it never extends
+  an existing session.
+- Signing out revokes the token on the server, not only
+  in the browser. The revocation names the session, not the exact text of the
+  cookie, so signing out ends every copy of that session even while the idle
+  timeout re-signs it. The revocation list lives in the memory of one panel process:
   it is lost on restart and not shared between replicas, so run a single
   instance. After a restart a token revoked earlier is accepted again until it
-  expires. The list holds at most 10,000 entries; past that, the entry that
-  expires first is dropped, so the revocations with the most life left are the
-  last to go. Reaching the cap takes 10,000 sign-outs inside one session
-  lifetime, after which a dropped token verifies again until it expires.
+  expires. The list holds at most 10,000 entries. At capacity, the process
+  refuses all sessions until the latest unrecorded revocation expires instead of allowing
+  replay by evicting a live revocation. Repeated logout never shortens that
+  deadline. To clear overflow early, restart with a new session secret; a
+  restart alone loses revocations. Logout of an idle older copy still revokes
+  its renewed copies.
 - Sign-in attempts are limited in memory, per process, before the API is called,
   and the limiter does not read forwarded client-address headers. The Epistle API
   has its own failed-authentication limiter, which currently sees one address for

@@ -1,7 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server";
 
 import { captchaWideningFromEnv } from "./features/auth/captcha/config";
-import { SESSION_COOKIE, verifySession } from "./lib/auth/session";
+import {
+	checkSession,
+	SESSION_COOKIE,
+	sessionCookieOptions,
+} from "./lib/auth/session";
 import { readAdminId } from "./lib/config/admin-id";
 import { isMailPath, legacyMailTarget } from "./lib/mail-paths";
 import {
@@ -45,7 +49,8 @@ export const HIDDEN_PATH = "/__not-found__";
  * id, no id configured) is rewritten to {@link HIDDEN_PATH}, so it is the 404 of
  * a path that does not exist and never a redirect that would confirm an admin
  * area exists. Fail-closed: a missing signing secret, a forged or expired
- * cookie, or an unreadable id all resolve to "hidden". Each page and Server
+ * cookie, a session idle for longer than the operator's timeout, or an
+ * unreadable id all resolve to "hidden". Each page and Server
  * Action checks the role again itself.
  *
  * The admin decision evaluates the session and the id comparison every time,
@@ -67,11 +72,27 @@ export async function proxy(request: NextRequest) {
 		area.kind === "root" ? captchaWideningFromEnv() : undefined,
 	);
 
-	const session =
-		area.kind === "mail" || area.kind === "admin"
-			? await verifySession(request.cookies.get(SESSION_COOKIE)?.value)
-			: null;
+	// Prefetch and HEAD are not activity. They still pass the same auth gate.
+	const activity =
+		request.method !== "HEAD" &&
+		!request.headers.has("next-router-prefetch") &&
+		!request.headers.has("next-router-segment-prefetch") &&
+		!/(?:^|\s|,)prefetch(?:$|\s|,|;)/i.test(
+			request.headers.get("purpose") ?? "",
+		) &&
+		!/(?:^|\s|,)prefetch(?:$|\s|,|;)/i.test(
+			request.headers.get("sec-purpose") ?? "",
+		);
 	const adminId = area.kind === "admin" ? await readAdminId() : undefined;
+	const checked =
+		area.kind === "mail" || area.kind === "admin"
+			? await checkSession(
+					request.cookies.get(SESSION_COOKIE)?.value,
+					activity,
+				)
+			: null;
+	const session =
+		checked === null ? null : { sub: checked.sub, role: checked.role };
 	const isAdminArea =
 		area.kind === "admin" &&
 		constantTimeEqual(area.segment, adminId ?? "") &&
@@ -128,6 +149,20 @@ export async function proxy(request: NextRequest) {
 	// reaches it; the redirect and the hidden 404 keep the panel's headers.
 	if (!(area.kind === "mail" && session && isMailBodyPath(pathname))) {
 		applySecurityHeaders(response.headers, csp);
+	}
+	// While the operator's idle timeout is on, the token carries the moment of
+	// the last activity, so the cookie the browser holds is re-signed with this
+	// request's moment. Without it the idle clock would run from the sign-in
+	// and a session in use would end anyway.
+	if (
+		checked?.refreshed &&
+		response.headers.get("x-middleware-next") === "1"
+	) {
+		response.cookies.set(
+			SESSION_COOKIE,
+			checked.refreshed,
+			sessionCookieOptions(checked.expiresIn),
+		);
 	}
 	return response;
 }

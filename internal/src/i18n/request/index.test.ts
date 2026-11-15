@@ -1,8 +1,9 @@
-import { beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 
 import { SUPPORTED_LOCALES } from "@/i18n/locales";
 import { loadMessages } from "@/i18n/messages";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
+import { DEFAULT_LOCALE_VARIABLE } from "@/lib/config/default-locale";
 import { installNextIntlMocks } from "@/test/next-intl";
 
 installNextIntlMocks();
@@ -17,11 +18,25 @@ type Config = {
 	onError: (error: unknown) => unknown;
 };
 
+/** What a request carries: the person's own choice, the browser and the operator. */
+interface Request {
+	locale?: string;
+	acceptLanguage?: string;
+	operatorDefault?: string;
+}
+
 /** The configuration the request resolves to, with `locale` as the cookie. */
-async function resolve(locale?: string): Promise<Config> {
+async function resolve(request: Request = {}): Promise<Config> {
 	cookies.reset();
-	if (locale !== undefined) {
-		cookies.jar.set("locale", locale);
+	delete process.env[DEFAULT_LOCALE_VARIABLE];
+	if (request.locale !== undefined) {
+		cookies.jar.set("locale", request.locale);
+	}
+	if (request.acceptLanguage !== undefined) {
+		cookies.requestHeaders.set("accept-language", request.acceptLanguage);
+	}
+	if (request.operatorDefault !== undefined) {
+		process.env[DEFAULT_LOCALE_VARIABLE] = request.operatorDefault;
 	}
 	// The stand-in returns the config function itself, as `getRequestConfig`
 	// does at runtime before Next calls it per request.
@@ -30,7 +45,14 @@ async function resolve(locale?: string): Promise<Config> {
 	)()) as Config;
 }
 
-beforeEach(() => cookies.reset());
+beforeEach(() => {
+	cookies.reset();
+	delete process.env[DEFAULT_LOCALE_VARIABLE];
+});
+
+afterEach(() => {
+	delete process.env[DEFAULT_LOCALE_VARIABLE];
+});
 
 describe("locale resolution", () => {
 	it("defaults to English without a locale cookie", async () => {
@@ -43,7 +65,7 @@ describe("locale resolution", () => {
 	it("serves each shipped locale's own catalog for its cookie", async () => {
 		const english = await loadMessages("en");
 		for (const locale of SUPPORTED_LOCALES) {
-			const config = await resolve(locale);
+			const config = await resolve({ locale });
 
 			expect(config.locale).toBe(locale);
 			expect(config.messages).toEqual(await loadMessages(locale));
@@ -64,17 +86,51 @@ describe("locale resolution", () => {
 			"../en",
 			"__proto__",
 		]) {
-			const config = await resolve(value);
+			const config = await resolve({ locale: value });
 
 			expect(config.locale).toBe("en");
 			expect(config.messages).toEqual(await loadMessages("en"));
 		}
 	});
+
+	it("serves the language the browser asked for when the cookie holds nothing", async () => {
+		const config = await resolve({ acceptLanguage: "de,en;q=0.8" });
+
+		expect(config.locale).toBe("de");
+		expect(config.messages).toEqual(await loadMessages("de"));
+	});
+
+	it("serves the operator's default when the browser asked for nothing", async () => {
+		const config = await resolve({ operatorDefault: "it" });
+
+		expect(config.locale).toBe("it");
+		expect(config.messages).toEqual(await loadMessages("it"));
+	});
+
+	it("keeps the person's own choice ahead of the browser and the operator", async () => {
+		const config = await resolve({
+			locale: "es",
+			acceptLanguage: "de",
+			operatorDefault: "it",
+		});
+
+		expect(config.locale).toBe("es");
+		expect(config.messages).toEqual(await loadMessages("es"));
+	});
+
+	it("keeps the browser ahead of the operator's default", async () => {
+		const config = await resolve({
+			acceptLanguage: "de",
+			operatorDefault: "it",
+		});
+
+		expect(config.locale).toBe("de");
+	});
 });
 
 describe("missing messages", () => {
 	it("answers a key missing from the active locale with its English string", async () => {
-		const config = await resolve("es");
+		const config = await resolve({ locale: "es" });
 		const english = (await loadMessages("en")).notFound[
 			"heading"
 		] as string;
@@ -85,7 +141,7 @@ describe("missing messages", () => {
 	});
 
 	it("answers a key English does not have with the key itself", async () => {
-		const config = await resolve("es");
+		const config = await resolve({ locale: "es" });
 
 		expect(config.getMessageFallback({ key: "notFound.nope" })).toBe(
 			"notFound.nope",
@@ -101,7 +157,7 @@ describe("missing messages", () => {
 	});
 
 	it("swallows the error so a gap does not flood the log", async () => {
-		const config = await resolve("es");
+		const config = await resolve({ locale: "es" });
 
 		expect(() =>
 			config.onError(new Error("MISSING_MESSAGE")),
