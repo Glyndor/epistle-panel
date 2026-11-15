@@ -39,12 +39,19 @@ export function generateNonce(): string {
  * `'unsafe-eval'`, which React's dev tooling needs and production never does.
  * `widening` adds one CAPTCHA provider's sources to `script-src`, `connect-src`
  * and a new `frame-src`, and to nothing else; the proxy passes it for the
- * sign-in page only.
+ * sign-in page only. `imageOrigins` are the exact origins the operator
+ * configured for the panel's static files and brand images, added to `img-src`
+ * and to nothing else: measured with `securitypolicyviolation` in Chromium, the
+ * page's scripts and stylesheets load from another origin on the strength of
+ * their nonce and `'strict-dynamic'`, and only the icons its stylesheet draws
+ * (`mask-image: url(...)`) and the brand images are asked of `img-src`. With
+ * none, the policy is what it was.
  */
 export function buildCsp(
 	nonce: string,
 	development = false,
 	widening?: CspWidening,
+	imageOrigins: readonly string[] = [],
 ): string {
 	const scriptSrc = [
 		"'self'",
@@ -62,7 +69,7 @@ export function buildCsp(
 		// accepted with this request's nonce, never with 'unsafe-inline', and the
 		// style attributes stay refused by `style-src`.
 		`style-src-elem 'self' 'nonce-${nonce}'`,
-		"img-src 'self' data:",
+		`img-src ${["'self'", "data:", ...imageOrigins].join(" ")}`,
 		"font-src 'self'",
 		`connect-src ${connectSrc.join(" ")}`,
 		// Frames fall back to `default-src 'self'` unless a provider needs more.

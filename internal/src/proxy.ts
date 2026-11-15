@@ -7,6 +7,7 @@ import {
 	sessionCookieOptions,
 } from "./lib/auth/session";
 import { readAdminId } from "./lib/config/admin-id";
+import { imageOrigins } from "./lib/config/image-origins";
 import { isMailPath, legacyMailTarget } from "./lib/mail-paths";
 import { isMePath } from "./lib/me-paths";
 import {
@@ -78,6 +79,7 @@ export async function proxy(request: NextRequest) {
 		nonce,
 		process.env.NODE_ENV === "development",
 		area.kind === "root" ? captchaWideningFromEnv() : undefined,
+		imageOrigins(),
 	);
 
 	// Only the foreground requests a person's browser makes are activity: GET

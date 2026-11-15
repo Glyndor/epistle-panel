@@ -14,9 +14,9 @@
 # exercises.
 #
 # Usage: scripts/e2e/run.sh [scenario...]
-#   scenarios: security headers logout limiter limiter-global noauth degraded rotation idle theme theme-choice profile-menu body-limit captcha csrf me unknown-variable suppression deliveries account-detail accounts breadcrumbs admin-id mail streaming tables overview shell-state
+#   scenarios: security headers logout limiter limiter-global noauth degraded rotation idle theme theme-choice profile-menu body-limit captcha csrf me unknown-variable suppression deliveries account-detail accounts breadcrumbs admin-id mail streaming tables overview shell-state cdn-origins
 # The name is the same wherever the file lives: the scripts are in
-# scripts/e2e/scenarios/, one folder per concern (accounts, auth, config,
+# scripts/e2e/scenarios/, one folder per concern (accounts, auth, cdn, config,
 # limits, mail, me, rendering, security, theme).
 # With no argument every scenario runs. Exit status is non-zero when any check
 # fails. Override the ports with PANEL_PORT and STAND_IN_PORT.
@@ -117,6 +117,8 @@ cp -R "$internal/.next/static" "$standalone/.next/static"
 . "$root/scripts/e2e/scenarios/config/rotation.sh"
 # shellcheck source=scripts/e2e/scenarios/limits/idle.sh
 . "$root/scripts/e2e/scenarios/limits/idle.sh"
+# shellcheck source=scripts/e2e/scenarios/cdn/cdn-origins.sh
+. "$root/scripts/e2e/scenarios/cdn/cdn-origins.sh"
 # shellcheck source=scripts/e2e/scenarios/auth/captcha.sh
 . "$root/scripts/e2e/scenarios/auth/captcha.sh"
 # shellcheck source=scripts/e2e/scenarios/theme/theme.sh
@@ -176,7 +178,7 @@ cp -R "$internal/.next/static" "$standalone/.next/static"
 
 # ---------------------------------------------------------------- main
 
-all=(security headers logout limiter limiter-global noauth degraded rotation idle theme theme-choice profile-menu body-limit captcha csrf me unknown-variable suppression deliveries account-detail accounts breadcrumbs admin-id mail streaming tables overview shell-state)
+all=(security headers logout limiter limiter-global noauth degraded rotation idle theme theme-choice profile-menu body-limit captcha csrf me unknown-variable suppression deliveries account-detail accounts breadcrumbs admin-id mail streaming tables overview shell-state cdn-origins)
 selected=("$@")
 ((${#selected[@]})) || selected=("${all[@]}")
 
@@ -209,6 +211,7 @@ for name in "${selected[@]}"; do
 	tables) scenario_tables ;;
 	overview) scenario_overview ;;
 	shell-state) scenario_shell_state ;;
+	cdn-origins) scenario_cdn_origins ;;
 	admin-id) scenario_admin_id ;;
 	*)
 		echo "error: unknown scenario '$name'" >&2
