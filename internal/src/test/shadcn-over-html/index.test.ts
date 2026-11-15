@@ -19,6 +19,7 @@ const HAND_MADE: ReadonlyArray<readonly [RegExp, string]> = [
 	[/<table[\s>]/, "Table (components/ui/table)"],
 	[/<kbd[\s>]/, "Kbd (components/ui/kbd)"],
 	[/type="radio"/, "RadioGroup (components/ui/radio-group)"],
+	[/type="checkbox"/, "Checkbox (components/ui/checkbox)"],
 	[
 		/window\.confirm\(|[^.\w]confirm\(/,
 		"ConfirmAction (components/confirm-action)",

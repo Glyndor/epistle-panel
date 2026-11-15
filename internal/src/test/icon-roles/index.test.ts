@@ -74,6 +74,7 @@ describe("an icon has one size and one stroke for its role", () => {
 		// message's state in its row.
 		const smaller: Readonly<Record<string, string>> = {
 			"components/ui/dropdown-menu/index.tsx": "size-3",
+			"components/ui/checkbox/index.tsx": "size-3",
 			"components/data-table/header/index.tsx": "size-3.5",
 			"features/mail/components/message-row/index.tsx": "size-3.5",
 		};
