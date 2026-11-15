@@ -320,6 +320,9 @@
 	--color-secondary-hover: color-mix(in oklab, var(--secondary), var(--foreground) 8%);
 	--color-secondary-press: color-mix(in oklab, var(--secondary), var(--foreground) 14%);
 	--color-destructive-press: color-mix(in oklab, var(--destructive-soft), var(--destructive) 12%);
+	/* A filled control steps toward its text colour, so rest, hover and press differ in both themes (a dark fill in the light theme, a light one in the dark). */
+	--color-primary-hover: color-mix(in oklab, var(--primary), var(--primary-foreground) 16%);
+	--color-primary-press: color-mix(in oklab, var(--primary), var(--primary-foreground) 30%);
 	--color-sidebar-accent-hover: color-mix(in oklab, var(--sidebar-accent), var(--sidebar-foreground) 6%);
 	--color-sidebar-accent-press: color-mix(in oklab, var(--sidebar-accent), var(--sidebar-foreground) 12%);
 	/* A third of the radius, for a 16px box that must still read as square. */

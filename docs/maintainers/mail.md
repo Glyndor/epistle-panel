@@ -10,6 +10,7 @@ the JMAP server, how a hostile message is handled and what is still missing.
 |---|---|
 | A page per folder, two panes (the list and the reader), one column below 1024 px | `app/app/mail/(places)/[role]`, `app/app/mail/(places)/folder/[name]`, each with `[id]` for an open message; they all render `features/mail/components/mail-place`. Frame in `app/app/mail/layout.tsx`, which renders the panel's shell (`layouts.md`) |
 | The sidebar: the way into the composer, the folders under a heading that opens and closes them | `features/mail/components/mail-nav`, `folders-boundary`, `folder-pane`, `folder-tree`, `features/mail/folder-fold`; the current folder is read from the address (`links/active-folder`) |
+| The day picker in the sidebar, under the folders | `features/mail/components/day-picker-nav` (the client leaf), `components/ui/calendar`, `features/mail/day-picker/*`, `features/mail/links/day-href` |
 | The storage at the foot of the sidebar | `features/mail/components/quota-meter`, drawn with `components/ui/meter` |
 | The trail of the header | `app/app/mail/@trail/**`, `features/mail/components/place-trail` and `mail-breadcrumbs` |
 | List, search, filters, pager, reader | `features/mail/components/*` |
@@ -69,6 +70,8 @@ Work", in the reader's language).
   not reused for it: it holds a closed list of the names of the groups of the
   navigation and is read on the server, while the folders are the account's
   own and are only known once the mail server has answered.
+
+**The day picker** is a month of days in a group of its own, "Calendar", between the folders and the labels (the `calendar` name of the groups' cookie, closed or open as the others). Pressing a day opens the folder the person is in with `after` and `before` both set to it; pressing it again takes it off; the chosen day is the one the address names and no other (a range marks nothing). Nothing is drawn in the rail collapsed to icons. The first paint is the server's: today (in the person's zone, `dayInZone`), the zone and the day the language starts the week on (`firstDayOfWeek`, from `Intl.Locale`: Sunday for `en` and `pt`, Monday for `es`, `fr`, `de`, `it`) are props of `MailNav`, and the browser takes today from its own clock only after hydration (`useToday`, read again when the window returns). **Limit:** the day is the calendar day in the person's zone, but the conditions count days in Greenwich (`queries/match-conditions`), so a message that arrived near midnight in a far zone lists under the neighbouring day. The first slice does not mark days that have mail, and a day outside 1970 to 9999 cannot be pressed.
 
 The tree itself is `features/mail/components/folder-tree` (the tree and the row
 of a folder) and the model of the branches is `features/mail/folder-fold`.

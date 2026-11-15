@@ -99,6 +99,25 @@ describe("SidebarProvider", () => {
 		expect(document.activeElement).toBe(toggle);
 	});
 
+	it("hands the focus to the toggle when it is inside a part the rail does not draw", () => {
+		render(
+			<SidebarProvider>
+				<div data-rail="hidden">
+					<button type="button">Day</button>
+				</div>
+				<SidebarTrigger label="Toggle sidebar" />
+			</SidebarProvider>,
+		);
+		const day = screen.getByRole("button", { name: "Day" });
+		day.focus();
+
+		fireEvent.keyDown(window, { key: "b", ctrlKey: true });
+
+		expect(document.activeElement).toBe(
+			screen.getByRole("button", { name: "Toggle sidebar" }),
+		);
+	});
+
 	it("leaves the focus alone when the rail collapses under anything that stays drawn", () => {
 		render(
 			<SidebarProvider>

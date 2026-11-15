@@ -11,15 +11,18 @@ import { useIsMobile } from "../use-is-mobile";
 const SIDEBAR_KEYBOARD_SHORTCUT = "b";
 
 /**
- * Collapsed to icons, the heading of a group is not drawn. A heading that has
- * the focus when the rail collapses would drop it on the page; it is handed to
- * the sidebar's toggle instead, which is where the person can undo it.
+ * Collapsed to icons, the heading of a group is not drawn, and neither is
+ * anything marked `data-rail="hidden"` (the calendar). A heading, or a control
+ * inside such a part, that has the focus when the rail collapses would drop it
+ * on the page; it is handed to the sidebar's toggle instead, which is where
+ * the person can undo it.
  */
 function handFocusToToggle(): void {
 	const focused = document.activeElement;
 	if (
 		focused instanceof HTMLElement &&
-		focused.matches("[data-slot='sidebar-group-label']")
+		(focused.matches("[data-slot='sidebar-group-label']") ||
+			focused.closest("[data-rail='hidden']") !== null)
 	) {
 		document
 			.querySelector<HTMLElement>("[data-slot='sidebar-trigger']")
