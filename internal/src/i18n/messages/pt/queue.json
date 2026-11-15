@@ -1,5 +1,6 @@
 {
 	"heading": "Fila de saída",
+	"description": "Mensagens que o servidor aceitou e ainda não entregou. Retirar uma impede que seja enviada.",
 	"unreachable": "Não foi possível acessar a API de gerenciamento do servidor de correio. Verifique se o servidor está em execução e se o painel está configurado.",
 	"empty": "A fila de saída está vazia.",
 	"emptyHint": "O correio sai assim que o servidor o consegue entregar; o registo de entregas mostra o que saiu.",

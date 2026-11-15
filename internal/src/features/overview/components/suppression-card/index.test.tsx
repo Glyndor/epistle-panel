@@ -42,6 +42,18 @@ describe("SuppressionCard", () => {
 		).toBe("6suppression.addresses");
 	});
 
+	it("gives its figure the tile of the suppression list, which is a drawing and not read", async () => {
+		stubOverviewApi({ suppression: [[...at("a.example", 4)]] });
+
+		const { container } = await show();
+		const tile = container.querySelector(
+			'[data-slot="chart-figure"] [data-slot="icon-tile"]',
+		);
+
+		expect(tile?.querySelector('[data-glyph="ban"]')).not.toBeNull();
+		expect(tile).toHaveAttribute("aria-hidden", "true");
+	});
+
 	it("draws a bar per domain, the one with the most first and across the row", async () => {
 		stubOverviewApi({
 			suppression: [[...at("b.example", 2), ...at("a.example", 4)]],

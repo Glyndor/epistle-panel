@@ -1,0 +1,92 @@
+/* The small drawings that stand for a page, a counter or a state (`components/glyph`),
+   one file each in `glyphs/`: the shapes of Lucide's icons of the same name
+   (ISC licence, see docs/maintainers/icons.md), drawn black on the 24 px grid.
+   Each is a mask: the file says where the drawing is, and the element that
+   wears it paints the colour, so it follows the theme (the operator's included)
+   and a streamed page carries an empty element and not an `svg` with children,
+   which React can cut into a holder with an inline `style` that the policy
+   refuses (docs/maintainers/charts.md). Add a drawing here and to `GLYPHS` in
+   `components/glyph`; a test reads both lists and the files. */
+.glyph {
+	mask-repeat: no-repeat;
+	mask-position: center;
+	mask-size: contain;
+	-webkit-mask-repeat: no-repeat;
+	-webkit-mask-position: center;
+	-webkit-mask-size: contain;
+}
+
+.glyph-layout-dashboard {
+	-webkit-mask-image: url("./glyphs/layout-dashboard.svg");
+	mask-image: url("./glyphs/layout-dashboard.svg");
+}
+
+.glyph-globe {
+	-webkit-mask-image: url("./glyphs/globe.svg");
+	mask-image: url("./glyphs/globe.svg");
+}
+
+.glyph-users {
+	-webkit-mask-image: url("./glyphs/users.svg");
+	mask-image: url("./glyphs/users.svg");
+}
+
+.glyph-inbox {
+	-webkit-mask-image: url("./glyphs/inbox.svg");
+	mask-image: url("./glyphs/inbox.svg");
+}
+
+.glyph-history {
+	-webkit-mask-image: url("./glyphs/history.svg");
+	mask-image: url("./glyphs/history.svg");
+}
+
+.glyph-ban {
+	-webkit-mask-image: url("./glyphs/ban.svg");
+	mask-image: url("./glyphs/ban.svg");
+}
+
+.glyph-tag {
+	-webkit-mask-image: url("./glyphs/tag.svg");
+	mask-image: url("./glyphs/tag.svg");
+}
+
+.glyph-send {
+	-webkit-mask-image: url("./glyphs/send.svg");
+	mask-image: url("./glyphs/send.svg");
+}
+
+.glyph-clock {
+	-webkit-mask-image: url("./glyphs/clock.svg");
+	mask-image: url("./glyphs/clock.svg");
+}
+
+.glyph-circle-check {
+	-webkit-mask-image: url("./glyphs/circle-check.svg");
+	mask-image: url("./glyphs/circle-check.svg");
+}
+
+.glyph-circle-x {
+	-webkit-mask-image: url("./glyphs/circle-x.svg");
+	mask-image: url("./glyphs/circle-x.svg");
+}
+
+.glyph-circle-minus {
+	-webkit-mask-image: url("./glyphs/circle-minus.svg");
+	mask-image: url("./glyphs/circle-minus.svg");
+}
+
+.glyph-power-off {
+	-webkit-mask-image: url("./glyphs/power-off.svg");
+	mask-image: url("./glyphs/power-off.svg");
+}
+
+.glyph-cloud {
+	-webkit-mask-image: url("./glyphs/cloud.svg");
+	mask-image: url("./glyphs/cloud.svg");
+}
+
+.glyph-file-text {
+	-webkit-mask-image: url("./glyphs/file-text.svg");
+	mask-image: url("./glyphs/file-text.svg");
+}

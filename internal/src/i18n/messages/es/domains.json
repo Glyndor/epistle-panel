@@ -1,5 +1,6 @@
 {
 	"heading": "Dominios",
+	"description": "Los dominios de los que este servidor recibe correo y si cada uno lo está recibiendo.",
 	"unreachable": "No se puede contactar con la API de gestión del servidor de correo. Comprueba que el servidor está en marcha y que el panel está configurado.",
 	"empty": "Aún no hay dominios configurados.",
 	"emptyHint": "Los dominios se configuran en el servidor de correo; cuando haya uno, aparecerá aquí.",

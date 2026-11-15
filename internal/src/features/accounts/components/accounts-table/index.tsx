@@ -7,8 +7,8 @@ import { useTranslations } from "next-intl";
 import { columnHelper, DataTable } from "@/components/data-table";
 import { DataTableFiltersMenu } from "@/components/data-table/filters-menu";
 import { useAdminRoutes } from "@/components/layout/admin-routes";
+import { StatusBadge } from "@/components/status-badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { getAccountsAction } from "@/features/accounts/actions/get-accounts";
 import { AccountRowActions } from "@/features/accounts/components/account-row-actions";
 import { AccountsTableSkeleton } from "@/features/accounts/components/accounts-table-skeleton";
@@ -44,7 +44,7 @@ function AccountName({ name }: { name: string }) {
 const originOf = (row: AccountRow): "api" | "file" =>
 	row.dynamic ? "api" : "file";
 
-/** Where an account is defined, as a label: the words say it, the tone only helps. */
+/** Where an account is defined, as a badge: the words say it, the drawing and the tone only help. */
 function OriginBadge({
 	origin,
 	labels,
@@ -55,12 +55,13 @@ function OriginBadge({
 	className?: string;
 }) {
 	return (
-		<Badge
+		<StatusBadge
+			glyph={origin === "file" ? "file-text" : "cloud"}
 			variant={origin === "file" ? "muted" : "secondary"}
 			className={className}
 		>
 			{labels[origin]}
-		</Badge>
+		</StatusBadge>
 	);
 }
 

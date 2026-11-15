@@ -1,5 +1,6 @@
 {
 	"heading": "État",
+	"description": "Où en est le serveur de messagerie en ce moment : ses compteurs, ses livraisons et ce qui attend.",
 	"unavailable": "Les compteurs n’ont pas pu être lus.",
 	"none": "-",
 	"version": "Version",

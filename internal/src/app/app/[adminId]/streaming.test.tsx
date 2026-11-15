@@ -116,6 +116,48 @@ describe("admin pages stream their data", () => {
 	}
 });
 
+/** The pages that open with a page header; the account's own page has its sections to open with. */
+const WITH_HEADER = [
+	"status",
+	"queue",
+	"accounts",
+	"domains",
+	"suppression",
+	"deliveries",
+] as const;
+
+describe("the page header", () => {
+	for (const name of WITH_HEADER) {
+		const page = cases.find(([key]) => key === name)?.[1];
+
+		it(`${name}: the page and its loading state draw the same header, first on the page`, async () => {
+			const first = render(
+				withAdminArea(
+					firstPaint(await (page as () => Promise<ReactNode>)()),
+				),
+			);
+			const header = first.container.querySelector(
+				'[data-slot="page-header"]',
+			);
+			const painted = header?.outerHTML;
+			expect(header?.querySelector("h1")).not.toBeNull();
+			expect(
+				header?.querySelector('[data-slot="icon-tile"]'),
+			).toHaveAttribute("aria-hidden", "true");
+			expect(header?.querySelector("p")).toHaveTextContent("description");
+			expect(first.container.querySelectorAll("h1")).toHaveLength(1);
+			first.unmount();
+
+			const loading = render(withAdminArea(await loadings[name]()));
+			expect(
+				loading.container.querySelector('[data-slot="page-header"]')
+					?.outerHTML,
+			).toBe(painted as string);
+			expect(loading.container.querySelectorAll("h1")).toHaveLength(1);
+		});
+	}
+});
+
 /** The trail of each page, as its steps and the addresses of its links. */
 const TRAILS: Record<keyof typeof loadings, [string[], string[]]> = {
 	status: [["administration", "status"], [""]],

@@ -97,6 +97,7 @@ export async function SuppressionCard({
 	return (
 		<ChartCard {...frame}>
 			<ChartFigure
+				icon="ban"
 				value={format.number(domains.total)}
 				label={t(
 					capped ? "suppression.read" : "suppression.addresses",

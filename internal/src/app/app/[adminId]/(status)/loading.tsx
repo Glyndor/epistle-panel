@@ -15,6 +15,7 @@ import { PeriodNav } from "@/features/overview/components/period-nav";
 import { skeletonWords } from "@/features/overview/queries/skeleton-words";
 import { DEFAULT_PERIOD } from "@/features/overview/schemas/overview-input";
 import { StatusCardsSkeleton } from "@/features/status/components/status-cards-skeleton";
+import { StatusHeading } from "@/features/status/components/status-heading";
 import { PUBLIC_ROUTES } from "@/lib/routes";
 
 /**
@@ -30,12 +31,11 @@ import { PUBLIC_ROUTES } from "@/lib/routes";
  */
 export default async function Loading() {
 	const routes = await loadingRoutes();
-	const t = await getTranslations("dashboard");
 	const tCharts = await getTranslations("overview");
 	const words = await skeletonWords(DEFAULT_PERIOD);
 	return (
 		<>
-			<h1 className="font-semibold text-lg">{t("heading")}</h1>
+			<StatusHeading />
 			<StatusCardsSkeleton />
 			<DeliveriesSection
 				heading={tCharts("deliveries.heading")}

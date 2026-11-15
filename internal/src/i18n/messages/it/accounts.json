@@ -1,5 +1,6 @@
 {
 	"heading": "Account",
+	"description": "Le persone che accedono e gli indirizzi a cui ciascuna riceve posta.",
 	"unreachable": "L’API di gestione del server di posta non è raggiungibile. Verifica che il server sia in esecuzione e che il pannello sia configurato.",
 	"empty": "Nessun account è ancora configurato.",
 	"emptyHint": "Crea il primo account perché qualcuno possa accedere e ricevere posta.",

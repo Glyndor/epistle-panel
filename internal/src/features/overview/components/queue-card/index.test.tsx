@@ -62,6 +62,18 @@ describe("QueueCard", () => {
 		expect(screen.getByText("queue.recipients")).toBeVisible();
 	});
 
+	it("gives its figure the tile of waiting, which is a drawing and not read", async () => {
+		stubOverviewApi({ queue: [[message(HALF_HOUR)]] });
+
+		const { container } = await show();
+		const tile = container.querySelector(
+			'[data-slot="chart-figure"] [data-slot="icon-tile"]',
+		);
+
+		expect(tile?.querySelector('[data-glyph="clock"]')).not.toBeNull();
+		expect(tile).toHaveAttribute("aria-hidden", "true");
+	});
+
 	it("draws a bar per waiting time, as long as its count, and none for an empty one", async () => {
 		stubOverviewApi({
 			queue: [

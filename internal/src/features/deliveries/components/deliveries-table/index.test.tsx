@@ -55,6 +55,45 @@ describe("DeliveriesTable", () => {
 		expect(screen.getAllByRole("columnheader")).toHaveLength(8);
 	});
 
+	it("tells each outcome by its own icon and tone as well as by its word, and no two share both", async () => {
+		const outcomes = [
+			"delivered",
+			"deferred",
+			"failed",
+			"suppressed",
+			"canceled",
+		];
+		stubFetchJson({
+			entries: outcomes.map((outcome, index) =>
+				entry({ outcome, recipient: `r${index}@example.net` }),
+			),
+		});
+
+		render(withQuery(<DeliveriesTable filters={{}} />));
+
+		await screen.findByText("r0@example.net");
+		const seen = new Set<string>();
+		const expected: Record<string, string[]> = {
+			delivered: ["circle-check", "secondary"],
+			deferred: ["clock", "warning"],
+			failed: ["circle-x", "destructive"],
+			suppressed: ["ban", "muted"],
+			canceled: ["circle-minus", "muted"],
+		};
+		for (const outcome of outcomes) {
+			const badge = screen.getByText(`outcomes.${outcome}`);
+			const glyph = badge.querySelector("[data-glyph]");
+			expect(badge).toHaveAttribute("data-status-badge");
+			expect([
+				glyph?.getAttribute("data-glyph"),
+				badge.getAttribute("data-variant"),
+			]).toEqual(expected[outcome] ?? []);
+			expect(badge.textContent).toBe(`outcomes.${outcome}`);
+			seen.add(`${glyph?.getAttribute("data-glyph")}`);
+		}
+		expect(seen.size).toBe(outcomes.length);
+	});
+
 	it("shows a placeholder for a bounce sender and for absent account, remote and reply", async () => {
 		stubFetchJson({
 			entries: [

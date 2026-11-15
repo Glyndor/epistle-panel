@@ -1,5 +1,6 @@
 {
 	"heading": "Domaines",
+	"description": "Les domaines dont ce serveur reçoit le courrier et si chacun le reçoit.",
 	"unreachable": "L’API de gestion du serveur de messagerie est injoignable. Vérifiez que le serveur est en marche et que le panneau est configuré.",
 	"empty": "Aucun domaine n’est encore configuré.",
 	"emptyHint": "Les domaines se configurent sur le serveur de messagerie ; dès qu’il y en a un, il est listé ici.",

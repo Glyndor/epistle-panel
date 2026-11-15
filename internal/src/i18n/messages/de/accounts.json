@@ -1,5 +1,6 @@
 {
 	"heading": "Konten",
+	"description": "Die Personen, die sich anmelden, und die Adressen, unter denen jede E-Mails empfängt.",
 	"unreachable": "Die Verwaltungs-API des Mailservers ist nicht erreichbar. Prüfen Sie, ob der Server läuft und das Panel konfiguriert ist.",
 	"empty": "Es sind noch keine Konten konfiguriert.",
 	"emptyHint": "Legen Sie das erste Konto an, damit sich jemand anmelden und E-Mails empfangen kann.",

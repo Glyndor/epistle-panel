@@ -1,5 +1,6 @@
 {
 	"heading": "Stato",
+	"description": "Come sta andando il server di posta adesso: i suoi contatori, le sue consegne e ciò che è in attesa.",
 	"unavailable": "Non è stato possibile leggere i contatori.",
 	"none": "-",
 	"version": "Versione",

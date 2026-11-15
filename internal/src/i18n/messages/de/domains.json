@@ -1,5 +1,6 @@
 {
 	"heading": "Domains",
+	"description": "Die Domains, für die dieser Server E-Mails annimmt, und ob jede sie gerade annimmt.",
 	"unreachable": "Die Verwaltungs-API des Mailservers ist nicht erreichbar. Prüfen Sie, ob der Server läuft und das Panel konfiguriert ist.",
 	"empty": "Es sind noch keine Domains konfiguriert.",
 	"emptyHint": "Domains werden auf dem Mailserver eingerichtet; sobald eine da ist, steht sie hier.",
