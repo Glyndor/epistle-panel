@@ -133,7 +133,7 @@ export function StackedColumns({
 										column.shaded ? "true" : undefined
 									}
 									title={column.hint}
-									className="flex min-w-0 flex-1 flex-col-reverse gap-0.5"
+									className="flex min-w-0 flex-1 flex-col-reverse gap-0.5 rounded-xs transition-colors hover:bg-foreground/10 active:bg-foreground/15"
 								>
 									{stack.height > 0 ? (
 										<div

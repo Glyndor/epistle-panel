@@ -74,6 +74,16 @@ describe("AppSidebar", () => {
 		).toBeInTheDocument();
 	});
 
+	it("moves the muted line under the brand to the foreground while the entry is pressed, where it would be under 4.5:1", async () => {
+		await renderSidebar({ subtitle: "Mail" });
+		const link = screen.getByRole("link", { name: /Epistle/ });
+
+		expect(link).toHaveClass("group/brand");
+		expect(screen.getByText("Mail")).toHaveClass(
+			"group-active/brand:text-sidebar-accent-foreground",
+		);
+	});
+
 	it("draws the brand mark as a decorative SVG", async () => {
 		const { container } = await renderSidebar();
 

@@ -71,3 +71,66 @@ export function contrastRatio(first: string, second: string): number {
 	].sort((a, b) => b - a) as [number, number];
 	return (lighter + 0.05) / (darker + 0.05);
 }
+
+/** An 8-bit channel in linear light. */
+function decode(channel: number): number {
+	const value = channel / 255;
+	return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+}
+
+/** An sRGB colour as OKLab. */
+function toOklab([red, green, blue]: Rgb): Rgb {
+	const r = decode(red);
+	const g = decode(green);
+	const b = decode(blue);
+	const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+	const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+	const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+	return [
+		0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s,
+		1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
+		0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s,
+	];
+}
+
+/** An OKLab colour as 8-bit sRGB. */
+function fromOklab([lightness, a, b]: Rgb): Rgb {
+	const l = (lightness + 0.3963377774 * a + 0.2158037573 * b) ** 3;
+	const m = (lightness - 0.1055613458 * a - 0.0638541728 * b) ** 3;
+	const s = (lightness - 0.0894841775 * a - 1.291485548 * b) ** 3;
+	return [
+		encode(4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s),
+		encode(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s),
+		encode(-0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s),
+	];
+}
+
+/**
+ * What `color-mix(in oklab, first, second <percent>%)` paints, as 8-bit sRGB:
+ * the two colours interpolated in OKLab, `percent` of the way to the second.
+ * A colour is a value of the theme file or an sRGB triple.
+ */
+export function mixInOklab(
+	first: string | Rgb,
+	second: string | Rgb,
+	percent: number,
+): Rgb {
+	const from = toOklab(typeof first === "string" ? parseColor(first) : first);
+	const to = toOklab(
+		typeof second === "string" ? parseColor(second) : second,
+	);
+	const share = percent / 100;
+	return fromOklab([
+		from[0] + (to[0] - from[0]) * share,
+		from[1] + (to[1] - from[1]) * share,
+		from[2] + (to[2] - from[2]) * share,
+	]);
+}
+
+/** The contrast ratio of two sRGB colours, from 1 (the same) to 21. */
+export function contrastOfRgb(first: Rgb, second: Rgb): number {
+	const [lighter, darker] = [luminance(first), luminance(second)].sort(
+		(a, b) => b - a,
+	) as [number, number];
+	return (lighter + 0.05) / (darker + 0.05);
+}

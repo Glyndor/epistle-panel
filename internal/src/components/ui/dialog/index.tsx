@@ -80,7 +80,7 @@ function DialogContent({
 								block: "nearest",
 							})
 						}
-						className="absolute top-3 right-3 inline-flex size-8 select-none scroll-m-2 pointer-coarse:size-11 items-center justify-center rounded-lg text-muted-foreground hover:bg-surface-sunken hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 [&_svg]:size-4"
+						className="absolute top-3 right-3 inline-flex size-8 select-none scroll-m-2 pointer-coarse:size-11 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-accent-foreground active:bg-accent-press focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 [&_svg]:size-4"
 					>
 						<XIcon aria-hidden="true" />
 						<span className="sr-only select-none">

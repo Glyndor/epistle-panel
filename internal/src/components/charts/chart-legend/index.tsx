@@ -17,6 +17,10 @@ export interface LegendItem {
  * should have to match colours to guess which is which. An entry with no
  * series is keyed with the tone of the band that fills a column with missing
  * data.
+ *
+ * An entry is tinted under the pointer and one step deeper while it is pressed,
+ * the way a row of a table is, with a margin that cancels its padding so the
+ * legend does not move. It is no control: the cursor stays the browser's own.
  */
 export function ChartLegend({
 	items,
@@ -34,7 +38,10 @@ export function ChartLegend({
 			)}
 		>
 			{items.map((item) => (
-				<li key={item.key} className="flex items-center gap-1.5">
+				<li
+					key={item.key}
+					className="-mx-1.5 -my-0.5 flex items-center gap-1.5 rounded-md px-1.5 py-0.5 transition-colors hover:bg-accent hover:text-accent-foreground active:bg-accent-press"
+				>
 					{item.series === undefined ? (
 						<span
 							aria-hidden="true"

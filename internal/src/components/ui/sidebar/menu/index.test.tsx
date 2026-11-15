@@ -203,14 +203,14 @@ describe("SidebarMenuButton", () => {
 		const current = screen.getByRole("button", { name: "Domains" });
 		expect(current).toHaveClass(
 			"data-[active=true]:bg-sidebar-accent",
-			"data-[active=true]:hover:bg-sidebar-foreground/10",
+			"data-[active=true]:hover:bg-sidebar-accent-hover",
 			"data-[active=true]:hover:[&>span:first-of-type]:underline",
-			"data-[active=true]:active:bg-sidebar-foreground/12",
+			"data-[active=true]:active:bg-sidebar-accent-press",
 		);
 		// And the entries that are not current keep theirs.
 		expect(current).toHaveClass(
 			"hover:bg-sidebar-accent/60",
-			"active:bg-sidebar-accent/80",
+			"active:bg-sidebar-accent-press",
 		);
 	});
 

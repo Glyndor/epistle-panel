@@ -308,6 +308,20 @@
 	--color-field: var(--field);
 	--color-field-edge: var(--field-edge);
 	--color-ring: var(--ring);
+	/* The fills of a control under the pointer that the roles above do not
+	   give a second step for: the press of a ghost control and the hover and
+	   press of one that rests on `--secondary` or on the rail. Each is its
+	   role with a share of the foreground mixed in, so it is a step deeper in
+	   the light theme and a step brighter in the dark one, follows an
+	   operator's stylesheet (the mix is made where it is used) and needs no
+	   list of its own. The mix is the same in both themes, so the step between
+	   rest, hover and press stays visible in each. */
+	--color-accent-press: color-mix(in oklab, var(--accent), var(--foreground) 10%);
+	--color-secondary-hover: color-mix(in oklab, var(--secondary), var(--foreground) 8%);
+	--color-secondary-press: color-mix(in oklab, var(--secondary), var(--foreground) 14%);
+	--color-destructive-press: color-mix(in oklab, var(--destructive-soft), var(--destructive) 12%);
+	--color-sidebar-accent-hover: color-mix(in oklab, var(--sidebar-accent), var(--sidebar-foreground) 6%);
+	--color-sidebar-accent-press: color-mix(in oklab, var(--sidebar-accent), var(--sidebar-foreground) 12%);
 	/* A third of the radius, for a 16px box that must still read as square. */
 	--radius-xs: calc(var(--radius) / 3);
 	--color-chart-1: var(--chart-1);

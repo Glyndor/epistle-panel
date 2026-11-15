@@ -80,3 +80,32 @@ explains something (`cursor-help`). The panel has none of them today.
 
 One exception, kept where it was: the label of a field that is off is
 `not-allowed` (`peer-disabled:cursor-not-allowed`, `components/ui/label`).
+
+## What a control does under the pointer
+
+A control answers the pointer in three steps: rest, hover, press. Each has to
+differ from the one before by at least 1.1:1 in luminance, in both themes, and
+the words on it stay at 4.5:1. A hover that equals the rest fill counts as none:
+the well of a field is `--field` and its hover `--accent`, five steps of 255,
+so a field also darkens the line under it (`FIELD_CLASS`).
+
+| State | Ghost, menu item, row | On `--secondary` (outline, secondary, the current pill) | On the rail | Destructive menu item |
+|---|---|---|---|---|
+| hover | `bg-accent` | `bg-secondary-hover` | `bg-sidebar-accent` (`/60`) | `bg-destructive-soft` |
+| press | `bg-accent-press` | `bg-secondary-press` | `bg-sidebar-accent-press` | `bg-destructive-press` |
+
+The `*-hover` and `*-press` fills are not roles of their own: `styles/theme.css`
+derives them with `color-mix()` from a role and the foreground, so an
+operator's stylesheet carries them, and `styles/pointer-tokens.test.ts`
+evaluates each in both themes and fails under 1.1:1 or under 4.5:1 for its text.
+The muted text colour is not 4.5:1 on a press fill in the dark theme, so a card,
+a legend entry and a bar row that hold muted words switch them to
+`text-accent-foreground` while filled.
+
+Readouts that take no press answer the pointer the same way and keep the
+browser's cursor: the summary cards (`components/summary-card`), the entries of
+a legend, the rows of a bar list and a column of a stacked chart (a band of the
+foreground at 10 % and 15 %). A mark of a chart is ringed by an outline
+(`components/charts/mark`) and never recoloured, because a series colour is held
+at 3:1 against the card. A chart card itself takes no fill: it holds controls
+whose hover fill would equal it.

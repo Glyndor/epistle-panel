@@ -136,7 +136,7 @@ describe("DropdownMenu", () => {
 		// the fill changes over a moment, not at once.
 		expect(item).toHaveClass(
 			"focus:bg-accent",
-			"active:bg-accent/70",
+			"active:bg-accent-press",
 			"transition-colors",
 		);
 		expect(screen.getByRole("menu")).toBeInTheDocument();
@@ -167,11 +167,17 @@ describe("DropdownMenu", () => {
 			"min-h-8",
 			"pointer-coarse:min-h-11",
 			"focus:bg-accent",
-			"data-[variant=default]:active:bg-accent/70",
+			"data-[variant=default]:active:bg-accent-press",
 		);
 		expect(
 			screen.getByRole("menuitem", { name: "Delete" }),
 		).toHaveAttribute("data-variant", "destructive");
+		// The destructive row has its own deeper fill: on the default one it
+		// would not change between the focus and the press.
+		expect(screen.getByRole("menuitem", { name: "Delete" })).toHaveClass(
+			"data-[variant=destructive]:focus:bg-destructive-soft",
+			"data-[variant=destructive]:active:bg-destructive-press",
+		);
 		// With `asChild` the row is the link itself.
 		const go = screen.getByRole("menuitem", { name: "Go" });
 		expect(go.tagName).toBe("A");
@@ -200,7 +206,7 @@ describe("DropdownMenu", () => {
 			"pointer-coarse:min-h-11",
 			"focus:outline-2",
 			"outline-ring",
-			"data-[variant=default]:active:bg-accent/70",
+			"data-[variant=default]:active:bg-accent-press",
 			"transition-colors",
 		);
 		const off = screen.getByRole("menuitem", { name: "Clear" });
@@ -320,7 +326,7 @@ describe("DropdownMenu tick boxes", () => {
 		);
 		expect(item).not.toHaveClass("outline-none");
 		// A press answers too, and the fill changes over a moment, not at once.
-		expect(item).toHaveClass("active:bg-accent/70", "transition-colors");
+		expect(item).toHaveClass("active:bg-accent-press", "transition-colors");
 	});
 
 	it("draws the box with a small corner taken from the theme's radius, not a round one", async () => {

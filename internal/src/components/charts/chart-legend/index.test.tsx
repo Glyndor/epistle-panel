@@ -26,6 +26,24 @@ describe("ChartLegend", () => {
 		).toHaveClass("bg-chart-3");
 	});
 
+	it("tints an entry under the pointer and presses it deeper, with a margin that cancels its padding", () => {
+		render(
+			<ChartLegend
+				items={[{ key: "delivered", label: "Delivered", series: 0 }]}
+			/>,
+		);
+
+		expect(screen.getByRole("listitem")).toHaveClass(
+			"hover:bg-accent",
+			"active:bg-accent-press",
+			"hover:text-accent-foreground",
+			"-mx-1.5",
+			"px-1.5",
+			"-my-0.5",
+			"py-0.5",
+		);
+	});
+
 	it("keys an entry with no series with the tone of the band, not a series colour", () => {
 		render(
 			<ChartLegend items={[{ key: "missing", label: "Not returned" }]} />,

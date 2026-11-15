@@ -143,6 +143,13 @@ describe("Sheet", () => {
 		expect(other.defaultPrevented).toBe(false);
 	});
 
+	it("fills its close button under the pointer and presses it one step deeper", () => {
+		renderSheet(true);
+		const close = screen.getByRole("button", { name: "Shut" });
+
+		expect(close).toHaveClass("hover:bg-accent", "active:bg-accent-press");
+	});
+
 	it("sits on the chosen edge and sets no inline style", () => {
 		const { view } = renderSheet(true);
 

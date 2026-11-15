@@ -57,8 +57,12 @@ describe("the chart card skeletons", () => {
 		expect(link).toHaveAttribute("aria-hidden", "true");
 		expect(link).toHaveClass("text-transparent", "select-none", "bg-muted");
 		// Under the pointer it stays a block: the ghost button's own hover
-		// would show the words.
-		expect(link).toHaveClass("hover:text-transparent", "hover:bg-muted");
+		// would show the words, and a press does not fill it either.
+		expect(link).toHaveClass(
+			"hover:text-transparent",
+			"hover:bg-muted",
+			"active:bg-muted",
+		);
 		expect(link).not.toHaveClass("hover:text-accent-foreground");
 		expect(screen.queryByRole("link")).toBeNull();
 		expect(screen.queryByRole("button")).toBeNull();

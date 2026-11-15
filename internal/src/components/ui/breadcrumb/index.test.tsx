@@ -71,7 +71,7 @@ describe("Breadcrumb", () => {
 		// Hover, press and keyboard focus each look different from rest.
 		expect(screen.getByRole("link", { name: "x" })).toHaveClass(
 			"hover:bg-accent",
-			"active:bg-accent/70",
+			"active:bg-accent-press",
 			"focus-visible:outline-2",
 		);
 	});

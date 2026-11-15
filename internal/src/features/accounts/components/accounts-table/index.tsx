@@ -31,7 +31,7 @@ function AccountName({ name }: { name: string }) {
 	return isAccountName(name) ? (
 		<Link
 			href={routes.accountDetail(name)}
-			className="inline-flex items-center wrap-anywhere rounded-sm font-semibold text-primary underline underline-offset-4 hover:no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring pointer-coarse:min-h-11 pointer-coarse:min-w-11"
+			className="inline-flex items-center wrap-anywhere rounded-sm font-semibold text-primary underline underline-offset-4 hover:no-underline active:text-primary/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring pointer-coarse:min-h-11 pointer-coarse:min-w-11"
 		>
 			{name}
 		</Link>

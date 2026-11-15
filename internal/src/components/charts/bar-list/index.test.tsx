@@ -87,6 +87,25 @@ describe("BarList", () => {
 		expect(screen.getByText("2")).toHaveClass("shrink-0");
 	});
 
+	it("tints a row under the pointer and presses it deeper, with a margin that cancels its padding", () => {
+		const { container } = render(<BarList rows={ROWS} />);
+		const row = container.querySelector('[data-row="a"]');
+
+		expect(row).toHaveClass(
+			"hover:bg-accent",
+			"active:bg-accent-press",
+			"hover:text-accent-foreground",
+			"-mx-2",
+			"px-2",
+			"-my-1",
+			"py-1",
+		);
+		// The muted figure would be under 4.5:1 on the dark press fill.
+		expect(screen.getByText("60%")).toHaveClass(
+			"group-hover/row:text-accent-foreground",
+		);
+	});
+
 	it("draws no bar when every value is nothing, and carries no style attribute", () => {
 		const { container } = render(
 			<BarList

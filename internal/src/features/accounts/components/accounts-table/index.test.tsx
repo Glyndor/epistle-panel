@@ -314,6 +314,19 @@ describe("AccountsTable", () => {
 		]);
 	});
 
+	it("takes the underline off the account's link under the pointer and dims it while pressed", async () => {
+		stubFetchJson({ accounts: [account("alice", true)] });
+
+		render(withAdminArea(<AccountsTable />));
+
+		const link = await screen.findByRole("link", { name: "alice" });
+		expect(link).toHaveClass(
+			"underline",
+			"hover:no-underline",
+			"active:text-primary/70",
+		);
+	});
+
 	it("gives the account's link a 44 px target on a coarse pointer, and breaks a long name at a word end first", async () => {
 		stubFetchJson({ accounts: [account("alice", true)] });
 

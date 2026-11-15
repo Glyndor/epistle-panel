@@ -171,7 +171,7 @@ describe("NavSection", () => {
 			"focus-visible:-outline-offset-2",
 			"focus-visible:outline-sidebar-ring",
 			"hover:bg-sidebar-accent/60",
-			"active:bg-sidebar-accent/80",
+			"active:bg-sidebar-accent-press",
 		);
 		expect(heading().querySelector("svg")).toHaveAttribute(
 			"aria-hidden",

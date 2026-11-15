@@ -37,7 +37,7 @@ export function OptionRow({
 			<Label
 				htmlFor={id}
 				className={cn(
-					"min-h-8 gap-3 rounded-lg px-2 font-normal hover:bg-surface-sunken active:bg-accent/70 pointer-coarse:min-h-11",
+					"min-h-8 gap-3 rounded-lg px-2 font-normal hover:bg-accent active:bg-accent-press pointer-coarse:min-h-11",
 				)}
 			>
 				<Checkbox

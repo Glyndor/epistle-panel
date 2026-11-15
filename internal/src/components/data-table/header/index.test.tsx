@@ -40,7 +40,7 @@ describe("DataTableHeader", () => {
 			"pointer-coarse:min-h-11",
 			"pointer-coarse:min-w-11",
 			"hover:bg-accent",
-			"active:bg-accent/70",
+			"active:bg-accent-press",
 			"transition-colors",
 			"text-sm",
 		);

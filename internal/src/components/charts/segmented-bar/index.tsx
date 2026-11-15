@@ -26,7 +26,9 @@ export interface SegmentedBarPart {
  *
  * Each part is a {@link Mark} whose width is a percentage of the bar, so the
  * page needs no script and no inline style to draw it. The parts are told
- * apart by a gap of the card's surface, not by a line.
+ * apart by a gap of the card's surface, not by a line. The bar clips nothing
+ * (the ring of a part under the pointer would be cut), so its two ends round
+ * themselves.
  */
 export function SegmentedBar({
 	parts,
@@ -42,10 +44,7 @@ export function SegmentedBar({
 	return (
 		<div
 			data-slot="segmented-bar"
-			className={cn(
-				"flex h-3 gap-0.5 overflow-hidden rounded-full",
-				className,
-			)}
+			className={cn("flex h-3 gap-0.5", className)}
 		>
 			{parts.map((part, index) => {
 				const segment = layout[index];
@@ -60,7 +59,10 @@ export function SegmentedBar({
 						height={BAR_HEIGHT}
 						// The widths add up to the whole bar; the gaps come out of
 						// each part in proportion, which is what shrinking does.
-						className={cn("min-w-0 shrink", SERIES[part.series])}
+						className={cn(
+							"min-w-0 shrink first:rounded-s-full last:rounded-e-full",
+							SERIES[part.series],
+						)}
 					/>
 				);
 			})}

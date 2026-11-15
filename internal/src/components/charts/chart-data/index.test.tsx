@@ -43,7 +43,10 @@ describe("ChartData", () => {
 
 		// A fill of its own for the open state would be the fill of the hover.
 		expect(button.className).not.toMatch(/data-\[state=open\]:bg-/);
-		expect(button).toHaveClass("hover:bg-accent");
+		expect(button).toHaveClass(
+			"hover:bg-secondary-hover",
+			"active:bg-secondary-press",
+		);
 	});
 
 	it("has a button a finger can press, and no icon drawn as svg", () => {
