@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FolderPicker } from "@/features/mail/components/mail-search/form/folder-picker";
@@ -202,18 +202,19 @@ export function SearchFields({
 					)}
 				/>
 			</Field>
-			<div className="flex flex-col gap-2 sm:col-span-2 lg:col-span-1">
-				<Label htmlFor="mail-condition-attachment">
+			<div className="flex flex-col justify-end sm:col-span-2 lg:col-span-1">
+				<Label
+					htmlFor="mail-condition-attachment"
+					className="min-h-6 pointer-coarse:min-h-11"
+				>
+					<Checkbox
+						id="mail-condition-attachment"
+						name="attachment"
+						value="1"
+						defaultChecked={conditions.attachment}
+					/>
 					{t("hasAttachment")}
 				</Label>
-				<input
-					id="mail-condition-attachment"
-					name="attachment"
-					type="checkbox"
-					value="1"
-					defaultChecked={conditions.attachment}
-					className="size-4 accent-primary"
-				/>
 			</div>
 		</div>
 	);
