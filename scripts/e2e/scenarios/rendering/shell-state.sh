@@ -47,7 +47,7 @@ scenario_shell_state() {
 		'zzgroupzz|zzgroupzz' \
 		'manage.zzgroupzz|zzgroupzz' \
 		'MANAGE|MANAGE' \
-		'manage.folders.manage|folders.manage' \
+		'manage.folders.labels.manage|labels.manage' \
 		'manage"><i/data-zz=1>|data-zz=1' \
 		'<script>zz</script>|script>zz'; do
 		value=${pair%%|*}
