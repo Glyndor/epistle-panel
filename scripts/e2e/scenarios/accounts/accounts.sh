@@ -32,6 +32,32 @@ lifecycle_calls() {
 	' "$1"
 }
 
+# The section selector of the last fetched page: how many links it has, and how
+# many of them are the current one. The selector is the one navigation the
+# account page has; the trail of the header is another one.
+account_section_links() {
+	node -e '
+		const html = require("fs").readFileSync(process.argv[1], "utf8");
+		const nav = html.match(/<nav aria-label="[^"]*">[\s\S]*?<\/nav>/g) || [];
+		const section = nav.filter((n) => n.includes("?section="));
+		const links = section.flatMap((n) => n.match(/<a /g) || []);
+		const current = section.flatMap((n) => n.match(/aria-current="page"/g) || []);
+		process.stdout.write(links.length + " " + current.length);
+	' "$work/b"
+}
+
+# The address of the section the selector marks as the current one.
+account_section_current() {
+	node -e '
+		const html = require("fs").readFileSync(process.argv[1], "utf8");
+		const nav = html.match(/<nav aria-label="[^"]*">[\s\S]*?<\/nav>/g) || [];
+		const section = nav.filter((n) => n.includes("?section="));
+		const link = section.flatMap((n) => n.match(/<a [^>]*aria-current="page"[^>]*>/g) || [])[0] || "";
+		const href = (link.match(/href="([^"]*)"/) || [])[1] || "";
+		process.stdout.write(href);
+	' "$work/b"
+}
+
 scenario_accounts() {
 	echo "# accounts: creating and deleting an account, by session, role, input and the server's answer"
 	fresh
@@ -60,6 +86,23 @@ scenario_accounts() {
 	assert_contains "the page offers a new account" "$(cat "$work/b")" "New account"
 	assert_contains "each row has its actions, named for the account" "$(cat "$work/b")" "Actions for admin"
 	assert_absent "the page carries no inline style" "$(cat "$work/b")" ' style="'
+
+	# --- the sections of an account page: links, and the default one
+	fetch "$adm/accounts/admin" "$good"
+	assert_eq "GET the account page" "$status" 200
+	assert_eq "the selector has a link per section and marks one of them" \
+		"$(account_section_links)" "6 1"
+	assert_eq "the section on screen is the overview, whose address is the bare one" \
+		"$(account_section_current)" "$adm/accounts/admin"
+	assert_contains "the overview is drawn" "$(cat "$work/b")" 'id="overview-title"'
+	fetch "$adm/accounts/admin?section=security" "$good"
+	assert_eq "the section on screen is the one the address names" \
+		"$(account_section_current)" "$adm/accounts/admin?section=security"
+	assert_contains "the security section is drawn" "$(cat "$work/b")" 'id="password-title"'
+	assert_absent "no other section is drawn" "$(cat "$work/b")" 'id="overview-title"'
+	fetch "$adm/accounts/admin?section=nope" "$good"
+	assert_eq "an address that names no section is the overview" \
+		"$(account_section_current)" "$adm/accounts/admin"
 
 	# --- create: input refused by the panel before the API
 	for args in \
@@ -136,7 +179,7 @@ scenario_accounts() {
 	fetch "$adm/accounts" "$good"
 	assert_absent "delete: the list no longer shows it" "$(cat "$work/b")" "carol@example.test"
 	fetch "$adm/accounts/carol" "$good"
-	assert_absent "delete: its page is gone" "$(cat "$work/b")" 'id="mailboxes-title"'
+	assert_absent "delete: its page is gone" "$(cat "$work/b")" 'id="overview-title"'
 
 	# --- the secrets
 	assert_absent "the panel log never holds a password" "$(cat "$work/panel.log")" "$ACCOUNTS_PASSWORD"

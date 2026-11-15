@@ -56,25 +56,49 @@ scenario_account_detail() {
 	body=$(cat "$work/b")
 	assert_contains "the page names the account" "$body" "Account admin"
 	assert_contains "the page lists its address" "$body" "admin@example.test"
-	assert_contains "the page shows the display name in its field" "$body" "Admin Person"
-	assert_contains "the page lists a mailbox of the tree" "$body" "Work"
-	assert_contains "the page carries the section the hostile names must lack" "$body" 'id="mailboxes-title"'
-	assert_contains "the page lists an archived message to restore" "$body" "Restore"
+	assert_contains "the page shows the display name" "$body" "Admin Person"
+	assert_contains "the page carries the section the hostile names must lack" "$body" 'id="overview-title"'
 	assert_eq "the page has no inline style attribute or element" \
 		"$({ grep -o -E ' style="|<style' "$work/b" || true; } | wc -l | tr -d ' ')" 0
+	# The section arrives in its own boundary, so the page streams a script of
+	# its own: it has to carry the nonce like every other one.
+	local nonce
+	nonce=$(nonce_of_csp "$(header content-security-policy)")
+	assert_eq "no script tag without the nonce, whatever its attributes" \
+		"$(unnonced_scripts "$work/b" "$nonce")" 0
 	assert_contains "the page is never cached" "$(header cache-control)" "no-store"
 	assert_eq "every API call for the page carried the valid bearer" \
 		"$(api_count '"bearer":"valid"')" "$(api_count '"method"')"
 	assert_eq "the page asked for the account list once" "$(api_count '"path":"/api/v1/accounts"')" 1
-	assert_eq "the page asked for the mailboxes of admin" "$(api_calls GET '/api/v1/accounts/admin/mailboxes')" 1
-	assert_eq "the page asked for the masked addresses of admin" "$(api_calls GET '/api/v1/accounts/admin/masked')" 1
-	assert_eq "the page asked for the archive of admin" "$(api_calls GET '/api/v1/accounts/admin/archive')" 1
+	assert_eq "the page asked for no dataset of any section" "$(api_calls GET '/api/v1/accounts/admin/')" 0
 	assert_eq "the page asked about no other account" "$(api_calls GET '/api/v1/accounts/ops')" 0
 	assert_contains "the account list links to this page" \
 		"$(curl -s -b "$good" "$panel$adm/accounts")" "href=\"$adm/accounts/admin\""
 
+	# --- the section the address names, and only its data
+	fetch "$adm/accounts/admin?section=mailboxes" "$good"
+	assert_eq "GET the mailboxes section" "$status" 200
+	assert_contains "the mailboxes section lists a mailbox of the tree" "$(cat "$work/b")" "Work"
+	assert_eq "the page asked for the mailboxes of admin" "$(api_calls GET '/api/v1/accounts/admin/mailboxes')" 1
+	assert_eq "the page asked for no other dataset" "$(api_calls GET '/api/v1/accounts/admin/masked')" 0
+	assert_eq "the page asked for no archive either" "$(api_calls GET '/api/v1/accounts/admin/archive')" 0
+	fetch "$adm/accounts/admin?section=masked" "$good"
+	assert_contains "the masked section draws its card" "$(cat "$work/b")" 'id="masked-title"'
+	assert_eq "the page asked for the masked addresses of admin" "$(api_calls GET '/api/v1/accounts/admin/masked')" 1
+	assert_eq "the page asked for no other dataset" "$(api_calls GET '/api/v1/accounts/admin/archive')" 0
+	fetch "$adm/accounts/admin?section=archive" "$good"
+	assert_contains "the archive section lists an archived message to restore" "$(cat "$work/b")" "Restore"
+	assert_eq "the page asked for the archive of admin" "$(api_calls GET '/api/v1/accounts/admin/archive')" 1
+	fetch "$adm/accounts/admin?section=profile" "$good"
+	assert_contains "the profile section shows the display name in its field" "$(cat "$work/b")" "Admin Person"
+	fetch "$adm/accounts/admin?section=security" "$good"
+	assert_contains "the security section has the password" "$(cat "$work/b")" 'id="password-title"'
+	assert_contains "the security section has the two-factor" "$(cat "$work/b")" 'id="totp-title"'
+	assert_eq "none of the sections asked for a dataset of another one" \
+		"$(api_calls GET '/api/v1/accounts/admin/mailboxes')" 1
+
 	# --- an archive the server does not keep is a plain state, not a failure
-	fetch "$adm/accounts/ops" "$good"
+	fetch "$adm/accounts/ops?section=archive" "$good"
 	assert_eq "GET $adm/accounts/ops (archive off)" "$status" 200
 	assert_contains "the archive is reported as not available" "$(cat "$work/b")" "The archive is not available"
 	assert_absent "the 404 of the archive is not logged as a failure" "$(cat "$work/panel.log")" "account archive failed"
@@ -90,14 +114,14 @@ scenario_account_detail() {
 		"$adm/accounts/a%20b" "$adm/accounts/a%3Fqueue=drain" "$adm/accounts/-admin"; do
 		fetch "$path" "$good"
 		assert_contains "hostile name: GET $path shows the not-found page" "$(cat "$work/b")" "Page not found"
-		assert_absent "hostile name: GET $path is not an account page" "$(cat "$work/b")" 'id="mailboxes-title"'
+		assert_absent "hostile name: GET $path is not an account page" "$(cat "$work/b")" 'id="overview-title"'
 	done
 	assert_eq "unknown and hostile names reached no per-account endpoint" "$(api_calls GET '/api/v1/accounts/')" 0
 	assert_eq "no hostile name reached any write" "$(api_count '"method":"PUT"')" 0
 	fetch "$adm/accounts/%2e" "$good"
 	assert_eq "a dot segment is normalised away by Next before the page" "$status" 308
 	fetch "$adm/accounts/%2e%2e" "$good"
-	assert_absent "an encoded .. is resolved by Next to another page, never to an account" "$(cat "$work/b")" 'id="mailboxes-title"'
+	assert_absent "an encoded .. is resolved by Next to another page, never to an account" "$(cat "$work/b")" 'id="overview-title"'
 	curl -s -o /dev/null --path-as-is -b "$good" "$panel$adm/accounts/../../api/v1/status"
 	assert_eq "no path through the panel reached a per-account endpoint" "$(api_calls GET '/api/v1/accounts/')" 0
 
@@ -141,7 +165,7 @@ scenario_account_detail() {
 	assert_contains "two-factor enrolment: the answer is never cached" "$(header cache-control)" "no-store"
 	assert_absent "two-factor enrolment: the panel log never holds the secret" "$(cat "$work/panel.log")" "$ACCOUNT_TOTP_SECRET"
 	assert_absent "two-factor enrolment: the stand-in log never holds the secret" "$(api_log)" "$ACCOUNT_TOTP_SECRET"
-	fetch "$adm/accounts/ops" "$good"
+	fetch "$adm/accounts/ops?section=security" "$good"
 	assert_absent "two-factor enrolment: the page does not carry the secret afterwards" "$(cat "$work/b")" "$ACCOUNT_TOTP_SECRET"
 	code=$(account_action disable-totp '[{"name":"ops"}]' "$good")
 	assert_contains "two-factor: turned off" "$(cat "$work/b")" '"kind":"done"'
@@ -152,7 +176,7 @@ scenario_account_detail() {
 	local address
 	address=$(grep -o 'my-shop\.[a-z2-7]*@example\.test' "$work/b" | head -1)
 	[[ -n "$address" ]] || not_ok "found the minted address in the answer"
-	fetch "$adm/accounts/ops" "$good"
+	fetch "$adm/accounts/ops?section=masked" "$good"
 	assert_contains "masked: the page lists the new address" "$(cat "$work/b")" "$address"
 	code=$(account_action remove-masked "[{\"name\":\"ops\",\"address\":\"$address\"}]" "$good")
 	assert_contains "masked: removed" "$(cat "$work/b")" '"kind":"done"'
