@@ -23,7 +23,7 @@ const TONE_DOT = {
 
 /** The pill of a chip, without its height or its width: the list's rows and the reader set their own. A chip is chrome: its name is not selectable. */
 export const CHIP_PILL =
-	"inline-flex items-center gap-1 rounded-full bg-foreground/10 px-2 text-foreground text-xs select-none";
+	"inline-flex items-center gap-1 rounded-full bg-foreground/10 px-2 text-foreground text-xs select-none forced-colors:border forced-colors:border-[CanvasText]";
 
 /**
  * One label as a chip: a tonal pill with a dot in the label's tone and its

@@ -2,6 +2,10 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
 import { SidebarProvider } from "@/components/ui/sidebar/provider";
+import { mailKeys } from "@/features/mail/queries/mail-query-keys";
+import { EMPTY_CONDITIONS } from "@/features/mail/schemas/list-conditions-model";
+import { summary } from "@/features/mail/test-support/fixtures";
+import { testQueryClient, withQuery } from "@/test/query-wrapper";
 import { firstPaint } from "@/test/server-tree";
 
 import { MailNav } from ".";
@@ -11,9 +15,11 @@ afterEach(cleanup);
 /** The navigation as it is first sent: the folders give way to their skeleton. */
 async function renderNav(open = true) {
 	return render(
-		<SidebarProvider defaultOpen={open}>
-			{firstPaint(await MailNav())}
-		</SidebarProvider>,
+		withQuery(
+			<SidebarProvider defaultOpen={open}>
+				{firstPaint(await MailNav())}
+			</SidebarProvider>,
+		),
 	);
 }
 
@@ -71,23 +77,64 @@ describe("MailNav", () => {
 			).length;
 
 		const open = render(
-			<SidebarProvider>
-				{firstPaint(await MailNav({ foldersOpen: true }))}
-			</SidebarProvider>,
+			withQuery(
+				<SidebarProvider>
+					{firstPaint(await MailNav({ foldersOpen: true }))}
+				</SidebarProvider>,
+			),
 		);
 		// The heading's place and, under it, the folders'.
 		expect(bars(open.container)).toBe(2);
 		open.unmount();
 
 		const closed = render(
-			<SidebarProvider>
-				{firstPaint(await MailNav({ foldersOpen: false }))}
-			</SidebarProvider>,
+			withQuery(
+				<SidebarProvider>
+					{firstPaint(await MailNav({ foldersOpen: false }))}
+				</SidebarProvider>,
+			),
 		);
 		// Closed, the tree will be its heading alone: so is its skeleton.
 		expect(bars(closed.container)).toBe(1);
 		expect(
 			closed.container.querySelector("[data-slot='folder-skeleton']"),
 		).toHaveAttribute("data-state", "closed");
+	});
+
+	it("draws no group of labels in the page the server sends: the browser fills it from the lists it loads", async () => {
+		await renderNav();
+
+		expect(
+			screen.queryByRole("navigation", { name: "labelsNav" }),
+		).toBeNull();
+	});
+
+	it("draws the labels of the lists the browser holds, after the folders", async () => {
+		const client = testQueryClient();
+		client.setQueryData(mailKeys.list("INBOX", 1, EMPTY_CONDITIONS), {
+			items: [
+				summary({
+					labels: [{ keyword: "Work", name: "Work", tone: 1 }],
+				}),
+			],
+			page: 1,
+			total: 1,
+			hasNext: false,
+			partial: false,
+			today: "2026-11-15",
+		});
+		render(
+			withQuery(
+				<SidebarProvider>
+					{firstPaint(await MailNav())}
+				</SidebarProvider>,
+				client,
+			),
+		);
+
+		expect(
+			screen.getByRole("navigation", { name: "labelsNav" }),
+		).toBeInTheDocument();
+		expect(screen.getByRole("link", { name: "Work" })).toBeInTheDocument();
 	});
 });

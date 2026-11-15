@@ -17,7 +17,7 @@ describe("the cookie of the sidebar's groups", () => {
 	});
 
 	it("knows the groups of both areas, and only those", () => {
-		expect([...SIDEBAR_GROUPS]).toEqual(["manage", "folders"]);
+		expect([...SIDEBAR_GROUPS]).toEqual(["manage", "folders", "labels"]);
 	});
 
 	it("is written for the whole panel, with the closed groups in one fixed order, each once", () => {
@@ -26,6 +26,9 @@ describe("the cookie of the sidebar's groups", () => {
 		);
 		expect(sidebarGroupsCookie(["folders", "manage"])).toBe(
 			"sidebar_groups=manage.folders; path=/; max-age=31536000; SameSite=Lax",
+		);
+		expect(sidebarGroupsCookie(["labels", "folders"])).toBe(
+			"sidebar_groups=folders.labels; path=/; max-age=31536000; SameSite=Lax",
 		);
 		expect(sidebarGroupsCookie(["manage", "manage"])).toBe(
 			"sidebar_groups=manage; path=/; max-age=31536000; SameSite=Lax",

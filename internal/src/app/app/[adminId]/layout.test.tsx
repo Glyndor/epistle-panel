@@ -188,7 +188,7 @@ describe("AdminLayout", () => {
 			"folders",
 			"other",
 			"manage.other",
-			"manage.folders.manage",
+			"manage.folders.labels.manage",
 			"MANAGE",
 			'manage"><i data-from-cookie="1">',
 		]) {

@@ -16,7 +16,7 @@
  * holds names from this list and nothing else: a name that is not here is not
  * a group.
  */
-export const SIDEBAR_GROUPS = ["manage", "folders"] as const;
+export const SIDEBAR_GROUPS = ["manage", "folders", "labels"] as const;
 
 /** The name of a group that can be closed. */
 export type SidebarGroupId = (typeof SIDEBAR_GROUPS)[number];

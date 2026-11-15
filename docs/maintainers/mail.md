@@ -97,7 +97,8 @@ its own, a bad one falling back to its default.
 - **A message's id is read by one rule** in the proxy and in the page
   (`isMessageId`, held to the message schema by a test), so the proxy never lets
   through an id the page would then refuse with a 200.
-  `label`, `starred`, `important` and `search` are no routes yet: they span
+  `label`, `starred`, `important` and `search` are no routes yet (a label's
+  link is the current folder with `?label=`, see `mail-labels-display.md`): they span
   folders, which `Email/query` cannot do (Glyndor/epistle#1790).
 - **Each place has its title**: the role in the reader's language, or the last
   part of the folder's name, and the panel's name.
@@ -131,6 +132,8 @@ The bearer never reaches the browser: JMAP is called only from Server Actions an
 Route Handlers, after the session is checked.
 
 ## Keywords: labels, important, forwarded
+
+What is drawn of labels, and what is not yet, is in [`mail-labels-display.md`](mail-labels-display.md).
 
 A message's state beyond read and starred is a keyword on it, and the views carry
 it (`features/mail/labels`). The list draws all of it (see "The message list" below):

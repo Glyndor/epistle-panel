@@ -78,6 +78,8 @@
 	"stateLabels": "Etichette: <names></names>",
 	"labelsTitle": "Etichette",
 	"moreLabels": "+{count}",
+	"labelsNav": "Etichette recenti",
+	"labelsNavHint": "Le etichette degli ultimi messaggi caricati. Ognuna mostra i messaggi della cartella corrente che la portano.",
 	"emptyFolder": "Questa cartella è vuota.",
 	"emptyMatches": "Nessun messaggio corrisponde.",
 	"emptyHint": "Prova un altro filtro o cancella la ricerca.",

@@ -21,6 +21,11 @@ describe("the closed groups a request asks for", () => {
 			"manage",
 			"folders",
 		]);
+		expect(closedSidebarGroups("labels")).toEqual(["labels"]);
+		expect(closedSidebarGroups("labels.folders")).toEqual([
+			"folders",
+			"labels",
+		]);
 		// What is written is what is read back.
 		const written = /^sidebar_groups=([^;]*);/.exec(
 			sidebarGroupsCookie(["folders"]),
@@ -51,10 +56,10 @@ describe("the closed groups a request asks for", () => {
 	});
 
 	it("reads as many names as there are groups and refuses one more", () => {
-		// Two groups exist, so two names are the most a value can hold.
-		expect(closedSidebarGroups("manage.folders")).toHaveLength(2);
+		// Three groups exist, so three names are the most a value can hold.
+		expect(closedSidebarGroups("manage.folders.labels")).toHaveLength(3);
 		expect(closedSidebarGroups("folders.folders")).toEqual(["folders"]);
-		expect(closedSidebarGroups("manage.folders.manage")).toEqual([]);
+		expect(closedSidebarGroups("manage.folders.labels.manage")).toEqual([]);
 		expect(
 			closedSidebarGroups(
 				Array.from({ length: 5000 }, () => "manage").join("."),

@@ -78,6 +78,8 @@
 	"stateLabels": "Libellés : <names></names>",
 	"labelsTitle": "Libellés",
 	"moreLabels": "+{count}",
+	"labelsNav": "Libellés récents",
+	"labelsNavHint": "Les libellés des derniers messages chargés. Chacun affiche les messages du dossier actuel qui le portent.",
 	"emptyFolder": "Ce dossier est vide.",
 	"emptyMatches": "Aucun message ne correspond.",
 	"emptyHint": "Essayez un autre filtre ou effacez la recherche.",

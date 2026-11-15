@@ -11,12 +11,15 @@ import {
 } from "@/components/ui/sidebar/menu";
 import { FolderSkeleton } from "@/features/mail/components/folder-skeleton";
 import { FoldersBoundary } from "@/features/mail/components/folders-boundary";
+import { LabelsNav } from "@/features/mail/components/labels-nav";
 import { composeHref } from "@/features/mail/links/mail-href";
 
 /**
  * The navigation of the mail area's sidebar: the way into the composer, then
- * the account's folders, which stream in behind their skeleton. Collapsed to
- * icons the composer is its icon with a tooltip, like every other entry.
+ * the account's folders, which stream in behind their skeleton, and the labels
+ * of the latest messages, which the browser fills from the lists it loads (they
+ * are not in the page the server sends). Collapsed to icons the composer is
+ * its icon with a tooltip, like every other entry.
  */
 export async function MailNav({
 	foldersOpen = true,
@@ -47,6 +50,7 @@ export async function MailNav({
 			<Suspense fallback={<FolderSkeleton open={foldersOpen} />}>
 				<FoldersBoundary />
 			</Suspense>
+			<LabelsNav />
 		</>
 	);
 }

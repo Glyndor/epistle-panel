@@ -78,6 +78,8 @@
 	"stateLabels": "Etiquetas: <names></names>",
 	"labelsTitle": "Etiquetas",
 	"moreLabels": "+{count}",
+	"labelsNav": "Etiquetas recentes",
+	"labelsNavHint": "As etiquetas das últimas mensagens carregadas. Cada uma mostra as mensagens da pasta atual que a têm.",
 	"emptyFolder": "Esta pasta está vazia.",
 	"emptyMatches": "Nenhuma mensagem corresponde.",
 	"emptyHint": "Experimente outro filtro ou limpe a pesquisa.",

@@ -227,7 +227,8 @@ the single `main` landmark, for both areas.
 - **A closed group still draws the entry of the current page**, and only that
   one, so the sidebar never hides where the person is. The saved choice is
   not overruled for the group that holds the current page: each area has one
-  group today and nearly every page is one of its entries, so a group that
+  group of entries today (the mail also has the labels, whose entries are narrowings of a folder, not pages)
+  and nearly every page is one of its entries, so a group that
   opened itself whenever it held the current page would open on every reload
   and its heading would do nothing that lasts.
 - **The groups' cookie is input.** Anyone can write a cookie, so its value is
