@@ -69,6 +69,9 @@ scenario_shell_state() {
 	for value in limited unlimited none; do
 		reset_api
 		set_quota "$value"
+		# The place is sent only when the quota is not there yet at the first
+		# flush: a stand-in that answers at once makes this check a race.
+		set_delay 300
 		fetch "/app/mail" "$good"
 		assert_eq "quota $value: the page answers" "$status" 200
 		assert_contains "quota $value: the frame holds the storage's place" "$(cat "$work/b")" 'data-slot="quota-placeholder"'
