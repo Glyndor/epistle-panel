@@ -10,6 +10,7 @@ import {
 } from "@/features/mail/jmap/responses";
 import { loadSender } from "@/features/mail/queries/load-identity";
 import { markOrigin } from "@/features/mail/queries/mark-origin";
+import { safeAttachmentType } from "@/features/mail/sanitize/attachment-type";
 import { safeFilename } from "@/features/mail/sanitize/safe-filename";
 import type { ComposeInput } from "@/features/mail/schemas/compose-input";
 
@@ -116,7 +117,11 @@ function emailFor(
 			? {
 					attachments: input.attachments.map((a) => ({
 						blobId: a.blobId,
-						type: a.type,
+						// The type is the browser's claim, so it is checked before it
+						// goes out: one that a reader would run or render as a page
+						// leaves as a file, and one that is not a plain media type at
+						// all does too.
+						type: safeAttachmentType(a.type),
 						// The name ends up in MIME headers: one clean path segment, as for a download.
 						name: safeFilename(a.name),
 						disposition: "attachment",

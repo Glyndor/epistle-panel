@@ -1,7 +1,8 @@
-import { afterEach, beforeEach, expect, it, mock } from "bun:test";
+import { afterEach, beforeEach, expect, it } from "bun:test";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
 import { clearSecretCache } from "@/lib/config/secret";
 import { fakeRequest } from "../../test-support/fake-request";
+import { stubJmap } from "../../test-support/jmap-stub";
 
 const cookies = mockRequestCookies();
 const { uploadResponse } = await import(".");
@@ -10,6 +11,8 @@ const fetchDescriptor = Object.getOwnPropertyDescriptor(globalThis, "fetch");
 beforeEach(async () => {
 	clearSecretCache();
 	cookies.reset();
+	process.env["EPISTLE_API_URL"] = "http://127.0.0.1:8025";
+	process.env["EPISTLE_API_TOKEN"] = "t";
 	await cookies.signIn("admin");
 });
 afterEach(() => {
@@ -19,54 +22,69 @@ afterEach(() => {
 	if (fetchDescriptor)
 		Object.defineProperty(globalThis, "fetch", fetchDescriptor);
 });
-// Audit 19, REAL DEFECT: Number accepts these; null body pins acceptance without reading bytes.
-it.each(["1e3", "0x64", " 100 "])(
-	"currently accepts non-decimal Content-Length %s past the size gate",
-	async (length) => {
-		const request = fakeRequest();
-		const get = request.headers.get.bind(request.headers);
-		request.headers.get = (name) =>
-			name.toLowerCase() === "content-length" ? length : get(name);
-		let touched = 0;
-		Object.defineProperty(request, "body", {
-			configurable: true,
-			get() {
-				touched++;
-				return null;
-			},
-		});
-		const fetch = mock(async (..._args: unknown[]) => {
-			throw new Error("must not contact JMAP");
-		});
-		globalThis.fetch = fetch as unknown as typeof globalThis.fetch;
-		const response = await uploadResponse(request);
-		expect(response.status).toBe(400); // A fixed decimal gate would answer 411 before body access.
-		expect(touched).toBe(1);
-		// The session limits are asked for first; the upload itself must not be sent.
-		expect(
-			fetch.mock.calls.some((call) =>
-				String(call[0]).includes("/jmap/upload"),
-			),
-		).toBe(false);
-	},
-);
 
-// Run with bun test --todo: Number currently accepts these non-decimal forms.
-it.todo("#255, row 19: rejects non-decimal lengths before accessing body", async () => {
-	for (const length of ["1e3", "0x64", " 100 "]) {
-		const request = fakeRequest();
-		const get = request.headers.get.bind(request.headers);
-		request.headers.get = (name) =>
-			name === "content-length" ? length : get(name);
-		let touched = 0;
-		Object.defineProperty(request, "body", {
-			configurable: true,
-			get() {
-				touched++;
-				return null;
-			},
-		});
-		expect((await uploadResponse(request)).status).toBe(411);
-		expect(touched).toBe(0);
+// fakeRequest preserves the raw value: real Headers would trim whitespace.
+function rawLength(length: string | null) {
+	const request = fakeRequest({ type: "application/json", body: "{}" });
+	const get = request.headers.get.bind(request.headers);
+	request.headers.get = (name) =>
+		name.toLowerCase() === "content-length" ? length : get(name);
+	let touched = 0;
+	const body = request.body;
+	Object.defineProperty(request, "body", {
+		get() {
+			touched++;
+			return body;
+		},
+	});
+	return { request, touches: () => touched };
+}
+it("#255 row 19: rejects nondecimal Content-Length before body access", async () => {
+	const seen = stubJmap({});
+	for (const length of [
+		"1e3",
+		"0x64",
+		"0b10",
+		"0o10",
+		" 100 ",
+		"100 ",
+		" 100",
+		"+100",
+		"1.0",
+		"1_000",
+		"1\n",
+		"1\r\n",
+		"١",
+		"１２",
+	]) {
+		const { request, touches } = rawLength(length);
+		const response = await uploadResponse(request);
+		expect([length, response.status, touches()]).toEqual([length, 411, 0]);
+		expect(await response.json()).toEqual({ ok: false, reason: "invalid" });
 	}
+	expect(seen.every((r) => r.url.endsWith("/jmap/session"))).toBe(true);
+});
+it("rejects missing empty zero negative and sixteen-digit lengths before body access", async () => {
+	const seen = stubJmap({});
+	for (const length of [
+		null,
+		"",
+		"0",
+		"000",
+		"-1",
+		"0000000000000001",
+		"9999999999999999",
+	]) {
+		const { request, touches } = rawLength(length);
+		const response = await uploadResponse(request);
+		expect([length, response.status, touches()]).toEqual([length, 411, 0]);
+	}
+	expect(seen.every((r) => r.url.endsWith("/jmap/session"))).toBe(true);
+});
+it("accepts fifteen decimal digits as a size then applies the cap before body access", async () => {
+	const seen = stubJmap({});
+	const { request, touches } = rawLength("999999999999999");
+	expect((await uploadResponse(request)).status).toBe(413);
+	expect(touches()).toBe(0);
+	expect(seen.every((r) => r.calls.length === 0)).toBe(true);
 });

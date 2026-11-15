@@ -5,6 +5,10 @@ import { z } from "zod";
 import { BLOB_TIMEOUT_MS } from "@/features/mail/jmap/call";
 import { currentMailSession } from "@/features/mail/jmap/credentials";
 import { loadComposeLimits } from "@/features/mail/queries/compose-limits";
+import {
+	declaredLength,
+	plainNumber,
+} from "@/features/mail/responses/plain-number";
 import { isSameOrigin } from "@/features/mail/responses/same-origin";
 import { safeFilename } from "@/features/mail/sanitize/safe-filename";
 import { mediaTypeSchema } from "@/features/mail/schemas/compose-input";
@@ -81,11 +85,11 @@ function counted(
  * This route is the only gate of its path: the proxy skips it, because the proxy
  * holds in memory the body of everything it covers. So every check is here and
  * comes before a byte of the body is read: same origin, the session and its
- * role, and the size from `Content-Length`, which is required. The body is then
- * handed to the mail server as it arrives, counted against that size, and is
- * never buffered by the panel. The name is cleaned and the type is the declared
- * one when it has the plain `type/subtype` form, else
- * `application/octet-stream`.
+ * role, and the size from `Content-Length`, which is required and must be a
+ * plain decimal number of bytes. The body is then handed to the mail server as
+ * it arrives, counted against that size, and is never buffered by the panel.
+ * The name is cleaned and the type is the declared one when it has the plain
+ * `type/subtype` form, else `application/octet-stream`.
  */
 export async function uploadResponse(request: Request): Promise<Response> {
 	if (!isSameOrigin(request)) {
@@ -98,8 +102,8 @@ export async function uploadResponse(request: Request): Promise<Response> {
 			return answer(401, { ok: false, reason: "unauthenticated" });
 		}
 		const limits = await loadComposeLimits(session);
-		const declared = Number(request.headers.get("content-length"));
-		if (!Number.isInteger(declared) || declared <= 0) {
+		const declared = declaredLength(request.headers.get("content-length"));
+		if (declared === null) {
 			return answer(411, { ok: false, reason: "invalid" });
 		}
 		if (declared > limits.maxAttachmentBytes) {
@@ -108,10 +112,10 @@ export async function uploadResponse(request: Request): Promise<Response> {
 		// This request declares the bytes already selected in the composer. The
 		// compose schema checks the complete list again before saving or sending;
 		// the mail server remains authoritative for the blobs' actual sizes.
-		const attachedBytes = Number(
+		const attachedBytes = plainNumber(
 			new URL(request.url).searchParams.get("attachedBytes") ?? "0",
 		);
-		if (!Number.isSafeInteger(attachedBytes) || attachedBytes < 0) {
+		if (attachedBytes === null) {
 			return answer(400, { ok: false, reason: "invalid" });
 		}
 		if (

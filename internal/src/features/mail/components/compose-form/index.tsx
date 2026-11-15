@@ -99,14 +99,29 @@ export function ComposeForm({
 
 	const run = (op: "draft" | "send") =>
 		form.handleSubmit(async (values) => {
-			const { parsed, problems } = checkRecipients(values, op);
+			const { parsed, problems } = checkRecipients(
+				values,
+				op,
+				limits.maxRecipients,
+			);
+			// A field can hold two problems at once (a piece that is not an
+			// address, and the message over its limit of recipients), and the
+			// field says both.
+			const said = new Map<RecipientField, string[]>();
 			for (const problem of problems) {
-				form.setError(problem.field, {
-					message:
-						problem.kind === "invalid"
-							? t("invalidRecipients", { list: problem.list })
-							: t("needRecipient"),
-				});
+				const message =
+					problem.kind === "invalid"
+						? t("invalidRecipients", { list: problem.list })
+						: problem.kind === "none"
+							? t("needRecipient")
+							: t("refusal_tooManyRecipients");
+				said.set(problem.field, [
+					...(said.get(problem.field) ?? []),
+					message,
+				]);
+			}
+			for (const [field, messages] of said) {
+				form.setError(field, { message: messages.join(" ") });
 			}
 			if (problems.length > 0) {
 				return;
