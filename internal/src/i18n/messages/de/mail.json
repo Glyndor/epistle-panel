@@ -165,6 +165,7 @@
 	"removeAttachment": "{name} entfernen",
 	"uploadFailed": "{name} konnte nicht angehängt werden.",
 	"tooLargeFile": "{name} ist größer als {limit}.",
+	"tooLargeAttachments": "Anhänge dürfen zusammen höchstens {limit} pro Nachricht belegen.",
 	"tooManyFiles": "Eine Nachricht kann bis zu {count} Dateien enthalten.",
 	"saveDraft": "Entwurf speichern",
 	"send": "Senden",

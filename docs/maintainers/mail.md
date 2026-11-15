@@ -314,6 +314,17 @@ editor and no signature.
   use (missing, zero, negative, not a number, past a gigabyte), leaves the
   panel's own: 25 MiB of file and 1.5 MB of request. A session that cannot be
   read at all leaves every number as it was.
+- **The total attachment budget** is `maxSizeAttachmentsPerEmail` from the
+  mail capability. Missing or unusable means no total cap. The picker counts
+  existing files and each successful upload before the next file; uploads carry
+  that count as `attachedBytes`, checked before their body is read. Compose JSON
+  carries a nonnegative integer `size` per attachment; the server schema checks
+  each file and their sum again. These declared sizes are early checks; JMAP
+  remains authoritative for actual blob sizes. A total refusal names the budget
+  in all six languages, using the same binary-size formatter as a file refusal.
+  Displayed budgets are floored (whole KiB, tenths of MiB and larger), never
+  rounded above their actual bytes. HTTP 413 and JMAP `requestTooLarge` from
+  composing use the existing message-too-large outcome, preserving the form.
 - **Two limits are the panel's own, because the session says nothing about
   them**: how many files a message may carry (20) and how many recipients a
   field may take (100). The recipient count is **not discoverable yet**: epistle

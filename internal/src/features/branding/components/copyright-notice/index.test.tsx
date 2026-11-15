@@ -69,3 +69,13 @@ describe("CopyrightNotice", () => {
 		);
 	});
 });
+
+it("breaks a 200-character unspaced notice and preserves placement classes", () => {
+	process.env[COPYRIGHT_NOTICE_VARIABLE] = "x".repeat(200);
+	render(<CopyrightNotice className="text-xs" />);
+	expect(screen.getByText("x".repeat(200))).toHaveClass(
+		"[overflow-wrap:anywhere]",
+		"text-xs",
+	);
+	expect(screen.getByText("x".repeat(200))).not.toHaveAttribute("style");
+});

@@ -1,3 +1,4 @@
+import { cn } from "@/lib/class-names";
 import { copyrightNotice } from "@/lib/config/copyright-notice";
 
 /**
@@ -11,7 +12,10 @@ export function CopyrightNotice({ className }: { className?: string }) {
 		return null;
 	}
 	return (
-		<small className={className} data-slot="copyright-notice">
+		<small
+			className={cn("[overflow-wrap:anywhere]", className)}
+			data-slot="copyright-notice"
+		>
 			{notice}
 		</small>
 	);

@@ -17,15 +17,15 @@ const UNITS = [
 
 const TEBIBYTE = 1024 * 1024 * 1024 * 1024;
 
-const oneDecimal = (value: number) => Math.round(value * 10) / 10;
+const oneDecimal = (value: number) => Math.floor(value * 10) / 10;
 
 /**
  * A number of bytes in the unit that writes it with fewer than a thousand of
  * them: whole kibibytes, and one decimal from a mebibyte up. The unit is
- * chosen after rounding, so a size just under a unit reads as one of it
- * ("1 MiB"), never as a thousand of the unit below. Nothing, a negative number
+ * chosen after flooring, so a size just under a unit stays below that unit.
+ * Every displayed limit is at most the real byte budget. Nothing, a negative number
  * and anything that is not a number read as zero kibibytes; a few bytes read
- * as one. Past the largest unit the number simply grows.
+ * as zero. Past the largest unit the number simply grows.
  */
 export function byteLimit(bytes: number): ByteLimit {
 	const size = Number.isFinite(bytes) ? Math.max(0, bytes) : 0;
@@ -35,7 +35,7 @@ export function byteLimit(bytes: number): ByteLimit {
 	for (const [unit, factor] of UNITS) {
 		const value =
 			unit === "KiB"
-				? Math.max(1, Math.round(size / factor))
+				? Math.floor(size / factor)
 				: oneDecimal(size / factor);
 		if (value < 1024) {
 			return { value, unit };

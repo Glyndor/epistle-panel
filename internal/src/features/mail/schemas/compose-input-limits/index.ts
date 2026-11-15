@@ -19,6 +19,8 @@ export interface ComposeLimits {
 	readonly maxRequestBytes: number;
 	/** Largest file the composer attaches, in bytes. */
 	readonly maxAttachmentBytes: number;
+	/** Largest total of attachment bytes, or no total limit when unpublished. */
+	readonly maxTotalAttachmentBytes: number | null;
 	/** Most attachments one message carries. */
 	readonly maxAttachments: number;
 	/** Most recipients one recipient field takes. */
@@ -34,6 +36,8 @@ export interface SessionLimits {
 	readonly maxSizeUpload: number | null;
 	/** The largest request the server accepts, in bytes (`maxSizeRequest`). */
 	readonly maxSizeRequest: number | null;
+	/** The total attachment budget, absent on servers that publish none. */
+	readonly maxSizeAttachmentsPerEmail?: number | null;
 }
 
 /**
@@ -55,6 +59,7 @@ export const FALLBACK_COMPOSE_LIMITS: ComposeLimits = {
 	maxSubject: 998,
 	maxRequestBytes: 1_500_000,
 	maxAttachmentBytes: 25 * 1024 * 1024,
+	maxTotalAttachmentBytes: null,
 	maxAttachments: 20,
 	maxRecipients: MAX_RECIPIENTS,
 };
@@ -75,6 +80,7 @@ export function composeLimits(published: SessionLimits | null): ComposeLimits {
 	}
 	return {
 		...FALLBACK_COMPOSE_LIMITS,
+		maxTotalAttachmentBytes: published.maxSizeAttachmentsPerEmail ?? null,
 		maxRequestBytes:
 			published.maxSizeRequest ?? FALLBACK_COMPOSE_LIMITS.maxRequestBytes,
 		maxAttachmentBytes:

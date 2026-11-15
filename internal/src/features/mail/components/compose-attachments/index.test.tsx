@@ -7,7 +7,7 @@ import {
 	waitFor,
 } from "@testing-library/react";
 
-import { clearToasts } from "@/components/ui/toaster";
+import { clearToasts, Toaster } from "@/components/ui/toaster";
 import {
 	type ComposeLimits,
 	FALLBACK_COMPOSE_LIMITS,
@@ -107,7 +107,9 @@ describe("ComposeAttachments", () => {
 		);
 		choose([file("a b.pdf")]);
 		await waitFor(() => expect(seen).toHaveLength(1));
-		expect(calls[0]?.url).toBe("/app/mail/upload?name=a%20b.pdf");
+		expect(calls[0]?.url).toBe(
+			"/app/mail/upload?name=a%20b.pdf&attachedBytes=0",
+		);
 		expect(contentType(calls[0]?.init)).toBe("application/pdf");
 		expect(seen[0]).toEqual([
 			{
@@ -236,4 +238,88 @@ describe("ComposeAttachments", () => {
 			document.querySelector("[data-slot='tooltip']"),
 		).toHaveTextContent("removeAttachment");
 	});
+});
+
+// Existing files and earlier uploads in the same selection both spend the budget.
+it("counts the running total, accepts equality, refuses one byte over and sends the existing bytes", async () => {
+	const seen: ComposeAttachment[][] = [];
+	const urls: string[] = [];
+	globalThis.fetch = (async (url: string | URL | Request) => {
+		urls.push(String(url));
+		return new Response(
+			JSON.stringify({ ok: true, attachment: attached(2) }),
+		);
+	}) as unknown as typeof fetch;
+	render(
+		<>
+			<Toaster label="Notifications" closeLabel="Close" />
+			<ComposeAttachments
+				attachments={[attached(1)]}
+				limits={{
+					...limits,
+					maxAttachments: 5,
+					maxTotalAttachmentBytes: 6,
+				}}
+				onChange={(next) => seen.push(next)}
+			/>
+		</>,
+	);
+	choose([file(), file("over.txt", "text/plain", 1)]);
+	expect(await screen.findByRole("alert")).toHaveTextContent(
+		"tooLargeAttachments",
+	);
+	expect(urls).toEqual(["/app/mail/upload?name=a.pdf&attachedBytes=3"]);
+	expect(seen).toHaveLength(1);
+	expect(seen[0]?.reduce((sum, a) => sum + a.size, 0)).toBe(6);
+	expect(screen.queryByRole("status")).toBeNull();
+});
+
+it("has no total cap when unpublished, even when the sum exceeds the file cap", async () => {
+	const seen: ComposeAttachment[][] = [];
+	globalThis.fetch = (async () =>
+		new Response(
+			JSON.stringify({
+				ok: true,
+				attachment: { ...attached(2), size: 1000 },
+			}),
+		)) as unknown as typeof fetch;
+	render(
+		<ComposeAttachments
+			attachments={[{ ...attached(1), size: 1000 }]}
+			limits={limits}
+			onChange={(next) => seen.push(next)}
+		/>,
+	);
+	choose([file("new", "text/plain", 1000)]);
+	await waitFor(() => expect(seen).toHaveLength(1));
+	expect(seen[0]?.reduce((sum, a) => sum + a.size, 0)).toBe(2000);
+});
+
+it("names the total budget when the upload route reports a changed limit", async () => {
+	const changes = mock(() => {});
+	globalThis.fetch = (async () =>
+		new Response(
+			JSON.stringify({
+				ok: false,
+				reason: "tooLargeAttachments",
+				limit: 2_000_000,
+			}),
+			{ status: 413 },
+		)) as unknown as typeof fetch;
+	render(
+		<>
+			<Toaster label="Notifications" closeLabel="Close" />
+			<ComposeAttachments
+				attachments={[]}
+				limits={limits}
+				onChange={changes}
+			/>
+		</>,
+	);
+	choose([file()]);
+	expect(await screen.findByRole("alert")).toHaveTextContent(
+		"tooLargeAttachments",
+	);
+	expect(changes).not.toHaveBeenCalled();
+	await waitFor(() => expect(screen.queryByRole("status")).toBeNull());
 });

@@ -30,6 +30,7 @@ describe("the composer's limits", () => {
 			maxSubject: 998,
 			maxRequestBytes: 1_500_000,
 			maxAttachmentBytes: 26_214_400,
+			maxTotalAttachmentBytes: null,
 			maxAttachments: 20,
 			maxRecipients: MAX_RECIPIENTS,
 		});
@@ -44,4 +45,19 @@ describe("the composer's limits", () => {
 		expect(limits.maxAttachments).toBe(20);
 		expect(limits.maxRecipients).toBe(MAX_RECIPIENTS);
 	});
+});
+
+it("carries the total attachment budget only when published", () => {
+	expect(
+		composeLimits({
+			maxSizeUpload: null,
+			maxSizeRequest: null,
+			maxSizeAttachmentsPerEmail: 24_000_000,
+		}).maxTotalAttachmentBytes,
+	).toBe(24_000_000);
+	expect(composeLimits(null).maxTotalAttachmentBytes).toBeNull();
+	expect(
+		composeLimits({ maxSizeUpload: null, maxSizeRequest: null })
+			.maxTotalAttachmentBytes,
+	).toBeNull();
 });

@@ -165,6 +165,7 @@
 	"removeAttachment": "Quitar {name}",
 	"uploadFailed": "No se pudo adjuntar {name}.",
 	"tooLargeFile": "{name} pesa más de {limit}.",
+	"tooLargeAttachments": "Los adjuntos pueden sumar como máximo {limit} por mensaje.",
 	"tooManyFiles": "Un mensaje admite hasta {count} archivos.",
 	"saveDraft": "Guardar borrador",
 	"send": "Enviar",

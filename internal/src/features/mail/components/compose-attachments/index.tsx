@@ -20,7 +20,7 @@ export interface ComposeAttachment {
 export const UPLOAD_ENDPOINT = "/app/mail/upload";
 
 /** The largest file the mail server accepts, in the reader's number format. */
-function useLimitText() {
+export function useLimitText() {
 	const format = useFormatter();
 	return (bytes: number) => {
 		const limit = byteLimit(bytes);
@@ -68,10 +68,25 @@ export function ComposeAttachments({
 				);
 				continue;
 			}
+			const attachedBytes = next.reduce(
+				(sum, attachment) => sum + attachment.size,
+				0,
+			);
+			if (
+				limits.maxTotalAttachmentBytes !== null &&
+				attachedBytes + file.size > limits.maxTotalAttachmentBytes
+			) {
+				toast.error(
+					t("tooLargeAttachments", {
+						limit: limitText(limits.maxTotalAttachmentBytes),
+					}),
+				);
+				continue;
+			}
 			setUploading((names) => [...names, file.name]);
 			try {
 				const response = await fetch(
-					`${UPLOAD_ENDPOINT}?name=${encodeURIComponent(file.name)}`,
+					`${UPLOAD_ENDPOINT}?name=${encodeURIComponent(file.name)}&attachedBytes=${attachedBytes}`,
 					{
 						method: "POST",
 						headers: {
@@ -83,8 +98,21 @@ export function ComposeAttachments({
 				);
 				const body = (await response.json()) as {
 					ok?: boolean;
+					reason?: string;
+					limit?: number;
 					attachment?: ComposeAttachment;
 				};
+				if (
+					body.reason === "tooLargeAttachments" &&
+					typeof body.limit === "number"
+				) {
+					toast.error(
+						t("tooLargeAttachments", {
+							limit: limitText(body.limit),
+						}),
+					);
+					continue;
+				}
 				if (
 					!response.ok ||
 					body.ok !== true ||

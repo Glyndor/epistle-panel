@@ -33,10 +33,14 @@ export function sessionResource(
 		readonly maxSizeRequest?: number;
 		readonly maxObjectsInGet?: number;
 		readonly maxObjectsInSet?: number;
+		readonly maxSizeAttachmentsPerEmail?: number;
 	} = {},
 ): Record<string, unknown> {
 	return {
 		capabilities: {
+			"urn:ietf:params:jmap:mail": {
+				maxSizeAttachmentsPerEmail: limits.maxSizeAttachmentsPerEmail,
+			},
 			"urn:ietf:params:jmap:core": {
 				maxSizeUpload: 26_214_400,
 				maxSizeRequest: 10_000_000,

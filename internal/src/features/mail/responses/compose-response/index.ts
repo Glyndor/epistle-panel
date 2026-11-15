@@ -1,5 +1,6 @@
 import "server-only";
 
+import { JmapError } from "@/features/mail/jmap/call";
 import { currentMailSession } from "@/features/mail/jmap/credentials";
 import { loadComposeLimits } from "@/features/mail/queries/compose-limits";
 import { composeMessage } from "@/features/mail/queries/compose-message";
@@ -122,6 +123,17 @@ export async function composeResponse(request: Request): Promise<Response> {
 		}
 		const parsed = composeInputSchema(limits).safeParse(body);
 		if (!parsed.success) {
+			if (
+				parsed.error.issues.some(
+					(issue) => issue.message === "tooLargeAttachments",
+				)
+			) {
+				return answer(413, {
+					ok: false,
+					reason: "tooLargeAttachments",
+					limit: limits.maxTotalAttachmentBytes,
+				});
+			}
 			return answer(400, { ok: false, reason: "invalid" });
 		}
 		return answer(200, {
@@ -129,6 +141,14 @@ export async function composeResponse(request: Request): Promise<Response> {
 			result: await composeMessage(session, parsed.data),
 		});
 	} catch (error) {
+		if (
+			error instanceof JmapError &&
+			((error.failure === "http" && error.detail === "413") ||
+				(error.failure === "method" &&
+					error.detail === "requestTooLarge"))
+		) {
+			return answer(413, { ok: false, reason: "tooLarge" });
+		}
 		logApiFailure("mail compose", error);
 		return answer(502, { ok: false, reason: "unavailable" });
 	}

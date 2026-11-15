@@ -165,6 +165,7 @@
 	"removeAttachment": "Retirer {name}",
 	"uploadFailed": "{name} n’a pas pu être joint.",
 	"tooLargeFile": "{name} dépasse {limit}.",
+	"tooLargeAttachments": "Le total des pièces jointes ne peut pas dépasser {limit} par message.",
 	"tooManyFiles": "Un message peut contenir jusqu’à {count} fichiers.",
 	"saveDraft": "Enregistrer le brouillon",
 	"send": "Envoyer",

@@ -14,7 +14,8 @@ export type ComposeOutcome =
 			readonly draftId: string | null;
 	  }
 	| { readonly kind: "noSender" }
-	| { readonly kind: "unavailable" };
+	| { readonly kind: "unavailable" }
+	| { readonly kind: "tooLargeAttachments"; readonly limit: number };
 
 /** The request body: the structured message the route's schema reads. */
 /** The message a reply or a forward came from, and the mark sending leaves on it. */
@@ -31,7 +32,7 @@ export interface ComposeRequest {
 	readonly bcc: unknown[];
 	readonly subject: string;
 	readonly text: string;
-	readonly attachments: unknown[];
+	readonly attachments: readonly { readonly size: number }[];
 	readonly inReplyTo?: string | undefined;
 	readonly references?: string[] | undefined;
 	readonly origin?: ComposeOrigin | undefined;
@@ -66,6 +67,15 @@ export function useComposeSubmit(limits: ComposeLimits) {
 		let result: ComposeOutcome = { kind: "unavailable" };
 		const json = JSON.stringify(request);
 		if (
+			limits.maxTotalAttachmentBytes !== null &&
+			request.attachments.reduce((sum, file) => sum + file.size, 0) >
+				limits.maxTotalAttachmentBytes
+		) {
+			result = {
+				kind: "tooLargeAttachments",
+				limit: limits.maxTotalAttachmentBytes,
+			};
+		} else if (
 			new TextEncoder().encode(json).byteLength > limits.maxRequestBytes
 		) {
 			// The route would refuse it by its size: say so here, and send nothing.
@@ -78,7 +88,15 @@ export function useComposeSubmit(limits: ComposeLimits) {
 					body: json,
 				});
 				if (response.status === 413) {
-					result = TOO_LARGE;
+					const body = (await response.json().catch(() => null)) as {
+						reason?: string;
+						limit?: number;
+					} | null;
+					result =
+						body?.reason === "tooLargeAttachments" &&
+						typeof body.limit === "number"
+							? { kind: "tooLargeAttachments", limit: body.limit }
+							: TOO_LARGE;
 				} else {
 					const body = (await response.json()) as {
 						ok?: boolean;

@@ -63,9 +63,21 @@ export function composeInputSchema(limits: ComposeLimits) {
 					blobId: blobIdSchema,
 					name: z.string().max(255),
 					type: mediaTypeSchema,
+					size: z
+						.number()
+						.int()
+						.nonnegative()
+						.max(limits.maxAttachmentBytes),
 				}),
 			)
-			.max(limits.maxAttachments),
+			.max(limits.maxAttachments)
+			.refine(
+				(attachments) =>
+					limits.maxTotalAttachmentBytes === null ||
+					attachments.reduce((sum, file) => sum + file.size, 0) <=
+						limits.maxTotalAttachmentBytes,
+				{ message: "tooLargeAttachments" },
+			),
 		inReplyTo: messageIdText.optional(),
 		references: z.array(messageIdText).max(50).optional(),
 		/** The message this one answers or forwards, marked so once this one is sent. */

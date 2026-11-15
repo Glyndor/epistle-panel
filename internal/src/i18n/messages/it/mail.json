@@ -165,6 +165,7 @@
 	"removeAttachment": "Rimuovi {name}",
 	"uploadFailed": "Non è stato possibile allegare {name}.",
 	"tooLargeFile": "{name} supera i {limit}.",
+	"tooLargeAttachments": "Gli allegati possono occupare in totale al massimo {limit} per messaggio.",
 	"tooManyFiles": "Un messaggio può contenere fino a {count} file.",
 	"saveDraft": "Salva la bozza",
 	"send": "Invia",

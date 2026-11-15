@@ -206,3 +206,84 @@ describe("composeResponse", () => {
 		).not.toContain("unknownMethod");
 	});
 });
+
+it("refuses the total attachment budget before a mail method call and accepts the exact boundary", async () => {
+	const attachment = (size: number) => ({
+		blobId: "00000000-0000-4000-a000-000000000001",
+		name: "a",
+		type: "text/plain",
+		size,
+	});
+	const seen = server(
+		sessionResource({ maxSizeAttachmentsPerEmail: 24_000_000 }),
+	);
+	const response = await composeResponse(
+		post({
+			...message,
+			attachments: [attachment(12_000_000), attachment(12_000_001)],
+		}),
+	);
+	expect(response.status).toBe(413);
+	expect(await response.json()).toEqual({
+		ok: false,
+		reason: "tooLargeAttachments",
+		limit: 24_000_000,
+	});
+	expect(methodCalls(seen)).toHaveLength(0);
+	expect(
+		(
+			await composeResponse(
+				post({
+					...message,
+					attachments: [
+						attachment(12_000_000),
+						attachment(12_000_000),
+					],
+				}),
+			)
+		).status,
+	).toBe(200);
+	server(null);
+	expect(
+		(
+			await composeResponse(
+				post({
+					...message,
+					attachments: [
+						attachment(25_000_000),
+						attachment(25_000_000),
+					],
+				}),
+			)
+		).status,
+	).toBe(200);
+});
+
+it("maps HTTP 413 and JMAP requestTooLarge to the message-size outcome", async () => {
+	for (const method of [false, true]) {
+		server();
+		const fetchSession = globalThis.fetch;
+		globalThis.fetch = (async (url, init) =>
+			String(url).endsWith("/jmap/session")
+				? fetchSession(url, init)
+				: method
+					? new Response(
+							JSON.stringify({
+								methodResponses: [
+									["error", { type: "requestTooLarge" }, "i"],
+								],
+							}),
+						)
+					: new Response("request too large", {
+							status: 413,
+						})) as typeof fetch;
+		const response = await composeResponse(
+			post({ ...message, op: "send" }),
+		);
+		expect(response.status).toBe(413);
+		expect(await response.json()).toEqual({
+			ok: false,
+			reason: "tooLarge",
+		});
+	}
+});

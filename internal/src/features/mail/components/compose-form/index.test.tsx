@@ -374,11 +374,77 @@ describe("ComposeForm", () => {
 		fireEvent.click(screen.getByRole("button", { name: "saveDraft" }));
 		await waitFor(() => expect(sent).toHaveLength(1));
 		expect(sent[0]?.["attachments"]).toEqual([
-			{ blobId: "m1.2", name: "a.pdf", type: "application/pdf" },
+			{ blobId: "m1.2", name: "a.pdf", type: "application/pdf", size: 9 },
 		]);
 		expect(screen.getByRole("link", { name: "discard" })).toHaveAttribute(
 			"href",
 			"/app/mail/inbox",
 		);
 	});
+});
+
+it("refuses an oversized saved draft's attachment total locally and keeps the message", async () => {
+	const sent = server({ ok: true, result: { kind: "draft", id: "d" } });
+	render(
+		<ComposeForm
+			limits={{ ...limits, maxTotalAttachmentBytes: 5 }}
+			initial={{
+				...empty,
+				text: "keep me",
+				attachments: [
+					{ blobId: "m1.2", name: "a", type: "text/plain", size: 3 },
+					{ blobId: "m1.3", name: "b", type: "text/plain", size: 3 },
+				],
+			}}
+		/>,
+	);
+	fireEvent.click(screen.getByRole("button", { name: "saveDraft" }));
+	expect(await screen.findByRole("alert")).toHaveTextContent(
+		"tooLargeAttachments",
+	);
+	expect(sent).toHaveLength(0);
+	expect(screen.getByLabelText("fieldBody")).toHaveValue("keep me");
+});
+
+it("shows the total-specific message when the route reports its current attachment budget", async () => {
+	server(
+		{ ok: false, reason: "tooLargeAttachments", limit: 24_000_000 },
+		413,
+	);
+	render(<ComposeForm initial={empty} limits={limits} />);
+	fireEvent.click(screen.getByRole("button", { name: "saveDraft" }));
+	expect(await screen.findByRole("alert")).toHaveTextContent(
+		"tooLargeAttachments",
+	);
+});
+
+it("still says message too large for a non-JSON 413", async () => {
+	globalThis.fetch = (async () =>
+		new Response("request too large", {
+			status: 413,
+		})) as unknown as typeof fetch;
+	render(<ComposeForm initial={empty} limits={limits} />);
+	fireEvent.click(screen.getByRole("button", { name: "saveDraft" }));
+	expect(await screen.findByRole("alert")).toHaveTextContent(
+		"refusal_tooLarge",
+	);
+});
+
+it("allows exactly the total attachment budget when saving", async () => {
+	const sent = server({ ok: true, result: { kind: "draft", id: "d" } });
+	render(
+		<ComposeForm
+			limits={{ ...limits, maxTotalAttachmentBytes: 6 }}
+			initial={{
+				...empty,
+				attachments: [
+					{ blobId: "m1.2", name: "a", type: "text/plain", size: 3 },
+					{ blobId: "m1.3", name: "b", type: "text/plain", size: 3 },
+				],
+			}}
+		/>,
+	);
+	fireEvent.click(screen.getByRole("button", { name: "saveDraft" }));
+	await waitFor(() => expect(sent).toHaveLength(1));
+	expect(screen.queryByRole("alert")).toBeNull();
 });

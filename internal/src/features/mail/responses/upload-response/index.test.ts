@@ -339,3 +339,30 @@ describe("uploadResponse", () => {
 		}
 	});
 });
+
+it("counts existing attachment bytes plus the upload and names the total budget before reading", async () => {
+	const seen = jmap(
+		stored(),
+		sessionResource({ maxSizeAttachmentsPerEmail: 10 }),
+	);
+	const request = (bytes: string) =>
+		upload({
+			url: `https://panel.test/app/mail/upload?attachedBytes=${bytes}`,
+		});
+	const { request: over, touched } = watched(request("6"));
+	const response = await uploadResponse(over);
+	expect(response.status).toBe(413);
+	expect(await response.json()).toEqual({
+		ok: false,
+		reason: "tooLargeAttachments",
+		limit: 10,
+	});
+	expect(touched.times).toBe(0);
+	expect(seen).toHaveLength(0);
+	expect((await uploadResponse(request("5"))).status).toBe(200);
+	for (const bytes of ["-1", "1.5", "NaN", "9007199254740992"]) {
+		expect((await uploadResponse(request(bytes))).status).toBe(400);
+	}
+	jmap(stored(), null);
+	expect((await uploadResponse(request("50000000"))).status).toBe(200);
+});

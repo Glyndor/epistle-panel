@@ -53,6 +53,7 @@ describe("composeInputSchema", () => {
 						blobId: "00000000-0000-4000-a000-000000000001",
 						name: "a.pdf",
 						type: "application/pdf",
+						size: 3,
 					},
 				],
 			}).success,
@@ -64,7 +65,7 @@ describe("composeInputSchema", () => {
 			composeInputSchema(limits).safeParse({
 				...ok,
 				attachments: [
-					{ blobId, name: "a.pdf", type: "application/pdf" },
+					{ blobId, name: "a.pdf", type: "application/pdf", size: 3 },
 				],
 			}).success;
 		expect(attach(`${ID}.2`)).toBe(true);
@@ -95,6 +96,7 @@ describe("composeInputSchema", () => {
 			blobId: "00000000-0000-4000-a000-000000000001",
 			name: "a.pdf",
 			type: "application/pdf",
+			size: 3,
 		};
 
 		expect(schema.safeParse(ok).success).toBe(true);
@@ -174,4 +176,38 @@ describe("composeInputSchema", () => {
 			);
 		}
 	});
+});
+
+it("checks individual sizes and the sum, including the exact total boundary", () => {
+	const attachment = (size: unknown) => ({
+		blobId: ID,
+		name: "a",
+		type: "text/plain",
+		size,
+	});
+	const schema = composeInputSchema({
+		...limits,
+		maxTotalAttachmentBytes: 24_000_000,
+	});
+	const parse = (sizes: unknown[]) =>
+		schema.safeParse({ ...ok, attachments: sizes.map(attachment) });
+	expect(parse([12_000_000, 12_000_000]).success).toBe(true);
+	expect(parse([12_000_000, 12_000_001]).success).toBe(false);
+	expect(parse([25_000_000, 25_000_000]).success).toBe(false);
+	for (const size of [
+		undefined,
+		-1,
+		1.5,
+		"3",
+		Number.NaN,
+		limits.maxAttachmentBytes + 1,
+	]) {
+		expect(parse([size]).success).toBe(false);
+	}
+	expect(
+		composeInputSchema(limits).safeParse({
+			...ok,
+			attachments: [attachment(25_000_000), attachment(25_000_000)],
+		}).success,
+	).toBe(true);
 });

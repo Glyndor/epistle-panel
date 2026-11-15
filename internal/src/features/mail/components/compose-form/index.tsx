@@ -20,6 +20,7 @@ import { toast } from "@/components/ui/toaster";
 import {
 	type ComposeAttachment,
 	ComposeAttachments,
+	useLimitText,
 } from "@/features/mail/components/compose-attachments";
 import {
 	checkRecipients,
@@ -73,6 +74,7 @@ export function ComposeForm({
 	limits: ComposeLimits;
 }) {
 	const t = useTranslations("mail");
+	const limitText = useLimitText();
 	const { submit, pending, outcome } = useComposeSubmit(limits);
 	const [draftId, setDraftId] = useState(initial.draftId);
 	const [attachments, setAttachments] = useState<ComposeAttachment[]>(
@@ -117,11 +119,14 @@ export function ComposeForm({
 				bcc: parsed.bcc.recipients,
 				subject: values.subject,
 				text: values.text,
-				attachments: attachments.map(({ blobId, name, type }) => ({
-					blobId,
-					name,
-					type,
-				})),
+				attachments: attachments.map(
+					({ blobId, name, type, size }) => ({
+						blobId,
+						name,
+						type,
+						size,
+					}),
+				),
 				inReplyTo: initial.inReplyTo,
 				references: initial.references,
 				origin: initial.origin,
@@ -138,13 +143,15 @@ export function ComposeForm({
 		});
 
 	const problem =
-		outcome.kind === "refused"
-			? t(`refusal_${outcome.reason}`)
-			: outcome.kind === "noSender"
-				? t("noSender")
-				: outcome.kind === "unavailable"
-					? t("unavailableCompose")
-					: null;
+		outcome.kind === "tooLargeAttachments"
+			? t("tooLargeAttachments", { limit: limitText(outcome.limit) })
+			: outcome.kind === "refused"
+				? t(`refusal_${outcome.reason}`)
+				: outcome.kind === "noSender"
+					? t("noSender")
+					: outcome.kind === "unavailable"
+						? t("unavailableCompose")
+						: null;
 	// A size message arrives as its key; a recipient message is already a sentence.
 	const translate = (message: string) => fieldMessage(message, t);
 

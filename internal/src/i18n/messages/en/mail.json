@@ -165,6 +165,7 @@
 	"removeAttachment": "Remove {name}",
 	"uploadFailed": "{name} could not be attached.",
 	"tooLargeFile": "{name} is larger than {limit}.",
+	"tooLargeAttachments": "Attachments can total at most {limit} per message.",
 	"tooManyFiles": "A message can carry up to {count} files.",
 	"saveDraft": "Save draft",
 	"send": "Send",

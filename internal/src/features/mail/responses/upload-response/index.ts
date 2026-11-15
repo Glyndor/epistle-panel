@@ -105,6 +105,25 @@ export async function uploadResponse(request: Request): Promise<Response> {
 		if (declared > limits.maxAttachmentBytes) {
 			return answer(413, { ok: false, reason: "tooLarge" });
 		}
+		// This request declares the bytes already selected in the composer. The
+		// compose schema checks the complete list again before saving or sending;
+		// the mail server remains authoritative for the blobs' actual sizes.
+		const attachedBytes = Number(
+			new URL(request.url).searchParams.get("attachedBytes") ?? "0",
+		);
+		if (!Number.isSafeInteger(attachedBytes) || attachedBytes < 0) {
+			return answer(400, { ok: false, reason: "invalid" });
+		}
+		if (
+			limits.maxTotalAttachmentBytes !== null &&
+			attachedBytes + declared > limits.maxTotalAttachmentBytes
+		) {
+			return answer(413, {
+				ok: false,
+				reason: "tooLargeAttachments",
+				limit: limits.maxTotalAttachmentBytes,
+			});
+		}
 		if (request.body === null) {
 			return answer(400, { ok: false, reason: "invalid" });
 		}

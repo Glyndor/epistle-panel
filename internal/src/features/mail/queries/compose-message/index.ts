@@ -47,6 +47,7 @@ const REFUSALS: Record<string, ComposeRefusal> = {
 	rateLimit: "rateLimit",
 	forbiddenToSend: "forbiddenToSend",
 	tooLarge: "tooLarge",
+	requestTooLarge: "tooLarge",
 	invalidProperties: "invalid",
 };
 
