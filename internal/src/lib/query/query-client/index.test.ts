@@ -2,7 +2,20 @@ import { describe, expect, it, mock } from "bun:test";
 
 import { ActionError } from "@/lib/query/action-result";
 
-import { GC_TIME_MS, makeQueryClient, STALE_TIME_MS, shouldRetry } from ".";
+import {
+	GC_TIME_MS,
+	gcTimeFor,
+	makeQueryClient,
+	STALE_TIME_MS,
+	shouldRetry,
+} from ".";
+
+describe("gcTimeFor", () => {
+	it("never arms a timer for the client of one request on the server, and keeps 5 minutes in the browser", () => {
+		expect(gcTimeFor(true)).toBe(Number.POSITIVE_INFINITY);
+		expect(gcTimeFor(false)).toBe(GC_TIME_MS);
+	});
+});
 
 describe("makeQueryClient", () => {
 	it("keeps data fresh for 30 s and cached for 5 minutes", () => {
