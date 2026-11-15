@@ -18,6 +18,7 @@ const GOOD = {
 	theme: "dark",
 	density: "compact",
 	remoteImages: "ask",
+	timeZone: "UTC",
 } as const;
 
 /** A posted form: each name with the value, or the list of values it was sent with. */
@@ -84,6 +85,17 @@ describe("savePreferences", () => {
 				{
 					name: "remote-images",
 					value: "ask",
+					options: {
+						httpOnly: true,
+						secure: true,
+						sameSite: "lax",
+						path: "/app",
+						maxAge: 31536000,
+					},
+				},
+				{
+					name: "time-zone",
+					value: "UTC",
 					options: {
 						httpOnly: true,
 						secure: true,
@@ -161,6 +173,7 @@ describe("savePreferences", () => {
 				language: "required",
 				theme: "notInList",
 				density: "required",
+				timeZone: "required",
 			},
 		});
 		expect(cookies.writes).toHaveLength(0);
@@ -196,6 +209,7 @@ describe("savePreferences", () => {
 			"theme",
 			"list-density",
 			"remote-images",
+			"time-zone",
 		]);
 	});
 

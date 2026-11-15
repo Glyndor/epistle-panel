@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { LIST_DENSITIES } from "@/features/mail/config/list-density";
 import {
-	DEFAULT_REMOTE_IMAGE_MODE,
 	REMOTE_IMAGE_MODES,
 	type RemoteImageMode,
 } from "@/features/mail/config/remote-images";
@@ -28,7 +27,24 @@ import {
 import { INITIAL_PREFERENCES_STATE } from "@/features/preferences/schemas/preferences-state";
 import { THEME_CHOICES } from "@/features/theme/config/choices";
 import { applyThemeChoice } from "@/features/theme/document-theme";
+import {
+	TIME_ZONE_GROUPS,
+	type TimeZone,
+} from "@/features/time-zone/config/zones";
 import { LOCALE_NAMES, SUPPORTED_LOCALES } from "@/i18n/locales";
+
+/**
+ * The choices of the time zone, by region: the select is long, and the region
+ * is what a person looks for. The zone is written as it is spelled, the way
+ * the menu writes a language's own name.
+ */
+const TIME_ZONE_OPTIONS = TIME_ZONE_GROUPS.flatMap((group) =>
+	group.zones.map((zone) => ({
+		value: zone,
+		label: zone,
+		group: group.region,
+	})),
+);
 
 /**
  * The preferences form, on react-hook-form with the schema the Server Action
@@ -41,17 +57,20 @@ import { LOCALE_NAMES, SUPPORTED_LOCALES } from "@/i18n/locales";
  *
  * `values` is what the server read and checked from the cookies, so the first
  * paint already shows the choice in force. A saved theme is shown at once on
- * `<html>`; the language, the density and the mode of the remote images are
- * what the page and the mail area read on their next render, which the
- * action's cookies cause.
+ * `<html>`; the language, the density, the mode of the remote images and the
+ * time zone are what the page and the mail area read on their next render,
+ * which the action's cookies cause.
  */
 export function PreferencesForm({
 	values,
 	operatorRemoteImagesMode = null,
+	operatorTimeZone = null,
 	save = savePreferences,
 }: {
 	values: PreferencesValues;
 	operatorRemoteImagesMode?: RemoteImageMode | null;
+	/** The zone the operator fixed for everyone, when they fixed one. */
+	operatorTimeZone?: TimeZone | null;
 	/**
 	 * What the form posts to: the Server Action. A prop so a test can answer
 	 * what the browser's own two checks never let reach the server.
@@ -66,10 +85,7 @@ export function PreferencesForm({
 	);
 	const form = useForm<PreferencesValues>({
 		resolver: zodResolver(preferencesSchema),
-		defaultValues: {
-			...values,
-			remoteImages: values.remoteImages ?? DEFAULT_REMOTE_IMAGE_MODE,
-		},
+		defaultValues: values,
 		mode: "onSubmit",
 		reValidateMode: "onChange",
 	});
@@ -86,10 +102,11 @@ export function PreferencesForm({
 			const first = PREFERENCE_FIELDS.find(
 				(name) => state.fields[name] !== undefined,
 			);
-			if (
-				first !== undefined &&
-				!(first === "remoteImages" && operatorRemoteImagesMode !== null)
-			) {
+			const fixedByOperator =
+				(first === "remoteImages" &&
+					operatorRemoteImagesMode !== null) ||
+				(first === "timeZone" && operatorTimeZone !== null);
+			if (first !== undefined && !fixedByOperator) {
 				form.setFocus(first);
 			}
 		}
@@ -173,6 +190,27 @@ export function PreferencesForm({
 						help={t("remoteImagesHelp")}
 						value={t("remoteImagesSetByOperator", {
 							mode: t(`remoteImages_${operatorRemoteImagesMode}`),
+						})}
+					/>
+				)}
+				{operatorTimeZone === null ? (
+					<PreferenceField
+						control={form.control}
+						name="timeZone"
+						label={t("timeZone")}
+						help={t("timeZoneHelp")}
+						renderMessage={message}
+						refusal={refusals.timeZone}
+						options={TIME_ZONE_OPTIONS}
+					/>
+				) : (
+					<ReadOnlyPreferenceField
+						control={form.control}
+						name="timeZone"
+						label={t("timeZone")}
+						help={t("timeZoneHelp")}
+						value={t("timeZoneSetByOperator", {
+							zone: operatorTimeZone,
 						})}
 					/>
 				)}

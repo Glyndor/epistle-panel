@@ -1,3 +1,5 @@
+"use client";
+
 import { useFormatter, useTranslations } from "next-intl";
 import { LabelChip } from "@/features/mail/components/label-chip";
 import { LabelRemove } from "@/features/mail/components/label-remove";
@@ -8,6 +10,7 @@ import type {
 	AddressView,
 	MessageDetail,
 } from "@/features/mail/schemas/mail-view";
+import { useTimeZone } from "@/features/time-zone/components/time-zone-provider";
 
 /**
  * The subject and the headers a reader looks at first: from, to, cc, reply-to
@@ -26,6 +29,7 @@ export function ReaderHeader({
 }) {
 	const t = useTranslations("mail");
 	const format = useFormatter();
+	const timeZone = useTimeZone();
 	const rows: Array<[string, readonly AddressView[]]> = [
 		[t("from"), message.from],
 		[t("to"), message.to],
@@ -84,7 +88,7 @@ export function ReaderHeader({
 				</dt>
 				<dd>
 					<time dateTime={message.receivedAt}>
-						{formatReceivedAt(format, message.receivedAt)}
+						{formatReceivedAt(format, message.receivedAt, timeZone)}
 					</time>
 				</dd>
 			</dl>

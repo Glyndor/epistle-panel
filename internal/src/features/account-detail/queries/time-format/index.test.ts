@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import { fromEpochSeconds, MOMENT_FORMAT } from ".";
+import { fromEpochSeconds, momentFormat } from ".";
 
 describe("time format", () => {
 	it("turns epoch seconds into the same instant as milliseconds", () => {
@@ -13,7 +13,7 @@ describe("time format", () => {
 	});
 
 	it("is written in UTC, so the server and the browser print the same text", () => {
-		const text = new Intl.DateTimeFormat("en", MOMENT_FORMAT).format(
+		const text = new Intl.DateTimeFormat("en", momentFormat("UTC")).format(
 			fromEpochSeconds(1_700_000_000),
 		);
 		expect(text).toContain("Nov 14, 2023");

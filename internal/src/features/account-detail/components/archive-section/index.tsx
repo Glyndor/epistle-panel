@@ -1,3 +1,5 @@
+"use client";
+
 import { useQuery } from "@tanstack/react-query";
 import { useFormatter, useTranslations } from "next-intl";
 
@@ -10,8 +12,9 @@ import { SectionCard } from "@/features/account-detail/components/section-card";
 import { archiveQueryOptions } from "@/features/account-detail/queries/account-queries";
 import {
 	fromEpochSeconds,
-	MOMENT_FORMAT,
+	momentFormat,
 } from "@/features/account-detail/queries/time-format";
+import { useTimeZone } from "@/features/time-zone/components/time-zone-provider";
 import { unwrap } from "@/lib/query/action-result";
 
 /**
@@ -21,6 +24,7 @@ import { unwrap } from "@/lib/query/action-result";
 export function ArchiveSection({ name }: { name: string }) {
 	const t = useTranslations("accountDetail");
 	const format = useFormatter();
+	const timeZone = useTimeZone();
 	const { data, isPending } = useQuery(
 		archiveQueryOptions(name, async () =>
 			unwrap(await getArchiveAction({ name })),
@@ -61,7 +65,7 @@ export function ArchiveSection({ name }: { name: string }) {
 									mailbox: entry.mailbox,
 									date: format.dateTime(
 										fromEpochSeconds(entry.deletedAt),
-										MOMENT_FORMAT,
+										momentFormat(timeZone),
 									),
 								})}
 							</span>

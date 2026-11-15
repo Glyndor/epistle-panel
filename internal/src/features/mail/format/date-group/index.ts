@@ -1,8 +1,12 @@
+import type { TimeZone } from "@/features/time-zone/config/zones";
+import { dayInZone, dayNumber } from "@/features/time-zone/format/day";
+
 /**
  * The heading a message sits under in the list. The list prints its dates in
- * UTC, so the groups are days of UTC too, counted back from the day the server
- * read the list: the server render and the browser agree, and a tab left open
- * regroups when the list is read again.
+ * the zone of the person, so the groups are days of that zone too, counted
+ * back from the day the server read the list: the server render and the
+ * browser group alike, and a tab left open regroups when the list is read
+ * again.
  */
 export type DateGroup =
 	| { readonly kind: "today" }
@@ -14,46 +18,26 @@ export type DateGroup =
 	/** The server's value is not a date. */
 	| { readonly kind: "unknown" };
 
-const DAY_MS = 86_400_000;
-const ISO_DAY = /^(\d{4})-(\d{2})-(\d{2})$/;
-
-/** The day a server answer is from, as `YYYY-MM-DD` in UTC. */
-export function utcDay(now: Date): string {
-	return now.toISOString().slice(0, 10);
-}
-
-/** Days since the epoch of a `YYYY-MM-DD` day, or `null` when it is not one. */
-function dayNumber(day: string): number | null {
-	const match = ISO_DAY.exec(day);
-	if (match === null) {
-		return null;
-	}
-	const [year, month, date] = [
-		Number(match[1]),
-		Number(match[2]),
-		Number(match[3]),
-	];
-	const time = Date.UTC(year, month - 1, date);
-	const back = new Date(time);
-	// `Date.UTC` rolls 2026-02-31 over into March: that is not a day.
-	return back.getUTCFullYear() === year &&
-		back.getUTCMonth() === month - 1 &&
-		back.getUTCDate() === date
-		? time / DAY_MS
-		: null;
-}
-
 /**
- * The group of a message received at `receivedAt`, seen on the UTC day
- * `today`. A message dated after today (a clock that runs ahead) is today's.
+ * The group of a message received at `receivedAt`, seen on the day `today` of
+ * the zone. A message dated after today (a clock that runs ahead) is today's.
  */
-export function dateGroup(receivedAt: string, today: string): DateGroup {
+export function dateGroup(
+	receivedAt: string,
+	today: string,
+	timeZone: TimeZone,
+): DateGroup {
 	const received = new Date(receivedAt);
 	const todayNumber = dayNumber(today);
 	if (Number.isNaN(received.getTime()) || todayNumber === null) {
 		return { kind: "unknown" };
 	}
-	const back = todayNumber - Math.floor(received.getTime() / DAY_MS);
+	const day = dayInZone(received, timeZone);
+	const receivedNumber = dayNumber(day);
+	if (receivedNumber === null) {
+		return { kind: "unknown" };
+	}
+	const back = todayNumber - receivedNumber;
 	if (back <= 0) {
 		return { kind: "today" };
 	}
@@ -65,8 +49,8 @@ export function dateGroup(receivedAt: string, today: string): DateGroup {
 	}
 	return {
 		kind: "month",
-		year: received.getUTCFullYear(),
-		month: received.getUTCMonth() + 1,
+		year: Number(day.slice(0, 4)),
+		month: Number(day.slice(5, 7)),
 	};
 }
 
@@ -85,10 +69,11 @@ export function dateGroupKey(group: DateGroup): string {
 export function groupByDate<T extends { readonly receivedAt: string }>(
 	rows: readonly T[],
 	today: string,
+	timeZone: TimeZone,
 ): Array<{ readonly group: DateGroup; readonly rows: T[] }> {
 	const runs: Array<{ group: DateGroup; rows: T[] }> = [];
 	for (const row of rows) {
-		const group = dateGroup(row.receivedAt, today);
+		const group = dateGroup(row.receivedAt, today, timeZone);
 		const last = runs.at(-1);
 		if (
 			last !== undefined &&

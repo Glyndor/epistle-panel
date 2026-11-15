@@ -36,8 +36,8 @@
 	"timeline": {
 		"title": "Consegne nel tempo",
 		"note": {
-			"hour": "Per ora, UTC · letto alle {time}",
-			"day": "Per giorno, UTC · letto alle {time}"
+			"hour": "Per ora, {zone} · letto alle {time}",
+			"day": "Per giorno, {zone} · letto alle {time}"
 		},
 		"description": "{total, plural, one {# record di consegna} other {# record di consegna}} {unit, select, hour {per ora} other {per giorno}}. Il massimo, {peak}, il {when}.",
 		"hint": "{when}: {count, plural, one {# record} other {# record}}",
@@ -47,8 +47,8 @@
 		"notReturned": "Potrebbe non essere stato restituito",
 		"full": "Il server ha restituito {limit} record, il massimo che dà, quindi le colonne ombreggiate potrebbero non essere state restituite, o solo in parte. Non risulta che siano momenti senza consegne.",
 		"column": {
-			"hour": "Ora (UTC)",
-			"day": "Giorno (UTC)"
+			"hour": "Ora ({zone})",
+			"day": "Giorno ({zone})"
 		},
 		"total": "Totale",
 		"state": {

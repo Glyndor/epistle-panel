@@ -36,8 +36,8 @@
 	"timeline": {
 		"title": "Entregas en el tiempo",
 		"note": {
-			"hour": "Por hora, UTC · leído a las {time}",
-			"day": "Por día, UTC · leído a las {time}"
+			"hour": "Por hora, {zone} · leído a las {time}",
+			"day": "Por día, {zone} · leído a las {time}"
 		},
 		"description": "{total, plural, one {# registro de entrega} other {# registros de entrega}} {unit, select, hour {por hora} other {por día}}. El máximo, {peak}, el {when}.",
 		"hint": "{when}: {count, plural, one {# registro} other {# registros}}",
@@ -47,8 +47,8 @@
 		"notReturned": "Puede no haberse devuelto",
 		"full": "El servidor devolvió {limit} registros, el máximo que da, así que las columnas sombreadas pueden no haberse devuelto, o solo en parte. No consta que sean momentos sin entregas.",
 		"column": {
-			"hour": "Hora (UTC)",
-			"day": "Día (UTC)"
+			"hour": "Hora ({zone})",
+			"day": "Día ({zone})"
 		},
 		"total": "Total",
 		"state": {

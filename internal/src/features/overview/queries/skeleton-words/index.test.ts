@@ -6,7 +6,7 @@ import { skeletonWords } from ".";
 
 describe("skeletonWords", () => {
 	it("gives each card its own title and the words of its own link", async () => {
-		const words = await skeletonWords("24h");
+		const words = await skeletonWords("24h", "UTC");
 
 		// The stand-in prints a message as its key.
 		expect(words.outcomes).toEqual({
@@ -29,7 +29,7 @@ describe("skeletonWords", () => {
 	});
 
 	it("lists the outcomes of the legend in the order the chart stacks them, each with its series", async () => {
-		const { legend } = await skeletonWords("7d");
+		const { legend } = await skeletonWords("7d", "UTC");
 
 		expect(legend).toEqual([
 			{ key: "delivered", label: "outcomes.delivered", series: 0 },
@@ -43,16 +43,18 @@ describe("skeletonWords", () => {
 	it("writes the line under the timeline's title for the unit of the period, with a time of four zeros", async () => {
 		resetIntl();
 
-		expect((await skeletonWords("24h")).timelineNote).toBe(
+		expect((await skeletonWords("24h", "UTC")).timelineNote).toBe(
 			"timeline.note.hour",
 		);
-		expect((await skeletonWords("7d")).timelineNote).toBe(
+		expect((await skeletonWords("7d", "UTC")).timelineNote).toBe(
 			"timeline.note.day",
 		);
-		expect((await skeletonWords("30d")).timelineNote).toBe(
+		expect((await skeletonWords("30d", "UTC")).timelineNote).toBe(
 			"timeline.note.day",
 		);
 		// As wide as a real time of the clock, whatever it turns out to be.
-		expect(saidWith("timeline.note.hour")).toEqual([{ time: "00:00" }]);
+		expect(saidWith("timeline.note.hour")).toEqual([
+			{ time: "00:00", zone: "UTC" },
+		]);
 	});
 });

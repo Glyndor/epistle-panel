@@ -1,4 +1,5 @@
 import type { DateGroup } from "@/features/mail/format/date-group";
+import type { TimeZone } from "@/features/time-zone/config/zones";
 
 /** What a row prints of its date: the time of day, or the day of the month. */
 export type RowDatePart = "time" | "day";
@@ -8,8 +9,8 @@ interface RowDateFormatter {
 	dateTime(
 		value: Date,
 		options:
-			| { hour: "numeric"; minute: "2-digit"; timeZone: "UTC" }
-			| { month: "short"; day: "numeric"; timeZone: "UTC" },
+			| { hour: "numeric"; minute: "2-digit"; timeZone: string }
+			| { month: "short"; day: "numeric"; timeZone: string },
 	): string;
 }
 
@@ -25,14 +26,15 @@ export function rowDatePart(kind: DateGroup["kind"]): RowDatePart {
 
 /**
  * A message's date as its row prints it, or an empty string when the server's
- * value is not a date. In UTC, like the headings the rows stand under, so the
- * server render and the browser agree. The whole date and time is the `time`
- * element's own value and what the reader shows.
+ * value is not a date. In the zone of the person, like the headings the rows
+ * stand under, so the server render and the browser agree. The whole date and
+ * time is the `time` element's own value and what the reader shows.
  */
 export function formatRowDate(
 	format: RowDateFormatter,
 	value: string,
 	part: RowDatePart,
+	timeZone: TimeZone,
 ): string {
 	const date = new Date(value);
 	if (Number.isNaN(date.getTime())) {
@@ -42,11 +44,11 @@ export function formatRowDate(
 		? format.dateTime(date, {
 				hour: "numeric",
 				minute: "2-digit",
-				timeZone: "UTC",
+				timeZone,
 			})
 		: format.dateTime(date, {
 				month: "short",
 				day: "numeric",
-				timeZone: "UTC",
+				timeZone,
 			});
 }

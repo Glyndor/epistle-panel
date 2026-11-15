@@ -1,15 +1,21 @@
 import { describe, expect, it } from "bun:test";
 
-import { dateGroup, dateGroupKey, groupByDate, utcDay } from ".";
+import { dayInZone } from "@/features/time-zone/format/day";
+
+import { dateGroup, dateGroupKey, groupByDate } from ".";
 
 const TODAY = "2026-11-13";
 
-describe("utcDay", () => {
+describe("dayInZone", () => {
 	it("is the day in UTC, whatever the hour", () => {
-		expect(utcDay(new Date("2026-11-13T00:00:00Z"))).toBe("2026-11-13");
-		expect(utcDay(new Date("2026-11-13T23:59:59.999Z"))).toBe("2026-11-13");
+		expect(dayInZone(new Date("2026-11-13T00:00:00Z"), "UTC")).toBe(
+			"2026-11-13",
+		);
+		expect(dayInZone(new Date("2026-11-13T23:59:59.999Z"), "UTC")).toBe(
+			"2026-11-13",
+		);
 		// 20:30 on the 12th in Bogotá is already the 13th in UTC.
-		expect(utcDay(new Date("2026-11-12T20:30:00-05:00"))).toBe(
+		expect(dayInZone(new Date("2026-11-12T20:30:00-05:00"), "UTC")).toBe(
 			"2026-11-13",
 		);
 	});
@@ -31,48 +37,50 @@ describe("dateGroup", () => {
 			["1999-01-01T00:00:00Z", "month-1999-01"],
 		] as const;
 		for (const [receivedAt, key] of cases) {
-			expect(dateGroupKey(dateGroup(receivedAt, TODAY))).toBe(key);
+			expect(dateGroupKey(dateGroup(receivedAt, TODAY, "UTC"))).toBe(key);
 		}
 	});
 
 	it("counts days in UTC whatever offset the date is written with", () => {
 		// 22:00 on the 12th at -05:00 is 03:00 on the 13th in UTC.
-		expect(dateGroup("2026-11-12T22:00:00-05:00", TODAY)).toEqual({
+		expect(dateGroup("2026-11-12T22:00:00-05:00", TODAY, "UTC")).toEqual({
 			kind: "today",
 		});
 		// 01:00 on the 13th at +05:00 is 20:00 on the 12th in UTC.
-		expect(dateGroup("2026-11-13T01:00:00+05:00", TODAY)).toEqual({
+		expect(dateGroup("2026-11-13T01:00:00+05:00", TODAY, "UTC")).toEqual({
 			kind: "yesterday",
 		});
 	});
 
 	it("crosses a month and a year by days, not by calendar fields", () => {
-		expect(dateGroup("2026-10-31T10:00:00Z", "2026-11-01")).toEqual({
+		expect(dateGroup("2026-10-31T10:00:00Z", "2026-11-01", "UTC")).toEqual({
 			kind: "yesterday",
 		});
-		expect(dateGroup("2025-12-31T10:00:00Z", "2026-01-01")).toEqual({
+		expect(dateGroup("2025-12-31T10:00:00Z", "2026-01-01", "UTC")).toEqual({
 			kind: "yesterday",
 		});
-		expect(dateGroup("2025-12-28T10:00:00Z", "2026-01-02")).toEqual({
+		expect(dateGroup("2025-12-28T10:00:00Z", "2026-01-02", "UTC")).toEqual({
 			kind: "week",
 		});
-		expect(dateGroup("2024-02-29T10:00:00Z", "2024-03-01")).toEqual({
+		expect(dateGroup("2024-02-29T10:00:00Z", "2024-03-01", "UTC")).toEqual({
 			kind: "yesterday",
 		});
 	});
 
 	it("holds a message dated in the future as today's", () => {
-		expect(dateGroup("2026-11-14T00:00:00Z", TODAY)).toEqual({
+		expect(dateGroup("2026-11-14T00:00:00Z", TODAY, "UTC")).toEqual({
 			kind: "today",
 		});
-		expect(dateGroup("2099-01-01T00:00:00Z", TODAY)).toEqual({
+		expect(dateGroup("2099-01-01T00:00:00Z", TODAY, "UTC")).toEqual({
 			kind: "today",
 		});
 	});
 
 	it("says it does not know for a date or a day that is not one", () => {
 		for (const receivedAt of ["", "x", "2026-13-45T00:00:00Z"]) {
-			expect(dateGroup(receivedAt, TODAY)).toEqual({ kind: "unknown" });
+			expect(dateGroup(receivedAt, TODAY, "UTC")).toEqual({
+				kind: "unknown",
+			});
 		}
 		for (const today of [
 			"",
@@ -80,19 +88,19 @@ describe("dateGroup", () => {
 			"2026-02-31",
 			"2026-11-13T00:00:00Z",
 		]) {
-			expect(dateGroup("2026-11-13T00:00:00Z", today)).toEqual({
+			expect(dateGroup("2026-11-13T00:00:00Z", today, "UTC")).toEqual({
 				kind: "unknown",
 			});
 		}
 	});
 
 	it("names the month from 1 to 12", () => {
-		expect(dateGroup("2026-01-15T00:00:00Z", TODAY)).toEqual({
+		expect(dateGroup("2026-01-15T00:00:00Z", TODAY, "UTC")).toEqual({
 			kind: "month",
 			year: 2026,
 			month: 1,
 		});
-		expect(dateGroup("2025-12-15T00:00:00Z", TODAY)).toEqual({
+		expect(dateGroup("2025-12-15T00:00:00Z", TODAY, "UTC")).toEqual({
 			kind: "month",
 			year: 2025,
 			month: 12,
@@ -116,6 +124,7 @@ describe("groupByDate", () => {
 				row("h", "2026-09-30T09:00:00Z"),
 			],
 			TODAY,
+			"UTC",
 		);
 		expect(
 			runs.map((run) => [
@@ -140,6 +149,7 @@ describe("groupByDate", () => {
 				row("d", "not a date"),
 			],
 			TODAY,
+			"UTC",
 		);
 		expect(runs.map((run) => dateGroupKey(run.group))).toEqual([
 			"today",
@@ -156,6 +166,6 @@ describe("groupByDate", () => {
 	});
 
 	it("gives no run for no row", () => {
-		expect(groupByDate([], TODAY)).toEqual([]);
+		expect(groupByDate([], TODAY, "UTC")).toEqual([]);
 	});
 });

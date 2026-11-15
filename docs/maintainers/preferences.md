@@ -12,6 +12,7 @@ session of any role. It is `app/app/me`, and it is not part of either area.
 | Theme | `THEME_CHOICES`, `features/theme/config/choices`: light, dark or the system's, nothing else | `theme`, readable by script (the page that replaces a failed layout reads it), path `/` |
 | Density of the message list | `LIST_DENSITIES`, `features/mail/config/list-density` | `list-density`, `HttpOnly`, path `/app` |
 | Remote images in messages | `REMOTE_IMAGE_MODES`, `features/mail/config/remote-images`: ask, always or never | `remote-images`, `HttpOnly`, path `/app` |
+| Time zone of the dates | `TIME_ZONES`, `features/time-zone/config/zones`: `UTC` and every IANA zone the running Node knows | `time-zone`, `HttpOnly`, path `/app` |
 
 A person does not choose an accent: the palette and the logos are the
 operator's, which is what keeps the measured contrasts true.
@@ -75,12 +76,12 @@ Each field has the three checks of `forms.md`:
 
 Without script the browser posts the form and the answer is the page again, with
 the state of the action in it. With script the form validates first and shows the
-theme at once; the language, the density and the remote image mode are what the
-page renders next.
+theme at once; the language, the density, the remote image mode and the time
+zone are what the page renders next.
 
 Nothing read from a cookie reaches the page unchecked: `readPreferences` takes the
 language from the request's own resolution (`getLocale`, which already believes
-only a shipped code) and the other three from their readers, which believe a
+only a shipped code) and the other four from their readers, which believe a
 word of their list and nothing else, and the page prints the parsed value, never
 the cookie's text. The first paint has the choice: the root layout paints
 `data-theme` and `lang` on the server, the density is the attribute of the list
@@ -110,15 +111,41 @@ The issue also proposed loading images only for senders in an address book or
 a trusted list. That mode is not built: the panel has no address book and no
 trusted-sender list to decide it from.
 
+## The time zone
+
+Every date the panel prints for display is in the zone the person chose: `UTC`
+or the name of an IANA zone. The choice is kept in the `time-zone` cookie under
+`/app` and is one of the names the running Node knows
+(`Intl.supportedValuesOf("timeZone")`) or `UTC`, exactly: a value is believed
+when it is exactly one of those names, never because `Intl` accepted it, and
+the list is built when the module loads, so it is the list of the process that
+runs it.
+
+The zone is read on the server (`features/time-zone/queries/time-zone`) and
+given to the pages: the client components read it from a context the layout
+sets (`features/time-zone/components/time-zone-provider`) and the server
+components that print a date take it as a prop. The browser never reads the
+cookie, which is `HttpOnly`; the zone travels down as a prop, so the server
+render and the browser agree on every date.
+
+The select is long, so it is grouped by region (`optgroup`), `UTC` first.
+
+What the zone does not change: the dates inside a message (its body, its
+headers and the `Date` header it travels with), the range of days a search
+keeps (the API counts its days in Greenwich) and the columns of the timeline
+(the API counts its records in days of Greenwich, so the columns stay there;
+their labels say the same instants in the zone of the person).
+
+The operator may fix the zone for everyone with `EPISTLE_PANEL_TIME_ZONE`. The
+operator's zone wins over the cookie, the page on `/app/me` shows the zone as
+read-only text instead of a select, and the Server Action refuses a posted
+attempt to change it.
+
 ## What waits
 
-Time zone (Glyndor/epistle-panel#215) has no section. Its storage is not the
-trivial kind this page was built for: the list of time zones is the browser's,
-a closed list of hundreds of names that the panel does not hold, and nothing
-yet formats a date in a chosen zone, so a saved value would change nothing.
-When it is built, it is a new field of the form with its list in the place
-that owns it, a message key per error, and its cookie written through
-`lib/preference-cookie`. Signature and shortcuts can join the same way.
+Signature and shortcuts can join the same way: a new field of the form with
+its list in the place that owns it, a message key per error, and its cookie
+written through `lib/preference-cookie`.
 
 ## The sign-in page
 

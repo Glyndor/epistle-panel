@@ -9,6 +9,8 @@
  * shown stops the start, because a server that kept running would show a
  * notice nobody chose. The remote image mode settles the same way: an unknown
  * mode stops the start instead of quietly changing what a message may load.
+ * The time zone settles the same way: a zone the panel does not know stops the
+ * start instead of quietly printing every date in a clock nobody chose.
  */
 export async function register(): Promise<void> {
 	if (process.env["NEXT_RUNTIME"] !== "nodejs") {
@@ -43,4 +45,9 @@ export async function register(): Promise<void> {
 		"@/lib/config/copyright-notice-start-check"
 	);
 	checkCopyrightNoticeAtStart();
+
+	const { checkTimeZoneAtStart } = await import(
+		"@/lib/config/time-zone-start-check"
+	);
+	checkTimeZoneAtStart();
 }

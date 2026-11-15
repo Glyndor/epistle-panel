@@ -45,4 +45,12 @@ function NativeSelectOption(props: React.ComponentProps<"option">) {
 	return <option data-slot="native-select-option" {...props} />;
 }
 
-export { NativeSelect, NativeSelectOption };
+/**
+ * A group of the list, under a name of its own. The browser draws it as the
+ * group it is and lets the person close it.
+ */
+function NativeSelectGroup(props: React.ComponentProps<"optgroup">) {
+	return <optgroup data-slot="native-select-group" {...props} />;
+}
+
+export { NativeSelect, NativeSelectGroup, NativeSelectOption };

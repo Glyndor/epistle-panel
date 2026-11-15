@@ -36,8 +36,8 @@
 	"timeline": {
 		"title": "Zustellungen im Zeitverlauf",
 		"note": {
-			"hour": "Pro Stunde, UTC · gelesen um {time}",
-			"day": "Pro Tag, UTC · gelesen um {time}"
+			"hour": "Pro Stunde, {zone} · gelesen um {time}",
+			"day": "Pro Tag, {zone} · gelesen um {time}"
 		},
 		"description": "{total, plural, one {# Zustellungsdatensatz} other {# Zustellungsdatensätze}} {unit, select, hour {pro Stunde} other {pro Tag}}. Der Höchstwert, {peak}, am {when}.",
 		"hint": "{when}: {count, plural, one {# Datensatz} other {# Datensätze}}",
@@ -47,8 +47,8 @@
 		"notReturned": "Möglicherweise nicht geliefert",
 		"full": "Der Server hat {limit} Datensätze geliefert, mehr gibt er nicht, also wurden die schattierten Spalten möglicherweise nicht oder nur teilweise geliefert. Ob es Zeiten ohne Zustellungen sind, ist nicht bekannt.",
 		"column": {
-			"hour": "Stunde (UTC)",
-			"day": "Tag (UTC)"
+			"hour": "Stunde ({zone})",
+			"day": "Tag ({zone})"
 		},
 		"total": "Gesamt",
 		"state": {

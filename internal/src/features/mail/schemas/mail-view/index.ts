@@ -67,7 +67,7 @@ export interface MessageListView {
 	readonly hasNext: boolean;
 	/** True when a filter or a search read only the newest part of a larger folder. */
 	readonly partial: boolean;
-	/** The UTC day the list was read, `YYYY-MM-DD`: what "today" means for the date groups. */
+	/** The day the list was read in the zone of the person, `YYYY-MM-DD`: what "today" means for the date groups. */
 	readonly today: string;
 }
 

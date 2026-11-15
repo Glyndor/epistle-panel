@@ -19,6 +19,7 @@ function form(...modes: (string | File)[]) {
 	data.set("language", "en");
 	data.set("theme", "system");
 	data.set("density", "comfortable");
+	data.set("timeZone", "UTC");
 	for (const mode of modes) data.append("remoteImages", mode);
 	return data;
 }
@@ -35,6 +36,7 @@ it("saves every valid remote image choice", async () => {
 				theme: "system",
 				density: "comfortable",
 				remoteImages: mode,
+				timeZone: "UTC",
 			},
 		});
 		expect(cookies.writes.map((w) => [w.name, w.value])).toEqual([
@@ -42,6 +44,7 @@ it("saves every valid remote image choice", async () => {
 			["theme", "system"],
 			["list-density", "comfortable"],
 			["remote-images", mode],
+			["time-zone", "UTC"],
 		]);
 	}
 });
@@ -90,12 +93,14 @@ it("saves other fields when fixed without overwriting the remote image cookie", 
 				theme: "system",
 				density: "comfortable",
 				remoteImages: operator,
+				timeZone: "UTC",
 			},
 		});
 		expect(cookies.writes.map((w) => w.name)).toEqual([
 			"locale",
 			"theme",
 			"list-density",
+			"time-zone",
 		]);
 		expect(cookies.jar.get("remote-images")).toBe("always");
 	}

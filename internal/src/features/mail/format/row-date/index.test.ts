@@ -31,9 +31,9 @@ describe("formatRowDate", () => {
 	it("prints the hour and the minute in UTC", () => {
 		const format = recorder();
 
-		expect(formatRowDate(format, "2026-11-12T23:05:00Z", "time")).toBe(
-			"11:05 PM",
-		);
+		expect(
+			formatRowDate(format, "2026-11-12T23:05:00Z", "time", "UTC"),
+		).toBe("11:05 PM");
 		expect(format.asked).toEqual([
 			{ hour: "numeric", minute: "2-digit", timeZone: "UTC" },
 		]);
@@ -43,9 +43,9 @@ describe("formatRowDate", () => {
 		const format = recorder();
 
 		// One minute into the 1st in UTC is still the 31st west of Greenwich.
-		expect(formatRowDate(format, "2026-11-01T00:01:00Z", "day")).toBe(
-			"Nov 1",
-		);
+		expect(
+			formatRowDate(format, "2026-11-01T00:01:00Z", "day", "UTC"),
+		).toBe("Nov 1");
 		expect(format.asked).toEqual([
 			{ month: "short", day: "numeric", timeZone: "UTC" },
 		]);
@@ -54,8 +54,8 @@ describe("formatRowDate", () => {
 	it("is empty for a value that is not a date, and asks the formatter nothing", () => {
 		const format = recorder();
 
-		expect(formatRowDate(format, "not a date", "time")).toBe("");
-		expect(formatRowDate(format, "", "day")).toBe("");
+		expect(formatRowDate(format, "not a date", "time", "UTC")).toBe("");
+		expect(formatRowDate(format, "", "day", "UTC")).toBe("");
 		expect(format.asked).toHaveLength(0);
 	});
 });

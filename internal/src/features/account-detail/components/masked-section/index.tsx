@@ -1,3 +1,5 @@
+"use client";
+
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useFormatter, useTranslations } from "next-intl";
@@ -28,7 +30,7 @@ import {
 import { reportFailure } from "@/features/account-detail/queries/action-feedback";
 import {
 	fromEpochSeconds,
-	MOMENT_FORMAT,
+	momentFormat,
 } from "@/features/account-detail/queries/time-format";
 import {
 	MASKED_LABEL_ERROR_KEYS,
@@ -37,6 +39,7 @@ import {
 	type MaskedLabelFormInput,
 	maskedLabelFormSchema,
 } from "@/features/account-detail/schemas/masked-label-form";
+import { useTimeZone } from "@/features/time-zone/components/time-zone-provider";
 import { fieldLength } from "@/lib/field-length";
 import { isOneOf } from "@/lib/is-one-of";
 import { unwrap } from "@/lib/query/action-result";
@@ -49,6 +52,7 @@ import { unwrap } from "@/lib/query/action-result";
 export function MaskedSection({ name }: { name: string }) {
 	const t = useTranslations("accountDetail");
 	const format = useFormatter();
+	const timeZone = useTimeZone();
 	const client = useQueryClient();
 	const { data, isPending } = useQuery(
 		maskedQueryOptions(name, async () =>
@@ -92,7 +96,7 @@ export function MaskedSection({ name }: { name: string }) {
 	const message = (key: string) =>
 		isOneOf(MASKED_LABEL_ERROR_KEYS, key) ? t(key) : key;
 	const moment = (seconds: number) =>
-		format.dateTime(fromEpochSeconds(seconds), MOMENT_FORMAT);
+		format.dateTime(fromEpochSeconds(seconds), momentFormat(timeZone));
 
 	return (
 		<SectionCard

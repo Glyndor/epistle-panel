@@ -1,3 +1,5 @@
+"use client";
+
 import { ForwardIcon, PaperclipIcon, ReplyIcon } from "lucide-react";
 import Link from "next/link";
 import { useFormatter, useTranslations } from "next-intl";
@@ -13,6 +15,7 @@ import {
 } from "@/features/mail/format/row-date";
 import { type ListAddress, mailHref } from "@/features/mail/links/mail-href";
 import type { MessageSummary } from "@/features/mail/schemas/mail-view";
+import { useTimeZone } from "@/features/time-zone/components/time-zone-provider";
 import { cn } from "@/lib/class-names";
 import { initials } from "@/lib/initials";
 
@@ -121,6 +124,7 @@ export function MessageRow({
 }) {
 	const t = useTranslations("mail");
 	const format = useFormatter();
+	const timeZone = useTimeZone();
 	const sender = message.from?.name ?? message.from?.email ?? t("noSender");
 	const states: ReactNode[] = [
 		message.unread ? t("stateUnread") : null,
@@ -239,7 +243,12 @@ export function MessageRow({
 						dateTime={message.receivedAt}
 						data-date-part={datePart}
 					>
-						{formatRowDate(format, message.receivedAt, datePart)}
+						{formatRowDate(
+							format,
+							message.receivedAt,
+							datePart,
+							timeZone,
+						)}
 					</time>
 				</span>
 			</Link>

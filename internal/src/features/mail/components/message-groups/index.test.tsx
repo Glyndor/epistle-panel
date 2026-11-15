@@ -49,13 +49,14 @@ describe("MessageGroups", () => {
 			at(6, "2025-12-31T10:00:00Z"),
 		]);
 
-		// The test formatter prints the instant it was given: the first of the month, in UTC.
+		// The test formatter prints the instant it was given: a day inside the
+		// month, in UTC.
 		expect(headings()).toEqual([
 			"groupToday",
 			"groupYesterday",
 			"groupRecent",
-			"2026-10-01T00:00:00.000Z",
-			"2025-12-01T00:00:00.000Z",
+			"2026-10-15T12:00:00.000Z",
+			"2025-12-15T12:00:00.000Z",
 		]);
 		expect(
 			within(screen.getByRole("list", { name: "groupToday" }))

@@ -27,7 +27,7 @@ const HOUR = 3600;
 const DAY = 86_400;
 
 const show = async (period: "24h" | "7d" | "30d" = "24h") =>
-	render(await TimelineCard({ period, logPath: LOG }));
+	render(await TimelineCard({ period, logPath: LOG, timeZone: "UTC" }));
 const column = (container: HTMLElement, start: number) =>
 	container.querySelector(`[data-column="${start}"]`);
 const openTable = () =>

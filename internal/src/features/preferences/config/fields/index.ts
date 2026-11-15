@@ -3,12 +3,14 @@
  * under. This is the only list: the form, the schema, the Server Action and
  * the tests read it. Each field is a closed choice, and its list lives with
  * the thing it chooses (`i18n/locales`, `features/theme/config/choices`,
- * `features/mail/config/list-density`, `features/mail/config/remote-images`).
+ * `features/mail/config/list-density`, `features/mail/config/remote-images`,
+ * `features/time-zone/config/zones`).
  */
 export const PREFERENCE_FIELDS = [
 	"language",
 	"theme",
 	"density",
 	"remoteImages",
+	"timeZone",
 ] as const;
 export type PreferenceField = (typeof PREFERENCE_FIELDS)[number];

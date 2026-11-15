@@ -18,6 +18,7 @@ const valid = {
 	theme: "dark",
 	density: "compact",
 	remoteImages: "ask",
+	timeZone: "UTC",
 };
 
 /** The message the schema gives a field, or undefined when it takes it. */
@@ -38,6 +39,7 @@ describe("preferencesSchema", () => {
 						theme,
 						density,
 						remoteImages: "ask" as const,
+						timeZone: "UTC" as const,
 					};
 					expect(preferencesSchema.parse(input)).toEqual(input);
 				}
@@ -107,13 +109,14 @@ describe("preferencesSchema", () => {
 			theme: "x",
 			density: undefined,
 			remoteImages: "x",
+			timeZone: "Middle Earth",
 		});
 
 		expect(result.success).toBe(false);
 		const messages = result.success
 			? []
 			: result.error.issues.map((issue) => issue.message);
-		expect(messages).toHaveLength(4);
+		expect(messages).toHaveLength(5);
 		for (const message of messages) {
 			expect(isPreferenceErrorKey(message)).toBe(true);
 		}

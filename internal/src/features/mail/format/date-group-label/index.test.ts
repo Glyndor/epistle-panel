@@ -20,12 +20,16 @@ describe("dateGroupLabel", () => {
 	it("names today, yesterday, the last few days and a message with no date by their message", () => {
 		const format = recorder();
 
-		expect(dateGroupLabel({ kind: "today" }, t, format)).toBe("groupToday");
-		expect(dateGroupLabel({ kind: "yesterday" }, t, format)).toBe(
+		expect(dateGroupLabel({ kind: "today" }, t, format, "UTC")).toBe(
+			"groupToday",
+		);
+		expect(dateGroupLabel({ kind: "yesterday" }, t, format, "UTC")).toBe(
 			"groupYesterday",
 		);
-		expect(dateGroupLabel({ kind: "week" }, t, format)).toBe("groupRecent");
-		expect(dateGroupLabel({ kind: "unknown" }, t, format)).toBe(
+		expect(dateGroupLabel({ kind: "week" }, t, format, "UTC")).toBe(
+			"groupRecent",
+		);
+		expect(dateGroupLabel({ kind: "unknown" }, t, format, "UTC")).toBe(
 			"groupUnknown",
 		);
 		expect(format.asked).toHaveLength(0);
@@ -35,26 +39,47 @@ describe("dateGroupLabel", () => {
 		const format = recorder();
 
 		expect(
-			dateGroupLabel({ kind: "month", year: 2026, month: 10 }, t, format),
+			dateGroupLabel(
+				{ kind: "month", year: 2026, month: 10 },
+				t,
+				format,
+				"UTC",
+			),
 		).toBe("October 2026");
 		expect(
-			dateGroupLabel({ kind: "month", year: 2025, month: 1 }, t, format),
+			dateGroupLabel(
+				{ kind: "month", year: 2025, month: 1 },
+				t,
+				format,
+				"UTC",
+			),
 		).toBe("January 2025");
 		expect(
-			dateGroupLabel({ kind: "month", year: 2025, month: 12 }, t, format),
+			dateGroupLabel(
+				{ kind: "month", year: 2025, month: 12 },
+				t,
+				format,
+				"UTC",
+			),
 		).toBe("December 2025");
 	});
 
-	it("asks for the month in UTC, from the first instant of that month", () => {
+	it("asks for the month in the zone, from a day inside that month", () => {
 		const format = recorder();
 
-		dateGroupLabel({ kind: "month", year: 2026, month: 10 }, t, format);
+		dateGroupLabel(
+			{ kind: "month", year: 2026, month: 10 },
+			t,
+			format,
+			"UTC",
+		);
 
 		// In a zone west of Greenwich the first instant of October is still
-		// September: without the zone the heading would name the wrong month.
+		// September: the day asked for is inside the month, so the heading
+		// names the month and not the one before.
 		expect(format.asked).toEqual([
 			{
-				value: new Date("2026-10-01T00:00:00.000Z"),
+				value: new Date("2026-10-15T12:00:00.000Z"),
 				options: { month: "long", year: "numeric", timeZone: "UTC" },
 			},
 		]);
@@ -62,7 +87,7 @@ describe("dateGroupLabel", () => {
 			new Intl.DateTimeFormat("en", {
 				month: "long",
 				timeZone: "America/Bogota",
-			}).format(new Date("2026-10-01T00:00:00.000Z")),
-		).toBe("September");
+			}).format(new Date("2026-10-15T12:00:00.000Z")),
+		).toBe("October");
 	});
 });

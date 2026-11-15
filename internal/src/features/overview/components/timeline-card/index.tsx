@@ -27,10 +27,13 @@ import {
 import { TimelineBodyPlace } from "@/features/overview/components/chart-card-skeleton";
 import { requestDeliveryOverview } from "@/features/overview/queries/load-delivery-overview";
 import type { OverviewPeriod } from "@/features/overview/schemas/overview-input";
+import type { TimeZone } from "@/features/time-zone/config/zones";
 import { DELIVERY_OUTCOMES } from "@/lib/api/schemas";
 import { cn } from "@/lib/class-names";
 
 const ID = "overview-timeline";
+
+/** Half a day, in seconds: the middle of a column that is a day. */
 
 /** The palette series of each outcome, in the API's order: the same as the outcomes card. */
 const OUTCOME_SERIES: readonly SeriesIndex[] = [0, 1, 2, 3, 4];
@@ -39,10 +42,15 @@ const OUTCOME_SERIES: readonly SeriesIndex[] = [0, 1, 2, 3, 4];
 const LABEL_EVERY = { "7d": 2, "30d": 10 } as const;
 
 /**
- * The delivery records of a period over time: a column per hour of the UTC
- * clock for 24 hours, per UTC day for 7 and 30 days, stacked by outcome in the
+ * The delivery records of a period over time: a column per hour of the API's
+ * clock for 24 hours, per day for 7 and 30 days, stacked by outcome in the
  * colours of the outcomes card. Under the drawing, behind a button, the same
  * numbers as a table.
+ *
+ * The columns are the ones the API counts in, and its limit is counted in
+ * days of Greenwich, so the columns stay there. What the person reads is
+ * theirs: every label says the same instant in the zone of the person, and
+ * the line under the title names that zone.
  *
  * When the answer came back at the API's limit, the hours or days it may not
  * have returned are filled with a band and named in the legend. The API does
@@ -53,11 +61,14 @@ const LABEL_EVERY = { "7d": 2, "30d": 10 } as const;
 export async function TimelineCard({
 	period,
 	logPath,
+	timeZone,
 	className,
 }: {
 	period: OverviewPeriod;
 	/** The delivery log's path. */
 	logPath: Route;
+	/** The zone every label of the card is written in. */
+	timeZone: TimeZone;
 	className?: string | undefined;
 }) {
 	const [overview, t, tLog, format] = await Promise.all([
@@ -113,13 +124,17 @@ export async function TimelineCard({
 	}
 	const { timeline, readAt } = overview;
 	const at = (seconds: number) => new Date(seconds * 1000);
-	const clock = (seconds: number) =>
+	const clock = (seconds: number, zone: string = timeZone) =>
 		format.dateTime(at(seconds), {
 			hour: "2-digit",
 			minute: "2-digit",
 			hourCycle: "h23",
-			timeZone: "UTC",
+			timeZone: zone,
 		});
+	// A column of a day is a day of Greenwich, because that is how the API counts
+	// its log. It is written as that day and the heading and the note name UTC;
+	// moving its label into the person's zone would put the counts of one day
+	// under the date of another.
 	const day = (seconds: number) =>
 		format.dateTime(at(seconds), {
 			month: "short",
@@ -135,10 +150,16 @@ export async function TimelineCard({
 					hour: "2-digit",
 					minute: "2-digit",
 					hourCycle: "h23",
-					timeZone: "UTC",
+					timeZone,
 				})
 			: day(seconds);
-	const note = t(`timeline.note.${timeline.unit}`, { time: clock(readAt) });
+	// Hours are written in the person's zone; days are the API's, in UTC.
+	const columnZone = hourly ? timeZone : "UTC";
+	const note = t(`timeline.note.${timeline.unit}`, {
+		// The reading time is written in the zone the note names.
+		time: clock(readAt, columnZone),
+		zone: columnZone,
+	});
 	if (timeline.total === 0) {
 		return (
 			<ChartCard {...frame} note={note}>
@@ -235,7 +256,9 @@ export async function TimelineCard({
 					<TableHeader>
 						<TableRow>
 							<TableHead scope="col">
-								{t(`timeline.column.${timeline.unit}`)}
+								{t(`timeline.column.${timeline.unit}`, {
+									zone: columnZone,
+								})}
 							</TableHead>
 							{names.map((name) => (
 								<TableHead

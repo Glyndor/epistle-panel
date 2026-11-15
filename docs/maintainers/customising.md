@@ -171,6 +171,7 @@ policy are read from the environment when the process starts.
 | `EPISTLE_PANEL_DEFAULT_LOCALE` | The language the panel falls back to when the person chose none and the browser asked for none of the six: `en`, `es`, `pt`, `fr`, `de` or `it`. Unset or empty keeps `en`. |
 | `EPISTLE_PANEL_COPYRIGHT_NOTICE` | The line at the foot of the pages: the operator's own text, or `none` for no line at all. Unset or empty keeps `© 2026 Glyndor`. At most 200 characters, no control character. |
 | `EPISTLE_PANEL_REMOTE_IMAGES` | Fixes how messages may load remote images for everyone: `ask`, `always` or `never`. Unset or empty leaves the choice to each person. |
+| `EPISTLE_PANEL_TIME_ZONE` | The time zone every date of the panel is printed in: `UTC` or the name of an IANA zone (`America/Bogota`). Unset or empty leaves the choice to each person. |
 
 ### Remote images
 
@@ -191,6 +192,31 @@ link and URL policy does not change in any mode, and the framed body's
 
 The issue's trusted-sender mode is not available: the panel has no address
 book or trusted-sender list from which to decide it.
+
+### The time zone
+
+`EPISTLE_PANEL_TIME_ZONE` is unset when each person chooses through
+`/app/me`. The choice is kept in the `time-zone` cookie under `/app` and holds
+`UTC` or the name of an IANA zone, one of the names the running Node knows
+(`Intl.supportedValuesOf("timeZone")`), and nothing else: a value is believed
+when it is exactly one of those names, never because `Intl` accepted it.
+
+When the variable holds one of those names, it wins over the person's cookie
+for every request. `/app/me` shows the zone as read-only text and its Server
+Action refuses a posted attempt to change it. Every date the panel prints for
+display is then in that zone: the rows and the reader of the mail, the groups
+the rows stand under, the delivery log, the moments of an account and the
+labels of the charts.
+
+The dates that are not for the person are not changed: the dates inside a
+message (its body, its headers and the `Date` header it travels with), the
+range of days a search keeps (the API counts its days in Greenwich) and the
+columns of the timeline (the API counts its records in days of Greenwich, so
+the columns stay there; their labels say the same instants in the zone of the
+person).
+
+A value that is not a zone stops the start with a message that names the
+variable and never the value.
 
 Every one of them is checked when the server starts: a value that cannot be
 used stops the start with a message that names the variable and never the

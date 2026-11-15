@@ -193,8 +193,8 @@ describe("MessageList", () => {
 		// Two months of years gone by, whatever day the test runs on.
 		const headings = await screen.findAllByRole("heading", { level: 3 });
 		expect(headings.map((h) => h.textContent)).toEqual([
-			"2020-03-01T00:00:00.000Z",
-			"2019-07-01T00:00:00.000Z",
+			"2020-03-15T12:00:00.000Z",
+			"2019-07-15T12:00:00.000Z",
 		]);
 		for (const heading of headings) {
 			expect(

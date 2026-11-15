@@ -22,6 +22,7 @@ describe("readPreferences", () => {
 			theme: "system",
 			density: "comfortable",
 			remoteImages: "ask",
+			timeZone: "UTC",
 		});
 	});
 
@@ -36,6 +37,7 @@ describe("readPreferences", () => {
 			theme: "dark",
 			density: "compact",
 			remoteImages: "never",
+			timeZone: "UTC",
 		});
 	});
 
@@ -50,6 +52,7 @@ describe("readPreferences", () => {
 					theme: "system",
 					density: "comfortable",
 					remoteImages: "ask",
+					timeZone: "UTC",
 				});
 			}
 		}

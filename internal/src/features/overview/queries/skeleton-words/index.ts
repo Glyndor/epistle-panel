@@ -6,6 +6,7 @@ import type { LegendItem } from "@/components/charts/chart-legend";
 import type { SeriesIndex } from "@/components/charts/series";
 import type { SkeletonWords } from "@/features/overview/components/chart-card-skeleton";
 import type { OverviewPeriod } from "@/features/overview/schemas/overview-input";
+import type { TimeZone } from "@/features/time-zone/config/zones";
 import { DELIVERY_OUTCOMES } from "@/lib/api/schemas";
 
 /** The words the four chart skeletons are written with. */
@@ -30,6 +31,7 @@ export interface OverviewSkeletonWords {
  */
 export async function skeletonWords(
 	period: OverviewPeriod,
+	timeZone: TimeZone,
 ): Promise<OverviewSkeletonWords> {
 	const [t, tLog] = await Promise.all([
 		getTranslations("overview"),
@@ -46,6 +48,7 @@ export async function skeletonWords(
 		},
 		timelineNote: t(`timeline.note.${period === "24h" ? "hour" : "day"}`, {
 			time: "00:00",
+			zone: timeZone,
 		}),
 		legend: DELIVERY_OUTCOMES.map((outcome, index) => ({
 			key: outcome,

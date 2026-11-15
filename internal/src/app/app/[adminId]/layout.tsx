@@ -14,6 +14,8 @@ import {
 import { SIDEBAR_GROUPS_COOKIE } from "@/components/ui/sidebar/groups-cookie";
 import { navItems } from "@/features/navigation/config/items";
 import { navForRole } from "@/features/navigation/queries/nav-for-role";
+import { TimeZoneProvider } from "@/features/time-zone/components/time-zone-provider";
+import { readEffectiveTimeZone } from "@/features/time-zone/queries/time-zone";
 import { requireAdmin } from "@/lib/auth/require-session";
 import { constantTimeEqual } from "@/lib/routes";
 
@@ -31,6 +33,10 @@ import { constantTimeEqual } from "@/lib/routes";
  *
  * The header's trail is the `trail` slot: a page of its own beside each page,
  * so the layout does not have to know which page it frames.
+ *
+ * The zone of the person's dates is read here too and given to the frame, so
+ * every date the area prints is in the clock they chose. The browser never
+ * reads the cookie: the zone travels down as a prop.
  */
 export default async function AdminLayout({
 	children,
@@ -46,6 +52,7 @@ export default async function AdminLayout({
 		notFound();
 	}
 	const t = await getTranslations("nav");
+	const timeZone = await readEffectiveTimeZone();
 	const jar = await cookies();
 	const open = sidebarStartsOpen(jar.get(SIDEBAR_COOKIE)?.value);
 	const closedGroups = closedSidebarGroups(
@@ -73,7 +80,9 @@ export default async function AdminLayout({
 					defaultOpen={open}
 					closedGroups={closedGroups}
 				>
-					{children}
+					<TimeZoneProvider timeZone={timeZone}>
+						{children}
+					</TimeZoneProvider>
 				</AppShell>
 			</QueryProvider>
 		</AdminRoutesProvider>

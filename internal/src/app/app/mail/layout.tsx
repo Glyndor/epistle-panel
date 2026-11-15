@@ -16,6 +16,8 @@ import {
 	QuotaPlaceholder,
 } from "@/features/mail/components/quota-meter";
 import { requestMailSession } from "@/features/mail/queries/request-mail";
+import { TimeZoneProvider } from "@/features/time-zone/components/time-zone-provider";
+import { readEffectiveTimeZone } from "@/features/time-zone/queries/time-zone";
 import { requireSession } from "@/lib/auth/require-session";
 import { readAdminId } from "@/lib/config/admin-id";
 import { adminRoutes, PUBLIC_ROUTES } from "@/lib/routes";
@@ -50,6 +52,7 @@ export default async function MailLayout({
 	const adminId = session.role === "admin" ? await readAdminId() : undefined;
 	const t = await getTranslations("mail");
 	const hasMail = (await requestMailSession()) !== null;
+	const timeZone = await readEffectiveTimeZone();
 	const jar = await cookies();
 	const open = sidebarStartsOpen(jar.get(SIDEBAR_COOKIE)?.value);
 	const closedGroups = closedSidebarGroups(
@@ -90,7 +93,9 @@ export default async function MailLayout({
 				closedGroups={closedGroups}
 				content="panes"
 			>
-				{children}
+				<TimeZoneProvider timeZone={timeZone}>
+					{children}
+				</TimeZoneProvider>
 			</AppShell>
 		</QueryProvider>
 	);

@@ -1,3 +1,5 @@
+"use client";
+
 import { useFormatter, useTranslations } from "next-intl";
 import { useId } from "react";
 
@@ -10,6 +12,7 @@ import { dateGroupLabel } from "@/features/mail/format/date-group-label";
 import { rowDatePart } from "@/features/mail/format/row-date";
 import type { ListAddress } from "@/features/mail/links/mail-href";
 import type { MessageSummary } from "@/features/mail/schemas/mail-view";
+import { useTimeZone } from "@/features/time-zone/components/time-zone-provider";
 
 /**
  * One run of messages of the same date group: a heading and the list it
@@ -33,6 +36,7 @@ export function Group({
 	const format = useFormatter();
 	const heading = useId();
 	const datePart = rowDatePart(group.kind);
+	const timeZone = useTimeZone();
 
 	return (
 		<div data-slot="message-group" data-group={dateGroupKey(group)}>
@@ -40,7 +44,7 @@ export function Group({
 				id={heading}
 				className="sticky top-0 z-10 h-8 truncate bg-surface px-3 font-medium text-muted-foreground text-xs leading-8 select-none first-letter:uppercase"
 			>
-				{dateGroupLabel(group, t, format)}
+				{dateGroupLabel(group, t, format, timeZone)}
 			</h3>
 			<ul aria-labelledby={heading} className="flex flex-col gap-1">
 				{rows.map((message) => (
