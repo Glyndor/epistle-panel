@@ -148,7 +148,7 @@ export function FolderRow({
 											// content it holds; the tree holds
 											// none.
 											aria-controls={undefined}
-											className="group/folder-toggle"
+											className="group/folder-toggle hover:bg-sidebar-accent hover:text-sidebar-accent-foreground active:bg-sidebar-accent active:text-sidebar-accent-foreground"
 										>
 											<ChevronDownIcon
 												aria-hidden="true"
