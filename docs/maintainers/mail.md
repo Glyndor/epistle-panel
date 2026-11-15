@@ -120,8 +120,8 @@ until a per-user credential exists. Replace the provider with
 - the end-user sign-in: `/` is one sign-in for every role and the session carries the role, but the account still signs in against the panel's own check; what is missing is the per-user JMAP credential;
 - a token bound to the user's account. epistle's `/oauth` issues ES256 tokens
   through a PKCE flow (`POST /oauth/authorize`, `POST /oauth/token`, `S256`
-  only), **but `docs/api.md` says the REST API does not accept them as a bearer,
-  and `src/api/state/bearer.rs` only accepts the configured token and API keys**.
+  only), **but epistle's `docs/api.md` says the REST API does not accept them as a bearer,
+  and epistle's `src/api/state/bearer.rs` only accepts the configured token and API keys**.
   JMAP therefore has no OAuth path today. Until it has, the per-user credential
   has to be an API key bound with `--account` (it reaches only JMAP, `/api/v1/send`
   and the delivery log, as that account), created and stored by whoever signs the
