@@ -16,16 +16,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "@/components/ui/toaster";
 import { Tooltip } from "@/components/ui/tooltip";
+import { loadDeleteDialog } from "@/features/accounts/components/account-row-actions/load-delete-dialog";
 import { openLazily } from "@/features/accounts/components/account-row-actions/open-lazily";
 import type { AccountRow } from "@/features/accounts/schemas/accounts-view";
 import { isAccountName } from "@/lib/api/account-name-pattern";
 
 type DeleteDialog = Awaited<ReturnType<typeof loadDeleteDialog>>;
-
-const loadDeleteDialog = () =>
-	import("@/features/accounts/components/delete-account-dialog").then(
-		(module) => module.DeleteAccountDialog,
-	);
 
 /**
  * The delete dialog is loaded the first time a menu opens, not with the list:
