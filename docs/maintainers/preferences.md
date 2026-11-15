@@ -161,13 +161,18 @@ not move; here is how they are wired.
   not reach them.
 - **The pace** multiplies the interval of every list that refreshes by itself
   (`normal` is today's, `slow` is twice that, `fast` is half of it and never
-  under 15 s). The layouts of the mail and of the administration read the
+  under 15 s, so the status counters and the queue, already at 15 s, do not
+  change). The layouts of the mail and of the administration read the
   effective pace and put it in a context around the whole frame
   (`features/refresh/components/refresh-provider`); a list asks the context for
   its interval (`useRefreshInterval`) and gives it to its query options. There
   is no `off`: a visible page left open keeps the session alive by refreshing
   its lists, and the idle timeout counts that refresh as use, so the keepalive
-  runs on the effective interval.
+  runs on the effective interval. For that reason `slow` runs as `normal` when the
+  idle timeout is 2 minutes or less (`effectiveRefreshPace`, applied by
+  `readEffectiveRefreshPace`, which the layouts read); the form is given what was
+  chosen (`readChosenRefreshPace`) and says under the field, or in the operator's
+  read-only text, that it is used as `normal`.
 
 The operator may fix either for everyone with `EPISTLE_PANEL_PAGE_SIZE` and
 `EPISTLE_PANEL_REFRESH`, the same way as the others: the operator's value wins

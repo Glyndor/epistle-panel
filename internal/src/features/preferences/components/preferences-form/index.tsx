@@ -76,6 +76,7 @@ export function PreferencesForm({
 	operatorTimeZone = null,
 	operatorPageSize = null,
 	operatorRefresh = null,
+	refreshDegraded = false,
 	save = savePreferences,
 }: {
 	values: PreferencesValues;
@@ -86,6 +87,11 @@ export function PreferencesForm({
 	operatorPageSize?: PageSizeChoice | null;
 	/** The refresh pace the operator fixed for everyone, when they fixed one. */
 	operatorRefresh?: RefreshPace | null;
+	/**
+	 * Whether the pace that was chosen runs as another because the session's
+	 * idle timeout is too short for it: the page says so under the field.
+	 */
+	refreshDegraded?: boolean;
 	/**
 	 * What the form posts to: the Server Action. A prop so a test can answer
 	 * what the browser's own two checks never let reach the server.
@@ -138,6 +144,9 @@ export function PreferencesForm({
 
 	// What the server refused, by field; also what a page posted with no script shows.
 	const refusals = state.outcome === "refused" ? state.fields : {};
+	const refreshHelp = refreshDegraded
+		? `${t("refreshHelp")} ${t("refreshDegraded")}`
+		: t("refreshHelp");
 	const message = (key: string) => (isPreferenceErrorKey(key) ? t(key) : key);
 
 	return (
@@ -264,7 +273,7 @@ export function PreferencesForm({
 						control={form.control}
 						name="refresh"
 						label={t("refresh")}
-						help={t("refreshHelp")}
+						help={refreshHelp}
 						renderMessage={message}
 						refusal={refusals.refresh}
 						options={REFRESH_PACES.map((pace) => ({
@@ -278,9 +287,14 @@ export function PreferencesForm({
 						name="refresh"
 						label={t("refresh")}
 						help={t("refreshHelp")}
-						value={t("refreshSetByOperator", {
-							pace: t(`refresh_${operatorRefresh}`),
-						})}
+						value={[
+							t("refreshSetByOperator", {
+								pace: t(`refresh_${operatorRefresh}`),
+							}),
+							refreshDegraded ? t("refreshDegraded") : "",
+						]
+							.filter((part) => part !== "")
+							.join(" ")}
 					/>
 				)}
 				{state.outcome === "saved" ? (

@@ -258,16 +258,26 @@ function (`features/refresh/config/pace`, `refreshInterval`):
 | The suppression list and the delivery log | 30 s | 60 s | 15 s |
 | The status counters and the queue | 15 s | 30 s | 15 s |
 
+(`slow` runs as `normal` when the idle timeout is 2 minutes or less.)
+
 The status counters and the queue are already at the floor, so `fast` leaves
 them at 15 s. Lists refresh only while the tab is in view, as before.
 
 A page left open and visible keeps the session alive because it refreshes its
 lists, and an idle timeout (`EPISTLE_PANEL_SESSION_IDLE_TIMEOUT_MINUTES`)
 counts that refresh as use. The keepalive therefore runs on the effective
-interval, never on the normal one: at `slow` the longest gap between two
-requests of an open page is a minute (the idle timeout accepts as little as one
-minute), so an operator with a short idle timeout should leave the pace at
-`normal` or `fast`, or fix it with the variable.
+interval, never on the normal one. An open page must refresh at least twice
+inside the idle timeout, and at `slow` the longest gap between two requests is a
+minute while the idle timeout accepts as little as one minute (measured: with 1
+minute and `slow`, the first refresh at 63 s met an expired session). So the
+effective pace is not always the chosen one: when the idle timeout is 2 minutes
+or less, `slow` runs as `normal`. The rule is one function
+(`effectiveRefreshPace` in `features/refresh/config/pace`), read from the
+session policy by `features/refresh/queries/refresh-pace`, and the layouts (the
+`RefreshProvider`) and `/app/me` both take it from there. `normal` (30 s at
+most) and `fast` always fit. `/app/me` keeps showing what was chosen, or the
+operator's value as read-only text, with a short note under it that `slow` is
+used as `normal` while the idle timeout is that short.
 
 The layout of each area (the mail and the administration) reads the effective
 pace on the server and hands it to its whole frame, the sidebar and the search

@@ -230,3 +230,41 @@ describe("PreferencesForm refresh pace", () => {
 		expect(button).toHaveFocus();
 	});
 });
+
+describe("PreferencesForm degraded pace", () => {
+	const helpOf = (field: HTMLElement) =>
+		document.getElementById(field.getAttribute("aria-describedby") ?? "")
+			?.textContent;
+
+	it("adds the note to the help of the select, on the chosen value, only when told", () => {
+		render(<PreferencesForm values={values} refreshDegraded />);
+		const field = screen.getByRole("combobox", { name: "refresh" });
+		expect(field).toHaveValue("slow");
+		expect(helpOf(field)).toBe("refreshHelp refreshDegraded");
+		cleanup();
+
+		render(<PreferencesForm values={values} />);
+		expect(helpOf(screen.getByRole("combobox", { name: "refresh" }))).toBe(
+			"refreshHelp",
+		);
+	});
+
+	it("adds the note to the operator's read-only text, once", () => {
+		render(
+			<PreferencesForm
+				values={values}
+				operatorRefresh="slow"
+				refreshDegraded
+			/>,
+		);
+		const group = screen.getByRole("group", { name: "refresh" });
+		expect(group).toHaveTextContent("refreshSetByOperator refreshDegraded");
+		expect(helpOf(group)).toBe("refreshHelp");
+		cleanup();
+
+		render(<PreferencesForm values={values} operatorRefresh="slow" />);
+		expect(
+			screen.getByRole("group", { name: "refresh" }),
+		).not.toHaveTextContent("refreshDegraded");
+	});
+});

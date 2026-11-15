@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { PreferencesForm } from "@/features/preferences/components/preferences-form";
 import { readPreferences } from "@/features/preferences/queries/read-preferences";
+import { isRefreshPaceDegraded } from "@/features/refresh/queries/refresh-pace";
 import { requireSession } from "@/lib/auth/require-session";
 import { readOperatorPageSize } from "@/lib/config/page-size";
 import { readOperatorRefreshPace } from "@/lib/config/refresh";
@@ -29,6 +30,7 @@ export default async function MePage() {
 	const operatorTimeZone = readOperatorTimeZone();
 	const operatorPageSize = readOperatorPageSize();
 	const operatorRefresh = readOperatorRefreshPace();
+	const refreshDegraded = await isRefreshPaceDegraded();
 
 	return (
 		<>
@@ -42,6 +44,7 @@ export default async function MePage() {
 				operatorTimeZone={operatorTimeZone}
 				operatorPageSize={operatorPageSize}
 				operatorRefresh={operatorRefresh}
+				refreshDegraded={refreshDegraded}
 			/>
 		</>
 	);

@@ -1,6 +1,7 @@
 import { expect, it } from "bun:test";
 import {
 	DEFAULT_REFRESH_PACE,
+	effectiveRefreshPace,
 	isRefreshPace,
 	MIN_FAST_REFRESH_MS,
 	parseRefreshPace,
@@ -68,6 +69,42 @@ it("gives the interval each panel list has today at the normal pace, and the one
 	for (const [base, expected] of Object.entries(table)) {
 		for (const pace of REFRESH_PACES) {
 			expect(refreshInterval(Number(base), pace)).toBe(expected[pace]);
+		}
+	}
+});
+it("runs slow as normal when the idle timeout is two minutes or less, and nothing else changes", () => {
+	// idle timeout in minutes: none, 1, 2, 3, a day.
+	for (const [minutes, slow] of [
+		[undefined, "slow"],
+		[1, "normal"],
+		[2, "normal"],
+		[3, "slow"],
+		[1440, "slow"],
+	] as const) {
+		const idle = minutes === undefined ? undefined : minutes * 60;
+		expect([minutes, effectiveRefreshPace("slow", idle)]).toEqual([
+			minutes,
+			slow,
+		]);
+		expect([minutes, effectiveRefreshPace("normal", idle)]).toEqual([
+			minutes,
+			"normal",
+		]);
+		expect([minutes, effectiveRefreshPace("fast", idle)]).toEqual([
+			minutes,
+			"fast",
+		]);
+	}
+});
+it("leaves every list an interval of at most half the idle timeout under the effective pace", () => {
+	for (const minutes of [1, 2, 3, 5]) {
+		for (const pace of REFRESH_PACES) {
+			const effective = effectiveRefreshPace(pace, minutes * 60);
+			for (const base of [15_000, 30_000]) {
+				expect(
+					refreshInterval(base, effective) * 2,
+				).toBeLessThanOrEqual(minutes * 60_000);
+			}
 		}
 	}
 });

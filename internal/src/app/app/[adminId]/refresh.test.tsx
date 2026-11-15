@@ -41,6 +41,31 @@ it("wraps the whole frame in the pace the person chose, normal when nobody did",
 	cookies.jar.set("refresh", "off");
 	expect(await paceOf()).toBe("normal");
 });
+it("runs slow as normal under an idle timeout of 1 or 2 minutes, and as itself otherwise", async () => {
+	const IDLE = "EPISTLE_PANEL_SESSION_IDLE_TIMEOUT_MINUTES";
+	const before = process.env[IDLE];
+	try {
+		cookies.jar.set("refresh", "slow");
+		for (const [idle, pace] of [
+			["1", "normal"],
+			["2", "normal"],
+			["3", "slow"],
+		] as const) {
+			process.env[IDLE] = idle;
+			await cookies.signIn("ops");
+			expect([idle, await paceOf()]).toEqual([idle, pace]);
+		}
+		process.env[IDLE] = "1";
+		await cookies.signIn("ops");
+		cookies.jar.set("refresh", "fast");
+		expect(await paceOf()).toBe("fast");
+		process.env["EPISTLE_PANEL_REFRESH"] = "slow";
+		expect(await paceOf()).toBe("normal");
+	} finally {
+		if (before === undefined) delete process.env[IDLE];
+		else process.env[IDLE] = before;
+	}
+});
 it("gives the operator's pace over the person's", async () => {
 	cookies.jar.set("refresh", "fast");
 	process.env["EPISTLE_PANEL_REFRESH"] = "slow";

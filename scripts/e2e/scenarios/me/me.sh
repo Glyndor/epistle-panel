@@ -73,6 +73,16 @@ me_selected() {
 		}' "$work/b"
 }
 
+# me_help NAME: the help text printed under the select NAME (the element its
+# aria-describedby names). The translations also travel in the page's data, so
+# a check on a sentence has to read the element and not the whole page.
+me_help() {
+	local id
+	id=$(perl -0777 -ne 'if (/<select\b[^>]*\bname="'"$1"'"[^>]*>/s) { print $1 if $& =~ /aria-describedby="([^" ]*)/ }' "$work/b")
+	[[ -n "$id" ]] || return 0
+	perl -0777 -ne 'print $1 if /<p\b[^>]*\bid="'"$id"'"[^>]*>([^<]*)</s' "$work/b"
+}
+
 # html_lang: the lang of the html element of the last page.
 me_html_lang() {
 	{ grep -o '<html[^>]*>' "$work/b" || true; } | head -1 | { grep -o 'lang="[^"]*"' || true; } | sed 's/lang="//; s/"$//'
@@ -414,6 +424,39 @@ scenario_me() {
 	me_post "$admin_cookie" language=en theme=system density=comfortable remoteImages=ask timeZone=UTC -pageSize refresh=fast
 	assert_eq "a pace posted over the operator's: no preference cookie" "$(me_prefs_set_count)" 0
 	assert_contains "a pace posted over the operator's: refused" "$(cat "$work/b")" 'That is not one of the choices.'
+	# --- a short idle timeout cannot be kept alive by a slow refresh: the page says "slow" runs as "normal"
+	# --- (read from the page, not by waiting a minute). Sessions need the activity claims of the idle timeout, so sign in again.
+	local idle_cookie note='idle timeout this short'
+	panel_env=(EPISTLE_PANEL_SESSION_IDLE_TIMEOUT_MINUTES=1)
+	start_panel
+	login admin correct-horse
+	idle_cookie=$cookie
+	for pace in slow normal fast; do
+		fetch /app/me "$idle_cookie; refresh=$pace"
+		assert_eq "idle timeout of 1 minute, $pace chosen: the page is served" "$status" 200
+		assert_eq "idle timeout of 1 minute, $pace chosen: the select still shows it" "$(me_selected refresh)" "$pace"
+		if [[ "$pace" == slow ]]; then
+			assert_contains "idle timeout of 1 minute: slow is said to run as normal" "$(me_help refresh)" "$note"
+		else
+			assert_absent "idle timeout of 1 minute, $pace: nothing is said" "$(me_help refresh)" "$note"
+			assert_contains "idle timeout of 1 minute, $pace: the help is there to be read" "$(me_help refresh)" "never off"
+		fi
+	done
+	panel_env=(EPISTLE_PANEL_SESSION_IDLE_TIMEOUT_MINUTES=3)
+	start_panel
+	login admin correct-horse
+	idle_cookie=$cookie
+	fetch /app/me "$idle_cookie; refresh=slow"
+	assert_eq "idle timeout of 3 minutes, slow chosen: the select shows it" "$(me_selected refresh)" slow
+	assert_absent "idle timeout of 3 minutes: slow runs as slow, nothing is said" "$(me_help refresh)" "$note"
+	assert_contains "idle timeout of 3 minutes: the help is there to be read" "$(me_help refresh)" "never off"
+	panel_env=(EPISTLE_PANEL_SESSION_IDLE_TIMEOUT_MINUTES=1 EPISTLE_PANEL_REFRESH=slow)
+	start_panel
+	login admin correct-horse
+	idle_cookie=$cookie
+	fetch /app/me "$idle_cookie; refresh=fast"
+	assert_contains "idle timeout of 1 minute, operator slow: the read-only text says it runs as normal" "$(cat "$work/b")" "Slow: half as often With the session"
+	assert_eq "idle timeout of 1 minute, operator slow: no select is offered" "$({ grep -o 'name="refresh"' "$work/b" || true; } | wc -l | tr -d ' ')" 0
 	panel_env=()
 	start_panel
 }

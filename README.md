@@ -230,7 +230,9 @@ variable and never the value.
 Two more choices of `/app/me` are the person's: how many messages one page of
 the message list holds (25, 50 or 100; 50 is what the list always held) and the
 pace at which the lists refresh by themselves while a tab is in view: `normal`,
-`slow` (half as often) or `fast` (twice as often, never under 15 seconds). They
+`slow` (half as often) or `fast` (up to twice as often, never under 15
+seconds, so the status counters and the queue, which already refresh every 15
+seconds, do not change). They
 are kept in the `page-size` and `refresh` cookies under `/app`. There is no
 choice to turn the refresh off: a page left open and visible keeps the session
 alive by refreshing its lists, so the idle timeout counts that refresh as use.
@@ -241,8 +243,10 @@ alive by refreshing its lists, so the idle timeout counts that refresh as use.
 | `EPISTLE_PANEL_REFRESH` | Fixed pace for everyone: `normal`, `slow` or `fast`. Unset or empty leaves the choice to each person. When set, it wins over the cookie, `/app/me` shows it as read-only text and the Server Action refuses a posted change. |
 
 A value outside the list stops the start with a message that names the variable
-and never the value. With an idle timeout of a few minutes, keep the pace at
-`normal` or `fast`: at `slow` the longest list refreshes once a minute.
+and never the value. A pace is never allowed to let an open page lose its
+session: when `EPISTLE_PANEL_SESSION_IDLE_TIMEOUT_MINUTES` is 2 or less, `slow`
+(whose longest interval is a minute) runs as `normal`. `/app/me` keeps showing
+what was chosen, or the operator's value, and says so under it.
 
 ### Sessions and sign-in limits
 

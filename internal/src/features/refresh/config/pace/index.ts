@@ -25,6 +25,33 @@ const FACTORS: Readonly<Record<RefreshPace, number>> = {
 	fast: 0.5,
 };
 
+/**
+ * The longest interval `slow` makes, in seconds: 60 s, from the lists that
+ * refresh every 30 s at the normal pace.
+ */
+export const SLOWEST_REFRESH_SECONDS = 60;
+
+/**
+ * The pace the lists really run at, given the one that was chosen and the
+ * session's idle timeout in seconds (`undefined` when there is none). A page
+ * left open keeps the session alive only if it refreshes at least twice inside
+ * the idle timeout, so a pace whose longest interval is more than half of it
+ * would let the session expire under a page that is open and visible: `slow`
+ * runs as `normal` when the idle timeout is 2 minutes or less. `normal` (30 s at
+ * most) and `fast` always fit, since the idle timeout is at least a minute.
+ * This is the one place the rule lives.
+ */
+export function effectiveRefreshPace(
+	chosen: RefreshPace,
+	idleTimeoutSeconds: number | undefined,
+): RefreshPace {
+	return chosen === "slow" &&
+		idleTimeoutSeconds !== undefined &&
+		idleTimeoutSeconds <= SLOWEST_REFRESH_SECONDS * 2
+		? "normal"
+		: chosen;
+}
+
 export function isRefreshPace(value: unknown): value is RefreshPace {
 	return REFRESH_PACES.some((pace) => pace === value);
 }

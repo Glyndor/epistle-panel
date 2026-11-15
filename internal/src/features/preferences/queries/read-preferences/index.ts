@@ -3,7 +3,7 @@ import { readListDensity } from "@/features/mail/queries/list-density";
 import { readEffectivePageSize } from "@/features/mail/queries/page-size";
 import { readEffectiveRemoteImagesMode } from "@/features/mail/queries/remote-images";
 import type { PreferencesValues } from "@/features/preferences/schemas/preferences";
-import { readEffectiveRefreshPace } from "@/features/refresh/queries/refresh-pace";
+import { readChosenRefreshPace } from "@/features/refresh/queries/refresh-pace";
 import { readThemeChoice } from "@/features/theme/queries/theme-choice";
 import { readEffectiveTimeZone } from "@/features/time-zone/queries/time-zone";
 import { DEFAULT_LOCALE, isSupportedLocale } from "@/i18n/locales";
@@ -26,7 +26,7 @@ export async function readPreferences(): Promise<PreferencesValues> {
 			readEffectiveRemoteImagesMode(),
 			readEffectiveTimeZone(),
 			readEffectivePageSize(),
-			readEffectiveRefreshPace(),
+			readChosenRefreshPace(),
 		]);
 	return {
 		language: isSupportedLocale(locale) ? locale : DEFAULT_LOCALE,
