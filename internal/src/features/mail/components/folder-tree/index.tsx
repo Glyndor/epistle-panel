@@ -1,52 +1,16 @@
 "use client";
 
-import {
-	ArchiveIcon,
-	FileEditIcon,
-	FolderIcon,
-	InboxIcon,
-	SendIcon,
-	ShieldAlertIcon,
-	Trash2Icon,
-} from "lucide-react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
+import * as React from "react";
+
 import { NavSection } from "@/components/layout/nav-section";
-import { Badge } from "@/components/ui/badge";
-import {
-	SidebarMenu,
-	SidebarMenuButton,
-	SidebarMenuItem,
-} from "@/components/ui/sidebar/menu";
+import { SidebarMenu } from "@/components/ui/sidebar/menu";
+import { FolderRow } from "@/features/mail/components/folder-tree/row";
+import { type FolderEntry, folderEntries } from "@/features/mail/folder-fold";
 import { activeFolder } from "@/features/mail/links/active-folder";
 import { mailHref } from "@/features/mail/links/mail-href";
-import type {
-	MailboxRole,
-	MailboxView,
-} from "@/features/mail/schemas/mail-view";
-import { cn } from "@/lib/class-names";
-
-const ICONS = {
-	inbox: InboxIcon,
-	drafts: FileEditIcon,
-	sent: SendIcon,
-	archive: ArchiveIcon,
-	junk: ShieldAlertIcon,
-	trash: Trash2Icon,
-} as const satisfies Record<MailboxRole, unknown>;
-
-/**
- * Indent per tree level, as classes so no style attribute is needed. Collapsed
- * to icons the rail has no room for a tree, so every folder sits in one column.
- */
-const INDENT = [
-	"",
-	"pl-5 group-data-[collapsible=icon]:pl-0",
-	"pl-8 group-data-[collapsible=icon]:pl-0",
-	"pl-11 group-data-[collapsible=icon]:pl-0",
-	"pl-14 group-data-[collapsible=icon]:pl-0",
-] as const;
+import type { MailboxView } from "@/features/mail/schemas/mail-view";
 
 /**
  * The folders of the account, in the mail area's sidebar: one link per
@@ -58,10 +22,16 @@ const INDENT = [
  * folder is the one entry still drawn.
  * It is a `nav` landmark with its own name, so it can be reached from the
  * landmark list as well as by Tab.
+ *
+ * A folder that has folders under it also has a control that folds them: the
+ * link still opens the folder and the control only folds the branch. Which
+ * branches are folded is kept in memory, in this component: the tree the
+ * server sends has every branch open, and the browser folds from there, so
+ * the first paint is the one the server drew and the choice does not outlive
+ * the visit.
  */
 export function FolderTree({ boxes }: { boxes: readonly MailboxView[] }) {
 	const t = useTranslations("mail");
-	const tNav = useTranslations("nav");
 	const activeId = activeFolder(usePathname(), boxes);
 	// A role's path opens the first folder with that role, so only that one is addressed by it.
 	const byRole = new Map<string, string>();
@@ -70,61 +40,46 @@ export function FolderTree({ boxes }: { boxes: readonly MailboxView[] }) {
 			byRole.set(box.role, box.id);
 		}
 	}
+	// Which branches are folded. Nothing is folded to start with, so the page
+	// the server sends and the page the browser draws are the same.
+	const [folded, setFolded] = React.useState<ReadonlySet<string>>(
+		() => new Set<string>(),
+	);
+	const entries = folderEntries(boxes, activeId, folded);
 
-	const entry = (box: MailboxView) => {
-		const Icon = box.role === null ? FolderIcon : ICONS[box.role];
-		const active = box.id === activeId;
+	const toggle = (id: string, open: boolean) => {
+		setFolded((current) => {
+			const next = new Set(current);
+			if (open) {
+				next.delete(id);
+			} else {
+				next.add(id);
+			}
+			return next;
+		});
+	};
+
+	const row = (entry: FolderEntry) => {
+		const box = entry.box;
 		const name = box.role === null ? box.name : t(`role_${box.role}`);
-		const said =
-			box.unread > 0
-				? t("folderWithUnread", { name, count: box.unread })
-				: name;
 		return (
-			<SidebarMenuItem key={box.id}>
-				<SidebarMenuButton
-					asChild
-					isActive={active}
-					// On the rail the fill and the mark say which folder is
-					// open; the tooltip says it in words.
-					tooltip={
-						active ? tNav("currentEntry", { name: said }) : said
-					}
-					className={cn(
-						INDENT[Math.min(box.depth, INDENT.length - 1)],
-					)}
-				>
-					<Link
-						href={mailHref({
-							box: box.id,
-							role:
-								box.role !== null &&
-								byRole.get(box.role) === box.id
-									? box.role
-									: null,
-						})}
-						aria-current={active ? "page" : undefined}
-					>
-						<Icon aria-hidden="true" />
-						<span className="min-w-0 flex-1 truncate">
-							<bdi>{name}</bdi>
-						</span>
-						{box.unread > 0 ? (
-							<Badge
-								variant="default"
-								className="px-2 py-0 font-normal"
-							>
-								<span aria-hidden="true">{box.unread}</span>
-								<span className="sr-only">
-									{t("unreadCount", { count: box.unread })}
-								</span>
-							</Badge>
-						) : null}
-					</Link>
-				</SidebarMenuButton>
-			</SidebarMenuItem>
+			<FolderRow
+				key={box.id}
+				entry={entry}
+				name={name}
+				href={mailHref({
+					box: box.id,
+					role:
+						box.role !== null && byRole.get(box.role) === box.id
+							? box.role
+							: null,
+				})}
+				active={box.id === activeId}
+				onToggle={(open) => toggle(box.id, open)}
+			/>
 		);
 	};
-	const current = boxes.find((box) => box.id === activeId);
+	const current = entries.find((entry) => entry.box.id === activeId);
 
 	return (
 		<nav aria-label={t("folders")}>
@@ -133,11 +88,11 @@ export function FolderTree({ boxes }: { boxes: readonly MailboxView[] }) {
 				label={t("folders")}
 				current={
 					current === undefined ? undefined : (
-						<SidebarMenu>{entry(current)}</SidebarMenu>
+						<SidebarMenu>{row(current)}</SidebarMenu>
 					)
 				}
 			>
-				<SidebarMenu>{boxes.map(entry)}</SidebarMenu>
+				<SidebarMenu>{entries.map(row)}</SidebarMenu>
 			</NavSection>
 		</nav>
 	);

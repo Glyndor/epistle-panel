@@ -17,6 +17,8 @@
 	"storageNear": "Fast voll",
 	"storageFull": "Voll",
 	"folderWithUnread": "{name}: {count} ungelesen",
+	"foldFolder": "Ordner {name} einklappen",
+	"unfoldFolder": "Ordner {name} ausklappen",
 	"listLabel": "Nachrichten",
 	"messageCount": "{count, plural, one {# Nachricht} other {# Nachrichten}}",
 	"searchLabel": "In diesem Ordner suchen",

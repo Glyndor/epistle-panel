@@ -9,7 +9,7 @@ the JMAP server, how a hostile message is handled and what is still missing.
 | Piece | Where |
 |---|---|
 | A page per folder, two panes (the list and the reader), one column below 1024 px | `app/app/mail/(places)/[role]`, `app/app/mail/(places)/folder/[name]`, each with `[id]` for an open message; they all render `features/mail/components/mail-place`. Frame in `app/app/mail/layout.tsx`, which renders the panel's shell (`layouts.md`) |
-| The sidebar: the way into the composer, the folders under a heading that opens and closes them | `features/mail/components/mail-nav`, `folders-boundary`, `folder-pane`, `folder-tree`; the current folder is read from the address (`links/active-folder`) |
+| The sidebar: the way into the composer, the folders under a heading that opens and closes them | `features/mail/components/mail-nav`, `folders-boundary`, `folder-pane`, `folder-tree`, `features/mail/folder-fold`; the current folder is read from the address (`links/active-folder`) |
 | The storage at the foot of the sidebar | `features/mail/components/quota-meter`, drawn with `components/ui/meter` |
 | The trail of the header | `app/app/mail/@trail/**`, `features/mail/components/place-trail` and `mail-breadcrumbs` |
 | List, search, filters, pager, reader | `features/mail/components/*` |
@@ -38,6 +38,40 @@ for.
 
 The sidebar is named "Mail navigation" and the list inside it "Folders": two
 landmarks, two names.
+
+**The folders fold.** A folder that has folders under it is drawn with a
+control of its own: a button with a chevron, and the folder's link beside it.
+The link still opens the folder and the button only folds the branch under it,
+so the two are two stops of the keyboard, and Enter or Space works the button.
+The button is the panel's own collapsible, the one the headings of the
+navigation use, so it brings no style with it, and it says whether the branch
+is open (`aria-expanded`) and which folder it folds ("Fold Work", "Unfold
+Work", in the reader's language).
+
+- **The branch that holds the current folder stays open.** The tree never hides
+  where the person is: a folder above the one the address shows is open
+  however it was folded, and its button says so (`aria-disabled`) and does
+  nothing. The fold comes back when the person leaves that branch.
+- **A folded folder says what waits under it.** The count beside a folder is
+  its own while the branch is open and the whole branch's while it is folded:
+  "Work" with two unread in "Q4" under it says three while it is folded, and
+  one while it is open.
+- **The column of the button is kept for every folder**, so the names of a
+  level line up whether the folder has folders under it or not. The tree is a
+  flat list indented by depth, so a folder under a folded one is left out of
+  the list instead of being held by a collapsible's content.
+- **Collapsed to icons** the rail has no room for a tree: there is no button
+  and every folder is its icon, as before.
+- **Which branches are folded is kept in memory**, by the tree, in the browser,
+  and does not outlive the visit: the page the server sends has every branch
+  open and the browser folds from there, so the first paint is the one the
+  server drew. The groups' cookie (`components/ui/sidebar/groups-cookie`) was
+  not reused for it: it holds a closed list of the names of the groups of the
+  navigation and is read on the server, while the folders are the account's
+  own and are only known once the mail server has answered.
+
+The tree itself is `features/mail/components/folder-tree` (the tree and the row
+of a folder) and the model of the branches is `features/mail/folder-fold`.
 
 **The storage** is `Quota/get`, read once per request: what the account uses
 of its limit as a meter with the two figures, and "almost full" or "full"
