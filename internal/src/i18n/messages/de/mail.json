@@ -78,6 +78,8 @@
 	"stateLabels": "Labels: <names></names>",
 	"labelsTitle": "Labels",
 	"moreLabels": "+{count}",
+	"labelsNav": "Aktuelle Labels",
+	"labelsNavHint": "Die Labels der zuletzt geladenen Nachrichten. Jedes zeigt die Nachrichten des aktuellen Ordners, die es tragen.",
 	"emptyFolder": "Dieser Ordner ist leer.",
 	"emptyMatches": "Keine Nachricht passt.",
 	"emptyHint": "Versuchen Sie einen anderen Filter oder löschen Sie die Suche.",

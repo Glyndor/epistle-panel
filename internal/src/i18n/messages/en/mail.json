@@ -78,6 +78,8 @@
 	"stateLabels": "Labels: <names></names>",
 	"labelsTitle": "Labels",
 	"moreLabels": "+{count}",
+	"labelsNav": "Recent labels",
+	"labelsNavHint": "The labels of the latest messages you have opened. Each one lists the messages of the current folder that carry it.",
 	"emptyFolder": "This folder is empty.",
 	"emptyMatches": "No message matches.",
 	"emptyHint": "Try another filter or clear the search.",

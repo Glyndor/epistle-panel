@@ -22,6 +22,22 @@ describe("LabelChip", () => {
 		);
 	});
 
+	it("keeps its outline where the system takes the tone of the fill away (forced colours), a border and not a shadow", () => {
+		const { container } = render(
+			<LabelChip label={{ keyword: "Work", name: "Work", tone: 3 }} />,
+		);
+
+		// The pill's fill is a tint, which forced colours drops: the border
+		// that shows only then is what is left of its shape.
+		expect(container.firstElementChild).toHaveClass(
+			"forced-colors:border",
+			"forced-colors:border-[CanvasText]",
+		);
+		expect(container.querySelector("span > span")).toHaveClass(
+			"forced-color-adjust-none",
+		);
+	});
+
 	it("never draws the name narrower than four characters", () => {
 		const { container } = render(
 			<LabelChip

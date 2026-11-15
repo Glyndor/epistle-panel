@@ -78,6 +78,8 @@
 	"stateLabels": "Etiquetas: <names></names>",
 	"labelsTitle": "Etiquetas",
 	"moreLabels": "+{count}",
+	"labelsNav": "Etiquetas recientes",
+	"labelsNavHint": "Las etiquetas de los últimos mensajes que has abierto. Cada una muestra los mensajes de la carpeta actual que la llevan.",
 	"emptyFolder": "Esta carpeta está vacía.",
 	"emptyMatches": "Ningún mensaje coincide.",
 	"emptyHint": "Prueba otro filtro o borra la búsqueda.",
