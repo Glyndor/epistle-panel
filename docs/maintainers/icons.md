@@ -74,6 +74,7 @@ colours it is painted `CanvasText` and does not disappear, which a badge needs.
 | `circle-check`, `clock`, `circle-x`, `ban`, `circle-minus` | a delivery's outcome (delivered, deferred, failed, suppressed, canceled) |
 | `circle-check`, `power-off` | a domain taking mail, a domain switched off |
 | `cloud`, `file-text` | an account made through the API, an account declared in the file |
+| `users`, `globe`, `inbox`, `send`, `ban` | table identities (`components/data-table/identity`): account, domain, delivery recipient, queued sender, suppressed address; 16 px, 8 px gap, with wrapping text and unchanged links |
 
 ## Inventory
 

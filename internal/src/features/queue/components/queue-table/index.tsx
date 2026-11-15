@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 
 import { columnHelper, DataTable } from "@/components/data-table";
+import { TableIdentity } from "@/components/data-table/identity";
 import { useAdminRoutes } from "@/components/layout/admin-routes";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -33,9 +34,9 @@ export function QueueTable({ cursor }: { cursor: string | undefined }) {
 		helper.accessor("from", {
 			header: t("from"),
 			cell: (info) => (
-				<span className="wrap-anywhere font-mono">
+				<TableIdentity icon="send" className="font-mono">
 					{info.getValue()}
-				</span>
+				</TableIdentity>
 			),
 		}),
 		helper.accessor((row) => row.recipients.join(", "), {

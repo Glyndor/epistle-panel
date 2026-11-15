@@ -12,6 +12,7 @@ import {
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuLabel,
+	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "@/components/ui/toaster";
@@ -98,13 +99,16 @@ export function AccountRowActions({ row }: { row: AccountRow }) {
 						</DropdownMenuItem>
 					) : null}
 					{named && row.dynamic ? (
-						<DropdownMenuItem
-							variant="destructive"
-							onSelect={() => void openDeleteDialog()}
-						>
-							<Trash2Icon aria-hidden="true" />
-							{t("delete")}
-						</DropdownMenuItem>
+						<>
+							<DropdownMenuSeparator />
+							<DropdownMenuItem
+								variant="destructive"
+								onSelect={() => void openDeleteDialog()}
+							>
+								<Trash2Icon aria-hidden="true" />
+								{t("delete")}
+							</DropdownMenuItem>
+						</>
 					) : (
 						<DropdownMenuLabel>
 							{t("managedInFile")}

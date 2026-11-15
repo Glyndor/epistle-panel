@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { columnHelper, DataTable } from "@/components/data-table";
+import { TableIdentity } from "@/components/data-table/identity";
 import { useAdminRoutes } from "@/components/layout/admin-routes";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -37,9 +38,9 @@ export function SuppressionTable({ after }: { after: string | undefined }) {
 		helper.accessor("address", {
 			header: t("address"),
 			cell: (info) => (
-				<span className="wrap-anywhere font-mono">
+				<TableIdentity icon="ban" className="font-mono">
 					{info.getValue()}
-				</span>
+				</TableIdentity>
 			),
 		}),
 		helper.display({

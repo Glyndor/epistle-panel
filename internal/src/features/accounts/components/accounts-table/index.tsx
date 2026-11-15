@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 
 import { columnHelper, DataTable } from "@/components/data-table";
 import { DataTableFiltersMenu } from "@/components/data-table/filters-menu";
+import { TableIdentity } from "@/components/data-table/identity";
 import { useAdminRoutes } from "@/components/layout/admin-routes";
 import { StatusBadge } from "@/components/status-badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -92,7 +93,9 @@ export function AccountsTable() {
 			// 360 px, so its longest word stays the floor of the column.
 			cell: (info) => (
 				<div className="flex flex-col items-start gap-1">
-					<AccountName name={info.getValue()} />
+					<TableIdentity icon="users">
+						<AccountName name={info.getValue()} />
+					</TableIdentity>
 					<span className="@md:hidden">
 						<OriginBadge
 							origin={originOf(info.row.original)}
