@@ -231,6 +231,7 @@ describe("AccountSection", () => {
 
 		fireEvent.click(screen.getByRole("button", { name: "sectionRetry" }));
 
+		expect(document.activeElement).not.toBe(document.body);
 		expect(await screen.findByText("section loaded")).toBeInTheDocument();
 		expect(attempts).toBe(2);
 		expect(screen.queryByText("sectionLoadFailed")).toBeNull();

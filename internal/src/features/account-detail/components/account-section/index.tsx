@@ -8,6 +8,7 @@ import {
 	type ReactNode,
 	Suspense,
 	useMemo,
+	useRef,
 	useState,
 } from "react";
 
@@ -152,6 +153,7 @@ export function AccountSection({
 }) {
 	const t = useTranslations("accountDetail");
 	const [attempt, setAttempt] = useState(0);
+	const region = useRef<HTMLDivElement>(null);
 	const Loaded = useMemo(
 		() =>
 			lazy(() =>
@@ -163,15 +165,24 @@ export function AccountSection({
 	);
 
 	return (
-		<AccountSectionErrorBoundary
-			key={`${section}-${attempt}`}
-			failedMessage={t("sectionLoadFailed")}
-			retryLabel={t("sectionRetry")}
-			onRetry={() => setAttempt((current) => current + 1)}
-		>
-			<Suspense fallback={<AccountDetailSkeleton section={section} />}>
-				{sectionContent(section, name, Loaded)}
-			</Suspense>
-		</AccountSectionErrorBoundary>
+		// The retry button leaves the page while the section loads again, so the
+		// focus moves to this region, which stays, before that happens.
+		<div ref={region} tabIndex={-1} className="outline-none">
+			<AccountSectionErrorBoundary
+				key={`${section}-${attempt}`}
+				failedMessage={t("sectionLoadFailed")}
+				retryLabel={t("sectionRetry")}
+				onRetry={() => {
+					region.current?.focus();
+					setAttempt((current) => current + 1);
+				}}
+			>
+				<Suspense
+					fallback={<AccountDetailSkeleton section={section} />}
+				>
+					{sectionContent(section, name, Loaded)}
+				</Suspense>
+			</AccountSectionErrorBoundary>
+		</div>
 	);
 }
