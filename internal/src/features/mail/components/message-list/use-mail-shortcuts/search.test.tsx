@@ -79,7 +79,7 @@ describe("search shortcut with the real narrow field", () => {
 			expect(icon).toHaveAttribute("aria-expanded", "false");
 		},
 	);
-	it.each(["ctrlKey", "metaKey", "altKey", "shiftKey", "isComposing"])(
+	it.each(["ctrlKey", "metaKey", "altKey", "isComposing"])(
 		"ignores / with %s",
 		(key) => {
 			const { icon, input } = draw(360);
@@ -90,4 +90,19 @@ describe("search shortcut with the real narrow field", () => {
 			expect(document.activeElement).not.toBe(input);
 		},
 	);
+	it("opens the search with / typed with Shift, as es, it, de and fr layouts do", () => {
+		const { icon, input } = draw(360);
+		expect(
+			fireEvent.keyDown(document.body, { key: "/", shiftKey: true }),
+		).toBe(false);
+		expect(icon).toHaveAttribute("aria-expanded", "true");
+		expect(document.activeElement).toBe(input);
+	});
+	it("still ignores other keys typed with Shift", () => {
+		const { icon } = draw(360);
+		expect(
+			fireEvent.keyDown(document.body, { key: "?", shiftKey: true }),
+		).toBe(true);
+		expect(icon).toHaveAttribute("aria-expanded", "false");
+	});
 });

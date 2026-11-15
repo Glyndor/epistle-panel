@@ -2,13 +2,17 @@ import { useEffect } from "react";
 
 import { SEARCH_OPENER_ID } from "@/features/mail/components/mail-search/narrow";
 
-/** Whether a key press is meant for a field, a dialog or a modifier combination, not for the list. */
+/**
+ * Whether a key press is meant for a field, a dialog or a modifier combination,
+ * not for the list. Shift is allowed with `/` because several layouts (es, it,
+ * de, fr) type the slash with it.
+ */
 function belongsElsewhere(event: KeyboardEvent): boolean {
 	if (
 		event.ctrlKey ||
 		event.metaKey ||
 		event.altKey ||
-		event.shiftKey ||
+		(event.shiftKey && event.key !== "/") ||
 		event.isComposing
 	) {
 		return true;
