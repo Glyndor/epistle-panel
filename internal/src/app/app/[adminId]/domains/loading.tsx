@@ -1,13 +1,11 @@
-import { getTranslations } from "next-intl/server";
-
+import { DomainsHeading } from "@/features/domains/components/domains-heading";
 import { DomainsTableSkeleton } from "@/features/domains/components/domains-table-skeleton";
 
 /** Shown while the domains page starts: its real heading and the skeleton its table streams into. */
-export default async function Loading() {
-	const t = await getTranslations("domains");
+export default function Loading() {
 	return (
 		<>
-			<h1 className="font-semibold text-lg">{t("heading")}</h1>
+			<DomainsHeading />
 			<DomainsTableSkeleton />
 		</>
 	);

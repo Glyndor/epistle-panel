@@ -157,6 +157,39 @@ describe("AccountsTable", () => {
 		expect(ops).not.toHaveTextContent("originApi");
 	});
 
+	it("tells the origin by an icon and a tone as well as by its word", async () => {
+		stubFetchJson({
+			accounts: [account("alice", true), account("ops", false)],
+		});
+
+		render(withAdminArea(<AccountsTable />));
+
+		await screen.findByText("alice");
+		const [, alice, ops] = screen.getAllByRole("row");
+		const api = alice
+			?.querySelectorAll("td")[2]
+			?.querySelector("[data-status-badge]");
+		const file = ops
+			?.querySelectorAll("td")[2]
+			?.querySelector("[data-status-badge]");
+		expect(api?.querySelector("[data-glyph]")).toHaveAttribute(
+			"data-glyph",
+			"cloud",
+		);
+		expect(file?.querySelector("[data-glyph]")).toHaveAttribute(
+			"data-glyph",
+			"file-text",
+		);
+		expect(api).toHaveAttribute("data-variant", "secondary");
+		expect(file).toHaveAttribute("data-variant", "muted");
+		expect(api?.textContent).toBe("originApi");
+		expect(file?.textContent).toBe("originFile");
+		// The copy under the name, for the narrow table, carries them too.
+		const [stacked] =
+			alice?.querySelectorAll("td [data-status-badge]") ?? [];
+		expect(stacked?.querySelector('[data-glyph="cloud"]')).not.toBeNull();
+	});
+
 	it("moves the origin under the name while the table is narrow, and into its own column once it is wide", async () => {
 		stubFetchJson({ accounts: [account("ops", false)] });
 

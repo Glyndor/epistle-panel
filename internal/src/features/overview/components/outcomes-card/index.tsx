@@ -126,6 +126,7 @@ export async function OutcomesCard({
 	return (
 		<ChartCard {...frame}>
 			<ChartFigure
+				icon="send"
 				value={format.number(total)}
 				label={t("deliveries.records", { count: total })}
 			/>

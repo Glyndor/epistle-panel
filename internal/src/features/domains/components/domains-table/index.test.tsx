@@ -91,6 +91,32 @@ describe("DomainsTable", () => {
 		expect(b).not.toHaveTextContent("stateActive");
 	});
 
+	it("tells each state by an icon and a tone as well as by its word, so colour is never alone", async () => {
+		stubFetchJson({
+			domains: ["a.example", "b.example"],
+			disabled: ["b.example"],
+		});
+
+		render(withQuery(<DomainsTable />));
+
+		const [, a, b] = await screen.findAllByRole("row");
+		const active = a?.querySelector("[data-status-badge]");
+		const off = b?.querySelector("[data-status-badge]");
+		expect(active?.querySelector("[data-glyph]")).toHaveAttribute(
+			"data-glyph",
+			"circle-check",
+		);
+		expect(off?.querySelector("[data-glyph]")).toHaveAttribute(
+			"data-glyph",
+			"power-off",
+		);
+		expect(active).toHaveAttribute("data-variant", "secondary");
+		expect(off).toHaveAttribute("data-variant", "muted");
+		// What a screen reader gets is the word alone.
+		expect(active?.textContent).toBe("stateActive");
+		expect(off?.textContent).toBe("stateDisabled");
+	});
+
 	it("narrows by the state, from the Filters menu", async () => {
 		stubFetchJson({
 			domains: ["a.example", "b.example", "c.example"],

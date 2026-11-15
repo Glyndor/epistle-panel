@@ -103,9 +103,14 @@ function SkeletonCard({
 const rows = (count: number) =>
 	Array.from({ length: count }, (_, row) => `r${row}`);
 
-/** The place of a headline figure: a line of 32 px. */
+/** The place of a headline figure: a line of 32 px, with the place of its tile. */
 function FigurePlace() {
-	return <Skeleton className="h-8 w-28 rounded-md" />;
+	return (
+		<div className="flex items-center gap-3">
+			<Skeleton className="size-8 rounded-lg" />
+			<Skeleton className="h-8 w-28 rounded-md" />
+		</div>
+	);
 }
 
 /**

@@ -4,8 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 
 import { columnHelper, DataTable } from "@/components/data-table";
+import type { GlyphName } from "@/components/glyph";
+import { StatusBadge } from "@/components/status-badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { getDeliveriesAction } from "@/features/deliveries/actions/get-deliveries";
 import { DeliveriesTableSkeleton } from "@/features/deliveries/components/deliveries-table-skeleton";
 import { deliveriesQueryOptions } from "@/features/deliveries/queries/deliveries-query";
@@ -19,6 +20,15 @@ const fetchDeliveries = async (filters: DeliveryFilters) =>
 	unwrap(await getDeliveriesAction(filters));
 const getRowId = (row: DeliveryRow) => row.id;
 const helper = columnHelper<DeliveryRow>();
+
+/** The drawing of each outcome's badge: no two outcomes share one, so the shape tells them apart as the word does. */
+const OUTCOME_GLYPH: Record<(typeof DELIVERY_OUTCOMES)[number], GlyphName> = {
+	delivered: "circle-check",
+	deferred: "clock",
+	failed: "circle-x",
+	suppressed: "ban",
+	canceled: "circle-minus",
+};
 
 /** The badge tone of each outcome; the label always says it in words too. */
 const OUTCOME_VARIANT: Record<
@@ -54,9 +64,12 @@ export function DeliveriesTable({ filters }: { filters: DeliveryFilters }) {
 		helper.accessor("outcome", {
 			header: t("outcome"),
 			cell: (info) => (
-				<Badge variant={OUTCOME_VARIANT[info.getValue()]}>
+				<StatusBadge
+					glyph={OUTCOME_GLYPH[info.getValue()]}
+					variant={OUTCOME_VARIANT[info.getValue()]}
+				>
 					{t(`outcomes.${info.getValue()}`)}
-				</Badge>
+				</StatusBadge>
 			),
 		}),
 		helper.accessor("recipient", {

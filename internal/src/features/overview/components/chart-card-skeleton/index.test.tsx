@@ -87,9 +87,9 @@ describe("the chart card skeletons", () => {
 	it("draw the parts the outcomes card has, the table flush with the bottom in rows of the table's height", () => {
 		const { container } = render(<OutcomesCardSkeleton words={words} />);
 
-		// The line under the title, the link, the figure, the thin bar and the
-		// six rows of the table.
-		expect(blocks(container)).toBe(10);
+		// The line under the title, the link, the figure with the place of its
+		// tile, the thin bar and the six rows of the table.
+		expect(blocks(container)).toBe(11);
 		expect(container.querySelector(".rounded-full")).not.toBeNull();
 		const table = container.querySelector(".-mb-4");
 		const heights = Array.from(table?.children ?? []).map((row) =>

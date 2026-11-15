@@ -143,6 +143,22 @@ The proxy matcher stays wide so every page, public or not, gets the nonce-bearin
 CSP; the decision is in the proxy function, not in the matcher, and the pages and
 Server Actions still check the role themselves.
 
+## The page header
+
+Every admin page that opens on a table or on cards starts with `PageHeader`
+(`components/page-header`): the icon tile, the title as the page's `h1`, one line
+saying what the page is for (`description` in the page's namespace, in the six
+languages) and, at the end, the primary action (the new-account dialog on the
+accounts page). Where the row is too narrow the action goes under the title.
+Each page has a small `...Heading` component in its feature, drawn by the page
+and by its `loading.tsx` alike, and `streaming.test.tsx` holds that the two
+produce the same header. The account's own page, which opens on its sections,
+does not use it yet. Status is told by `StatusBadge` (`components/status-badge`):
+an icon (`Glyph`), the tone of a `Badge` variant and, above all, the word; no two
+states of one set share both tone and icon. The counters of the status page are
+`SummaryCard`s (`components/summary-card`), and the figure of a chart card takes
+the same tile (`ChartFigure`'s `icon`).
+
 ## The header's far end
 
 `components/layout/header-actions` is the far end of both headers, the admin

@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "../styles/theme.css";
 @import "../styles/illustrations.css";
+@import "../styles/glyphs.css";
 
 body {
 	background: var(--background);

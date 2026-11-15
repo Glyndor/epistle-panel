@@ -1,5 +1,6 @@
 {
 	"heading": "Status",
+	"description": "Como está o servidor de correio agora: os seus contadores, as entregas e o que está à espera.",
 	"unavailable": "Não foi possível ler os contadores.",
 	"none": "-",
 	"version": "Versão",

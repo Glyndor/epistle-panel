@@ -1,5 +1,6 @@
 {
 	"heading": "Status",
+	"description": "Wie es dem Mailserver gerade geht: seine Zähler, seine Zustellungen und was wartet.",
 	"unavailable": "Die Zähler konnten nicht gelesen werden.",
 	"none": "-",
 	"version": "Version",

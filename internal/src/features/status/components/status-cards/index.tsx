@@ -3,42 +3,21 @@
 import { useQuery } from "@tanstack/react-query";
 import { useFormatter, useTranslations } from "next-intl";
 
-import { Card } from "@/components/ui/card";
+import { SummaryCard } from "@/components/summary-card";
 import { getStatusAction } from "@/features/status/actions/get-status";
 import { StatusCardsSkeleton } from "@/features/status/components/status-cards-skeleton";
 import { statusQueryOptions } from "@/features/status/queries/status-query";
-import { cn } from "@/lib/class-names";
 import { unwrap } from "@/lib/query/action-result";
 
 const fetchStatus = async () => unwrap(await getStatusAction());
 
-/** The four counters, in the order the page shows them. */
-const COUNTERS = ["version", "domains", "accounts", "queue"] as const;
-
-/** One counter: its label and its value. `quiet` is a value that could not be read. */
-function StatusCard({
-	label,
-	value,
-	quiet = false,
-}: {
-	label: string;
-	value: string;
-	quiet?: boolean;
-}) {
-	return (
-		<Card className="gap-0.5 p-3">
-			<dt className="text-muted-foreground text-xs">{label}</dt>
-			<dd
-				className={cn(
-					"font-semibold text-xl tabular-nums",
-					quiet && "text-muted-foreground",
-				)}
-			>
-				{value}
-			</dd>
-		</Card>
-	);
-}
+/** The four counters, in the order the page shows them, each with the drawing of its tile. */
+const COUNTERS = [
+	{ key: "version", icon: "tag" },
+	{ key: "domains", icon: "globe" },
+	{ key: "accounts", icon: "users" },
+	{ key: "queue", icon: "inbox" },
+] as const;
 
 /**
  * The status counters, as a compact row of cards that goes from two columns to four by the width of its own container, not of the window. The first paint comes from
@@ -64,9 +43,10 @@ export function StatusCards() {
 			<div className="@container" data-slot="status-unavailable">
 				<p className="sr-only">{t("unavailable")}</p>
 				<dl className="grid grid-cols-2 gap-3 @xl:grid-cols-4">
-					{COUNTERS.map((key) => (
-						<StatusCard
+					{COUNTERS.map(({ key, icon }) => (
+						<SummaryCard
 							key={key}
+							icon={icon}
 							label={t(key)}
 							value={t("none")}
 							quiet
@@ -85,8 +65,13 @@ export function StatusCards() {
 	return (
 		<div className="@container">
 			<dl className="grid grid-cols-2 gap-3 @xl:grid-cols-4">
-				{COUNTERS.map((key) => (
-					<StatusCard key={key} label={t(key)} value={values[key]} />
+				{COUNTERS.map(({ key, icon }) => (
+					<SummaryCard
+						key={key}
+						icon={icon}
+						label={t(key)}
+						value={values[key]}
+					/>
 				))}
 			</dl>
 		</div>

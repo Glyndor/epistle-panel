@@ -51,6 +51,30 @@ set of choices carries the mark of the set (a dot, a tick); the theme's choices
 carry their own icon as well, the one the theme button shows. A language is
 told by its name: the icon is on the heading of the run.
 
+## Glyphs: the icon as a mask
+
+An icon from the set is an `svg` with children, which a streamed part cannot
+carry safely ([charts.md](charts.md)). The marks of the definition pass that
+sit in streamed parts (the tile of a page header, of a counter and of a chart's
+figure, and the icon of a status badge) are therefore `Glyph`
+(`components/glyph`): an empty `span` that wears one of the files of
+`styles/glyphs/` as a CSS mask and paints it in `currentColor`. The files are
+the shapes of Lucide's icons of the same name (ISC), black, 24 px grid, 2 px
+round stroke. To add one: put the file there, add its rule to
+`styles/glyphs.css` and its name to `GLYPHS`; `components/glyph/index.test.tsx`
+fails when the three drift or a file holds more than shapes. A glyph is
+decoration (`aria-hidden`) and the words beside it say all of it; in forced
+colours it is painted `CanvasText` and does not disappear, which a badge needs.
+
+| Glyph | Where |
+|---|---|
+| `layout-dashboard`, `globe`, `users`, `inbox`, `history`, `ban` | the tile of each admin page's header |
+| `tag`, `globe`, `users`, `inbox` | the tiles of the four counters of the status page |
+| `send`, `clock`, `ban` | the tile of the figure of the outcomes, queue and suppression cards |
+| `circle-check`, `clock`, `circle-x`, `ban`, `circle-minus` | a delivery's outcome (delivered, deferred, failed, suppressed, canceled) |
+| `circle-check`, `power-off` | a domain taking mail, a domain switched off |
+| `cloud`, `file-text` | an account made through the API, an account declared in the file |
+
 ## Inventory
 
 | Icon | Where | Source | Licence |

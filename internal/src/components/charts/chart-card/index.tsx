@@ -1,5 +1,7 @@
 import type * as React from "react";
 
+import type { GlyphName } from "@/components/glyph";
+import { IconTile } from "@/components/icon-tile";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/class-names";
 
@@ -105,18 +107,31 @@ function ChartNote({ className, ...props }: React.ComponentProps<"p">) {
 	);
 }
 
-/** The headline figure of a chart: one number and the words that say what it counts. */
+/**
+ * The headline figure of a chart: one number and the words that say what it
+ * counts, with, when the card gives one, the tile of a summary card in front
+ * of it. The tile is a drawing and no more (see `IconTile`): the words are
+ * what says it, and it is as high as the figure's line, so it moves nothing.
+ */
 function ChartFigure({
 	value,
 	label,
+	icon,
 }: {
 	value: React.ReactNode;
 	label: React.ReactNode;
+	/** The drawing of the card's tile. */
+	icon?: GlyphName;
 }) {
 	return (
-		<p data-slot="chart-figure" className="flex items-baseline gap-1.5">
-			<span className="font-semibold text-2xl">{value}</span>
-			<span className="text-muted-foreground text-sm">{label}</span>
+		<p data-slot="chart-figure" className="flex items-center gap-3">
+			{icon === undefined ? null : (
+				<IconTile name={icon} className="size-8" />
+			)}
+			<span className="flex min-w-0 items-baseline gap-1.5">
+				<span className="font-semibold text-2xl">{value}</span>
+				<span className="text-muted-foreground text-sm">{label}</span>
+			</span>
 		</p>
 	);
 }

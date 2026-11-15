@@ -1,5 +1,6 @@
 {
 	"heading": "Status",
+	"description": "How the mail server is doing right now: its counters, its deliveries and what is waiting.",
 	"unavailable": "The counters could not be read.",
 	"none": "-",
 	"version": "Version",

@@ -51,6 +51,20 @@ describe("OutcomesCard", () => {
 		expect(screen.getByText("inPeriod.24h")).toBeVisible();
 	});
 
+	it("gives its figure the tile of sending, which is a drawing and not read", async () => {
+		stubOverviewApi({
+			deliveries: deliveryEntries(NOW - 60, { delivered: 6, failed: 2 }),
+		});
+
+		const { container } = await show();
+		const tile = container.querySelector(
+			'[data-slot="chart-figure"] [data-slot="icon-tile"]',
+		);
+
+		expect(tile?.querySelector('[data-glyph="send"]')).not.toBeNull();
+		expect(tile).toHaveAttribute("aria-hidden", "true");
+	});
+
 	it("lists every outcome with its count and its share, also the ones nothing had", async () => {
 		stubOverviewApi({
 			deliveries: deliveryEntries(NOW - 60, {

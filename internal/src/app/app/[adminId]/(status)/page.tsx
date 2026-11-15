@@ -27,6 +27,7 @@ import {
 } from "@/features/overview/schemas/overview-input";
 import { StatusCards } from "@/features/status/components/status-cards";
 import { StatusCardsSkeleton } from "@/features/status/components/status-cards-skeleton";
+import { StatusHeading } from "@/features/status/components/status-heading";
 import { statusQueryOptions } from "@/features/status/queries/status-query";
 import { requireAdmin } from "@/lib/auth/require-session";
 import { prefetchSpec } from "@/lib/query/prefetch";
@@ -57,14 +58,13 @@ export default async function HomePage({
 	searchParams: Promise<{ since?: string | string[] }>;
 }) {
 	const { routes } = await requireAdmin();
-	const t = await getTranslations("dashboard");
 	const tCharts = await getTranslations("overview");
 	const period = parsePeriodParam((await searchParams).since);
 	const words = await skeletonWords(period);
 
 	return (
 		<>
-			<h1 className="font-semibold text-lg">{t("heading")}</h1>
+			<StatusHeading />
 			<Suspense key={`notice-${period}`} fallback={null}>
 				<OverviewNotice
 					period={period}

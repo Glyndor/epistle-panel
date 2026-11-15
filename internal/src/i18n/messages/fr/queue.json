@@ -1,5 +1,6 @@
 {
 	"heading": "File d’attente sortante",
+	"description": "Les messages que le serveur a acceptés et pas encore livrés. En retirer un l’empêche de partir.",
 	"unreachable": "L’API de gestion du serveur de messagerie est injoignable. Vérifiez que le serveur est en marche et que le panneau est configuré.",
 	"empty": "La file d’attente sortante est vide.",
 	"emptyHint": "Le courrier part dès que le serveur peut le livrer ; le journal des livraisons montre ce qui est parti.",

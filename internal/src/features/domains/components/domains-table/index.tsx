@@ -5,8 +5,8 @@ import { useTranslations } from "next-intl";
 
 import { columnHelper, DataTable } from "@/components/data-table";
 import { DataTableFiltersMenu } from "@/components/data-table/filters-menu";
+import { StatusBadge } from "@/components/status-badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { getDomainsAction } from "@/features/domains/actions/get-domains";
 import { DomainsTableSkeleton } from "@/features/domains/components/domains-table-skeleton";
 import { domainsQueryOptions } from "@/features/domains/queries/domains-query";
@@ -43,9 +43,13 @@ export function DomainsTable() {
 			enableGlobalFilter: false,
 			cell: (info) =>
 				info.getValue() === "disabled" ? (
-					<Badge variant="muted">{t("stateDisabled")}</Badge>
+					<StatusBadge glyph="power-off" variant="muted">
+						{t("stateDisabled")}
+					</StatusBadge>
 				) : (
-					<Badge variant="secondary">{t("stateActive")}</Badge>
+					<StatusBadge glyph="circle-check" variant="secondary">
+						{t("stateActive")}
+					</StatusBadge>
 				),
 		}),
 	]);

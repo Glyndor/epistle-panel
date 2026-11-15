@@ -174,8 +174,9 @@ describe("HomePage", () => {
 		expect(alert).toHaveClass("bg-warning");
 		expect(screen.getAllByText("unavailableTitle")).toHaveLength(4);
 		// It comes before the counters and the charts.
+		// The heading is in the page header, which is the first thing on the page.
 		const heading = screen.getByRole("heading", { level: 1 });
-		expect(heading.nextElementSibling).toBe(alert);
+		expect(heading.closest("header")?.nextElementSibling).toBe(alert);
 		// A plain link to the address the reader is on, period included.
 		const retry = within(alert).getByRole("link", { name: "retry" });
 		expect(retry).toHaveAttribute("href", `/app/${TEST_ADMIN_ID}?since=7d`);

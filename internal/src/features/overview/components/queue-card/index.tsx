@@ -98,6 +98,7 @@ export async function QueueCard({
 			})}
 		>
 			<ChartFigure
+				icon="clock"
 				value={format.number(ages.messages)}
 				label={t(capped ? "queue.read" : "queue.waiting", {
 					count: ages.messages,

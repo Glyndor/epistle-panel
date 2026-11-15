@@ -101,6 +101,29 @@ describe("ChartFigure and ChartNote", () => {
 		expect(figure?.textContent).toBe("67records");
 	});
 
+	it("wears the tile of a summary card when the chart gives a drawing, and says nothing more", () => {
+		const { container } = render(
+			<ChartFigure value="67" label="records" icon="send" />,
+		);
+		const figure = container.querySelector('[data-slot="chart-figure"]');
+		const tile = figure?.querySelector('[data-slot="icon-tile"]');
+
+		expect(figure?.textContent).toBe("67records");
+		expect(tile).toHaveAttribute("aria-hidden", "true");
+		expect(tile?.querySelector('[data-glyph="send"]')).not.toBeNull();
+		// As high as the figure's line, so the card does not grow.
+		expect(tile).toHaveClass("size-8");
+		expect(figure?.firstElementChild).toBe(tile as Element);
+	});
+
+	it("draws no tile when the chart gives no drawing", () => {
+		const { container } = render(
+			<ChartFigure value="67" label="records" />,
+		);
+
+		expect(container.querySelector('[data-slot="icon-tile"]')).toBeNull();
+	});
+
 	it("shows a caveat as a tonal callout with no line", () => {
 		setup();
 		const note = screen.getByText("Only 100 records.");

@@ -37,6 +37,37 @@ describe("StatusCards", () => {
 		expect(container.querySelector("[aria-busy]")).toBeNull();
 	});
 
+	it("gives each counter its tile, which is a drawing and not read", async () => {
+		stubFetchJson({
+			version: "9.9.9",
+			domains: 1,
+			accounts: 2,
+			queue_size: 3,
+		});
+
+		const { container } = render(withQuery(<StatusCards />));
+		await screen.findByText("9.9.9");
+
+		const tiles = Array.from(
+			container.querySelectorAll('dl [data-slot="icon-tile"]'),
+		);
+		expect(
+			tiles.map((tile) =>
+				tile.querySelector("[data-glyph]")?.getAttribute("data-glyph"),
+			),
+		).toEqual(["tag", "globe", "users", "inbox"]);
+		for (const tile of tiles) {
+			expect(tile).toHaveAttribute("aria-hidden", "true");
+			expect(tile.textContent).toBe("");
+		}
+		// The numbers and their words are what they were.
+		expect(
+			Array.from(container.querySelectorAll("dl > *")).map(
+				(card) => card.textContent,
+			),
+		).toEqual(["version9.9.9", "domains1", "accounts2", "queue3"]);
+	});
+
 	it("says the counters could not be read when the action fails, with no warning of its own", async () => {
 		stubFetchReject();
 

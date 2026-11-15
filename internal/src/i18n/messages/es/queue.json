@@ -1,5 +1,6 @@
 {
 	"heading": "Cola de salida",
+	"description": "Mensajes que el servidor aceptó y aún no entregó. Quitar uno evita que se envíe.",
 	"unreachable": "No se puede contactar con la API de gestión del servidor de correo. Comprueba que el servidor está en marcha y que el panel está configurado.",
 	"empty": "La cola de salida está vacía.",
 	"emptyHint": "El correo sale en cuanto el servidor puede entregarlo; el registro de entregas muestra lo que salió.",

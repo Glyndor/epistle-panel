@@ -1,5 +1,6 @@
 {
 	"heading": "Domains",
+	"description": "The domains this server takes mail for, and whether each one is taking it.",
 	"unreachable": "The mail server's management API is unreachable. Check that the server is running and the panel is configured.",
 	"empty": "No domains are configured yet.",
 	"emptyHint": "Domains are set on the mail server; once one is there it is listed here.",

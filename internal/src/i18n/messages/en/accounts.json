@@ -1,5 +1,6 @@
 {
 	"heading": "Accounts",
+	"description": "The people who sign in and the addresses each one receives mail at.",
 	"unreachable": "The mail server's management API is unreachable. Check that the server is running and the panel is configured.",
 	"empty": "No accounts are configured yet.",
 	"emptyHint": "Create the first account so someone can sign in and receive mail.",

@@ -1,5 +1,6 @@
 {
 	"heading": "Coda in uscita",
+	"description": "I messaggi che il server ha accettato e non ha ancora consegnato. Rimuoverne uno ne impedisce l’invio.",
 	"unreachable": "L’API di gestione del server di posta non è raggiungibile. Verifica che il server sia in esecuzione e che il pannello sia configurato.",
 	"empty": "La coda in uscita è vuota.",
 	"emptyHint": "La posta parte appena il server può consegnarla; il registro delle consegne mostra ciò che è partito.",

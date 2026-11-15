@@ -1,5 +1,6 @@
 {
 	"heading": "Domínios",
+	"description": "Os domínios de que este servidor recebe correio e se cada um o está a receber.",
 	"unreachable": "Não foi possível acessar a API de gerenciamento do servidor de correio. Verifique se o servidor está em execução e se o painel está configurado.",
 	"empty": "Nenhum domínio configurado ainda.",
 	"emptyHint": "Os domínios são definidos no servidor de correio; quando houver um, aparece aqui.",
