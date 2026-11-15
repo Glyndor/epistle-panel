@@ -8,6 +8,7 @@ import {
 	ReplyIcon,
 	ShieldAlertIcon,
 	StarIcon,
+	TagIcon,
 	Trash2Icon,
 } from "lucide-react";
 import Link from "next/link";
@@ -16,6 +17,7 @@ import { useEffect, useState } from "react";
 import { ConfirmAction } from "@/components/confirm-action";
 import { Button } from "@/components/ui/button";
 import { BUSY_MARK } from "@/features/mail/components/busy-mark";
+import { LabelMenu } from "@/features/mail/components/label-menu";
 import { MoveMenu } from "@/features/mail/components/move-menu";
 import { useMessageChange } from "@/features/mail/components/reader-toolbar/use-message-change";
 import { composeHref } from "@/features/mail/links/mail-href";
@@ -31,14 +33,14 @@ function belongsElsewhere(event: KeyboardEvent): boolean {
 		target instanceof HTMLElement &&
 		(target.isContentEditable ||
 			target.closest(
-				"input, textarea, select, dialog[open], [role=alertdialog], [role=menu]",
+				"input, textarea, select, dialog[open], [role=dialog], [role=alertdialog], [role=menu]",
 			) !== null)
 	);
 }
 
 /**
- * The actions on the open message: star, read or unread, archive, spam, move and
- * delete. Opening an unread message marks it read (quietly), once. Deleting from
+ * The actions on the open message: star, read or unread, archive, spam, move,
+ * label and delete. Opening an unread message marks it read (quietly), once. Deleting from
  * the trash is permanent and asks first with the panel's alert dialog
  * (`ConfirmAction`), whether it is the button or the key that asks. Keys: `s` star, `e` archive, `!` spam, `#` or Delete to the trash;
  * they follow the same rules as the list's keys.
@@ -217,6 +219,17 @@ export function ReaderToolbar({
 				disabled={pending}
 				onMove={(box) => change({ move: box })}
 			/>
+			<LabelMenu targets={[{ id: message.id, labels: message.labels }]}>
+				<Button
+					type="button"
+					variant="ghost"
+					size="sm"
+					disabled={moving}
+				>
+					<TagIcon aria-hidden="true" />
+					{t("labelAs")}
+				</Button>
+			</LabelMenu>
 			{inTrash ? (
 				<ConfirmAction
 					description={t("confirmDeleteForever")}

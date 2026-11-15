@@ -108,3 +108,41 @@ describe("Checkbox", () => {
 		expect(box.className).toContain("disabled:cursor-not-allowed");
 	});
 });
+
+describe("Checkbox, part of a selection", () => {
+	it("draws a dash for the indeterminate state and the tick for a ticked one", () => {
+		render(
+			<>
+				<Label htmlFor="some">
+					<Checkbox id="some" />
+					Some
+				</Label>
+				<Label htmlFor="all">
+					<Checkbox id="all" defaultChecked />
+					All
+				</Label>
+			</>,
+		);
+		const some = screen.getByRole("checkbox", { name: "Some" });
+		(some as HTMLInputElement).indeterminate = true;
+
+		const boxes = Array.from(
+			document.querySelectorAll('[data-slot="checkbox-box"]'),
+		);
+		for (const box of boxes) {
+			expect(box.querySelectorAll("svg")).toHaveLength(2);
+		}
+		const input = boxes[0]?.querySelector("input");
+		expect(input?.className).toContain("indeterminate:bg-primary");
+		const [tick, dash] = Array.from(
+			boxes[0]?.querySelectorAll("svg") ?? [],
+		);
+		expect(tick?.getAttribute("class")).toContain(
+			"peer-checked:opacity-100",
+		);
+		expect(dash?.getAttribute("class")).toContain(
+			"peer-indeterminate:opacity-100",
+		);
+		expect(some).toHaveProperty("indeterminate", true);
+	});
+});

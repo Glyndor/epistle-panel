@@ -18,6 +18,14 @@ mail_change() {
 	action_page=$saved
 }
 
+# mail_label ARGS_JSON [COOKIE]: post the label-messages action the way the browser's client does.
+mail_label() {
+	local saved=${action_page:-}
+	action_page=/app/mail
+	post_action features/mail/actions/label-messages/index.ts "$1" "${2:-}"
+	action_page=$saved
+}
+
 # mail_state: the stand-in's view of every message.
 mail_state() {
 	curl -s "$api/__control/mail"
@@ -276,6 +284,22 @@ scenario_mail() {
 	assert_contains "important is added and the label and the other flags stay" "$(mail_state)" "\"id\":\"$labelled\",\"mailbox\":\"INBOX\",\"keywords\":{\"\$seen\":true,\"\$answered\":true,\"Work\":true,\"\$important\":true}"
 	mail_change "[{\"id\":\"$by_imap\",\"op\":\"unimportant\"}]" "$good" >/dev/null
 	assert_contains "the mark goes in the spelling another client set it in" "$(mail_state)" "\"id\":\"$by_imap\",\"mailbox\":\"INBOX\",\"keywords\":{\"\$flagged\":true}"
+	# Labels: put on and taken off by keyword, made from an exact name, never a flag.
+	assert_eq "no cookie: label-messages is redirected" "$(mail_label "[{\"kind\":\"keyword\",\"ids\":[\"$by_imap\"],\"keyword\":\"Home\",\"on\":true}]")" 307
+	before=$(api_count '"method"')
+	# A string that starts with a dollar sign is written with two in the action's wire format.
+	for hostile in '[{"kind":"keyword","ids":["x"],"keyword":"Home","on":true}]' "[{\"kind\":\"keyword\",\"ids\":[\"$by_imap\"],\"keyword\":\"\$\$seen\",\"on\":true}]" "[{\"kind\":\"keyword\",\"ids\":[\"$by_imap\"],\"keyword\":\"Home\",\"on\":true,\"extra\":1}]" "[{\"kind\":\"create\",\"ids\":[\"$by_imap\"],\"name\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}]" "[{\"kind\":\"create\",\"ids\":[\"$by_imap\"],\"name\":\"Home\",\"on\":false}]" '[{"kind":"keyword","ids":[],"keyword":"Home","on":true}]'; do
+		mail_label "$hostile" "$good" >/dev/null
+		assert_contains "hostile label change '${hostile:0:40}' is refused" "$(cat "$work/b")" "invalid"
+	done
+	assert_eq "hostile label changes reached no JMAP call" "$(api_count '"method"')" "$before"
+	assert_eq "put a label on" "$(mail_label "[{\"kind\":\"keyword\",\"ids\":[\"$by_imap\"],\"keyword\":\"Home\",\"on\":true}]" "$good")" 200
+	assert_contains "the label joins the flags the message had" "$(mail_state)" "\"id\":\"$by_imap\",\"mailbox\":\"INBOX\",\"keywords\":{\"\$flagged\":true,\"Home\":true}"
+	mail_label "[{\"kind\":\"create\",\"ids\":[\"$by_imap\"],\"name\":\"To do\"}]" "$good" >/dev/null
+	assert_contains "a new label is kept under the keyword of its exact name" "$(mail_state)" "\"ep1-546f20646f\":true"
+	mail_label "[{\"kind\":\"keyword\",\"ids\":[\"$by_imap\"],\"keyword\":\"ep1-546f20646f\",\"on\":false}]" "$good" >/dev/null
+	mail_label "[{\"kind\":\"keyword\",\"ids\":[\"$by_imap\"],\"keyword\":\"Home\",\"on\":false}]" "$good" >/dev/null
+	assert_contains "taking both off leaves the flags as they were" "$(mail_state)" "\"id\":\"$by_imap\",\"mailbox\":\"INBOX\",\"keywords\":{\"\$flagged\":true}"
 	mail_change "[{\"id\":\"$welcome\",\"op\":\"archive\"}]" "$good" >/dev/null
 	assert_contains "archive moves it, with a new id" "$(mail_state)" "\"mailbox\":\"Archive\",\"keywords\":{\"\$seen\":true,\"\$flagged\":true},\"subject\":\"Welcome to your mailbox\""
 	assert_absent "the old id is gone" "$(mail_state)" "\"id\":\"$welcome\""

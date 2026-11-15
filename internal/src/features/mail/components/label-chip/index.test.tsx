@@ -128,4 +128,25 @@ describe("LabelChip", () => {
 			"true",
 		);
 	});
+
+	it("holds a control inside its pill after the name, with the end's padding taken", () => {
+		const { container } = render(
+			<LabelChip
+				label={{ keyword: "Work", name: "Work", tone: 3 }}
+				after={<button type="button">x</button>}
+			/>,
+		);
+		const chip = container.firstElementChild;
+
+		expect(chip?.lastElementChild?.tagName).toBe("BUTTON");
+		expect(chip?.querySelector("bdi")?.textContent).toBe("Work");
+		expect(chip).toHaveClass("pe-0");
+	});
+
+	it("keeps the pill's own padding when it holds nothing after the name", () => {
+		const { container } = render(
+			<LabelChip label={{ keyword: "Work", name: "Work", tone: 3 }} />,
+		);
+		expect(container.firstElementChild).not.toHaveClass("pe-0");
+	});
 });

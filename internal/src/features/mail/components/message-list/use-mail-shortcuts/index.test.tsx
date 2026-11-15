@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { cleanup, fireEvent, render } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
 import { useMailShortcuts } from ".";
 
@@ -28,6 +28,9 @@ function Harness({
 			<dialog open aria-label="dlg">
 				<button type="button">in dialog</button>
 			</dialog>
+			<div role="dialog" aria-label="label dialog">
+				<button type="button">in label dialog</button>
+			</div>
 		</div>
 	);
 }
@@ -94,6 +97,13 @@ describe("useMailShortcuts", () => {
 		fireEvent.keyDown(
 			document.querySelector("dialog button") as HTMLElement,
 			{ key: "j" },
+		);
+		// The labels' dialog is a Radix dialog: a `role`, not a `dialog` element.
+		fireEvent.keyDown(
+			screen.getByRole("button", { name: "in label dialog" }),
+			{
+				key: "j",
+			},
 		);
 		fireEvent.keyDown(document.body, { key: "j", ctrlKey: true });
 		fireEvent.keyDown(document.body, { key: "j", metaKey: true });

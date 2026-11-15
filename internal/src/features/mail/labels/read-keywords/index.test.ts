@@ -1,6 +1,8 @@
 import { describe, expect, it } from "bun:test";
 
-import { hasKeyword, readLabels } from ".";
+import { labelTone } from "@/features/mail/labels/label-tone";
+import { encodeLabelName } from "@/features/mail/labels/name-codec";
+import { compareLabels, hasKeyword, labelOf, readLabels } from ".";
 
 describe("hasKeyword", () => {
 	it("matches a keyword without regard to case, as the server does", () => {
@@ -93,5 +95,45 @@ describe("readLabels", () => {
 		const b = readLabels({ c: true, a: true, b: true });
 		expect(a).toEqual(b);
 		expect(a.map((label) => label.name)).toEqual(["a", "b", "c"]);
+	});
+});
+
+describe("labels made by the label controls", () => {
+	it("shows the name an ep1 keyword holds, cleaned like any text, with the tone of the exact name", () => {
+		const keyword = encodeLabelName(" To  do ") ?? "";
+		// Shown cleaned (the page collapses the spaces anyway); the keyword is
+		// what identifies the label, and the tone is that of the exact name.
+		expect(labelOf(keyword)).toEqual({
+			keyword,
+			name: "To do",
+			tone: labelTone(" To  do "),
+		});
+		const other = encodeLabelName("work") ?? "";
+		const labels = readLabels({ [keyword]: true, [other]: true });
+		expect(labels.map((label) => label.keyword).sort()).toEqual(
+			[keyword, other].sort(),
+		);
+	});
+
+	it("keeps Work and work apart, which a case-insensitive keyword could not", () => {
+		const upper = encodeLabelName("Work") ?? "";
+		const lower = encodeLabelName("work") ?? "";
+		expect(readLabels({ [upper]: true, [lower]: true })).toHaveLength(2);
+	});
+
+	it("is not a label for a keyword of the protocol or one the server would not keep", () => {
+		expect(labelOf("$seen")).toBeNull();
+		expect(labelOf("two words")).toBeNull();
+		expect(labelOf("")).toBeNull();
+	});
+
+	it("orders by name and then by keyword", () => {
+		const a = { keyword: "b", name: "Same", tone: 1 } as const;
+		const b = { keyword: "a", name: "Same", tone: 1 } as const;
+		expect(compareLabels(a, b)).toBe(1);
+		expect(compareLabels(b, a)).toBe(-1);
+		expect(
+			compareLabels({ ...a, name: "A" }, { ...b, name: "B" }),
+		).toBeLessThan(0);
 	});
 });

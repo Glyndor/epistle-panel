@@ -75,6 +75,7 @@ function actions(
 					box="INBOX"
 					flagged={flags.flagged ?? false}
 					important={flags.important ?? false}
+					labels={[]}
 				/>
 				{withToasts ? (
 					<Toaster label="toasts" closeLabel="close" />
@@ -89,17 +90,17 @@ const button = (name: string) => screen.getByRole("button", { name });
 // two apply (a coarse pointer over a compact row, the inner ring over the
 // outer one) is measured in a browser, not here.
 describe("RowActions", () => {
-	it("offers important first and the star second, each named for what a press does", () => {
+	it("offers the labels first, important second and the star third, each named for what a press does", () => {
 		actions();
 
 		expect(screen.getAllByRole("button").map((b) => b.textContent)).toEqual(
-			["markImportant", "star"],
+			["labelAs", "markImportant", "star"],
 		);
 		cleanup();
 
 		actions({ flagged: true, important: true });
 		expect(screen.getAllByRole("button").map((b) => b.textContent)).toEqual(
-			["unmarkImportant", "unstar"],
+			["labelAs", "unmarkImportant", "unstar"],
 		);
 	});
 
@@ -248,6 +249,7 @@ describe("RowActions", () => {
 					box="INBOX"
 					flagged={false}
 					important={false}
+					labels={[]}
 				/>,
 				client,
 			),
@@ -295,6 +297,7 @@ describe("RowActions", () => {
 					box="INBOX"
 					flagged={false}
 					important={false}
+					labels={[]}
 				/>,
 				client,
 			),
@@ -321,7 +324,9 @@ describe("RowActions", () => {
 		await waitFor(() =>
 			expect(button("star")).toHaveAttribute("aria-busy", "true"),
 		);
-		for (const each of screen.getAllByRole("button")) {
+		// The labels are not a flag: their dialog is not waiting for this change.
+		expect(button("labelAs")).not.toHaveAttribute("aria-busy");
+		for (const each of [button("markImportant"), button("star")]) {
 			expect(each).toHaveAttribute("aria-busy", "true");
 			// A press made now waits its turn: the button is not shut.
 			expect(each).not.toHaveAttribute("aria-disabled");

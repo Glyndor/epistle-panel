@@ -5,15 +5,18 @@ import { useTranslations } from "next-intl";
 
 import { ImportantMark } from "@/components/icons/important-mark";
 import { useMessageChange } from "@/features/mail/components/reader-toolbar/use-message-change";
+import { LabelMark } from "@/features/mail/components/row-actions/label-mark";
 import { Mark } from "@/features/mail/components/row-actions/mark";
 import type { MessageOp } from "@/features/mail/schemas/mail-input";
+import type { LabelView } from "@/features/mail/schemas/mail-view";
 import { cn } from "@/lib/class-names";
 
 /**
- * The two marks a reader sets on a message without opening it: important and
- * the star. They sit over the end of the row, beside the date, as siblings of
+ * The marks a reader sets on a message without opening it: its labels, important
+ * and the star. They sit over the end of the row, beside the date, as siblings of
  * the row's link and after it, so the page holds no button inside a link and
- * the keyboard goes link, important, star.
+ * the keyboard goes link, labels, important, star. The first opens "Label as"
+ * (`label-mark`), whose changes are written the way the other two are.
  *
  * No press is lost. The server replaces a message's whole keyword set, so the
  * changes to one message are written one after the other (`useMessageChange`),
@@ -33,12 +36,15 @@ export function RowActions({
 	box,
 	flagged,
 	important,
+	labels,
 }: {
 	id: string;
 	/** The folder the row is listed in, whose counter a change may move. */
 	box: string;
 	flagged: boolean;
 	important: boolean;
+	/** The labels the message carries, for "Label as" to tick. */
+	labels: readonly LabelView[];
 }) {
 	const t = useTranslations("mail");
 	// No `onLeft`: a flag change leaves the message where it is.
@@ -50,6 +56,7 @@ export function RowActions({
 			data-slot="row-actions"
 			className="pointer-events-none absolute end-2 top-1 flex items-center group-data-[density=compact]/list:inset-y-0 pointer-coarse:inset-y-0 pointer-coarse:end-1"
 		>
+			<LabelMark id={id} labels={labels} />
 			<Mark
 				mark="important"
 				set={important}
