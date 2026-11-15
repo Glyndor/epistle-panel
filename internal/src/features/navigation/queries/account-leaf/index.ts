@@ -10,19 +10,17 @@ import { getServerQueryClient } from "@/lib/query/server-query-client";
  * The account an address names, for the trail of its page, by the rule the
  * page itself follows: the segment must be an account name (`..`, a path, a
  * header or a non-ASCII letter is none, and the API is asked nothing), and it
- * must be on the accounts list. `undefined` for a segment that names no
- * account, so the trail never shows as a page something that is not one. When
- * the list cannot be read the name stands, as it does in the page's heading.
- *
- * The list is read into the request's own query client, the one the page
- * reads it into, so the two share one call.
+ * must be on the accounts list when the trail is asked to check. `undefined`
+ * for a segment that names no account. When the list cannot be read the name
+ * stands, as it does in the page's heading.
  */
 export async function accountLeaf(
 	segment: string,
+	validate = true,
 ): Promise<string | undefined> {
 	const name = parseAccountNameParam(segment);
-	if (name === undefined) {
-		return undefined;
+	if (name === undefined || !validate) {
+		return name;
 	}
 	const client = getServerQueryClient();
 	const query = accountsQueryOptions(loadAccounts);

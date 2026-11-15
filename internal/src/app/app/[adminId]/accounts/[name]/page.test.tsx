@@ -33,14 +33,19 @@ const api = () =>
 		["GET", /masked$/, { body: { addresses: [] } }],
 		["GET", /archive$/, { body: { entries: [] } }],
 	]);
-const page = (name: string) =>
-	AccountDetailPage({ params: Promise.resolve({ name }) });
-const outcome = (name: string) =>
-	page(name).then(
+const page = (name: string, section?: string) =>
+	AccountDetailPage({
+		params: Promise.resolve({ name }),
+		searchParams: Promise.resolve(section === undefined ? {} : { section }),
+	});
+const outcome = (name: string, section?: string) =>
+	page(name, section).then(
 		() => undefined,
 		(error: unknown) => error,
 	);
 const paths = () => sentRequests().map((r) => new URL(r.url).pathname);
+const shown = async (name: string, section?: string) =>
+	render(withAdminArea(await resolveServerTree(await page(name, section))));
 
 beforeEach(async () => {
 	process.env["EPISTLE_API_URL"] = "http://127.0.0.1:8025";
@@ -54,23 +59,79 @@ afterEach(() => {
 });
 
 describe("AccountDetailPage", () => {
-	it("heads the page with the account and prefetches the list and every section", async () => {
+	it("heads the page with the account and asks for the list alone", async () => {
 		api();
 
-		render(withAdminArea(await resolveServerTree(await page("alice"))));
+		await shown("alice");
 
 		expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
 			"heading",
 		);
-		expect(paths().sort()).toEqual([
-			"/api/v1/accounts",
-			"/api/v1/accounts/alice/archive",
-			"/api/v1/accounts/alice/mailboxes",
-			"/api/v1/accounts/alice/masked",
+		expect(paths()).toEqual(["/api/v1/accounts"]);
+	});
+
+	it("offers the sections as links and marks the one on screen", async () => {
+		api();
+
+		await shown("alice", "profile");
+
+		const links = screen.getAllByRole("link");
+		expect(links.map((link) => link.textContent)).toEqual([
+			"sectionOverview",
+			"profileTitle",
+			"sectionSecurity",
+			"mailboxesTitle",
+			"maskedTitle",
+			"archiveTitle",
 		]);
 		expect(
-			await screen.findByText("alice@example.org"),
-		).toBeInTheDocument();
+			links.filter(
+				(link) => link.getAttribute("aria-current") === "page",
+			),
+		).toHaveLength(1);
+		expect(
+			screen.getByRole("link", { name: "profileTitle" }),
+		).toHaveAttribute("aria-current", "page");
+	});
+
+	it("shows the overview when the address names no section, or one that is not offered", async () => {
+		api();
+
+		await shown("alice");
+		expect(
+			screen.getByRole("link", { name: "sectionOverview" }),
+		).toHaveAttribute("aria-current", "page");
+
+		cleanup();
+		await shown("alice", "nope");
+		expect(
+			screen.getByRole("link", { name: "sectionOverview" }),
+		).toHaveAttribute("aria-current", "page");
+		expect(paths()).toEqual(["/api/v1/accounts", "/api/v1/accounts"]);
+	});
+
+	it("asks for the dataset of the section on screen, and for no other", async () => {
+		api();
+
+		await shown("alice", "mailboxes");
+
+		expect(paths().sort()).toEqual(["/api/v1/accounts/alice/mailboxes"]);
+	});
+
+	it("asks for the masked addresses only on their own section", async () => {
+		api();
+
+		await shown("alice", "masked");
+
+		expect(paths().sort()).toEqual(["/api/v1/accounts/alice/masked"]);
+	});
+
+	it("asks for the archive only on its own section", async () => {
+		api();
+
+		await shown("alice", "archive");
+
+		expect(paths().sort()).toEqual(["/api/v1/accounts/alice/archive"]);
 	});
 
 	it("answers 404, not a redirect, without a session and never calls the API", async () => {
@@ -116,7 +177,7 @@ describe("AccountDetailPage", () => {
 		const errors = spyOn(console, "error").mockImplementation(() => {});
 		stubFetchReject();
 
-		render(withAdminArea(await resolveServerTree(await page("alice"))));
+		await shown("alice");
 
 		expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
 		expect(await screen.findByRole("alert")).toHaveTextContent(
