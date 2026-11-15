@@ -1,7 +1,6 @@
 "use client";
 
 import { MoreHorizontalIcon, Trash2Icon, UserCogIcon } from "lucide-react";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
@@ -15,9 +14,13 @@ import {
 	DropdownMenuLabel,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { toast } from "@/components/ui/toaster";
 import { Tooltip } from "@/components/ui/tooltip";
+import { openLazily } from "@/features/accounts/components/account-row-actions/open-lazily";
 import type { AccountRow } from "@/features/accounts/schemas/accounts-view";
 import { isAccountName } from "@/lib/api/account-name-pattern";
+
+type DeleteDialog = Awaited<ReturnType<typeof loadDeleteDialog>>;
 
 const loadDeleteDialog = () =>
 	import("@/features/accounts/components/delete-account-dialog").then(
@@ -28,12 +31,12 @@ const loadDeleteDialog = () =>
  * The delete dialog is loaded the first time a menu opens, not with the list:
  * a page of accounts needs the alert dialog and its choices only when someone
  * deletes one. Opening the menu starts the download, so by the time the item
- * is chosen the code is most often there; the dialog mounts when it arrives
- * and a press on the item before that is not lost, since the choice is kept in
- * state and the dialog draws itself on arrival.
+ * is chosen the code is most often there. Choosing the item waits for it
+ * inside the handler, not in a Suspense of the page: a suspended page hides
+ * the whole list, and a chunk that failed would take the page to its error
+ * screen and, kept as a rejected promise, fail again on every retry. A failed
+ * load says so in a message and asks again on the next press.
  */
-const DeleteAccountDialog = dynamic(loadDeleteDialog);
-
 /**
  * What can be done with one account, in a menu at the end of its row: open
  * it, and delete it when the API manages it. The menu's button is an icon
@@ -45,13 +48,23 @@ const DeleteAccountDialog = dynamic(loadDeleteDialog);
 export function AccountRowActions({ row }: { row: AccountRow }) {
 	const t = useTranslations("accounts");
 	const routes = useAdminRoutes();
-	const [deleting, setDeleting] = useState(false);
+	/** The dialog once its code has arrived, and only while it is open. */
+	const [dialog, setDialog] = useState<DeleteDialog | null>(null);
 	// The page's `main`, found when the menu opens: the list is rendered there
 	// so the table's scroll box does not clip it, and it stays inside a landmark.
 	const [main, setMain] = useState<HTMLElement | null>(null);
 	const named = isAccountName(row.name);
 	/** The menu's button: where the focus returns when the delete dialog closes. */
 	const trigger = useRef<HTMLButtonElement>(null);
+	const Dialog = dialog;
+
+	/** Wait for the dialog's code, and say so, without taking the page down, when it does not come. */
+	const openDeleteDialog = () =>
+		openLazily(
+			loadDeleteDialog,
+			(loaded) => setDialog(() => loaded),
+			() => toast.error(t("deleteLoadFailed")),
+		);
 
 	return (
 		<>
@@ -59,7 +72,8 @@ export function AccountRowActions({ row }: { row: AccountRow }) {
 				onOpenChange={(open) => {
 					if (open) {
 						setMain(document.getElementById("main-content"));
-						void loadDeleteDialog();
+						// A failure here is not the person's to hear: pressing the item asks again.
+						loadDeleteDialog().catch(() => undefined);
 					}
 				}}
 			>
@@ -90,7 +104,7 @@ export function AccountRowActions({ row }: { row: AccountRow }) {
 					{named && row.dynamic ? (
 						<DropdownMenuItem
 							variant="destructive"
-							onSelect={() => setDeleting(true)}
+							onSelect={() => void openDeleteDialog()}
 						>
 							<Trash2Icon aria-hidden="true" />
 							{t("delete")}
@@ -102,11 +116,11 @@ export function AccountRowActions({ row }: { row: AccountRow }) {
 					)}
 				</DropdownMenuContent>
 			</DropdownMenu>
-			{deleting ? (
-				<DeleteAccountDialog
+			{Dialog ? (
+				<Dialog
 					name={row.name}
 					open
-					onOpenChange={setDeleting}
+					onOpenChange={() => setDialog(null)}
 					returnFocus={trigger}
 				/>
 			) : null}

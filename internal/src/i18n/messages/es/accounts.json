@@ -47,6 +47,7 @@
 	"deletedLeft": "Cuenta {name} eliminada. {count, plural, one {# mensaje en cola} other {# mensajes en cola}} se entregarán todavía.",
 	"deletedDiscarded": "Cuenta {name} eliminada. Mensajes en cola descartados: {count}.",
 	"deleteGone": "La cuenta ya no existe, o está declarada en el archivo de configuración y no se puede eliminar desde aquí.",
+	"deleteLoadFailed": "No se pudo abrir la ventana para eliminar. Inténtalo de nuevo.",
 	"passwordTooShort": "Usa al menos 12 caracteres.",
 	"passwordTooLong": "Usa 64 caracteres como máximo.",
 	"passwordCharset": "Usa solo caracteres ASCII imprimibles: letras, dígitos, espacios y signos de puntuación comunes.",
