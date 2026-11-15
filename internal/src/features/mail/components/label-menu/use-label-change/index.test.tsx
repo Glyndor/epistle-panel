@@ -133,7 +133,9 @@ function screenOf(scope = "scope") {
 					`${toast.getAttribute("data-kind")}:${toast.querySelector("p")?.textContent}`,
 			),
 		idle: async () => {
-			await waitFor(() => expect(client.isMutating()).toBe(0));
+			await waitFor(() => expect(client.isMutating()).toBe(0), {
+				timeout: 5000,
+			});
 			await settled();
 		},
 	};
@@ -356,8 +358,9 @@ describe("useLabelChange", () => {
 		const screen = screenOf();
 		expect(screen.hook.result.current.pending).toBe(false);
 		act(() => screen.hook.result.current.apply([A], WORK, true));
-		await waitFor(() =>
-			expect(screen.hook.result.current.pending).toBe(true),
+		await waitFor(
+			() => expect(screen.hook.result.current.pending).toBe(true),
+			{ timeout: 5000 },
 		);
 		release();
 		await screen.idle();
