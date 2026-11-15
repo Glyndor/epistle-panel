@@ -37,7 +37,11 @@ const PAGES: Array<[string, string, () => Promise<unknown>]> = [
 	[
 		"account detail",
 		"accounts/[name]/page.tsx",
-		() => AccountPage({ params: Promise.resolve({ name: "alice" }) }),
+		() =>
+			AccountPage({
+				params: Promise.resolve({ name: "alice" }),
+				searchParams: Promise.resolve({}),
+			}),
 	],
 	["queue", "queue/page.tsx", () => QueuePage(search)],
 	["suppression", "suppression/page.tsx", () => SuppressionPage(search)],

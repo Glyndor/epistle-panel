@@ -87,7 +87,11 @@ const cases: [
 	["deliveries", () => DeliveriesPage(none), "table-skeleton", []],
 	[
 		"account",
-		() => AccountDetailPage({ params: Promise.resolve({ name: "alice" }) }),
+		() =>
+			AccountDetailPage({
+				params: Promise.resolve({ name: "alice" }),
+				searchParams: Promise.resolve({}),
+			}),
 		"account-skeleton",
 		["/api/v1/accounts"],
 	],
