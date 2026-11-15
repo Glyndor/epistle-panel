@@ -1,9 +1,9 @@
 import { expect, it } from "bun:test";
 import { NextRequest } from "next/server";
-import config from "../../../next.config";
 import { createSession, SESSION_COOKIE } from "@/lib/auth/session";
 import { isMailBodyPath } from "@/lib/routes";
 import { proxy } from "@/proxy";
+import config from "../../../next.config";
 
 // Audits 8/9: the config's exclusion and the proxy predicate share this corpus.
 const paths = [
