@@ -40,6 +40,20 @@ const current = () =>
 		.getAllByRole("link")
 		.filter((link) => link.getAttribute("aria-current") === "page");
 
+/**
+ * The row a folder is drawn in: the indent is on it, so the control that
+ * folds the branch and the link under it stand at the same place.
+ */
+const rowOf = (name: string | RegExp) => {
+	const row = screen
+		.getByRole("link", { name })
+		.closest("[data-slot=folder-row]");
+	if (row === null) {
+		throw new Error("the folder row is not on the page");
+	}
+	return row;
+};
+
 describe("FolderTree", () => {
 	const boxes = [
 		box({ id: "INBOX", name: "INBOX", role: "inbox", unread: 3 }),
@@ -181,11 +195,9 @@ describe("FolderTree", () => {
 	it("indents a nested folder by a class, up to the deepest level it has one for", () => {
 		renderTree(boxes);
 
-		expect(screen.getByRole("link", { name: "Q4" })).toHaveClass("pl-5");
-		expect(screen.getByRole("link", { name: "Deep" })).toHaveClass("pl-14");
-		expect(
-			screen.getByRole("link", { name: /role_inbox/ }).className,
-		).not.toMatch(/(^|\s)pl-\d/);
+		expect(rowOf("Q4")).toHaveClass("pl-5");
+		expect(rowOf("Deep")).toHaveClass("pl-14");
+		expect(rowOf(/role_inbox/).className).not.toMatch(/(^|\s)pl-\d/);
 	});
 
 	it("collapsed to icons, names a folder in a tooltip, with what is unread", () => {
@@ -206,9 +218,7 @@ describe("FolderTree", () => {
 		);
 		expect(tip()).toHaveTextContent("folderWithUnread");
 		// The tree has no room on the rail: every folder sits in one column.
-		expect(screen.getByRole("link", { name: "Q4" })).toHaveClass(
-			"group-data-[collapsible=icon]:pl-0",
-		);
+		expect(rowOf("Q4")).toHaveClass("group-data-[collapsible=icon]:pl-0");
 	});
 
 	it("collapsed to icons, marks the open folder by more than its fill, and says so in its tooltip", () => {

@@ -17,6 +17,8 @@
 	"storageNear": "Quasi pieno",
 	"storageFull": "Pieno",
 	"folderWithUnread": "{name}: {count} non lette",
+	"foldFolder": "Comprimi {name}",
+	"unfoldFolder": "Espandi {name}",
 	"listLabel": "Messaggi",
 	"messageCount": "{count, plural, one {# messaggio} other {# messaggi}}",
 	"searchLabel": "Cerca in questa cartella",

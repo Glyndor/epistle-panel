@@ -17,6 +17,8 @@
 	"storageNear": "Quase cheio",
 	"storageFull": "Cheio",
 	"folderWithUnread": "{name}: {count} não lidas",
+	"foldFolder": "Recolher {name}",
+	"unfoldFolder": "Expandir {name}",
 	"listLabel": "Mensagens",
 	"messageCount": "{count, plural, one {# mensagem} other {# mensagens}}",
 	"searchLabel": "Pesquisar nesta pasta",

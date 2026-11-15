@@ -17,6 +17,8 @@
 	"storageNear": "Almost full",
 	"storageFull": "Full",
 	"folderWithUnread": "{name}: {count} unread",
+	"foldFolder": "Fold {name}",
+	"unfoldFolder": "Unfold {name}",
 	"listLabel": "Messages",
 	"messageCount": "{count, plural, one {# message} other {# messages}}",
 	"searchLabel": "Search this folder",

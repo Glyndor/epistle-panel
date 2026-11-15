@@ -17,6 +17,8 @@
 	"storageNear": "Casi lleno",
 	"storageFull": "Lleno",
 	"folderWithUnread": "{name}: {count} sin leer",
+	"foldFolder": "Plegar {name}",
+	"unfoldFolder": "Desplegar {name}",
 	"listLabel": "Mensajes",
 	"messageCount": "{count, plural, one {# mensaje} other {# mensajes}}",
 	"searchLabel": "Buscar en esta carpeta",
