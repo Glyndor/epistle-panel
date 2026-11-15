@@ -161,7 +161,7 @@ export function PreferencesForm({
 							event.preventDefault();
 						}
 					}}
-					className="self-start aria-disabled:pointer-events-none aria-disabled:opacity-50"
+					className="self-start aria-disabled:opacity-50"
 				>
 					{pending ? t("saving") : t("save")}
 				</Button>
