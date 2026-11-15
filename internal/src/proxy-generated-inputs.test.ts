@@ -13,9 +13,10 @@ import { config, HIDDEN_PATH, proxy } from "./proxy";
 const reachesProxy = new RegExp(`^${config.matcher[0]}$`);
 
 /**
- * What a request ends as: `static` skips the proxy,
- * `gated` is sent to the sign-in page, `hidden` is rewritten to the 404 path,
- * `passed` goes on to the router, as the root or as a path let in.
+ * What a request ends as: `static` skips the proxy (the assets and the two
+ * mail routes that take a big body), `gated` is sent to the sign-in page,
+ * `hidden` is rewritten to the 404 path, `passed` goes on to the router, as the
+ * root or as a path let in.
  */
 type Verdict = "static" | "passed" | "gated" | "hidden";
 
@@ -83,7 +84,9 @@ function expectedVerdict(rawPath: string, caller: Caller): Verdict {
 		path === "/robots.txt" ||
 		path === "/theme.css" ||
 		path === "/brand/logo" ||
-		path === "/brand/favicon"
+		path === "/brand/favicon" ||
+		path === "/app/mail/upload" ||
+		path === "/app/mail/compose-message"
 	) {
 		return "static";
 	}
@@ -207,6 +210,8 @@ const BASES = [
 	"/app/mail/folder/Work_2FQ4",
 	"/app/mail/folder/Work_2FQ4/01890a5d-ac96-774b-b9aa-9be4c3bd6b0e",
 	"/app/mail/compose",
+	"/app/mail/upload",
+	"/app/mail/compose-message",
 	"/app/mail/body/01890a5d-ac96-774b-b9aa-9be4c3bd6b0e",
 	"/app/mail/no-such-place",
 	"/app/mail/label/Work",

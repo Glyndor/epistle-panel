@@ -24,16 +24,66 @@ type Handler = (args: Record<string, unknown>) => unknown;
 export type Answers = Record<string, unknown | Handler>;
 
 /**
+ * The session resource as epistle answers it: the limits the server publishes,
+ * which the panel reads instead of holding numbers of its own.
+ */
+export function sessionResource(
+	limits: {
+		readonly maxSizeUpload?: number;
+		readonly maxSizeRequest?: number;
+		readonly maxObjectsInGet?: number;
+		readonly maxObjectsInSet?: number;
+	} = {},
+): Record<string, unknown> {
+	return {
+		capabilities: {
+			"urn:ietf:params:jmap:core": {
+				maxSizeUpload: 26_214_400,
+				maxSizeRequest: 10_000_000,
+				maxObjectsInGet: 500,
+				maxObjectsInSet: 500,
+				...limits,
+			},
+		},
+		accounts: {},
+		primaryAccounts: {},
+		apiUrl: "/jmap/api",
+	};
+}
+
+/**
  * Replace global `fetch` with a JMAP server that answers each method call
  * from `answers` (by method name), and every `/jmap/download` with `blob` when
  * given. A method that has no answer is `unknownMethod`, like the real server.
- * Returns the requests seen, in order.
+ * The session resource is answered with `session` (the limits epistle
+ * publishes, by default) and refused when it is `null`, as a server that
+ * publishes none does.
+ * Returns the requests seen, in order: the session resource is one of them,
+ * with no method call.
  */
-export function stubJmap(answers: Answers, blob?: Response): JmapRequest[] {
+export function stubJmap(
+	answers: Answers,
+	blob?: Response,
+	session: Record<string, unknown> | null = sessionResource(),
+): JmapRequest[] {
 	const seen: JmapRequest[] = [];
 	globalThis.fetch = mock(async (input: string | URL, init?: RequestInit) => {
 		const url = String(input);
 		const headers = new Headers(init?.headers);
+		if (url.endsWith("/jmap/session")) {
+			seen.push({
+				url,
+				method: init?.method ?? "GET",
+				authorization: headers.get("authorization"),
+				calls: [],
+			});
+			return session === null
+				? new Response("not found", { status: 404 })
+				: new Response(JSON.stringify(session), {
+						status: 200,
+						headers: { "content-type": "application/json" },
+					});
+		}
 		if (url.includes("/jmap/download/")) {
 			seen.push({
 				url,

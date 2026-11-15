@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -39,10 +39,7 @@ import {
 	type ComposeFormValues,
 	composeFormSchema,
 } from "@/features/mail/schemas/compose-form";
-import {
-	MAX_COMPOSE_TEXT,
-	MAX_SUBJECT,
-} from "@/features/mail/schemas/compose-input-limits";
+import type { ComposeLimits } from "@/features/mail/schemas/compose-input-limits";
 import { fieldLength } from "@/lib/field-length";
 
 /** What opens the composer: empty, or filled for a reply, a forward or a stored draft. */
@@ -63,10 +60,20 @@ export interface ComposeInitial extends ComposeFormValues {
  * draft, so what is open is always the latest copy; sending that the server
  * refuses leaves the work as a draft and says why. It needs script: unlike
  * sign-in there is no form post to fall back to.
+ *
+ * The limits are the ones the mail server publishes, given by the page: the
+ * browser's attributes, the form's schema and the route all hold the same
+ * numbers.
  */
-export function ComposeForm({ initial }: { initial: ComposeInitial }) {
+export function ComposeForm({
+	initial,
+	limits,
+}: {
+	initial: ComposeInitial;
+	limits: ComposeLimits;
+}) {
 	const t = useTranslations("mail");
-	const { submit, pending, outcome } = useComposeSubmit();
+	const { submit, pending, outcome } = useComposeSubmit(limits);
 	const [draftId, setDraftId] = useState(initial.draftId);
 	const [attachments, setAttachments] = useState<ComposeAttachment[]>(
 		initial.attachments ?? [],
@@ -74,8 +81,9 @@ export function ComposeForm({ initial }: { initial: ComposeInitial }) {
 	const [showCopies, setShowCopies] = useState(
 		initial.cc !== "" || initial.bcc !== "",
 	);
+	const schema = useMemo(() => composeFormSchema(limits), [limits]);
 	const form = useForm<ComposeFormValues>({
-		resolver: zodResolver(composeFormSchema),
+		resolver: zodResolver(schema),
 		defaultValues: {
 			to: initial.to,
 			cc: initial.cc,
@@ -159,6 +167,7 @@ export function ComposeForm({ initial }: { initial: ComposeInitial }) {
 					control={form.control}
 					name="to"
 					label={t("fieldTo")}
+					limits={limits}
 					translate={translate}
 				/>
 				{showCopies ? (
@@ -168,6 +177,7 @@ export function ComposeForm({ initial }: { initial: ComposeInitial }) {
 							control={form.control}
 							name={name as RecipientField}
 							label={t(name === "cc" ? "fieldCc" : "fieldBcc")}
+							limits={limits}
 							translate={translate}
 						/>
 					))
@@ -195,7 +205,7 @@ export function ComposeForm({ initial }: { initial: ComposeInitial }) {
 								<Input
 									{...field}
 									type="text"
-									maxLength={fieldLength(MAX_SUBJECT)}
+									maxLength={fieldLength(limits.maxSubject)}
 									autoComplete="off"
 								/>
 							</FormControl>
@@ -213,7 +223,7 @@ export function ComposeForm({ initial }: { initial: ComposeInitial }) {
 								<MailTextarea
 									{...field}
 									rows={14}
-									maxLength={fieldLength(MAX_COMPOSE_TEXT)}
+									maxLength={fieldLength(limits.maxText)}
 								/>
 							</FormControl>
 							<FormMessage render={translate} />
@@ -222,6 +232,7 @@ export function ComposeForm({ initial }: { initial: ComposeInitial }) {
 				/>
 				<ComposeAttachments
 					attachments={attachments}
+					limits={limits}
 					onChange={setAttachments}
 				/>
 				<ComposeActions

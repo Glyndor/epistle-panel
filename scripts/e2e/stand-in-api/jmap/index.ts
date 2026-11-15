@@ -15,6 +15,33 @@ export const OVERSIZE_MEGABYTES = 27;
 export const QUOTA_LIMIT = 100_000;
 
 /**
+ * The limits the session resource publishes, as epistle's does: the largest
+ * upload, the largest request, and how many objects one call may name.
+ */
+export const SESSION_LIMITS = {
+	maxSizeUpload: 26_214_400,
+	maxSizeRequest: 10_000_000,
+	maxObjectsInGet: 500,
+	maxObjectsInSet: 500,
+};
+
+/** The session resource, as epistle answers it. */
+export function sessionResource(): Record<string, unknown> {
+	return {
+		capabilities: {
+			"urn:ietf:params:jmap:core": { ...SESSION_LIMITS },
+			"urn:ietf:params:jmap:mail": { maxSizeAttachmentsPerEmail: 24_000_000 },
+		},
+		accounts: { [MAIL_ACCOUNT]: { name: MAIL_ACCOUNT, isPersonal: true, isReadOnly: false, accountCapabilities: {} } },
+		primaryAccounts: {},
+		username: "",
+		apiUrl: "/jmap/api",
+		downloadUrl: "/jmap/download/{accountId}/{blobId}/{name}",
+		uploadUrl: "/jmap/upload/{accountId}",
+	};
+}
+
+/**
  * How `Quota/get` answers: `limited` is the seeded account under its limit,
  * `unlimited` the same quota with a `limit` of `null`, `none` an empty list, as
  * a server that keeps no quota for the account answers.
@@ -157,6 +184,9 @@ export function createJmapStore() {
 	}
 
 	async function handle(request: Request, url: URL, note?: (names: string[]) => void): Promise<Response | null> {
+		if (url.pathname === "/jmap/session" && request.method === "GET") {
+			return json(sessionResource());
+		}
 		if (url.pathname === "/jmap/api" && request.method === "POST") {
 			const body = (await request.json()) as { methodCalls?: Call[] };
 			note?.((body.methodCalls ?? []).map(([name]) => name));

@@ -9,10 +9,21 @@ import {
 
 import { clearToasts } from "@/components/ui/toaster";
 import {
-	MAX_ATTACHMENT_BYTES,
-	MAX_COMPOSE_ATTACHMENTS,
+	type ComposeLimits,
+	FALLBACK_COMPOSE_LIMITS,
 } from "@/features/mail/schemas/compose-input-limits";
 import { type ComposeAttachment, ComposeAttachments } from ".";
+
+/**
+ * The limits the test works with: small ones of their own, so what is checked
+ * is that the component reads the limits it is given and not the numbers the
+ * panel holds by default.
+ */
+const limits: ComposeLimits = {
+	...FALLBACK_COMPOSE_LIMITS,
+	maxAttachmentBytes: 1_000,
+	maxAttachments: 2,
+};
 
 const originalFetch = globalThis.fetch;
 beforeEach(() => clearToasts());
@@ -47,7 +58,11 @@ const choose = (files: File[]) => {
 describe("ComposeAttachments", () => {
 	it("shows the keyboard's focus on the label, since the field that takes it is not drawn", () => {
 		const { container } = render(
-			<ComposeAttachments attachments={[]} onChange={() => {}} />,
+			<ComposeAttachments
+				attachments={[]}
+				limits={limits}
+				onChange={() => {}}
+			/>,
 		);
 		const field = container.querySelector('input[type="file"]');
 		const label = container.querySelector("label");
@@ -86,6 +101,7 @@ describe("ComposeAttachments", () => {
 		render(
 			<ComposeAttachments
 				attachments={[]}
+				limits={limits}
 				onChange={(next) => seen.push(next)}
 			/>,
 		);
@@ -117,6 +133,7 @@ describe("ComposeAttachments", () => {
 		render(
 			<ComposeAttachments
 				attachments={[]}
+				limits={limits}
 				onChange={(next) => seen.push(next)}
 			/>,
 		);
@@ -135,6 +152,7 @@ describe("ComposeAttachments", () => {
 		render(
 			<ComposeAttachments
 				attachments={[]}
+				limits={limits}
 				onChange={(next) => seen.push(next)}
 			/>,
 		);
@@ -144,15 +162,16 @@ describe("ComposeAttachments", () => {
 		expect(screen.queryByRole("status")).toBeNull();
 	});
 
-	it("refuses a file over 25 MB and any past 20 files before anything is sent", async () => {
+	it("refuses a file over the limit and any past the count of files, before anything is sent", async () => {
 		const fetched = mock(async () => new Response("{}"));
 		globalThis.fetch = fetched as unknown as typeof fetch;
 		render(
 			<ComposeAttachments
 				attachments={Array.from(
-					{ length: MAX_COMPOSE_ATTACHMENTS - 1 },
+					{ length: limits.maxAttachments - 1 },
 					(_, i) => attached(i),
 				)}
+				limits={limits}
 				onChange={() => {}}
 			/>,
 		);
@@ -160,7 +179,7 @@ describe("ComposeAttachments", () => {
 			file(
 				"big.bin",
 				"application/octet-stream",
-				MAX_ATTACHMENT_BYTES + 1,
+				limits.maxAttachmentBytes + 1,
 			),
 		]);
 		await new Promise((r) => setTimeout(r, 20));
@@ -169,9 +188,10 @@ describe("ComposeAttachments", () => {
 		render(
 			<ComposeAttachments
 				attachments={Array.from(
-					{ length: MAX_COMPOSE_ATTACHMENTS },
+					{ length: limits.maxAttachments },
 					(_, i) => attached(i),
 				)}
+				limits={limits}
 				onChange={() => {}}
 			/>,
 		);
@@ -185,6 +205,7 @@ describe("ComposeAttachments", () => {
 		render(
 			<ComposeAttachments
 				attachments={[attached(1), attached(2)]}
+				limits={limits}
 				onChange={(next) => changes.push(next)}
 			/>,
 		);
@@ -202,6 +223,7 @@ describe("ComposeAttachments", () => {
 		render(
 			<ComposeAttachments
 				attachments={[attached(1)]}
+				limits={limits}
 				onChange={() => {}}
 			/>,
 		);

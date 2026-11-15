@@ -1,8 +1,5 @@
 import { safeLine } from "@/features/mail/sanitize/safe-text";
 
-/** Most recipients one field takes: epistle's default `max-recipients` is 100 for the whole message. */
-export const MAX_RECIPIENTS = 100;
-
 /** An address as the composer reads it: one `@`, no space, control, format or bidi character, at most 254 characters. */
 const ADDRESS = /^[^\s@\p{C}<>(),;:"[\]\\]+@[^\s@\p{C}<>(),;:"[\]\\]+$/u;
 

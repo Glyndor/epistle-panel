@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import type { ComposeRefusal } from "@/features/mail/queries/compose-message";
-import { MAX_COMPOSE_BYTES } from "@/features/mail/schemas/compose-input-limits";
+import type { ComposeLimits } from "@/features/mail/schemas/compose-input-limits";
 
 /** What the form shows after a request: nothing, a saved draft, a sent message, or why not. */
 export type ComposeOutcome =
@@ -53,8 +53,11 @@ export const COMPOSE_ENDPOINT = "/app/mail/compose-message";
  * is sent and again if the route answers 413. A network failure, a refusal that
  * is not JSON and an answer of another shape are all `unavailable`. In every
  * case the message stays on screen, nothing is lost.
+ *
+ * The size is the one the mail server publishes, so the browser refuses
+ * exactly what the route refuses.
  */
-export function useComposeSubmit() {
+export function useComposeSubmit(limits: ComposeLimits) {
 	const [pending, setPending] = useState<"draft" | "send" | null>(null);
 	const [outcome, setOutcome] = useState<ComposeOutcome>({ kind: "idle" });
 
@@ -62,7 +65,9 @@ export function useComposeSubmit() {
 		setPending(request.op);
 		let result: ComposeOutcome = { kind: "unavailable" };
 		const json = JSON.stringify(request);
-		if (new TextEncoder().encode(json).byteLength > MAX_COMPOSE_BYTES) {
+		if (
+			new TextEncoder().encode(json).byteLength > limits.maxRequestBytes
+		) {
 			// The route would refuse it by its size: say so here, and send nothing.
 			result = TOO_LARGE;
 		} else {

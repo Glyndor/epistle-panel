@@ -10,7 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import type { RecipientField } from "@/features/mail/components/compose-form/check-recipients";
 import type { ComposeFormValues } from "@/features/mail/schemas/compose-form";
-import { MAX_RECIPIENTS_TEXT } from "@/features/mail/schemas/compose-input-limits";
+import type { ComposeLimits } from "@/features/mail/schemas/compose-input-limits";
 import { fieldLength } from "@/lib/field-length";
 
 /** One of the three recipient fields: the same input, three names. */
@@ -18,11 +18,13 @@ export function RecipientInput({
 	control,
 	name,
 	label,
+	limits,
 	translate,
 }: {
 	control: Control<ComposeFormValues>;
 	name: RecipientField;
 	label: string;
+	limits: ComposeLimits;
 	translate: (message: string) => string;
 }) {
 	return (
@@ -36,7 +38,7 @@ export function RecipientInput({
 						<Input
 							{...field}
 							type="text"
-							maxLength={fieldLength(MAX_RECIPIENTS_TEXT)}
+							maxLength={fieldLength(limits.maxRecipientsText)}
 							inputMode="email"
 							autoCapitalize="none"
 							autoComplete="off"

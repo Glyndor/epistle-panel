@@ -3,11 +3,18 @@ import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
 import { clearSecretCache } from "@/lib/config/secret";
 import { fakeRequest } from "../../test-support/fake-request";
+import { sessionResource } from "../../test-support/jmap-stub";
 
 const originalFetch = globalThis.fetch;
 const savedEnv = { ...process.env };
 const cookies = mockRequestCookies();
-const { MAX_UPLOAD_BYTES, uploadResponse } = await import(".");
+const { uploadResponse } = await import(".");
+const { FALLBACK_COMPOSE_LIMITS } = await import(
+	"@/features/mail/schemas/compose-input-limits"
+);
+
+/** The file cap the panel held before it asked the server. */
+const FALLBACK = FALLBACK_COMPOSE_LIMITS.maxAttachmentBytes;
 
 beforeEach(async () => {
 	clearSecretCache();
@@ -31,11 +38,25 @@ type Seen = {
 };
 /**
  * The mail server: it reads the body it is sent, as a server does, and answers.
- * A body that breaks off fails the call, as `fetch` does.
+ * A body that breaks off fails the call, as `fetch` does. The session resource
+ * is answered with `session` when one is given and refused when it is not, as a
+ * server that publishes no limits does; it carries no body, so it is not one of
+ * the requests the test holds.
  */
-function jmap(answer: Response): Seen[] {
+function jmap(
+	answer: Response,
+	session: Record<string, unknown> | null = sessionResource(),
+): Seen[] {
 	const seen: Seen[] = [];
 	globalThis.fetch = mock(async (url: string | URL, init?: RequestInit) => {
+		if (String(url).endsWith("/jmap/session")) {
+			return session === null
+				? new Response("not found", { status: 404 })
+				: new Response(JSON.stringify(session), {
+						status: 200,
+						headers: { "content-type": "application/json" },
+					});
+		}
 		const entry: Seen = {
 			url: String(url),
 			init: init ?? {},
@@ -195,21 +216,30 @@ describe("uploadResponse", () => {
 		expect(await refused({ length: 4.5 })).toEqual([411, 0]);
 		expect(await refused({ length: null })).toEqual([411, 0]);
 		// One byte over 25 MiB.
-		expect(await refused({ length: 26_214_401 })).toEqual([413, 0]);
+		expect(await refused({ length: FALLBACK + 1 })).toEqual([413, 0]);
 		expect(await refused({}, false)).toEqual([401, 0]);
 		expect(seen).toHaveLength(0);
 	});
 
 	it("takes a file of exactly 25 MiB by its declared size", async () => {
-		expect(MAX_UPLOAD_BYTES).toBe(26_214_400);
+		expect(FALLBACK).toBe(26_214_400);
 		const seen = jmap(stored());
 		// The declared size is what is checked; the body here is short on purpose,
 		// so the case does not move 25 MiB: it ends as a mismatch, past the check.
 		const response = await uploadResponse(
-			upload({ body: "hello", length: 26_214_400 }),
+			upload({ body: "hello", length: FALLBACK }),
 		);
 		expect(response.status).toBe(400);
 		expect(seen).toHaveLength(1);
+	});
+
+	it("reads the limits the mail server publishes, and refuses what it refuses", async () => {
+		const seen = jmap(stored(), sessionResource({ maxSizeUpload: 1_000 }));
+
+		expect((await uploadResponse(upload({ length: 1_001 }))).status).toBe(
+			413,
+		);
+		expect(seen).toHaveLength(0);
 	});
 
 	it("says invalid when the body is not the size it declared, and hands on no byte past that size", async () => {

@@ -15,6 +15,7 @@ new image.
 | Spacing density | `--spacing` (the unit every padding, gap and size multiplies; the default is `0.25rem`) |
 | Product name | `EPISTLE_PANEL_BRAND_NAME` |
 | Logo, favicon | `EPISTLE_PANEL_BRAND_LOGO_FILE`, `EPISTLE_PANEL_BRAND_FAVICON_FILE` |
+| The line at the foot of the pages | `EPISTLE_PANEL_COPYRIGHT_NOTICE` |
 
 All the variables live in one file, `internal/src/styles/theme.css`: the colour
 roles (`--background`, `--foreground`, `--primary`, `--muted`, `--accent`,
@@ -147,8 +148,14 @@ was kept. The lightness of `--field-edge` (0.58 light, 0.64 dark, OKLCH) is the
 smallest step that holds 3:1 against the hover fill with a margin of 0.4; it is
 a measured choice for this palette, not a rule for another one.
 
-The original copyright notice stays in the sidebar and on the sign-in page. It is
-a constant in `features/branding/copyright`, not configuration.
+The line at the foot of the sidebar and of the sign-in page is the panel's own
+notice by default, and the operator's when it sets one:
+`EPISTLE_PANEL_COPYRIGHT_NOTICE`. Unset or empty keeps `© 2026 Glyndor`; a text
+is that text, at most 200 characters and without a control character, shown as
+text and never as markup; and the word `none`, in lower case and alone, says no
+line at all, for a white label. A value that cannot be shown stops the start
+with a message that names the variable and never the value, because a server
+that kept running would show a notice nobody chose.
 
 ## What runtime configuration can change (no rebuild)
 
@@ -162,6 +169,7 @@ environment when the process starts.
 | `EPISTLE_PANEL_SESSION_ADMIN_MAX_AGE_MINUTES` | The same for an admin's session. Unset or empty keeps eight hours (480). |
 | `EPISTLE_PANEL_SESSION_IDLE_TIMEOUT_MINUTES` | Optional, in whole minutes (1 to 43200): a session nobody used for that long is refused and the person goes to the sign-in page. Unset or empty leaves it off. |
 | `EPISTLE_PANEL_DEFAULT_LOCALE` | The language the panel falls back to when the person chose none and the browser asked for none of the six: `en`, `es`, `pt`, `fr`, `de` or `it`. Unset or empty keeps `en`. |
+| `EPISTLE_PANEL_COPYRIGHT_NOTICE` | The line at the foot of the pages: the operator's own text, or `none` for no line at all. Unset or empty keeps `© 2026 Glyndor`. At most 200 characters, no control character. |
 
 Every one of them is checked when the server starts: a value that cannot be
 used stops the start with a message that names the variable and never the

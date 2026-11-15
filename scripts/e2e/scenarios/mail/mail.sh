@@ -337,9 +337,11 @@ scenario_mail() {
 	assert_eq "a hostile id opens an empty composer" "$status" 200
 
 	local draft='{"op":"draft","to":[{"email":"to@example.org"}],"cc":[],"bcc":[{"email":"hidden@example.org"}],"subject":"Draft subject","text":"draft body","attachments":[]}'
-	assert_eq "no cookie: compose route is redirected" "$(mail_post /app/mail/compose-message "$draft" "")" 307
-	# The upload route is outside the proxy, which would hold its 25 MiB body in
-	# memory, so the route answers for itself: no redirect, its own refusal.
+	# The compose route and the upload route are outside the proxy, which would
+	# hold their bodies in memory, so each answers for itself: no redirect, its
+	# own refusal.
+	assert_eq "no cookie: the compose route refuses for itself" "$(mail_post /app/mail/compose-message "$draft" "")" 401
+	assert_contains "as unauthenticated" "$(cat "$work/b")" '"reason":"unauthenticated"'
 	assert_eq "no cookie: the upload route refuses for itself" "$(mail_post /app/mail/upload "x" "" "$panel" application/pdf)" 401
 	assert_contains "as unauthenticated" "$(cat "$work/b")" '"reason":"unauthenticated"'
 	curl -s -o /dev/null -D "$work/h" -X POST -H "Origin: $panel" -H 'Content-Type: application/pdf' --data-binary x "$panel/app/mail/upload"
@@ -352,7 +354,9 @@ scenario_mail() {
 	# A body is declared and never sent: whoever answers has decided without it.
 	assert_eq "no cookie: the upload route refuses before any of the body arrives" "$(node "$root/scripts/e2e/lib/declare-only.mjs" "$panel/app/mail/upload?name=a.bin" 26214400)" 401
 	assert_eq "a session: a file declared over 25 MiB is refused before any of it arrives" "$(node "$root/scripts/e2e/lib/declare-only.mjs" "$panel/app/mail/upload?name=a.bin" 26214401 "$good")" 413
-	before=$(api_count '"method"')
+	# The session resource is asked for the limits the composer works with, so
+	# what is counted here is the method calls: none of them may be made.
+	before=$(api_count '"jmap"')
 	assert_eq "a foreign origin is refused" "$(mail_post /app/mail/compose-message "$draft" "$good" https://evil.test)" 403
 	assert_eq "no origin is refused" "$(mail_post /app/mail/compose-message "$draft" "$good" -)" 403
 	assert_eq "a null origin is refused" "$(mail_post /app/mail/compose-message "$draft" "$good" null)" 403
@@ -361,7 +365,7 @@ scenario_mail() {
 	for hostile in '{"op":"send"}' '{"op":"send","to":[{"email":"nope"}],"cc":[],"bcc":[],"subject":"s","text":"t","attachments":[]}' '{"op":"draft","to":[],"cc":[],"bcc":[],"subject":"a\r\nBcc: x@y.org","text":"t","attachments":[]}' '{"op":"draft","to":[],"cc":[],"bcc":[],"subject":"s","text":"t","attachments":[{"blobId":"../../etc/passwd","name":"x","type":"text/plain"}]}' '{"op":"draft","extra":1,"to":[],"cc":[],"bcc":[],"subject":"s","text":"t","attachments":[]}' '{broken'; do
 		assert_eq "hostile compose request '${hostile:0:40}' is a 400" "$(mail_post /app/mail/compose-message "$hostile" "$good")" 400
 	done
-	assert_eq "none of them reached the mail server" "$(api_count '"method"')" "$before"
+	assert_eq "none of them reached the mail server with a method call" "$(api_count '"jmap"')" "$before"
 
 	assert_eq "saving a draft" "$(mail_post /app/mail/compose-message "$draft" "$good")" 200
 	assert_contains "the answer is a closed result" "$(cat "$work/b")" '"kind":"draft"'
@@ -397,15 +401,15 @@ scenario_mail() {
 	file_status=$(curl -s -o "$work/b" -w '%{http_code}' -X POST -b "$good" -H "Origin: $panel" -H 'Content-Type: application/octet-stream' --data-binary "@$work/huge.bin" "$panel/app/mail/upload?name=huge.bin" || true)
 	assert_eq "a file over 25 MiB is refused" "$file_status" 413
 	rm -f "$work/big.bin" "$work/huge.bin"
-	# The proxy keeps 2 MB of a body. A message over the composer's own 1.5 MB is
-	# refused by its route from its declared size, under that buffer and over it.
-	head -c 1600000 /dev/zero | tr '\0' 'a' >"$work/long.json"
-	assert_eq "a message of 1.6 MB is refused by the composer's own limit" "$(curl -s -o "$work/b" -w '%{http_code}' -X POST -b "$good" -H "Origin: $panel" -H 'Content-Type: application/json' --data-binary "@$work/long.json" "$panel/app/mail/compose-message")" 413
+	# The composer's limits are the ones the mail server publishes: its session
+	# says it takes a request of up to 10 MB, so the panel takes one too, and the
+	# route is outside the proxy, which would hold the body in memory.
+	node -e 'process.stdout.write(JSON.stringify({op:"send",to:[{email:"big@example.org"}],cc:[],bcc:[],subject:"s",text:"\u20ac".repeat(600000),attachments:[]}))' >"$work/long.json"
+	assert_eq "a message of 1.8 MB is taken, as the server takes it" "$(curl -s -o "$work/b" -w '%{http_code}' -X POST -b "$good" -H "Origin: $panel" -H 'Content-Type: application/json' --data-binary "@$work/long.json" "$panel/app/mail/compose-message")" 200
+	node -e 'process.stdout.write(JSON.stringify({op:"draft",to:[],cc:[],bcc:[],subject:"s",text:"a".repeat(11000000),attachments:[]}))' >"$work/long.json"
+	assert_eq "a message over the 10 MB the server accepts is refused by the composer's own limit" "$(curl -s -o "$work/b" -w '%{http_code}' -X POST -b "$good" -H "Origin: $panel" -H 'Content-Type: application/json' --data-binary "@$work/long.json" "$panel/app/mail/compose-message")" 413
 	assert_contains "with the route's own answer" "$(cat "$work/b")" '"reason":"invalid"'
-	head -c 3000000 /dev/zero | tr '\0' 'a' >"$work/long.json"
-	assert_eq "and so is one of 3 MB, which the proxy's buffer would have cut" "$(curl -s -o "$work/b" -w '%{http_code}' -X POST -b "$good" -H "Origin: $panel" -H 'Content-Type: application/json' --data-binary "@$work/long.json" "$panel/app/mail/compose-message")" 413
-	assert_contains "with the route's own answer too" "$(cat "$work/b")" '"reason":"invalid"'
-	assert_eq "a body of 3 MB with no session still gets its answer" "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Origin: $panel" --data-binary "@$work/long.json" "$panel/app/mail")" 307
+	assert_eq "a big body with no session still gets its answer" "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Origin: $panel" --data-binary "@$work/long.json" "$panel/app/mail/compose-message")" 401
 	rm -f "$work/long.json"
 
 	local send="{\"op\":\"send\",\"to\":[{\"name\":\"Zed\",\"email\":\"zed@example.org\"}],\"cc\":[],\"bcc\":[{\"email\":\"hidden@example.org\"}],\"subject\":\"Sent subject\",\"text\":\"sent body\",\"attachments\":[{\"blobId\":\"$blob\",\"name\":\"report_.pdf\",\"type\":\"application/pdf\"}],\"draftId\":\"$draft_id\"}"

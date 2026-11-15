@@ -1,13 +1,18 @@
 import "server-only";
 
 import { currentMailSession } from "@/features/mail/jmap/credentials";
+import { loadComposeLimits } from "@/features/mail/queries/compose-limits";
 import { composeMessage } from "@/features/mail/queries/compose-message";
 import { isSameOrigin } from "@/features/mail/responses/same-origin";
 import { composeInputSchema } from "@/features/mail/schemas/compose-input";
-import { MAX_COMPOSE_BYTES } from "@/features/mail/schemas/compose-input-limits";
 import { logApiFailure } from "@/lib/api/log-failure";
 
-export { MAX_COMPOSE_BYTES };
+/**
+ * The policy of an answer of this route. The proxy does not cover it (see the
+ * matcher in `proxy.ts`), so the route sends its own: the answer is JSON for a
+ * script, and nothing may load or frame it.
+ */
+const ANSWER_POLICY = "default-src 'none'; frame-ancestors 'none'";
 
 function answer(status: number, body: unknown): Response {
 	return new Response(JSON.stringify(body), {
@@ -16,6 +21,7 @@ function answer(status: number, body: unknown): Response {
 			"Content-Type": "application/json",
 			"Cache-Control": "private, no-store",
 			"X-Content-Type-Options": "nosniff",
+			"Content-Security-Policy": ANSWER_POLICY,
 		},
 	});
 }
@@ -28,6 +34,7 @@ function answer(status: number, body: unknown): Response {
 async function readCapped(
 	request: Request,
 	limit: number,
+	cap: number,
 ): Promise<string | null> {
 	const reader = request.body?.getReader();
 	if (reader === undefined) {
@@ -41,7 +48,7 @@ async function readCapped(
 			break;
 		}
 		total += value.byteLength;
-		if (total > limit || total > MAX_COMPOSE_BYTES) {
+		if (total > limit || total > cap) {
 			await reader.cancel();
 			return null;
 		}
@@ -65,6 +72,15 @@ async function readCapped(
  * read as it streams, cut at the first byte past the cap or past what was declared
  * (bytes, not characters), then parsed with the strict schema. The answer is a closed category, never the
  * server's words.
+ *
+ * The route is outside the proxy (see the matcher in `proxy.ts`): the proxy
+ * buffers the body of what it covers, and a message may be as many bytes as the
+ * mail server accepts. So the route is its own gate and does every check
+ * itself before it reads a byte: same origin, the session and its role, the
+ * declared size, and then the body as a stream.
+ *
+ * The cap is the one the mail server publishes (`maxSizeRequest`), so the route
+ * refuses exactly what the server refuses and nothing it accepts.
  */
 export async function composeResponse(request: Request): Promise<Response> {
 	if (!isSameOrigin(request)) {
@@ -86,10 +102,15 @@ export async function composeResponse(request: Request): Promise<Response> {
 		if (!Number.isInteger(declared) || declared <= 0) {
 			return answer(411, { ok: false, reason: "invalid" });
 		}
-		if (declared > MAX_COMPOSE_BYTES) {
+		const limits = await loadComposeLimits(session);
+		if (declared > limits.maxRequestBytes) {
 			return answer(413, { ok: false, reason: "invalid" });
 		}
-		const text = await readCapped(request, declared);
+		const text = await readCapped(
+			request,
+			declared,
+			limits.maxRequestBytes,
+		);
 		if (text === null) {
 			return answer(413, { ok: false, reason: "invalid" });
 		}
@@ -99,7 +120,7 @@ export async function composeResponse(request: Request): Promise<Response> {
 		} catch {
 			return answer(400, { ok: false, reason: "invalid" });
 		}
-		const parsed = composeInputSchema.safeParse(body);
+		const parsed = composeInputSchema(limits).safeParse(body);
 		if (!parsed.success) {
 			return answer(400, { ok: false, reason: "invalid" });
 		}

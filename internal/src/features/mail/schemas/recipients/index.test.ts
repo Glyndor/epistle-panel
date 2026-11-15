@@ -1,11 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import {
-	formatRecipients,
-	isAddress,
-	MAX_RECIPIENTS,
-	parseRecipients,
-} from ".";
+import { formatRecipients, isAddress, parseRecipients } from ".";
 
 describe("isAddress", () => {
 	it("accepts a plain address, non-ASCII included", () => {
@@ -76,10 +71,6 @@ describe("parseRecipients", () => {
 		expect(
 			parseRecipients(`${"n".repeat(300)} <a@x.org>`).recipients[0]?.name,
 		).toHaveLength(200);
-	});
-
-	it("has a ceiling constant of 100", () => {
-		expect(MAX_RECIPIENTS).toBe(100);
 	});
 });
 
