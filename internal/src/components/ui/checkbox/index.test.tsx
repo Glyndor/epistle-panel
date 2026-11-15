@@ -81,6 +81,24 @@ describe("Checkbox", () => {
 		expect(form.querySelector("[style]")).toBeNull();
 	});
 
+	it("answers a hover and a press, ticked or not, and gives the native drawing back in forced colours", () => {
+		render(<Checkbox aria-label="x" />);
+
+		const classes = screen.getByRole("checkbox").className;
+		for (const answer of [
+			"hover:bg-surface-sunken",
+			"active:bg-surface-sunken",
+			"checked:hover:bg-primary/90",
+			"checked:active:bg-primary/80",
+			"forced-colors:appearance-auto",
+		]) {
+			expect(classes).toContain(answer);
+		}
+		expect(document.querySelector("svg")?.getAttribute("class")).toContain(
+			"forced-colors:hidden",
+		);
+	});
+
 	it("keeps the caller's classes after its own, and passes the disabled state on", () => {
 		render(<Checkbox aria-label="x" className="mt-1" disabled />);
 
