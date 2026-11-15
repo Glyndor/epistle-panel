@@ -173,6 +173,8 @@ policy are read from the environment when the process starts.
 | `EPISTLE_PANEL_COPYRIGHT_NOTICE` | The line at the foot of the pages: the operator's own text, or `none` for no line at all. Unset or empty keeps `© 2026 Glyndor`. At most 200 characters, no control character. |
 | `EPISTLE_PANEL_REMOTE_IMAGES` | Fixes how messages may load remote images for everyone: `ask`, `always` or `never`. Unset or empty leaves the choice to each person. |
 | `EPISTLE_PANEL_TIME_ZONE` | The time zone every date of the panel is printed in: `UTC` or the name of an IANA zone (`America/Bogota`). Unset or empty leaves the choice to each person. |
+| `EPISTLE_PANEL_PAGE_SIZE` | How many messages one page of the message list holds for everyone: `25`, `50` or `100`. Unset or empty leaves the choice to each person (50 until they choose). |
+| `EPISTLE_PANEL_REFRESH` | How fast the lists refresh by themselves for everyone: `normal`, `slow` or `fast`. Unset or empty leaves the choice to each person (`normal` until they choose). There is no way to turn it off. |
 
 ### Remote images
 
@@ -218,6 +220,59 @@ person).
 
 A value that is not a zone stops the start with a message that names the
 variable and never the value.
+
+### The page size of the message list
+
+`EPISTLE_PANEL_PAGE_SIZE` is unset when each person chooses through `/app/me`.
+The choice is kept in the `page-size` cookie under `/app` and is one of `25`,
+`50` or `100`, written exactly so (`050` and `50.0` are not choices); anything
+else in the cookie reads as 50, which is what the list held before the person
+could choose. When the variable holds one of the three, it wins over the cookie
+for every request, `/app/me` shows it as read-only text and its Server Action
+refuses a posted attempt to change it.
+
+It is the size of the page of the message list, read on the server by the one
+function that cuts the page (`features/mail/queries/load-message-list`), so the
+prefetch and the browser's own request cut it the same way, and the "next page"
+flag and the page numbers follow it. It is not the size of the other lists:
+the tables of the administration page by themselves in the browser (25 rows a
+page, with their own control for 10, 25, 50 or 100), the API's fixed limits
+(the overview reads at most 100 records per call, up to 5 calls; the delivery
+log reads the API's own limit) and the batch sizes of the label and the
+message-get calls are not pages of a list, and a person's choice does not move
+them. A search or filter reads at most the newest 1000 messages of a folder
+whatever the page size.
+
+### The pace of the refreshes
+
+`EPISTLE_PANEL_REFRESH` is unset when each person chooses through `/app/me`.
+The choice is kept in the `refresh` cookie under `/app` and is one of
+`normal`, `slow` or `fast`; there is no `off`, in the variable, the form or the
+cookie, and a cookie that says anything else reads as `normal`. The pace
+multiplies the interval every list that refreshes by itself already had, in one
+function (`features/refresh/config/pace`, `refreshInterval`):
+
+| List | `normal` (today's) | `slow` (2x) | `fast` (0.5x, never under 15 s) |
+|---|---|---|---|
+| The message list and the folders (and the counters in them) | 30 s | 60 s | 15 s |
+| The suppression list and the delivery log | 30 s | 60 s | 15 s |
+| The status counters and the queue | 15 s | 30 s | 15 s |
+
+The status counters and the queue are already at the floor, so `fast` leaves
+them at 15 s. Lists refresh only while the tab is in view, as before.
+
+A page left open and visible keeps the session alive because it refreshes its
+lists, and an idle timeout (`EPISTLE_PANEL_SESSION_IDLE_TIMEOUT_MINUTES`)
+counts that refresh as use. The keepalive therefore runs on the effective
+interval, never on the normal one: at `slow` the longest gap between two
+requests of an open page is a minute (the idle timeout accepts as little as one
+minute), so an operator with a short idle timeout should leave the pace at
+`normal` or `fast`, or fix it with the variable.
+
+The layout of each area (the mail and the administration) reads the effective
+pace on the server and hands it to its whole frame, the sidebar and the search
+included, which poll too; the browser never reads the cookie, which is
+`HttpOnly`. A list read without that frame refreshes at the normal interval.
 
 Every one of them is checked when the server starts: a value that cannot be
 used stops the start with a message that names the variable and never the

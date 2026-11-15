@@ -62,14 +62,17 @@ const answers = {
 };
 
 /**
- * The layout's element is the query provider around an AppShell, whose parts
- * arrive as props: run the shell too, so its server parts are in the tree.
+ * The layout's element is the query provider around the refresh pace around an
+ * AppShell, whose parts arrive as props: run the shell too, so its server parts
+ * are in the tree.
  */
 async function shell() {
 	const layout = (await MailLayout(slots)) as React.ReactElement<{
-		children: React.ReactElement<React.ComponentProps<typeof AppShell>>;
+		children: React.ReactElement<{
+			children: React.ReactElement<React.ComponentProps<typeof AppShell>>;
+		}>;
 	}>;
-	return AppShell(layout.props.children.props);
+	return AppShell(layout.props.children.props.children.props);
 }
 
 /** The layout with everything it streams resolved. */

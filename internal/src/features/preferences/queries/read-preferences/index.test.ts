@@ -23,6 +23,8 @@ describe("readPreferences", () => {
 			density: "comfortable",
 			remoteImages: "ask",
 			timeZone: "UTC",
+			pageSize: "50",
+			refresh: "normal",
 		});
 	});
 
@@ -38,6 +40,8 @@ describe("readPreferences", () => {
 			density: "compact",
 			remoteImages: "never",
 			timeZone: "UTC",
+			pageSize: "50",
+			refresh: "normal",
 		});
 	});
 
@@ -53,6 +57,8 @@ describe("readPreferences", () => {
 					density: "comfortable",
 					remoteImages: "ask",
 					timeZone: "UTC",
+					pageSize: "50",
+					refresh: "normal",
 				});
 			}
 		}

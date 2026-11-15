@@ -19,6 +19,8 @@ const GOOD = {
 	density: "compact",
 	remoteImages: "ask",
 	timeZone: "UTC",
+	pageSize: "50",
+	refresh: "normal",
 } as const;
 
 /** A posted form: each name with the value, or the list of values it was sent with. */
@@ -38,7 +40,7 @@ const save = (fields: Parameters<typeof form>[0]) =>
 	savePreferences(INITIAL_PREFERENCES_STATE, form(fields));
 
 describe("savePreferences", () => {
-	it("stores the four choices of a signed-in account of either role, each in its own cookie with its own attributes, and says what it stored", async () => {
+	it("stores the seven choices of a signed-in account of either role, each in its own cookie with its own attributes, and says what it stored", async () => {
 		for (const role of ["admin", "user"] as const) {
 			cookies.reset();
 			await cookies.signIn("ana", role);
@@ -104,6 +106,28 @@ describe("savePreferences", () => {
 						maxAge: 31536000,
 					},
 				},
+				{
+					name: "page-size",
+					value: "50",
+					options: {
+						httpOnly: true,
+						secure: true,
+						sameSite: "lax",
+						path: "/app",
+						maxAge: 31536000,
+					},
+				},
+				{
+					name: "refresh",
+					value: "normal",
+					options: {
+						httpOnly: true,
+						secure: true,
+						sameSite: "lax",
+						path: "/app",
+						maxAge: 31536000,
+					},
+				},
 			]);
 		}
 	});
@@ -137,7 +161,7 @@ describe("savePreferences", () => {
 		expect(cookies.writes).toHaveLength(0);
 	});
 
-	it("refuses a value outside a list, names the field, and stores none of the other three", async () => {
+	it("refuses a value outside a list, names the field, and stores none of the others", async () => {
 		await cookies.signIn();
 		const hostile = {
 			language: HOSTILE_LOCALE_VALUES,
@@ -174,6 +198,8 @@ describe("savePreferences", () => {
 				theme: "notInList",
 				density: "required",
 				timeZone: "required",
+				pageSize: "required",
+				refresh: "required",
 			},
 		});
 		expect(cookies.writes).toHaveLength(0);
@@ -210,6 +236,8 @@ describe("savePreferences", () => {
 			"list-density",
 			"remote-images",
 			"time-zone",
+			"page-size",
+			"refresh",
 		]);
 	});
 

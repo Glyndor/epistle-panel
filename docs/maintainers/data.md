@@ -22,6 +22,8 @@ the session stay on the server; the browser never calls the API.
    error; the detail goes to the server log under a fixed operation name.
 4. The status counters and the queue refetch every 15 s while the tab is in
    view (`refetchIntervalInBackground: false`); a hidden tab makes no request.
+   15 s is the `normal` pace: the person (or the operator) can make every
+   refreshing list slower or faster, never off (`preferences.md`).
    A query that finds the session ended sends the browser to the sign-in page at `/`.
 
 Removing a queue entry is a mutation with an optimistic update: the row leaves

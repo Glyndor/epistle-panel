@@ -4,9 +4,13 @@ import { useQuery } from "@tanstack/react-query";
 import { useFormatter, useTranslations } from "next-intl";
 
 import { SummaryCard } from "@/components/summary-card";
+import { useRefreshInterval } from "@/features/refresh/components/refresh-provider";
 import { getStatusAction } from "@/features/status/actions/get-status";
 import { StatusCardsSkeleton } from "@/features/status/components/status-cards-skeleton";
-import { statusQueryOptions } from "@/features/status/queries/status-query";
+import {
+	STATUS_REFRESH_MS,
+	statusQueryOptions,
+} from "@/features/status/queries/status-query";
 import { unwrap } from "@/lib/query/action-result";
 
 const fetchStatus = async () => unwrap(await getStatusAction());
@@ -28,7 +32,10 @@ const COUNTERS = [
 export function StatusCards() {
 	const t = useTranslations("dashboard");
 	const format = useFormatter();
-	const { data, isPending } = useQuery(statusQueryOptions(fetchStatus));
+	const refreshMs = useRefreshInterval(STATUS_REFRESH_MS);
+	const { data, isPending } = useQuery(
+		statusQueryOptions(fetchStatus, refreshMs),
+	);
 
 	if (isPending) {
 		return <StatusCardsSkeleton />;

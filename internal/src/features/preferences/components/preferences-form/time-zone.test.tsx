@@ -32,11 +32,13 @@ const values = {
 	density: "comfortable",
 	remoteImages: "ask",
 	timeZone: "America/Bogota",
+	pageSize: "50",
+	refresh: "normal",
 } as const;
 it("offers exactly the closed zone list as a fifth required labelled field", () => {
 	render(<PreferencesForm values={values} />);
 	const field = screen.getByRole("combobox", { name: "timeZone" });
-	expect(screen.getAllByRole("combobox")).toHaveLength(5);
+	expect(screen.getAllByRole("combobox")).toHaveLength(7);
 	expect(field).toBeRequired();
 	expect(field).toHaveValue("America/Bogota");
 	expect(
@@ -81,7 +83,7 @@ it("renders the operator statement as accessible text and posts no time zone fie
 		const { container } = render(
 			<PreferencesForm values={values} operatorTimeZone={mode} />,
 		);
-		expect(screen.getAllByRole("combobox")).toHaveLength(4);
+		expect(screen.getAllByRole("combobox")).toHaveLength(6);
 		expect(container.querySelector('[name="timeZone"]')).toBeNull();
 		const group = screen.getByRole("group", { name: "timeZone" });
 		expect(group).toHaveTextContent("timeZoneSetByOperator");

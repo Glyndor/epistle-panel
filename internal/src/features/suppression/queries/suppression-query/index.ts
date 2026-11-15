@@ -16,16 +16,18 @@ export const SUPPRESSION_REFRESH_MS = 30_000;
  * Options of one page of the suppression list, shared by the server prefetch
  * and the browser. The previous page stays on screen while the next loads.
  * Polls only while the tab is in view: bounces add addresses on their own.
+ * `refreshMs` is the interval at the person's pace; it defaults to the normal one.
  */
 export function suppressionQueryOptions(
 	after: string | undefined,
 	fetcher: (after: string | undefined) => Promise<SuppressionPageView>,
+	refreshMs: number = SUPPRESSION_REFRESH_MS,
 ) {
 	return queryOptions({
 		queryKey: suppressionKeys.page(after),
 		queryFn: () => fetcher(after),
 		placeholderData: keepPreviousData,
-		refetchInterval: SUPPRESSION_REFRESH_MS,
+		refetchInterval: refreshMs,
 		refetchIntervalInBackground: false,
 	});
 }

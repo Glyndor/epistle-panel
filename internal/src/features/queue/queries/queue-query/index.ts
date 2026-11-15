@@ -16,17 +16,19 @@ export const QUEUE_REFRESH_MS = 15_000;
  * Options of one page of the queue, shared by the server prefetch and the
  * browser. The previous page stays on screen while the next loads, so moving
  * between pages does not flash an empty table. Polls only while the tab is in
- * view.
+ * view. `refreshMs` is the interval at the person's pace; it defaults to the
+ * normal one.
  */
 export function queueQueryOptions(
 	cursor: string | undefined,
 	fetcher: (cursor: string | undefined) => Promise<QueuePageView>,
+	refreshMs: number = QUEUE_REFRESH_MS,
 ) {
 	return queryOptions({
 		queryKey: queueKeys.page(cursor),
 		queryFn: () => fetcher(cursor),
 		placeholderData: keepPreviousData,
-		refetchInterval: QUEUE_REFRESH_MS,
+		refetchInterval: refreshMs,
 		refetchIntervalInBackground: false,
 	});
 }

@@ -14,6 +14,8 @@ import {
 import { SIDEBAR_GROUPS_COOKIE } from "@/components/ui/sidebar/groups-cookie";
 import { navItems } from "@/features/navigation/config/items";
 import { navForRole } from "@/features/navigation/queries/nav-for-role";
+import { RefreshProvider } from "@/features/refresh/components/refresh-provider";
+import { readEffectiveRefreshPace } from "@/features/refresh/queries/refresh-pace";
 import { TimeZoneProvider } from "@/features/time-zone/components/time-zone-provider";
 import { readEffectiveTimeZone } from "@/features/time-zone/queries/time-zone";
 import { requireAdmin } from "@/lib/auth/require-session";
@@ -36,7 +38,8 @@ import { constantTimeEqual } from "@/lib/routes";
  *
  * The zone of the person's dates is read here too and given to the frame, so
  * every date the area prints is in the clock they chose. The browser never
- * reads the cookie: the zone travels down as a prop.
+ * reads the cookie: the zone travels down as a prop. The pace of the
+ * refreshes is read here too and wraps the frame, for the lists that poll.
  */
 export default async function AdminLayout({
 	children,
@@ -53,6 +56,7 @@ export default async function AdminLayout({
 	}
 	const t = await getTranslations("nav");
 	const timeZone = await readEffectiveTimeZone();
+	const refreshPace = await readEffectiveRefreshPace();
 	const jar = await cookies();
 	const open = sidebarStartsOpen(jar.get(SIDEBAR_COOKIE)?.value);
 	const closedGroups = closedSidebarGroups(
@@ -62,28 +66,30 @@ export default async function AdminLayout({
 	return (
 		<AdminRoutesProvider adminId={id}>
 			<QueryProvider>
-				<AppShell
-					navigation={
-						<NavMain
-							groups={navForRole("admin", navItems(routes))}
-						/>
-					}
-					homeHref={routes.home}
-					subtitle={t("brandSubtitle")}
-					sheet={{
-						title: t("sheetTitle"),
-						description: t("sheetDescription"),
-					}}
-					trail={trail}
-					user={{ name: sub, role: "admin" }}
-					adminHref={routes.home}
-					defaultOpen={open}
-					closedGroups={closedGroups}
-				>
-					<TimeZoneProvider timeZone={timeZone}>
-						{children}
-					</TimeZoneProvider>
-				</AppShell>
+				<RefreshProvider pace={refreshPace}>
+					<AppShell
+						navigation={
+							<NavMain
+								groups={navForRole("admin", navItems(routes))}
+							/>
+						}
+						homeHref={routes.home}
+						subtitle={t("brandSubtitle")}
+						sheet={{
+							title: t("sheetTitle"),
+							description: t("sheetDescription"),
+						}}
+						trail={trail}
+						user={{ name: sub, role: "admin" }}
+						adminHref={routes.home}
+						defaultOpen={open}
+						closedGroups={closedGroups}
+					>
+						<TimeZoneProvider timeZone={timeZone}>
+							{children}
+						</TimeZoneProvider>
+					</AppShell>
+				</RefreshProvider>
 			</QueryProvider>
 		</AdminRoutesProvider>
 	);

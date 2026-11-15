@@ -8,10 +8,14 @@ import { TableIdentity } from "@/components/data-table/identity";
 import { useAdminRoutes } from "@/components/layout/admin-routes";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { useRefreshInterval } from "@/features/refresh/components/refresh-provider";
 import { getSuppressionPageAction } from "@/features/suppression/actions/get-suppression-page";
 import { RemoveAddressButton } from "@/features/suppression/components/remove-address-button";
 import { SuppressionTableSkeleton } from "@/features/suppression/components/suppression-table-skeleton";
-import { suppressionQueryOptions } from "@/features/suppression/queries/suppression-query";
+import {
+	SUPPRESSION_REFRESH_MS,
+	suppressionQueryOptions,
+} from "@/features/suppression/queries/suppression-query";
 import type { SuppressionRow } from "@/features/suppression/schemas/suppression-view";
 import { unwrap } from "@/lib/query/action-result";
 
@@ -31,8 +35,9 @@ const helper = columnHelper<SuppressionRow>();
 export function SuppressionTable({ after }: { after: string | undefined }) {
 	const t = useTranslations("suppression");
 	const routes = useAdminRoutes();
+	const refreshMs = useRefreshInterval(SUPPRESSION_REFRESH_MS);
 	const { data, isPending } = useQuery(
-		suppressionQueryOptions(after, fetchPage),
+		suppressionQueryOptions(after, fetchPage, refreshMs),
 	);
 	const columns = helper.columns([
 		helper.accessor("address", {

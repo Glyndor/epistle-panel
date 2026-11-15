@@ -6,8 +6,13 @@ const values = {
 	theme: "system",
 	density: "comfortable",
 } as const;
-/** The four fields the form posts when the operator fixed none of them. */
-const chosen = { ...values, timeZone: "UTC" } as const;
+/** The six fields the form posts when the operator fixed none of them. */
+const chosen = {
+	...values,
+	timeZone: "UTC",
+	pageSize: "50",
+	refresh: "normal",
+} as const;
 it("requires a fourth exact mode when the preference is editable", () => {
 	for (const mode of ["ask", "always", "never"] as const)
 		expect(

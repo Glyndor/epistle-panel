@@ -22,15 +22,17 @@ export const DELIVERIES_REFRESH_MS = 30_000;
 /**
  * Options of the delivery log for one set of filters, shared by the server
  * prefetch and the browser. Polls only while the tab is in view.
+ * `refreshMs` is the interval at the person's pace; it defaults to the normal one.
  */
 export function deliveriesQueryOptions(
 	filters: DeliveryFilters,
 	fetcher: (filters: DeliveryFilters) => Promise<DeliveriesView>,
+	refreshMs: number = DELIVERIES_REFRESH_MS,
 ) {
 	return queryOptions({
 		queryKey: deliveriesKeys.list(filters),
 		queryFn: () => fetcher(filters),
-		refetchInterval: DELIVERIES_REFRESH_MS,
+		refetchInterval: refreshMs,
 		refetchIntervalInBackground: false,
 	});
 }

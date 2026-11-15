@@ -10,6 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { LIST_DENSITIES } from "@/features/mail/config/list-density";
 import {
+	PAGE_SIZE_CHOICES,
+	type PageSizeChoice,
+} from "@/features/mail/config/page-size";
+import {
 	REMOTE_IMAGE_MODES,
 	type RemoteImageMode,
 } from "@/features/mail/config/remote-images";
@@ -25,6 +29,10 @@ import {
 	preferencesSchema,
 } from "@/features/preferences/schemas/preferences";
 import { INITIAL_PREFERENCES_STATE } from "@/features/preferences/schemas/preferences-state";
+import {
+	REFRESH_PACES,
+	type RefreshPace,
+} from "@/features/refresh/config/pace";
 import { THEME_CHOICES } from "@/features/theme/config/choices";
 import { applyThemeChoice } from "@/features/theme/document-theme";
 import {
@@ -57,20 +65,27 @@ const TIME_ZONE_OPTIONS = TIME_ZONE_GROUPS.flatMap((group) =>
  *
  * `values` is what the server read and checked from the cookies, so the first
  * paint already shows the choice in force. A saved theme is shown at once on
- * `<html>`; the language, the density, the mode of the remote images and the
- * time zone are what the page and the mail area read on their next render,
- * which the action's cookies cause.
+ * `<html>`; the language, the density, the mode of the remote images, the
+ * time zone, the page size and the refresh pace are what the page and the mail area read on their next render,
+ * which the action's cookies cause (and, for the page size and the pace of the
+ * refreshes, the next list the person opens).
  */
 export function PreferencesForm({
 	values,
 	operatorRemoteImagesMode = null,
 	operatorTimeZone = null,
+	operatorPageSize = null,
+	operatorRefresh = null,
 	save = savePreferences,
 }: {
 	values: PreferencesValues;
 	operatorRemoteImagesMode?: RemoteImageMode | null;
 	/** The zone the operator fixed for everyone, when they fixed one. */
 	operatorTimeZone?: TimeZone | null;
+	/** The page size the operator fixed for everyone, when they fixed one. */
+	operatorPageSize?: PageSizeChoice | null;
+	/** The refresh pace the operator fixed for everyone, when they fixed one. */
+	operatorRefresh?: RefreshPace | null;
 	/**
 	 * What the form posts to: the Server Action. A prop so a test can answer
 	 * what the browser's own two checks never let reach the server.
@@ -105,7 +120,9 @@ export function PreferencesForm({
 			const fixedByOperator =
 				(first === "remoteImages" &&
 					operatorRemoteImagesMode !== null) ||
-				(first === "timeZone" && operatorTimeZone !== null);
+				(first === "timeZone" && operatorTimeZone !== null) ||
+				(first === "pageSize" && operatorPageSize !== null) ||
+				(first === "refresh" && operatorRefresh !== null);
 			if (first !== undefined && !fixedByOperator) {
 				form.setFocus(first);
 			}
@@ -211,6 +228,58 @@ export function PreferencesForm({
 						help={t("timeZoneHelp")}
 						value={t("timeZoneSetByOperator", {
 							zone: operatorTimeZone,
+						})}
+					/>
+				)}
+				{operatorPageSize === null ? (
+					<PreferenceField
+						control={form.control}
+						name="pageSize"
+						label={t("pageSize")}
+						help={t("pageSizeHelp")}
+						renderMessage={message}
+						refusal={refusals.pageSize}
+						options={PAGE_SIZE_CHOICES.map((choice) => ({
+							value: choice,
+							label: t("pageSizeOption", {
+								count: Number(choice),
+							}),
+						}))}
+					/>
+				) : (
+					<ReadOnlyPreferenceField
+						control={form.control}
+						name="pageSize"
+						label={t("pageSize")}
+						help={t("pageSizeHelp")}
+						value={t("pageSizeSetByOperator", {
+							size: t("pageSizeOption", {
+								count: Number(operatorPageSize),
+							}),
+						})}
+					/>
+				)}
+				{operatorRefresh === null ? (
+					<PreferenceField
+						control={form.control}
+						name="refresh"
+						label={t("refresh")}
+						help={t("refreshHelp")}
+						renderMessage={message}
+						refusal={refusals.refresh}
+						options={REFRESH_PACES.map((pace) => ({
+							value: pace,
+							label: t(`refresh_${pace}`),
+						}))}
+					/>
+				) : (
+					<ReadOnlyPreferenceField
+						control={form.control}
+						name="refresh"
+						label={t("refresh")}
+						help={t("refreshHelp")}
+						value={t("refreshSetByOperator", {
+							pace: t(`refresh_${operatorRefresh}`),
 						})}
 					/>
 				)}

@@ -19,6 +19,8 @@ const valid = {
 	density: "compact",
 	remoteImages: "ask",
 	timeZone: "UTC",
+	pageSize: "50",
+	refresh: "normal",
 };
 
 /** The message the schema gives a field, or undefined when it takes it. */
@@ -40,6 +42,8 @@ describe("preferencesSchema", () => {
 						density,
 						remoteImages: "ask" as const,
 						timeZone: "UTC" as const,
+						pageSize: "50" as const,
+						refresh: "normal" as const,
 					};
 					expect(preferencesSchema.parse(input)).toEqual(input);
 				}
@@ -110,13 +114,15 @@ describe("preferencesSchema", () => {
 			density: undefined,
 			remoteImages: "x",
 			timeZone: "Middle Earth",
+			pageSize: "7",
+			refresh: "never",
 		});
 
 		expect(result.success).toBe(false);
 		const messages = result.success
 			? []
 			: result.error.issues.map((issue) => issue.message);
-		expect(messages).toHaveLength(5);
+		expect(messages).toHaveLength(7);
 		for (const message of messages) {
 			expect(isPreferenceErrorKey(message)).toBe(true);
 		}

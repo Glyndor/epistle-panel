@@ -10,10 +10,14 @@ import { StatusBadge } from "@/components/status-badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { getDeliveriesAction } from "@/features/deliveries/actions/get-deliveries";
 import { DeliveriesTableSkeleton } from "@/features/deliveries/components/deliveries-table-skeleton";
-import { deliveriesQueryOptions } from "@/features/deliveries/queries/deliveries-query";
+import {
+	DELIVERIES_REFRESH_MS,
+	deliveriesQueryOptions,
+} from "@/features/deliveries/queries/deliveries-query";
 import { formatTime } from "@/features/deliveries/queries/format-time";
 import type { DeliveryFilters } from "@/features/deliveries/schemas/deliveries-input";
 import type { DeliveryRow } from "@/features/deliveries/schemas/deliveries-view";
+import { useRefreshInterval } from "@/features/refresh/components/refresh-provider";
 import { useTimeZone } from "@/features/time-zone/components/time-zone-provider";
 import type { DELIVERY_OUTCOMES } from "@/lib/api/schemas";
 import { unwrap } from "@/lib/query/action-result";
@@ -52,8 +56,9 @@ const OUTCOME_VARIANT: Record<
 export function DeliveriesTable({ filters }: { filters: DeliveryFilters }) {
 	const t = useTranslations("deliveries");
 	const timeZone = useTimeZone();
+	const refreshMs = useRefreshInterval(DELIVERIES_REFRESH_MS);
 	const { data, isPending } = useQuery(
-		deliveriesQueryOptions(filters, fetchDeliveries),
+		deliveriesQueryOptions(filters, fetchDeliveries, refreshMs),
 	);
 	const columns = helper.columns([
 		helper.accessor("time", {

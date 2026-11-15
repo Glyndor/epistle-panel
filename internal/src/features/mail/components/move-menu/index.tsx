@@ -12,7 +12,9 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { getMailboxesAction } from "@/features/mail/actions/get-mailboxes";
+import { MAIL_REFRESH_MS } from "@/features/mail/queries/mail-query-keys";
 import { mailboxesQueryOptions } from "@/features/mail/queries/mail-query-options";
+import { useRefreshInterval } from "@/features/refresh/components/refresh-provider";
 import { unwrap } from "@/lib/query/action-result";
 
 const fetchMailboxes = async () => unwrap(await getMailboxesAction());
@@ -35,7 +37,8 @@ export function MoveMenu({
 	defaultOpen?: boolean;
 }) {
 	const t = useTranslations("mail");
-	const { data } = useQuery(mailboxesQueryOptions(fetchMailboxes));
+	const refreshMs = useRefreshInterval(MAIL_REFRESH_MS);
+	const { data } = useQuery(mailboxesQueryOptions(fetchMailboxes, refreshMs));
 
 	return (
 		<DropdownMenu defaultOpen={defaultOpen}>

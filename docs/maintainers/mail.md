@@ -441,7 +441,7 @@ editor and no signature.
 - No autosave of the draft, no warning on leaving with unsaved text, no signature, no
   rich text, no address book or completion, no forwarding of attachments.
 - Inline `cid:` images (shown as attachments for now), conversation threads
-  (epistle has none), push updates (the list polls every 30 s while visible).
+  (epistle has none), push updates (the list polls every 30 s while visible, at the person's pace: 60 s slow, 15 s fast).
 - The real JMAP was not run; the stand-in follows the source. Measure against a
   running epistle before relying on any row above.
 

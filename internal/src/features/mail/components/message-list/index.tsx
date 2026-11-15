@@ -17,11 +17,13 @@ import { useMailShortcuts } from "@/features/mail/components/message-list/use-ma
 import { WriteLink } from "@/features/mail/components/write-link";
 import type { ListAddress } from "@/features/mail/links/mail-href";
 import { mailHref } from "@/features/mail/links/mail-href";
+import { MAIL_REFRESH_MS } from "@/features/mail/queries/mail-query-keys";
 import { messageListQueryOptions } from "@/features/mail/queries/mail-query-options";
 import {
 	EMPTY_CONDITIONS,
 	hasConditions,
 } from "@/features/mail/schemas/list-conditions-model";
+import { useRefreshInterval } from "@/features/refresh/components/refresh-provider";
 import { unwrap } from "@/lib/query/action-result";
 
 const fetchList = async (input: Parameters<typeof getMessageListAction>[0]) =>
@@ -45,6 +47,7 @@ export function MessageList({
 	selectedId: string | undefined;
 }) {
 	const t = useTranslations("mail");
+	const refreshMs = useRefreshInterval(MAIL_REFRESH_MS);
 	const { data, isPending, isError, refetch, isFetching, isPlaceholderData } =
 		useQuery(
 			messageListQueryOptions(
@@ -55,6 +58,7 @@ export function MessageList({
 					conditions: view.conditions,
 				},
 				fetchList,
+				refreshMs,
 			),
 		);
 	const ids = data?.items.map((item) => item.id) ?? [];
