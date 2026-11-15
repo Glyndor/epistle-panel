@@ -31,18 +31,16 @@ describe("exact label names", () => {
 		}
 	});
 
-	it("preserves spaces, case, combining marks, BOM and emoji exactly", () => {
+	it("preserves spaces, case, combining marks and emoji exactly", () => {
 		for (const name of [
-			"  To   do\t",
+			"  To   do",
 			"An\u0303o",
 			"Año",
 			"Work",
 			"work",
 			"👩‍💻",
 			"❤️",
-			"\ufeffx",
 			" ",
-			"\u0000",
 		]) {
 			const keyword = encodeLabelName(name) as string;
 			expect(decodeLabelKeyword(keyword)).toBe(name);
@@ -72,17 +70,35 @@ describe("exact label names", () => {
 	});
 
 	it("encodes every forbidden atom character rather than passing it through", () => {
-		const forbidden = [
-			...' (){%*"\\]',
-			...Array.from({ length: 33 }, (_, n) =>
-				String.fromCharCode(n === 32 ? 127 : n),
-			),
-		];
+		const forbidden = [...' (){%*"\\]'];
 		for (const character of forbidden) {
 			const keyword = encodeLabelName(`a${character}b`) as string;
 			expect(keyword).toMatch(/^ep1-[0-9a-f]+$/);
 			expect(decodeLabelKeyword(keyword)).toBe(`a${character}b`);
 		}
+	});
+
+	it("refuses a name with a control, a separator, a bidirectional mark or a zero-width space", () => {
+		for (const hidden of [
+			"\u0000",
+			"\t",
+			"\u007f",
+			"\u2028",
+			"\u2029",
+			"\u061c",
+			"\u200b",
+			"\u200e",
+			"\u200f",
+			"\u202e",
+			"\u2066",
+			"\u2069",
+			"\u2060",
+			"\ufeff",
+		]) {
+			expect(validateLabelName(`x${hidden}yz`)).toBe(false);
+			expect(encodeLabelName(`x${hidden}yz`)).toBeNull();
+		}
+		expect(validateLabelName("👩‍💻")).toBe(true);
 	});
 
 	it("rejects raw, malformed, oversized and invalid UTF-8 encodings", () => {

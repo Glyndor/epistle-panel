@@ -1,6 +1,7 @@
 import { labelKey } from "@/features/mail/labels/keyword-codec";
 import {
 	encodeLabelName,
+	LABEL_NAME_MAX,
 	validateLabelName,
 } from "@/features/mail/labels/name-codec";
 import { compareLabels, labelOf } from "@/features/mail/labels/read-keywords";
@@ -106,10 +107,12 @@ export function creation(typed: string, known: readonly LabelView[]): Creation {
 		return { kind: "none" };
 	}
 	if (!validateLabelName(typed)) {
-		// What is left to fail, for a nonempty text, is its length in bytes
-		// (a lone surrogate cannot be kept at all and is offered nothing).
-		return typed.isWellFormed()
-			? { kind: "tooLong", bytes: new TextEncoder().encode(typed).length }
+		// A text that is too long is told so, by its bytes. A lone surrogate, a
+		// control, a separator or a mark that changes the direction of the text
+		// cannot be kept and is offered nothing.
+		const bytes = new TextEncoder().encode(typed).length;
+		return typed.isWellFormed() && bytes > LABEL_NAME_MAX
+			? { kind: "tooLong", bytes }
 			: { kind: "none" };
 	}
 	if (known.some((label) => label.name === typed)) {

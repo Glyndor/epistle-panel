@@ -97,6 +97,12 @@ describe("creation", () => {
 		expect(creation("\ud800", known)).toEqual({ kind: "none" });
 	});
 
+	it("offers nothing for a name with a control or a direction mark in it, not even a length message", () => {
+		for (const hidden of ["\u202e", "\u2066", "\t", "\u200f", "\u0000"]) {
+			expect(creation(`x${hidden}yz`, known)).toEqual({ kind: "none" });
+		}
+	});
+
 	it("says a name is too long, by its bytes, at the limit and a byte over it", () => {
 		expect(creation("a".repeat(LABEL_NAME_MAX), known).kind).toBe("ok");
 		expect(creation("a".repeat(LABEL_NAME_MAX + 1), known)).toEqual({
