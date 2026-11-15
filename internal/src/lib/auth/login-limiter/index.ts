@@ -1,7 +1,7 @@
 /**
  * Login attempt limiter, checked before any call to the Epistle API.
  *
- * Three limits apply to every attempt:
+ * Four limits apply to every attempt:
  *
  * - Per account name, one chain at a time. The first {@link FREE_ATTEMPTS}
  *   attempts pass, then each further attempt locks the name for twice as long as
@@ -20,13 +20,19 @@
  * - Concurrency: at most {@link MAX_IN_FLIGHT} attempts wait on the API at
  *   once, for every name, so a burst never turns into a burst of password
  *   hashes. A refused attempt never reaches the API.
+ * - Successful sign-ins: at most {@link SUCCESS_MAX_SIGN_INS} per normalized
+ *   account name in a fixed {@link SUCCESS_WINDOW_MS} window, starting with
+ *   its first success. Success does not clear this budget. Pending calls reserve
+ *   slots so concurrent successes cannot exceed it; failures and API errors
+ *   release their reservations without spending the budget. Once exhausted,
+ *   every password is refused before the API, without checking its correctness.
  *
  * What an attacker can still do: sustain {@link GLOBAL_MAX_FAILURES} failing
  * attempts per window to hold the ceiling shut for any name that has not signed
  * in during this process, for example the first sign-in after a restart, while
  * the flood lasts. Names that signed in before keep their access, except for
- * their own lock and the concurrency cap, which only refuses an attempt that
- * arrives while all slots are busy. The attacker can also lock any single name
+ * their own lock, success budget and the concurrency cap, which only refuses
+ * an attempt that arrives while all slots are busy. The attacker can also lock any single name
  * for the rest of its chain, up to {@link MAX_LOCK_MS}, by failing it enough
  * times; the lock ends on its own.
  *
@@ -39,6 +45,8 @@
  * fails, so a burst of parallel requests cannot all pass before the first
  * failure is recorded. State is in memory, per process, and sits on
  * `globalThis` for the same reason as the revocation set.
+ * The success budget is also per-process memory: a restart clears it and
+ * replicas do not share it. Expired success records are pruned on each success.
  */
 
 /** Attempts per account name before backoff starts. */
@@ -63,6 +71,10 @@ export const KNOWN_GOOD_MS = 8 * 60 * 60_000;
 export const MAX_TRACKED_NAMES = 10_000;
 /** Names exempt from the global ceiling at once; the oldest is dropped. */
 export const MAX_KNOWN_GOOD_NAMES = 1_000;
+/** Twenty sign-ins in ten minutes is beyond normal use; cap logout/revocation churn. */
+export const SUCCESS_MAX_SIGN_INS = 20;
+/** Fixed success window, long enough to slow repeated login/logout loops. */
+export const SUCCESS_WINDOW_MS = 10 * 60_000;
 /** Longest name that is tracked; longer names share a truncated key. */
 const MAX_KEY_LENGTH = 256;
 
@@ -74,6 +86,8 @@ interface NameRecord {
 
 interface LimiterState {
 	names: Map<string, NameRecord>;
+	successes: Map<string, { count: number; windowStart: number }>;
+	pending: Map<string, number>;
 	knownGood: Map<string, number>;
 	windowStart: number;
 	windowFailures: number;
@@ -89,6 +103,8 @@ function state(): LimiterState {
 	>;
 	holder[STATE] ??= {
 		names: new Map(),
+		successes: new Map(),
+		pending: new Map(),
 		knownGood: new Map(),
 		windowStart: 0,
 		windowFailures: 0,
@@ -174,6 +190,19 @@ export function admitAttempt(
 	if (record.lockedUntil > now) {
 		return { allowed: false, retryAfterMs: record.lockedUntil - now };
 	}
+	const success = limiter.successes.get(key);
+	const count =
+		success && success.windowStart + SUCCESS_WINDOW_MS > now
+			? success.count
+			: 0;
+	if (count + (limiter.pending.get(key) ?? 0) >= SUCCESS_MAX_SIGN_INS) {
+		return {
+			allowed: false,
+			retryAfterMs: success
+				? success.windowStart + SUCCESS_WINDOW_MS - now
+				: BASE_LOCK_MS,
+		};
+	}
 
 	record.attempts += 1;
 	if (record.attempts > FREE_ATTEMPTS) {
@@ -183,6 +212,7 @@ export function admitAttempt(
 		);
 	}
 	limiter.inFlight += 1;
+	limiter.pending.set(key, (limiter.pending.get(key) ?? 0) + 1);
 
 	limiter.names.delete(key);
 	if (limiter.names.size >= MAX_TRACKED_NAMES) {
@@ -206,10 +236,24 @@ export function admitAttempt(
 function settleAttempt(key: string, outcome: Outcome, now: number): void {
 	const limiter = state();
 	limiter.inFlight = Math.max(0, limiter.inFlight - 1);
+	const pending = (limiter.pending.get(key) ?? 1) - 1;
+	if (pending === 0) limiter.pending.delete(key);
+	else limiter.pending.set(key, pending);
 	if (outcome === "failure") {
 		rollWindow(limiter, now);
 		limiter.windowFailures += 1;
 	} else if (outcome === "success") {
+		for (const [name, record] of limiter.successes) {
+			if (record.windowStart + SUCCESS_WINDOW_MS <= now) {
+				limiter.successes.delete(name);
+			}
+		}
+		const record = limiter.successes.get(key) ?? {
+			count: 0,
+			windowStart: now,
+		};
+		record.count += 1;
+		limiter.successes.set(key, record);
 		limiter.names.delete(key);
 		limiter.knownGood.delete(key);
 		if (limiter.knownGood.size >= MAX_KNOWN_GOOD_NAMES) {
@@ -251,6 +295,8 @@ export function attemptsInFlight(): number {
 export function resetLoginLimiter(): void {
 	const limiter = state();
 	limiter.names.clear();
+	limiter.successes.clear();
+	limiter.pending.clear();
 	limiter.knownGood.clear();
 	limiter.windowStart = 0;
 	limiter.windowFailures = 0;

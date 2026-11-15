@@ -29,6 +29,16 @@ A form is react-hook-form with a zod schema that the Server Action enforces too.
 - **The action's answer is generic where a specific one would leak.** Sign-in
   refuses an empty or over-long value and a bad credential with the same outcome, after the same minimum time, and the limiter runs after the
   schema, so refused input never reaches the API.
+- **Successful sign-ins have their own per-name budget.** The login limiter
+  allows 20 successes in a fixed ten-minute window starting at the first success,
+  using the same normalized account name as backoff. This is above normal human
+  use and slows login/logout loops that fill the session revocation set. A
+  success still clears backoff but does not clear this budget. Pending API calls
+  reserve slots; failures and API errors release them without spending the
+  budget. Once full, correct and incorrect passwords receive the same
+  `throttled` response and minimum response time, without calling Epistle.
+  Backoff, the global failure ceiling and concurrency limits still apply.
+  State lives in process memory: restarts clear it and replicas do not share it.
 - **It stays a real `<form action>`.** Without script the browser posts the
   fields and the action runs; with script the submit handler validates first and
   calls the same action only when the schema accepts. The browser's own check
