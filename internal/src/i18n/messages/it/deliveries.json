@@ -4,6 +4,7 @@
 	"unreachable": "L’API di gestione del server di posta non è raggiungibile. Verifica che il server sia in esecuzione e che il pannello sia configurato.",
 	"disabled": "Il registro delle consegne è disattivato sul server. Imposta una conservazione superiore a 0 giorni nelle impostazioni di archiviazione del server per registrare le consegne.",
 	"empty": "Nessuna consegna corrisponde.",
+	"emptyHint": "Prova un altro periodo o togli un filtro.",
 	"full": "L’API restituisce al massimo 100 record e non ha una pagina successiva. Restringi l’elenco con i filtri per vedere gli altri.",
 	"filter": "Filtra questi record",
 	"time": "Ora (UTC)",

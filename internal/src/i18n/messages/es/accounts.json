@@ -2,6 +2,7 @@
 	"heading": "Cuentas",
 	"unreachable": "No se puede contactar con la API de gestión del servidor de correo. Comprueba que el servidor está en marcha y que el panel está configurado.",
 	"empty": "Aún no hay cuentas configuradas.",
+	"emptyHint": "Crea la primera cuenta para que alguien pueda iniciar sesión y recibir correo.",
 	"name": "Cuenta",
 	"addresses": "Direcciones",
 	"origin": "Origen",

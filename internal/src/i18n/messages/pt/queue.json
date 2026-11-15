@@ -2,6 +2,8 @@
 	"heading": "Fila de saída",
 	"unreachable": "Não foi possível acessar a API de gerenciamento do servidor de correio. Verifique se o servidor está em execução e se o painel está configurado.",
 	"empty": "A fila de saída está vazia.",
+	"emptyHint": "O correio sai assim que o servidor o consegue entregar; o registo de entregas mostra o que saiu.",
+	"emptyAction": "Abrir o registo de entregas",
 	"from": "De",
 	"to": "Para",
 	"remove": "Remover",

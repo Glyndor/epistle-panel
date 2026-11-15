@@ -23,7 +23,7 @@ function Table({
 	return (
 		<div
 			data-slot="table-container"
-			className="relative w-full overflow-x-auto rounded-xl bg-card focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+			className="@container relative w-full overflow-x-auto rounded-xl bg-card focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
 			{...(scrollLabel === undefined
 				? {}
 				: { role: "group", "aria-label": scrollLabel, tabIndex: 0 })}

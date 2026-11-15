@@ -4,6 +4,7 @@
 	"unreachable": "No se puede contactar con la API de gestión del servidor de correo. Comprueba que el servidor está en marcha y que el panel está configurado.",
 	"disabled": "El registro de entregas está desactivado en el servidor. Pon una retención de más de 0 días en los ajustes de almacenamiento del servidor para registrar entregas.",
 	"empty": "Ninguna entrega coincide.",
+	"emptyHint": "Prueba otro periodo o quita un filtro.",
 	"full": "La API devuelve como máximo 100 registros y no tiene página siguiente. Acota la lista con los filtros para ver otros.",
 	"filter": "Filtrar estos registros",
 	"time": "Hora (UTC)",

@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 
+import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 import { getMessageListAction } from "@/features/mail/actions/get-message-list";
 import { ListPager } from "@/features/mail/components/list-pager";
@@ -13,6 +14,7 @@ import { MessageGroups } from "@/features/mail/components/message-groups";
 import { listMemory } from "@/features/mail/components/message-list/list-memory";
 import { useKeptFocus } from "@/features/mail/components/message-list/use-kept-focus";
 import { useMailShortcuts } from "@/features/mail/components/message-list/use-mail-shortcuts";
+import { WriteLink } from "@/features/mail/components/write-link";
 import type { ListAddress } from "@/features/mail/links/mail-href";
 import { mailHref } from "@/features/mail/links/mail-href";
 import { messageListQueryOptions } from "@/features/mail/queries/mail-query-options";
@@ -109,8 +111,13 @@ export function MessageList({
 				data-slot="empty-list"
 				className="m-1 rounded-xl outline-ring focus-visible:outline-2 focus-visible:-outline-offset-2"
 			>
-				<MailNotice
-					tone="empty"
+				<EmptyState
+					role="status"
+					illustration={filtered ? "search" : "tray"}
+					title={filtered ? t("emptyMatches") : t("emptyFolder")}
+					description={
+						filtered ? t("emptyHint") : t("emptyFolderHint")
+					}
 					action={
 						filtered ? (
 							<Button asChild variant="outline" size="sm">
@@ -130,13 +137,11 @@ export function MessageList({
 									{t("clearAll")}
 								</Link>
 							</Button>
-						) : null
+						) : (
+							<WriteLink />
+						)
 					}
-				>
-					{filtered
-						? `${t("emptyMatches")} ${t("emptyHint")}`
-						: t("emptyFolder")}
-				</MailNotice>
+				/>
 			</div>,
 		);
 	}

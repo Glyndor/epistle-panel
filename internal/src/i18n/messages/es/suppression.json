@@ -3,6 +3,8 @@
 	"description": "Direcciones a las que el servidor no envía, por ejemplo tras un rebote definitivo. Quitar una permite que vuelva a recibir correo.",
 	"unreachable": "No se puede contactar con la API de gestión del servidor de correo. Comprueba que el servidor está en marcha y que el panel está configurado.",
 	"empty": "Ninguna dirección está suprimida.",
+	"emptyHint": "Aquí se lista una dirección a la que el servidor no enviará, por ejemplo tras un rebote permanente; el registro de entregas muestra los fallos.",
+	"emptyAction": "Abrir el registro de entregas",
 	"address": "Dirección",
 	"remove": "Quitar",
 	"removing": "Quitando…",

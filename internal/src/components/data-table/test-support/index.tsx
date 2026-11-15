@@ -61,6 +61,7 @@ export const table = (data: Row[] | undefined, extra: Extra = {}) => (
 			getRowId={(row) => row.name}
 			filterLabel="Filter"
 			emptyLabel="Nothing here"
+			empty={{ illustration: "tray", description: "Add a row to start." }}
 			{...withMenu(extra)}
 		/>
 	</main>

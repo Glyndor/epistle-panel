@@ -2,6 +2,8 @@
 	"heading": "Ausgehende Warteschlange",
 	"unreachable": "Die Verwaltungs-API des Mailservers ist nicht erreichbar. Prüfen Sie, ob der Server läuft und das Panel konfiguriert ist.",
 	"empty": "Die ausgehende Warteschlange ist leer.",
+	"emptyHint": "E-Mails gehen hinaus, sobald der Server sie zustellen kann; das Zustellprotokoll zeigt, was gesendet wurde.",
+	"emptyAction": "Zustellprotokoll öffnen",
 	"from": "Von",
 	"to": "An",
 	"remove": "Entfernen",

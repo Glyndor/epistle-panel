@@ -2,6 +2,7 @@
 	"heading": "Domini",
 	"unreachable": "L’API di gestione del server di posta non è raggiungibile. Verifica che il server sia in esecuzione e che il pannello sia configurato.",
 	"empty": "Nessun dominio è ancora configurato.",
+	"emptyHint": "I domini si impostano sul server di posta; appena ce n’è uno, compare qui.",
 	"name": "Dominio",
 	"state": "Stato",
 	"stateActive": "Attivo",

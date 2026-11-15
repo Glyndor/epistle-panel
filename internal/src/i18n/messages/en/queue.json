@@ -2,6 +2,8 @@
 	"heading": "Outbound queue",
 	"unreachable": "The mail server's management API is unreachable. Check that the server is running and the panel is configured.",
 	"empty": "The outbound queue is empty.",
+	"emptyHint": "Mail leaves as soon as the server can deliver it; the delivery log shows what went out.",
+	"emptyAction": "Open the delivery log",
 	"from": "From",
 	"to": "To",
 	"remove": "Remove",

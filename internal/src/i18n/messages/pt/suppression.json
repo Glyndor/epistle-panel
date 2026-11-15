@@ -3,6 +3,8 @@
 	"description": "Endereços para os quais o servidor não envia, por exemplo após uma rejeição permanente. Retirar um endereço da lista permite que ele volte a receber mensagens.",
 	"unreachable": "Não foi possível acessar a API de gerenciamento do servidor de correio. Verifique se o servidor está em execução e se o painel está configurado.",
 	"empty": "Nenhum endereço suprimido.",
+	"emptyHint": "Um endereço para o qual o servidor não enviará, por exemplo após uma devolução permanente, fica listado aqui; o registo de entregas mostra as falhas.",
+	"emptyAction": "Abrir o registo de entregas",
 	"address": "Endereço",
 	"remove": "Remover",
 	"removing": "Removendo…",

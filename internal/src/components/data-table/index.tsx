@@ -20,7 +20,10 @@ import {
 	dataTableFeatures,
 } from "@/components/data-table/features";
 import { DataTableHeader } from "@/components/data-table/header";
-import { DataTableNoRows } from "@/components/data-table/no-rows";
+import {
+	type DataTableEmpty,
+	DataTableNoRows,
+} from "@/components/data-table/no-rows";
 import { DataTablePagination } from "@/components/data-table/pagination";
 import {
 	clampPageIndex,
@@ -72,8 +75,10 @@ type DataTableProps<TData extends RowData> = FacetProps & {
 	getRowId: (row: TData) => string;
 	/** Visible label of the filter field; it also names the input. */
 	filterLabel: string;
-	/** Text shown when there are no rows at all. */
+	/** Title shown when there are no rows at all. */
 	emptyLabel: string;
+	/** What goes with that title: a drawing, a sentence and the next step. */
+	empty: DataTableEmpty;
 	/** Extra content on the right of the filter bar, such as the page links. */
 	toolbar?: React.ReactNode;
 	/**
@@ -113,6 +118,7 @@ export function DataTable<TData extends RowData>({
 	getRowId,
 	filterLabel,
 	emptyLabel,
+	empty,
 	toolbar,
 	facets,
 	filtersMenu: FiltersMenu,
@@ -247,6 +253,7 @@ export function DataTable<TData extends RowData>({
 						<DataTableNoRows
 							colSpan={columns.length}
 							emptyLabel={emptyLabel}
+							empty={empty}
 							onClearFilters={
 								// With rows in the list, only a filter leaves
 								// none to show. The text still being typed is

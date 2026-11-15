@@ -50,6 +50,23 @@ describe("AccountsTable", () => {
 		expect(screen.queryByRole("button", { name: /addresses/ })).toBeNull();
 	});
 
+	it("tells no accounts as a first use: a drawing, a sentence and the button that creates one", async () => {
+		stubFetchJson({ accounts: [] });
+		const { container } = render(withAdminArea(<AccountsTable />));
+
+		expect(await screen.findByText("empty")).toBeInTheDocument();
+		expect(screen.getByText("emptyHint")).toBeInTheDocument();
+		expect(container.querySelector("[data-illustration]")).toHaveAttribute(
+			"data-illustration",
+			"people",
+		);
+		const create = screen.getByRole("button", { name: "create" });
+		fireEvent.click(create);
+		expect(
+			await screen.findByRole("dialog", { name: "createTitle" }),
+		).toBeInTheDocument();
+	});
+
 	it("filters over the addresses as well as the names", async () => {
 		stubFetchJson({
 			accounts: [

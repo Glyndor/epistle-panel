@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { getAccountsAction } from "@/features/accounts/actions/get-accounts";
 import { AccountRowActions } from "@/features/accounts/components/account-row-actions";
 import { AccountsTableSkeleton } from "@/features/accounts/components/accounts-table-skeleton";
+import { CreateAccountDialog } from "@/features/accounts/components/create-account-dialog";
 import { accountsQueryOptions } from "@/features/accounts/queries/accounts-query";
 import type { AccountRow } from "@/features/accounts/schemas/accounts-view";
 import { isAccountName } from "@/lib/api/account-name-pattern";
@@ -144,6 +145,11 @@ export function AccountsTable() {
 			getRowId={getRowId}
 			filterLabel={t("filter")}
 			emptyLabel={t("empty")}
+			empty={{
+				illustration: "people",
+				description: t("emptyHint"),
+				action: <CreateAccountDialog />,
+			}}
 			filtersMenu={DataTableFiltersMenu}
 			facets={[
 				{

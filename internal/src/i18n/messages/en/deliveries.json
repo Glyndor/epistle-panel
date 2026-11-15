@@ -4,6 +4,7 @@
 	"unreachable": "The mail server's management API is unreachable. Check that the server is running and the panel is configured.",
 	"disabled": "The delivery log is turned off on the server. Set a retention above 0 days for it in the server's storage settings to record deliveries.",
 	"empty": "No delivery matches.",
+	"emptyHint": "Try another period or take a filter off.",
 	"full": "The API returns at most 100 records and has no next page. Narrow the list with the filters to see others.",
 	"filter": "Filter these records",
 	"time": "Time (UTC)",
