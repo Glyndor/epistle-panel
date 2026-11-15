@@ -24,6 +24,16 @@ body:has(dialog[open]) {
  * over all of it, since the utilities come after the base layer.
  */
 @layer base {
+	/* The colour an outline has before it is drawn. Without it the colour of
+	   an outline is the text colour, and a control that transitions its colours
+	   (`transition-colors` includes `outline-color`) fades the focus ring in from
+	   black to its own colour. With the colour set at rest there is nothing to
+	   fade, and a ring appears in the colour it keeps. A utility
+	   (`outline-sidebar-ring`, the forced-colours `Highlight`) still wins. */
+	:where(*) {
+		outline-color: var(--color-ring);
+	}
+
 	/* What navigates or acts on a press: a link, a button, a menu item. */
 	:where(
 		a[href],

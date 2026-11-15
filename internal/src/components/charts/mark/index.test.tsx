@@ -51,21 +51,25 @@ describe("Mark", () => {
 		);
 	});
 
-	it("is ringed under the pointer, two pixels and then four while pressed, and is never recoloured", () => {
+	it("is ringed under the pointer, one pixel and then two while pressed, in the ring colour, and is never recoloured", () => {
 		const { container } = render(
 			<Mark width="10%" height={8} className="bg-chart-1" />,
 		);
 		const mark = container.querySelector("svg");
 
 		expect(mark).toHaveClass(
-			"outline-foreground",
+			"outline-ring",
 			"outline-offset-1",
-			"hover:outline-2",
-			"active:outline-4",
+			"hover:outline-1",
+			"active:outline-2",
+			"active:outline-offset-0",
+			"forced-colors:outline-[color:Highlight]",
 			// Lifted, or the next mark's box covers the ring.
 			"relative",
 			"hover:z-10",
 		);
+		expect(mark?.className).not.toContain("outline-foreground");
+		expect(mark?.className).not.toContain("outline-4");
 		// A fade or a brightening of a series colour breaks its 3:1 in a theme.
 		expect(mark?.className).not.toMatch(
 			/(?:hover|active):(?:opacity|brightness|bg-)/,

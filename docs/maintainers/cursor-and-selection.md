@@ -106,6 +106,9 @@ Readouts that take no press answer the pointer the same way and keep the
 browser's cursor: the summary cards (`components/summary-card`), the entries of
 a legend, the rows of a bar list and a column of a stacked chart (a band of the
 foreground at 10 % and 15 %). A mark of a chart is ringed by an outline
-(`components/charts/mark`) and never recoloured, because a series colour is held
-at 3:1 against the card. A chart card itself takes no fill: it holds controls
+(`components/charts/mark`, `MARK_POINTER` in `lib/pointer-states`) in the ring
+colour of the theme, 1 px under the pointer and 2 px pressed, never wider than
+the 2 px gap between two marks, and never recoloured, because a series colour is held
+at 3:1 against the card. Under forced colours every outline of the pointer is
+`Highlight`, 1 px on hover and 2 px pressed. A chart card itself takes no fill: it holds controls
 whose hover fill would equal it.

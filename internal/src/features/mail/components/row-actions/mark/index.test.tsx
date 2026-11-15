@@ -47,13 +47,13 @@ describe("Mark", () => {
 		expect(seen.presses).toBe(1);
 	});
 
-	it("is 24 px on a fine pointer and 44 px on a coarse one, with its ring inside there", () => {
+	it("is 24 px on a fine pointer and 44 px on a coarse one, with its ring inside on both", () => {
 		const { button } = mark();
 
 		expect(button).toHaveClass(
 			"size-6",
 			"pointer-coarse:size-11",
-			"pointer-coarse:focus-visible:-outline-offset-2",
+			"focus-visible:-outline-offset-2",
 		);
 	});
 

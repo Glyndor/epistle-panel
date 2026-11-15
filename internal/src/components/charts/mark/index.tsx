@@ -1,4 +1,5 @@
 import { cn } from "@/lib/class-names";
+import { MARK_POINTER } from "@/lib/pointer-states";
 
 /**
  * One mark of a chart: a bar, a part of a bar, a part of a column. It is an
@@ -21,11 +22,11 @@ import { cn } from "@/lib/class-names";
  * contrast theme): a background is one of the things such a theme repaints,
  * and a chart whose marks took the page's colour would be blank.
  *
- * Under the pointer a mark is ringed by an outline in the foreground, two
- * pixels while the pointer is on it and four while it is pressed, with the
- * mark lifted over its neighbours so the ring is not covered by the next
- * one. The mark itself is never recoloured: a series colour is held at 3:1
- * against the card, and any fade or brightening of it would break that in one
+ * Under the pointer a mark is ringed by an outline in the ring colour of the
+ * theme (`MARK_POINTER`), one pixel while the pointer is on it and two while it
+ * is pressed, with the mark lifted over its neighbours so the ring is not
+ * covered by the next one. The mark itself is never recoloured: a series
+ * colour is held at 3:1 against the card, and any fade or brightening of it would break that in one
  * of the two themes. An outline is also what a forced-colours theme keeps.
  */
 export function Mark({
@@ -48,7 +49,8 @@ export function Mark({
 			aria-hidden="true"
 			focusable="false"
 			className={cn(
-				"relative block shrink-0 forced-color-adjust-none outline-foreground outline-offset-1 hover:z-10 hover:outline-2 active:outline-4",
+				"relative block shrink-0 forced-color-adjust-none hover:z-10",
+				MARK_POINTER,
 				className,
 			)}
 			{...props}

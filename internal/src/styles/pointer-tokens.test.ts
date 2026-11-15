@@ -135,6 +135,32 @@ describe("the pointer fills derived in theme.css", () => {
 			}
 		});
 
+		it(`the focus ring and the ring of a mark are 3:1 against every surface they sit on, and softer than the role, in the ${theme} theme`, () => {
+			const ring = paint(theme, "ring");
+			const role_ = parseColor(role(theme, "ring"));
+			for (const surface of [
+				"background",
+				"surface",
+				"surface-raised",
+				"surface-sunken",
+				"field",
+				"accent",
+				"secondary",
+				"muted",
+				"header",
+			]) {
+				const against = parseColor(role(theme, surface));
+				expect(
+					contrastOfRgb(ring, against),
+					`ring on ${surface}`,
+				).toBeGreaterThanOrEqual(3);
+				expect(
+					contrastOfRgb(ring, against),
+					`ring on ${surface}`,
+				).toBeLessThan(contrastOfRgb(role_, against));
+			}
+		});
+
 		it(`the foreground line a field takes on hover is 3:1 against the hover fill in the ${theme} theme`, () => {
 			// The well alone moves five steps of 255 in the light theme (field
 			// to accent), so the line carries the hover, and it has to be read
@@ -147,6 +173,25 @@ describe("the pointer fills derived in theme.css", () => {
 			).toBeGreaterThanOrEqual(3);
 		});
 	}
+
+	it("takes the ring from `--ring` with a share of the surface, never from a palette value", () => {
+		expect(derived("ring")).toEqual({
+			base: "ring",
+			into: "surface",
+			share: 10,
+		});
+	});
+
+	it("keeps the outline colour set before an outline is drawn, so a ring is never faded in from black", () => {
+		const globals = readFileSync(
+			join(import.meta.dir, "..", "app", "globals.css"),
+			"utf8",
+		).replace(/\/\*[\s\S]*?\*\//g, "");
+
+		expect(globals).toMatch(
+			/:where\(\*\)\s*\{\s*outline-color:\s*var\(--color-ring\);?\s*\}/,
+		);
+	});
 
 	it("takes every derived fill from the roles, never from a palette value", () => {
 		const names = [

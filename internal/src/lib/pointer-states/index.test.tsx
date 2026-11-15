@@ -8,7 +8,7 @@ import { BreadcrumbLink } from "@/components/ui/breadcrumb";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
-import { FORCED_POINTER, FORCED_ROW_POINTER } from ".";
+import { FORCED_POINTER, FORCED_ROW_POINTER, MARK_POINTER } from ".";
 
 afterEach(cleanup);
 
@@ -18,20 +18,50 @@ describe("the pointer under forced colours", () => {
 	it("tells rest, hover and press by the thickness of a system-colour outline, drawn inside the box", () => {
 		expect(tokens(FORCED_POINTER)).toEqual([
 			"forced-colors:outline-[color:Highlight]",
-			"forced-colors:hover:outline-2",
-			"forced-colors:hover:-outline-offset-2",
-			"forced-colors:active:outline-4",
-			"forced-colors:active:-outline-offset-4",
+			"forced-colors:hover:outline-1",
+			"forced-colors:hover:-outline-offset-1",
+			"forced-colors:active:outline-2",
+			"forced-colors:active:-outline-offset-2",
 		]);
+	});
+
+	it("never draws a ring thicker than 2 px, hover or press, in either mode", () => {
+		const all = [
+			...tokens(FORCED_POINTER),
+			...tokens(FORCED_ROW_POINTER),
+			...tokens(MARK_POINTER),
+		];
+		const widths = all
+			.filter((name) => /(^|:)outline-\d+$/.test(name))
+			.map((name) => Number(name.slice(name.lastIndexOf("-") + 1)));
+
+		expect(widths.length).toBeGreaterThanOrEqual(6);
+		expect(Math.max(...widths)).toBeLessThanOrEqual(2);
+		expect(all.some((name) => name.includes("outline-foreground"))).toBe(
+			false,
+		);
+	});
+
+	it("rings a mark of a chart in the theme's ring colour, 1 px under the pointer and 2 px pressed, never over its neighbour", () => {
+		expect(tokens(MARK_POINTER)).toEqual([
+			"outline-ring",
+			"outline-offset-1",
+			"hover:outline-1",
+			"active:outline-2",
+			"active:outline-offset-0",
+			"forced-colors:outline-[color:Highlight]",
+		]);
+		// The marks of a bar sit 2 px apart: 1 px set 1 px off and 2 px set at 0
+		// both end inside the gap.
 	});
 
 	it("outlines a row only where a pointer can hover, and keeps the press outside that gate", () => {
 		const classes = tokens(FORCED_ROW_POINTER);
 
 		expect(classes).toContain(
-			"[@media(hover:hover)]:forced-colors:[&_tr:hover]:outline-2",
+			"[@media(hover:hover)]:forced-colors:[&_tr:hover]:outline-1",
 		);
-		expect(classes).toContain("forced-colors:[&_tr:active]:outline-4");
+		expect(classes).toContain("forced-colors:[&_tr:active]:outline-2");
 		expect(classes.filter((name) => name.includes(":hover]"))).toHaveLength(
 			2,
 		);
@@ -58,8 +88,8 @@ describe("the pointer under forced colours", () => {
 		}
 		render(<Button>Save</Button>);
 		expect(screen.getByRole("button")).toHaveClass(
-			"forced-colors:hover:outline-2",
-			"forced-colors:active:outline-4",
+			"forced-colors:hover:outline-1",
+			"forced-colors:active:outline-2",
 		);
 	});
 
