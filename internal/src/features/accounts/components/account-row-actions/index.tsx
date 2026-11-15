@@ -1,6 +1,7 @@
 "use client";
 
 import { MoreHorizontalIcon, Trash2Icon, UserCogIcon } from "lucide-react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
@@ -15,9 +16,23 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip } from "@/components/ui/tooltip";
-import { DeleteAccountDialog } from "@/features/accounts/components/delete-account-dialog";
 import type { AccountRow } from "@/features/accounts/schemas/accounts-view";
 import { isAccountName } from "@/lib/api/account-name-pattern";
+
+const loadDeleteDialog = () =>
+	import("@/features/accounts/components/delete-account-dialog").then(
+		(module) => module.DeleteAccountDialog,
+	);
+
+/**
+ * The delete dialog is loaded the first time a menu opens, not with the list:
+ * a page of accounts needs the alert dialog and its choices only when someone
+ * deletes one. Opening the menu starts the download, so by the time the item
+ * is chosen the code is most often there; the dialog mounts when it arrives
+ * and a press on the item before that is not lost, since the choice is kept in
+ * state and the dialog draws itself on arrival.
+ */
+const DeleteAccountDialog = dynamic(loadDeleteDialog);
 
 /**
  * What can be done with one account, in a menu at the end of its row: open
@@ -44,6 +59,7 @@ export function AccountRowActions({ row }: { row: AccountRow }) {
 				onOpenChange={(open) => {
 					if (open) {
 						setMain(document.getElementById("main-content"));
+						void loadDeleteDialog();
 					}
 				}}
 			>
