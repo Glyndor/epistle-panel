@@ -423,6 +423,32 @@ describe("MailLayout", () => {
 		expect((await states()).placeholder).toBe("open");
 	});
 
+	it("starts the calendar closed only when the groups' cookie names it,", async () => {
+		await cookies.signIn("ana", "user");
+		stubJmap(answers);
+		const state = async () => {
+			const { container } = await renderLayout();
+			const heading = [
+				...container.querySelectorAll(
+					"[data-slot='sidebar-group-label']",
+				),
+			].find((button) => button.textContent === "calendarNav");
+			const open = heading?.getAttribute("aria-expanded");
+			const grid = container.querySelector(
+				"[data-slot='day-picker-nav'] table",
+			);
+			cleanup();
+			return { open, grid: grid !== null };
+		};
+
+		cookies.jar.set("sidebar_groups", "calendar");
+		expect(await state()).toEqual({ open: "false", grid: false });
+		cookies.jar.set("sidebar_groups", "folders.labels");
+		expect(await state()).toEqual({ open: "true", grid: true });
+		cookies.jar.delete("sidebar_groups");
+		expect(await state()).toEqual({ open: "true", grid: true });
+	});
+
 	it("gives a session that is not an admin's no way into the administration, in the markup or in what the menu is handed", async () => {
 		await cookies.signIn("ana", "user");
 		stubJmap(answers);

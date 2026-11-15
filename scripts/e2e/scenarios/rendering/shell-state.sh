@@ -9,6 +9,14 @@ group_heading() {
 		{ grep -o 'aria-expanded="[^"]*"' || true; }
 }
 
+# group_headings_closed: how many group headings of the last page are served
+# closed. In the mail area the calendar is the first heading in the markup (the
+# folders stream in after it), so a single group is told apart by its count.
+group_headings_closed() {
+	{ grep -o '<button[^>]*data-slot="sidebar-group-label"[^>]*>' "$work/b" || true; } |
+		{ grep -c 'aria-expanded="false"' || true; }
+}
+
 # quota_level: the data-level of the storage box in the last page, or nothing.
 quota_level() {
 	{ grep -o '<section[^>]*data-slot="quota"[^>]*>' "$work/b" || true; } | head -1 |
@@ -47,7 +55,7 @@ scenario_shell_state() {
 		'zzgroupzz|zzgroupzz' \
 		'manage.zzgroupzz|zzgroupzz' \
 		'MANAGE|MANAGE' \
-		'manage.folders.labels.manage|labels.manage' \
+		'manage.folders.labels.calendar.manage|calendar.manage' \
 		'manage"><i/data-zz=1>|data-zz=1' \
 		'<script>zz</script>|script>zz'; do
 		value=${pair%%|*}
@@ -61,7 +69,16 @@ scenario_shell_state() {
 	fetch "/app/mail/sent" "$good; sidebar_groups=folders"
 	assert_eq "the folders named in the cookie: the page answers" "$status" 200
 	assert_contains "the folders' placeholder is sent closed" "$(cat "$work/b")" 'data-slot="folder-skeleton" data-state="closed"'
-	assert_eq "and the folders come closed" "$(group_heading)" 'aria-expanded="false"'
+	assert_eq "and the folders come closed, and only they" "$(group_headings_closed)" 1
+	fetch "/app/mail/sent" "$good; sidebar_groups=calendar"
+	assert_eq "the calendar named in the cookie: the page answers" "$status" 200
+	assert_eq "and the calendar is the heading served closed" "$(group_heading)" 'aria-expanded="false"'
+	assert_eq "and only it is" "$(group_headings_closed)" 1
+	assert_absent "closed, the grid of days is not in the page" "$(cat "$work/b")" 'rdp-month_grid'
+	fetch "/app/mail/sent" "$good"
+	assert_eq "no cookie: the calendar is served open" "$(group_heading)" 'aria-expanded="true"'
+	assert_contains "open, the grid of days is in the page" "$(cat "$work/b")" 'rdp-month_grid'
+	assert_absent "the calendar's page has no style attribute in its grid" "$(sed -n '/rdp-root/,/<\/table>/p' "$work/b" | tr -d '\n')" ' style='
 	fetch "/app/mail/sent" "$good"
 	assert_contains "no cookie: the folders' placeholder is sent open" "$(cat "$work/b")" 'data-slot="folder-skeleton" data-state="open"'
 

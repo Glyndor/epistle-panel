@@ -17,7 +17,12 @@ describe("the cookie of the sidebar's groups", () => {
 	});
 
 	it("knows the groups of both areas, and only those", () => {
-		expect([...SIDEBAR_GROUPS]).toEqual(["manage", "folders", "labels"]);
+		expect([...SIDEBAR_GROUPS]).toEqual([
+			"manage",
+			"folders",
+			"labels",
+			"calendar",
+		]);
 	});
 
 	it("is written for the whole panel, with the closed groups in one fixed order, each once", () => {

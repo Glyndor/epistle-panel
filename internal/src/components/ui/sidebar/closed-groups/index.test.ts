@@ -56,10 +56,14 @@ describe("the closed groups a request asks for", () => {
 	});
 
 	it("reads as many names as there are groups and refuses one more", () => {
-		// Three groups exist, so three names are the most a value can hold.
-		expect(closedSidebarGroups("manage.folders.labels")).toHaveLength(3);
+		// Four groups exist, so four names are the most a value can hold.
+		expect(
+			closedSidebarGroups("manage.folders.labels.calendar"),
+		).toHaveLength(4);
 		expect(closedSidebarGroups("folders.folders")).toEqual(["folders"]);
-		expect(closedSidebarGroups("manage.folders.labels.manage")).toEqual([]);
+		expect(
+			closedSidebarGroups("manage.folders.labels.calendar.manage"),
+		).toEqual([]);
 		expect(
 			closedSidebarGroups(
 				Array.from({ length: 5000 }, () => "manage").join("."),

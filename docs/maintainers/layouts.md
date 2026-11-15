@@ -272,7 +272,7 @@ the single `main` landmark, for both areas.
   is a colour: on the rail it also has a mark on its starting edge, and its
   tooltip says it is the current page. The width does not animate for someone
   who asked for less motion. A group's heading is not drawn on the rail; if it
-  has the focus when the rail collapses, the focus goes to the toggle.
+  has the focus when the rail collapses, the focus goes to the toggle. The same for a control inside a part marked `data-rail="hidden"` (the mail area's calendar, which the rail does not draw at all).
 - **The state is the `sidebar_state` cookie**, written for the whole panel and
   read by each layout on the server, so the first paint is the one the person
   left, in both areas. Its name and its reading live in

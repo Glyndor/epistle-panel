@@ -73,6 +73,7 @@ export default async function MailLayout({
 					navigation={
 						<MailNav
 							foldersOpen={!closedGroups.includes("folders")}
+							timeZone={timeZone}
 						/>
 					}
 					sidebarFooter={

@@ -1,5 +1,6 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it, setSystemTime } from "bun:test";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { renderToString } from "react-dom/server";
 
 import { SidebarProvider } from "@/components/ui/sidebar/provider";
 import { mailKeys } from "@/features/mail/queries/mail-query-keys";
@@ -17,7 +18,7 @@ async function renderNav(open = true) {
 	return render(
 		withQuery(
 			<SidebarProvider defaultOpen={open}>
-				{firstPaint(await MailNav())}
+				{firstPaint(await MailNav({ timeZone: "UTC" }))}
 			</SidebarProvider>,
 		),
 	);
@@ -79,7 +80,9 @@ describe("MailNav", () => {
 		const open = render(
 			withQuery(
 				<SidebarProvider>
-					{firstPaint(await MailNav({ foldersOpen: true }))}
+					{firstPaint(
+						await MailNav({ foldersOpen: true, timeZone: "UTC" }),
+					)}
 				</SidebarProvider>,
 			),
 		);
@@ -90,7 +93,9 @@ describe("MailNav", () => {
 		const closed = render(
 			withQuery(
 				<SidebarProvider>
-					{firstPaint(await MailNav({ foldersOpen: false }))}
+					{firstPaint(
+						await MailNav({ foldersOpen: false, timeZone: "UTC" }),
+					)}
 				</SidebarProvider>,
 			),
 		);
@@ -126,7 +131,7 @@ describe("MailNav", () => {
 		render(
 			withQuery(
 				<SidebarProvider>
-					{firstPaint(await MailNav())}
+					{firstPaint(await MailNav({ timeZone: "UTC" }))}
 				</SidebarProvider>,
 				client,
 			),
@@ -136,5 +141,60 @@ describe("MailNav", () => {
 			screen.getByRole("navigation", { name: "labelsNav" }),
 		).toBeInTheDocument();
 		expect(screen.getByRole("link", { name: "Work" })).toBeInTheDocument();
+	});
+
+	it("draws the calendar in the page the server sends, on the day it is in the person's zone", async () => {
+		// 21:30 in Greenwich: already the 16th on Kiritimati.
+		setSystemTime(new Date("2026-11-15T21:30:00Z"));
+		try {
+			render(
+				withQuery(
+					<SidebarProvider>
+						{firstPaint(
+							await MailNav({ timeZone: "Pacific/Kiritimati" }),
+						)}
+					</SidebarProvider>,
+				),
+			);
+			const today = document.querySelector("[aria-current=date]");
+			// What the server writes, before any clock of a browser reads it.
+			const sent = renderToString(
+				withQuery(
+					<SidebarProvider>
+						{firstPaint(
+							await MailNav({ timeZone: "Pacific/Kiritimati" }),
+						)}
+					</SidebarProvider>,
+				),
+			);
+			expect(sent).toMatch(
+				/data-day="2026-11-16"[^>]*><button[^>]*aria-current="date"/,
+			);
+
+			expect(
+				screen.getByRole("button", { name: "calendarNav" }),
+			).toBeInTheDocument();
+			expect(today?.closest("td")).toHaveAttribute(
+				"data-day",
+				"2026-11-16",
+			);
+			// English starts the week on Sunday.
+			expect(document.querySelector("th")).toHaveAttribute(
+				"aria-label",
+				"Sunday",
+			);
+		} finally {
+			setSystemTime();
+		}
+	});
+
+	it("puts the calendar after the folders and before the labels", async () => {
+		await renderNav();
+
+		const calendar = document.querySelector("[data-slot='day-picker-nav']");
+		const folders = document.querySelector("[data-slot='folder-skeleton']");
+		expect(folders?.compareDocumentPosition(calendar as Node)).toBe(
+			Node.DOCUMENT_POSITION_FOLLOWING,
+		);
 	});
 });

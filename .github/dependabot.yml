@@ -85,6 +85,7 @@ updates:
           - "class-variance-authority"
           - "clsx"
           - "tailwind-merge"
+          - "react-day-picker"
         update-types: ["minor", "patch"]
       # Query and Table are versioned apart but used together by every data page.
       tanstack:
