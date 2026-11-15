@@ -18,12 +18,19 @@ export const intl: {
 	said: { key: string; values: Record<string, unknown> | undefined }[];
 } = { locale: "en", messages: {}, providerMessages: undefined, said: [] };
 
+/** Client interpolation calls, kept separate from the server-render record. */
+export const clientSaid: {
+	key: string;
+	values: Record<string, unknown> | undefined;
+}[] = [];
+
 /** Put the stand-in state back to its defaults. */
 export function resetIntl(): void {
 	intl.locale = "en";
 	intl.messages = {};
 	intl.providerMessages = undefined;
 	intl.said = [];
+	clientSaid.length = 0;
 }
 
 /** The values of every use of `key` by a server component since the last reset. */
@@ -128,13 +135,25 @@ export function serverStandIn() {
 export function clientStandIn() {
 	return {
 		useTranslations: () =>
-			Object.assign((key: string) => key, {
-				// The key, then what each tag of the message draws, in order.
-				rich: (
-					key: string,
-					values: Record<string, (chunks: unknown) => unknown> = {},
-				) => [key, ...Object.values(values).map((draw) => draw(""))],
-			}),
+			Object.assign(
+				(key: string, values?: Record<string, unknown>) => {
+					clientSaid.push({ key, values });
+					return key;
+				},
+				{
+					// The key, then what each tag of the message draws, in order.
+					rich: (
+						key: string,
+						values: Record<
+							string,
+							(chunks: unknown) => unknown
+						> = {},
+					) => [
+						key,
+						...Object.values(values).map((draw) => draw("")),
+					],
+				},
+			),
 		useLocale: () => intl.locale,
 		useFormatter: () => ({
 			number: (value: number) => String(value),

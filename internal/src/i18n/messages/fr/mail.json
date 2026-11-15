@@ -104,6 +104,7 @@
 	"download": "Télécharger {name}",
 	"bodyFrame": "Contenu du message",
 	"imagesBlocked": "{count, plural, one {# image distante n’a pas été chargée.} other {# images distantes n’ont pas été chargées.}} Les charger indique à l’expéditeur que vous avez ouvert ce message.",
+	"imagesBlockedNever": "{count, plural, one {# image distante n’a pas été chargée.} other {# images distantes n’ont pas été chargées.}}",
 	"loadImages": "Charger les images",
 	"truncated": "Ce message est long : seule la première partie est affichée.",
 	"showText": "Afficher en texte brut",

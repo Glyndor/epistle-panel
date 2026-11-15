@@ -104,6 +104,7 @@
 	"download": "{name} herunterladen",
 	"bodyFrame": "Inhalt der Nachricht",
 	"imagesBlocked": "{count, plural, one {# externes Bild wurde nicht geladen.} other {# externe Bilder wurden nicht geladen.}} Das Laden verrät dem Absender, dass Sie die Nachricht geöffnet haben.",
+	"imagesBlockedNever": "{count, plural, one {# externes Bild wurde nicht geladen.} other {# externe Bilder wurden nicht geladen.}}",
 	"loadImages": "Bilder laden",
 	"truncated": "Diese Nachricht ist lang: Nur der erste Teil wird angezeigt.",
 	"showText": "Als reinen Text anzeigen",

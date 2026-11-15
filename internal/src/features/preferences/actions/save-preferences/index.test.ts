@@ -17,6 +17,7 @@ const GOOD = {
 	language: "es",
 	theme: "dark",
 	density: "compact",
+	remoteImages: "ask",
 } as const;
 
 /** A posted form: each name with the value, or the list of values it was sent with. */
@@ -36,7 +37,7 @@ const save = (fields: Parameters<typeof form>[0]) =>
 	savePreferences(INITIAL_PREFERENCES_STATE, form(fields));
 
 describe("savePreferences", () => {
-	it("stores the three choices of a signed-in account of either role, each in its own cookie with its own attributes, and says what it stored", async () => {
+	it("stores the four choices of a signed-in account of either role, each in its own cookie with its own attributes, and says what it stored", async () => {
 		for (const role of ["admin", "user"] as const) {
 			cookies.reset();
 			await cookies.signIn("ana", role);
@@ -80,6 +81,17 @@ describe("savePreferences", () => {
 						maxAge: 31_536_000,
 					},
 				},
+				{
+					name: "remote-images",
+					value: "ask",
+					options: {
+						httpOnly: true,
+						secure: true,
+						sameSite: "lax",
+						path: "/app",
+						maxAge: 31536000,
+					},
+				},
 			]);
 		}
 	});
@@ -113,7 +125,7 @@ describe("savePreferences", () => {
 		expect(cookies.writes).toHaveLength(0);
 	});
 
-	it("refuses a value outside a list, names the field, and stores none of the other two", async () => {
+	it("refuses a value outside a list, names the field, and stores none of the other three", async () => {
 		await cookies.signIn();
 		const hostile = {
 			language: HOSTILE_LOCALE_VALUES,
@@ -143,7 +155,7 @@ describe("savePreferences", () => {
 	it("names every refused field at once, and tells a missing field from a wrong one", async () => {
 		await cookies.signIn();
 
-		expect(await save({ theme: "sepia" })).toEqual({
+		expect(await save({ theme: "sepia", remoteImages: "ask" })).toEqual({
 			outcome: "refused",
 			fields: {
 				language: "required",
@@ -183,6 +195,7 @@ describe("savePreferences", () => {
 			"locale",
 			"theme",
 			"list-density",
+			"remote-images",
 		]);
 	});
 

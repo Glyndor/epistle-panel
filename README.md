@@ -191,6 +191,23 @@ The order is the person's own choice, then the browser, then this variable, then
 English. A value that is not one of the six stops the start with a message that
 names the variable and never the value.
 
+### Remote images
+
+Messages can load images from remote servers only when the effective mode
+allows it. The person chooses `ask`, `always` or `never` on `/app/me`; the
+choice is kept in the `remote-images` cookie under `/app`. The operator may
+fix the mode for everyone.
+
+| Variable | Effect |
+|---|---|
+| `EPISTLE_PANEL_REMOTE_IMAGES` | Fixed mode for everyone: `ask`, `always` or `never`. Unset or empty leaves the choice to each person. When set, it wins over the cookie, `/app/me` shows it as read-only text and the Server Action refuses a posted change. |
+
+The sanitiser keeps the same link and URL policy in every mode. The framed
+body's `img-src` widens only through the existing `?images=1` path: `always`
+uses it without asking, `never` ignores it and `ask` keeps today's button. A
+value outside the three modes stops the start with a message that names the
+variable and never the value.
+
 ### Sessions and sign-in limits
 
 - The session cookie is named `__Host-epistle_session` and is always

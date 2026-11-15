@@ -104,6 +104,7 @@
 	"download": "Scarica {name}",
 	"bodyFrame": "Contenuto del messaggio",
 	"imagesBlocked": "{count, plural, one {# immagine remota non è stata caricata.} other {# immagini remote non sono state caricate.}} Caricarle comunica al mittente che hai aperto questo messaggio.",
+	"imagesBlockedNever": "{count, plural, one {# immagine remota non è stata caricata.} other {# immagini remote non sono state caricate.}}",
 	"loadImages": "Carica le immagini",
 	"truncated": "Questo messaggio è lungo: viene mostrata solo la prima parte.",
 	"showText": "Mostra come testo semplice",

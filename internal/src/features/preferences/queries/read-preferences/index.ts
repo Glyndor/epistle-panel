@@ -1,7 +1,8 @@
 import { getLocale } from "next-intl/server";
 
 import { readListDensity } from "@/features/mail/queries/list-density";
-import type { PreferencesInput } from "@/features/preferences/schemas/preferences";
+import { readEffectiveRemoteImagesMode } from "@/features/mail/queries/remote-images";
+import type { PreferencesValues } from "@/features/preferences/schemas/preferences";
 import { readThemeChoice } from "@/features/theme/queries/theme-choice";
 import { DEFAULT_LOCALE, isSupportedLocale } from "@/i18n/locales";
 
@@ -13,15 +14,17 @@ import { DEFAULT_LOCALE, isSupportedLocale } from "@/i18n/locales";
  * read from their cookies by readers that believe nothing but a word of their
  * own list. Nothing of a cookie's text reaches the page.
  */
-export async function readPreferences(): Promise<PreferencesInput> {
+export async function readPreferences(): Promise<PreferencesValues> {
 	const locale = await getLocale();
-	const [theme, density] = await Promise.all([
+	const [theme, density, remoteImages] = await Promise.all([
 		readThemeChoice(),
 		readListDensity(),
+		readEffectiveRemoteImagesMode(),
 	]);
 	return {
 		language: isSupportedLocale(locale) ? locale : DEFAULT_LOCALE,
 		theme,
 		density,
+		remoteImages,
 	};
 }

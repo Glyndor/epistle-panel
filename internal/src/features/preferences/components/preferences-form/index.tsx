@@ -9,12 +9,20 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { LIST_DENSITIES } from "@/features/mail/config/list-density";
+import {
+	DEFAULT_REMOTE_IMAGE_MODE,
+	REMOTE_IMAGE_MODES,
+	type RemoteImageMode,
+} from "@/features/mail/config/remote-images";
 import { savePreferences } from "@/features/preferences/actions/save-preferences";
-import { PreferenceField } from "@/features/preferences/components/preference-field";
+import {
+	PreferenceField,
+	ReadOnlyPreferenceField,
+} from "@/features/preferences/components/preference-field";
 import { PREFERENCE_FIELDS } from "@/features/preferences/config/fields";
 import {
 	isPreferenceErrorKey,
-	type PreferencesInput,
+	type PreferencesValues,
 	preferencesSchema,
 } from "@/features/preferences/schemas/preferences";
 import { INITIAL_PREFERENCES_STATE } from "@/features/preferences/schemas/preferences-state";
@@ -25,7 +33,7 @@ import { LOCALE_NAMES, SUPPORTED_LOCALES } from "@/i18n/locales";
 /**
  * The preferences form, on react-hook-form with the schema the Server Action
  * enforces too. It is a real `<form action>`: without script the browser posts
- * the three selects and the action runs, so nothing here depends on hydration.
+ * the selects and the action runs, so nothing here depends on hydration.
  * With script, three checks run in order: the browser's own (each select is
  * `required` and can hold only its own options), the schema here, which names
  * the field, and the action, which is the gate and refuses any value outside a
@@ -33,14 +41,17 @@ import { LOCALE_NAMES, SUPPORTED_LOCALES } from "@/i18n/locales";
  *
  * `values` is what the server read and checked from the cookies, so the first
  * paint already shows the choice in force. A saved theme is shown at once on
- * `<html>`; the language and the density are what the page and the mail area
- * read on their next render, which the action's cookies cause.
+ * `<html>`; the language, the density and the mode of the remote images are
+ * what the page and the mail area read on their next render, which the
+ * action's cookies cause.
  */
 export function PreferencesForm({
 	values,
+	operatorRemoteImagesMode = null,
 	save = savePreferences,
 }: {
-	values: PreferencesInput;
+	values: PreferencesValues;
+	operatorRemoteImagesMode?: RemoteImageMode | null;
 	/**
 	 * What the form posts to: the Server Action. A prop so a test can answer
 	 * what the browser's own two checks never let reach the server.
@@ -53,9 +64,12 @@ export function PreferencesForm({
 		save,
 		INITIAL_PREFERENCES_STATE,
 	);
-	const form = useForm<PreferencesInput>({
+	const form = useForm<PreferencesValues>({
 		resolver: zodResolver(preferencesSchema),
-		defaultValues: values,
+		defaultValues: {
+			...values,
+			remoteImages: values.remoteImages ?? DEFAULT_REMOTE_IMAGE_MODE,
+		},
 		mode: "onSubmit",
 		reValidateMode: "onChange",
 	});
@@ -72,7 +86,10 @@ export function PreferencesForm({
 			const first = PREFERENCE_FIELDS.find(
 				(name) => state.fields[name] !== undefined,
 			);
-			if (first !== undefined) {
+			if (
+				first !== undefined &&
+				!(first === "remoteImages" && operatorRemoteImagesMode !== null)
+			) {
 				form.setFocus(first);
 			}
 		}
@@ -135,6 +152,30 @@ export function PreferencesForm({
 						label: t(`density_${density}`),
 					}))}
 				/>
+				{operatorRemoteImagesMode === null ? (
+					<PreferenceField
+						control={form.control}
+						name="remoteImages"
+						label={t("remoteImages")}
+						help={t("remoteImagesHelp")}
+						renderMessage={message}
+						refusal={refusals.remoteImages}
+						options={REMOTE_IMAGE_MODES.map((mode) => ({
+							value: mode,
+							label: t(`remoteImages_${mode}`),
+						}))}
+					/>
+				) : (
+					<ReadOnlyPreferenceField
+						control={form.control}
+						name="remoteImages"
+						label={t("remoteImages")}
+						help={t("remoteImagesHelp")}
+						value={t("remoteImagesSetByOperator", {
+							mode: t(`remoteImages_${operatorRemoteImagesMode}`),
+						})}
+					/>
+				)}
 				{state.outcome === "saved" ? (
 					<Alert role="status">
 						<AlertDescription>{t("saved")}</AlertDescription>

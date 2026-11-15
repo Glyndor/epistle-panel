@@ -14,13 +14,14 @@ beforeEach(() => {
 });
 
 describe("readPreferences", () => {
-	it("is the language in force and the defaults of the other two when the person chose nothing", async () => {
+	it("is the language in force and the defaults of the other three when the person chose nothing", async () => {
 		intl.locale = "pt";
 
 		expect(await readPreferences()).toEqual({
 			language: "pt",
 			theme: "system",
 			density: "comfortable",
+			remoteImages: "ask",
 		});
 	});
 
@@ -28,11 +29,13 @@ describe("readPreferences", () => {
 		intl.locale = "de";
 		cookies.jar.set("theme", "dark");
 		cookies.jar.set("list-density", "compact");
+		cookies.jar.set("remote-images", "never");
 
 		expect(await readPreferences()).toEqual({
 			language: "de",
 			theme: "dark",
 			density: "compact",
+			remoteImages: "never",
 		});
 	});
 
@@ -46,6 +49,7 @@ describe("readPreferences", () => {
 					language: "en",
 					theme: "system",
 					density: "comfortable",
+					remoteImages: "ask",
 				});
 			}
 		}

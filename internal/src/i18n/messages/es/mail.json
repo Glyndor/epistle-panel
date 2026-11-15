@@ -104,6 +104,7 @@
 	"download": "Descargar {name}",
 	"bodyFrame": "Contenido del mensaje",
 	"imagesBlocked": "{count, plural, one {No se cargó # imagen remota.} other {No se cargaron # imágenes remotas.}} Cargarlas le dice al remitente que abriste este mensaje.",
+	"imagesBlockedNever": "{count, plural, one {No se cargó # imagen remota.} other {No se cargaron # imágenes remotas.}}",
 	"loadImages": "Cargar imágenes",
 	"truncated": "Este mensaje es largo: solo se muestra la primera parte.",
 	"showText": "Ver como texto sin formato",

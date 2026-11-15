@@ -26,6 +26,7 @@ import {
 import { ReaderHeader } from "@/features/mail/components/reader-header";
 import { ReaderSkeleton } from "@/features/mail/components/reader-skeleton";
 import { ReaderToolbar } from "@/features/mail/components/reader-toolbar";
+import type { RemoteImageMode } from "@/features/mail/config/remote-images";
 import { type ListAddress, mailHref } from "@/features/mail/links/mail-href";
 import {
 	mailboxesQueryOptions,
@@ -107,7 +108,15 @@ function useCameWithThePage(): boolean {
  * message, not again each time the message is read from the server. Every state has its own text: waiting,
  * unreachable (with a retry) and a message that no longer exists.
  */
-export function MessageReader({ id, view }: { id: string; view: ListAddress }) {
+export function MessageReader({
+	id,
+	view,
+	remoteImagesMode = "ask",
+}: {
+	id: string;
+	view: ListAddress;
+	remoteImagesMode?: RemoteImageMode;
+}) {
 	const t = useTranslations("mail");
 	const headingId = useId();
 	const backLink = useRef<HTMLAnchorElement>(null);
@@ -208,7 +217,11 @@ export function MessageReader({ id, view }: { id: string; view: ListAddress }) {
 				messageId={data.id}
 				attachments={data.attachments}
 			/>
-			<BodyView key={data.id} message={data} />
+			<BodyView
+				key={data.id}
+				message={data}
+				remoteImagesMode={remoteImagesMode}
+			/>
 			<HeadersDisclosure headers={data.headers} />
 		</article>
 	);

@@ -1,6 +1,7 @@
 import * as z from "zod/mini";
 
 import { LIST_DENSITIES } from "@/features/mail/config/list-density";
+import { REMOTE_IMAGE_MODES } from "@/features/mail/config/remote-images";
 import { THEME_CHOICES } from "@/features/theme/config/choices";
 import { SUPPORTED_LOCALES } from "@/i18n/locales";
 
@@ -37,11 +38,25 @@ function refusal(issue: { input?: unknown }): PreferenceErrorKey {
  * trimmed, lower-cased or otherwise made to fit: `ES` is not `es`. It is
  * `zod/mini` because the form ships it to the browser.
  */
-export const preferencesSchema = z.object({
+export const editablePreferencesSchema = z.object({
 	language: z.enum(SUPPORTED_LOCALES, { error: refusal }),
 	theme: z.enum(THEME_CHOICES, { error: refusal }),
 	density: z.enum(LIST_DENSITIES, { error: refusal }),
 });
 
+export const preferencesSchema = z
+	.extend(editablePreferencesSchema, {
+		remoteImages: z.optional(
+			z.enum(REMOTE_IMAGE_MODES, { error: refusal }),
+		),
+	})
+	.check(
+		z.refine((value) => value["remoteImages"] !== undefined, {
+			message: "required",
+			path: ["remoteImages"],
+		}),
+	);
+
 /** The values of a valid form. */
-export type PreferencesInput = z.infer<typeof preferencesSchema>;
+export type PreferencesInput = z.infer<typeof editablePreferencesSchema>;
+export type PreferencesValues = z.input<typeof preferencesSchema>;

@@ -104,6 +104,7 @@
 	"download": "Transferir {name}",
 	"bodyFrame": "Conteúdo da mensagem",
 	"imagesBlocked": "{count, plural, one {# imagem remota não foi carregada.} other {# imagens remotas não foram carregadas.}} Carregá-las diz ao remetente que abriu esta mensagem.",
+	"imagesBlockedNever": "{count, plural, one {# imagem remota não foi carregada.} other {# imagens remotas não foram carregadas.}}",
 	"loadImages": "Carregar imagens",
 	"truncated": "Esta mensagem é longa: só é mostrada a primeira parte.",
 	"showText": "Ver como texto simples",

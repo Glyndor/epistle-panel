@@ -7,7 +7,8 @@
  * stops the start, because a server that kept running would apply a policy
  * nobody chose. The copyright line settles the same way: a line that cannot be
  * shown stops the start, because a server that kept running would show a
- * notice nobody chose.
+ * notice nobody chose. The remote image mode settles the same way: an unknown
+ * mode stops the start instead of quietly changing what a message may load.
  */
 export async function register(): Promise<void> {
 	if (process.env["NEXT_RUNTIME"] !== "nodejs") {
@@ -32,6 +33,11 @@ export async function register(): Promise<void> {
 		"@/lib/config/default-locale-start-check"
 	);
 	checkDefaultLocaleAtStart();
+
+	const { checkRemoteImagesAtStart } = await import(
+		"@/lib/config/remote-images-start-check"
+	);
+	checkRemoteImagesAtStart();
 
 	const { checkCopyrightNoticeAtStart } = await import(
 		"@/lib/config/copyright-notice-start-check"

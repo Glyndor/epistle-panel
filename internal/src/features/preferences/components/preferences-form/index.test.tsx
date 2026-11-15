@@ -10,7 +10,7 @@ import {
 } from "@testing-library/react";
 
 import { LIST_DENSITIES } from "@/features/mail/config/list-density";
-import type { PreferencesInput } from "@/features/preferences/schemas/preferences";
+import type { PreferencesValues } from "@/features/preferences/schemas/preferences";
 import type { PreferencesState } from "@/features/preferences/schemas/preferences-state";
 import { THEME_CHOICES } from "@/features/theme/config/choices";
 import { LOCALE_NAMES, SUPPORTED_LOCALES } from "@/i18n/locales";
@@ -21,10 +21,11 @@ import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
 const cookies = mockRequestCookies();
 const { PreferencesForm } = await import(".");
 
-const VALUES: PreferencesInput = {
+const VALUES: PreferencesValues = {
 	language: "es",
 	theme: "light",
 	density: "compact",
+	remoteImages: "ask",
 };
 
 beforeEach(() => {
@@ -54,7 +55,7 @@ describe("PreferencesForm", () => {
 		expect(
 			screen.getByRole("form", { name: "formLabel" }),
 		).toBeInTheDocument();
-		for (const label of ["language", "theme", "density"]) {
+		for (const label of ["language", "theme", "density", "remoteImages"]) {
 			expect(select(label).tagName).toBe("SELECT");
 			expect(select(label)).toBeRequired();
 		}
@@ -117,6 +118,7 @@ describe("PreferencesForm", () => {
 			["locale", "de"],
 			["theme", "dark"],
 			["list-density", "comfortable"],
+			["remote-images", "ask"],
 		]);
 		expect(document.documentElement.getAttribute("data-theme")).toBe(
 			"dark",

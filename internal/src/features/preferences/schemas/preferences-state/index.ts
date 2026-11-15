@@ -1,7 +1,7 @@
 import type { PreferenceField } from "@/features/preferences/config/fields";
 import type {
 	PreferenceErrorKey,
-	PreferencesInput,
+	PreferencesValues,
 } from "@/features/preferences/schemas/preferences";
 
 /**
@@ -13,7 +13,7 @@ import type {
  */
 export type PreferencesState =
 	| { readonly outcome: "idle" }
-	| { readonly outcome: "saved"; readonly values: PreferencesInput }
+	| { readonly outcome: "saved"; readonly values: PreferencesValues }
 	| {
 			readonly outcome: "refused";
 			readonly fields: Readonly<
