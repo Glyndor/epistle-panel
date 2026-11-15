@@ -5,7 +5,9 @@
  * starts the panel with the admin area off and says so. The session policy
  * settles the same way: a lifetime that is not a whole number of minutes
  * stops the start, because a server that kept running would apply a policy
- * nobody chose.
+ * nobody chose. The copyright line settles the same way: a line that cannot be
+ * shown stops the start, because a server that kept running would show a
+ * notice nobody chose.
  */
 export async function register(): Promise<void> {
 	if (process.env["NEXT_RUNTIME"] !== "nodejs") {
@@ -30,4 +32,9 @@ export async function register(): Promise<void> {
 		"@/lib/config/default-locale-start-check"
 	);
 	checkDefaultLocaleAtStart();
+
+	const { checkCopyrightNoticeAtStart } = await import(
+		"@/lib/config/copyright-notice-start-check"
+	);
+	checkCopyrightNoticeAtStart();
 }

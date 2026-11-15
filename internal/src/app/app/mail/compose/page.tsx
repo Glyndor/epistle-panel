@@ -4,15 +4,23 @@ import { getLocale, getTranslations } from "next-intl/server";
 
 import { Button } from "@/components/ui/button";
 import { ComposeForm } from "@/features/mail/components/compose-form";
-import { currentMailSession } from "@/features/mail/jmap/credentials";
+import {
+	currentMailSession,
+	type MailSession,
+} from "@/features/mail/jmap/credentials";
 import {
 	COMPOSE_TITLE,
 	composeRequest,
 } from "@/features/mail/links/compose-mode";
 import { mailHref } from "@/features/mail/links/mail-href";
+import { loadComposeLimits } from "@/features/mail/queries/compose-limits";
 import { composePrefill } from "@/features/mail/queries/compose-prefill";
 import { loadSender } from "@/features/mail/queries/load-identity";
 import { loadEmailRecord } from "@/features/mail/queries/message-body";
+import {
+	type ComposeLimits,
+	FALLBACK_COMPOSE_LIMITS,
+} from "@/features/mail/schemas/compose-input-limits";
 import { logApiFailure } from "@/lib/api/log-failure";
 import { requireSession } from "@/lib/auth/require-session";
 
@@ -21,6 +29,10 @@ import { requireSession } from "@/lib/auth/require-session";
  * filled from a message, each parameter checked on its own; a message that
  * cannot be read opens an empty composer instead of an error. Prefill is built
  * here on the server, from cleaned text only.
+ *
+ * The limits the composer works with are the ones the mail server publishes in
+ * its JMAP session, so the browser, the form and the route hold the same
+ * numbers. A session that cannot be read leaves the panel's own.
  */
 export default async function ComposePage({
 	searchParams,
@@ -32,6 +44,18 @@ export default async function ComposePage({
 	const locale = await getLocale();
 	const { mode, message } = composeRequest(await searchParams);
 
+	let session: MailSession | null = null;
+	let limits: ComposeLimits = FALLBACK_COMPOSE_LIMITS;
+	try {
+		session = await currentMailSession();
+		limits =
+			session === null
+				? FALLBACK_COMPOSE_LIMITS
+				: await loadComposeLimits(session);
+	} catch (error) {
+		logApiFailure("mail compose limits", error);
+	}
+
 	let initial = {
 		to: "",
 		cc: "",
@@ -41,7 +65,6 @@ export default async function ComposePage({
 	} as ReturnType<typeof composePrefill>;
 	if (message !== undefined) {
 		try {
-			const session = await currentMailSession();
 			const email =
 				session === null
 					? null
@@ -98,7 +121,7 @@ export default async function ComposePage({
 					</Button>
 					<h1 className="font-semibold text-lg">{title}</h1>
 				</div>
-				<ComposeForm initial={initial} />
+				<ComposeForm initial={initial} limits={limits} />
 			</section>
 		</div>
 	);

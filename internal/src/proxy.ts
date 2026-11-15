@@ -186,12 +186,14 @@ export const config = {
 	// those exact paths for the same reason: the sign-in page needs them before
 	// any session, and they open nothing else.
 	//
-	// `/app/mail/upload` is skipped as that exact path for another reason: the
-	// proxy buffers the body of what it covers, and a file of 25 MiB must not be
-	// held in memory for a request nobody has checked yet. Its route is then its
-	// only gate, and does every check itself before it reads a byte: same origin,
-	// the session and its role, the declared size (`uploadResponse`).
+	// `/app/mail/upload` and `/app/mail/compose-message` are skipped as those
+	// exact paths for another reason: the proxy buffers the body of what it
+	// covers, and a file of 25 MiB or a message of as many bytes as the mail
+	// server accepts must not be held in memory for a request nobody has
+	// checked yet. Their routes are then their only gate, and do every check
+	// themselves before they read a byte: same origin, the session and its
+	// role, the declared size (`uploadResponse`, `composeResponse`).
 	matcher: [
-		"/((?!_next/static/|_next/image$|favicon\\.ico$|robots\\.txt$|theme\\.css$|brand/logo$|brand/favicon$|app/mail/upload$).*)",
+		"/((?!_next/static/|_next/image$|favicon\\.ico$|robots\\.txt$|theme\\.css$|brand/logo$|brand/favicon$|app/mail/upload$|app/mail/compose-message$).*)",
 	],
 };

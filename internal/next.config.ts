@@ -18,10 +18,10 @@ const nextConfig: NextConfig = {
 		// it decides anything: measured, a request with no session was not answered
 		// until its whole body had arrived, and eight of them held at 26 MB took the
 		// server from 97 MB to 306 MB. So the buffer is as small as the largest body
-		// a covered route reads (the composer's message, 1.5 MB), and the one route
-		// that takes a file, `/app/mail/upload`, is outside the proxy and reads its
-		// body as a stream after its own checks. Server Actions keep their own
-		// 16 KB limit above.
+		// a covered route reads, and the two routes that take a big body,
+		// `/app/mail/upload` and `/app/mail/compose-message`, are outside the proxy
+		// and read theirs as a stream after their own checks. Server Actions keep
+		// their own 16 KB limit above.
 		proxyClientMaxBodySize: "2mb",
 	},
 	// Do not announce the framework on every response.

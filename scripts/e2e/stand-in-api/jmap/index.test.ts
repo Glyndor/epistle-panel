@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 
 import { quotaGetSchema } from "../../../../internal/src/features/mail/jmap/responses";
-import { createJmapStore, MAIL_ACCOUNT } from ".";
+import { createJmapStore, MAIL_ACCOUNT, SESSION_LIMITS } from ".";
 import { IDS } from "./messages";
 
 const store = createJmapStore();
@@ -16,6 +16,22 @@ async function call(calls: unknown[]) {
 }
 
 describe("the stand-in JMAP", () => {
+	it("publishes its limits in the session resource, as epistle does", async () => {
+		const request = new Request("http://x/jmap/session");
+		const response = await store.handle(request, new URL(request.url));
+		const body = (await response?.json()) as {
+			capabilities: Record<string, Record<string, number>>;
+		};
+		expect(body.capabilities["urn:ietf:params:jmap:core"]).toMatchObject(
+			SESSION_LIMITS,
+		);
+		expect(
+			body.capabilities["urn:ietf:params:jmap:mail"]?.[
+				"maxSizeAttachmentsPerEmail"
+			],
+		).toBeGreaterThan(0);
+	});
+
 	it("lists the mailboxes with counters", async () => {
 		const { methodResponses } = await call([["Mailbox/get", { accountId: MAIL_ACCOUNT, ids: null }, "a"]]);
 		const inbox = methodResponses[0]?.[1]["list"].find((b: { id: string }) => b.id === "INBOX");

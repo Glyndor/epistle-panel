@@ -4,15 +4,13 @@ import { z } from "zod";
 
 import { BLOB_TIMEOUT_MS } from "@/features/mail/jmap/call";
 import { currentMailSession } from "@/features/mail/jmap/credentials";
+import { loadComposeLimits } from "@/features/mail/queries/compose-limits";
 import { isSameOrigin } from "@/features/mail/responses/same-origin";
 import { safeFilename } from "@/features/mail/sanitize/safe-filename";
 import { mediaTypeSchema } from "@/features/mail/schemas/compose-input";
 import { logApiFailure } from "@/lib/api/log-failure";
 import { readJsonBody } from "@/lib/api/read-body";
 import { apiBaseUrl } from "@/lib/config/api-url";
-
-/** Largest attachment the panel uploads, in bytes: epistle's message size cap, 25 MiB. */
-export const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
 
 const uploadedSchema = z.object({ blobId: z.string(), size: z.number() });
 
@@ -99,12 +97,32 @@ export async function uploadResponse(request: Request): Promise<Response> {
 		if (session === null) {
 			return answer(401, { ok: false, reason: "unauthenticated" });
 		}
+		const limits = await loadComposeLimits(session);
 		const declared = Number(request.headers.get("content-length"));
 		if (!Number.isInteger(declared) || declared <= 0) {
 			return answer(411, { ok: false, reason: "invalid" });
 		}
-		if (declared > MAX_UPLOAD_BYTES) {
+		if (declared > limits.maxAttachmentBytes) {
 			return answer(413, { ok: false, reason: "tooLarge" });
+		}
+		// This request declares the bytes already selected in the composer. The
+		// compose schema checks the complete list again before saving or sending;
+		// the mail server remains authoritative for the blobs' actual sizes.
+		const attachedBytes = Number(
+			new URL(request.url).searchParams.get("attachedBytes") ?? "0",
+		);
+		if (!Number.isSafeInteger(attachedBytes) || attachedBytes < 0) {
+			return answer(400, { ok: false, reason: "invalid" });
+		}
+		if (
+			limits.maxTotalAttachmentBytes !== null &&
+			attachedBytes + declared > limits.maxTotalAttachmentBytes
+		) {
+			return answer(413, {
+				ok: false,
+				reason: "tooLargeAttachments",
+				limit: limits.maxTotalAttachmentBytes,
+			});
 		}
 		if (request.body === null) {
 			return answer(400, { ok: false, reason: "invalid" });

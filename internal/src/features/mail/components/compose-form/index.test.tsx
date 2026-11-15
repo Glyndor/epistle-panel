@@ -9,7 +9,17 @@ import {
 
 import { clearToasts } from "@/components/ui/toaster";
 import { composeFormSchema } from "@/features/mail/schemas/compose-form";
+import {
+	type ComposeLimits,
+	FALLBACK_COMPOSE_LIMITS,
+} from "@/features/mail/schemas/compose-input-limits";
 import { ComposeForm, type ComposeInitial } from ".";
+
+/**
+ * The limits the test works with: the panel's own by default, and another set
+ * in the case that holds the browser's attributes.
+ */
+const limits: ComposeLimits = FALLBACK_COMPOSE_LIMITS;
 
 const originalFetch = globalThis.fetch;
 const originalAssign = window.location.assign;
@@ -56,6 +66,7 @@ describe("ComposeForm", () => {
 		});
 		render(
 			<ComposeForm
+				limits={limits}
 				initial={{
 					...empty,
 					inReplyTo: "o@x.org",
@@ -87,7 +98,7 @@ describe("ComposeForm", () => {
 
 	it("names the pieces that are not addresses and sends nothing", async () => {
 		const sent = server({ ok: true, result: { kind: "sent" } });
-		render(<ComposeForm initial={empty} />);
+		render(<ComposeForm initial={empty} limits={limits} />);
 		type("fieldTo", "a@x.org, nope");
 		fireEvent.click(screen.getByRole("button", { name: "send" }));
 		expect(
@@ -98,7 +109,7 @@ describe("ComposeForm", () => {
 
 	it("asks for a recipient to send, but not to save a draft", async () => {
 		const sent = server({ ok: true, result: { kind: "draft", id: "d1" } });
-		render(<ComposeForm initial={empty} />);
+		render(<ComposeForm initial={empty} limits={limits} />);
 		fireEvent.click(screen.getByRole("button", { name: "send" }));
 		expect(await screen.findByText("needRecipient")).toBeInTheDocument();
 		expect(sent).toHaveLength(0);
@@ -109,7 +120,7 @@ describe("ComposeForm", () => {
 
 	it("keeps the saved draft's id so the next save replaces it", async () => {
 		const sent = server({ ok: true, result: { kind: "draft", id: "d1" } });
-		render(<ComposeForm initial={empty} />);
+		render(<ComposeForm initial={empty} limits={limits} />);
 		type("fieldTo", "a@x.org");
 		fireEvent.click(screen.getByRole("button", { name: "saveDraft" }));
 		await waitFor(() => expect(sent).toHaveLength(1));
@@ -133,7 +144,7 @@ describe("ComposeForm", () => {
 				draftId: "d2",
 			},
 		});
-		render(<ComposeForm initial={empty} />);
+		render(<ComposeForm initial={empty} limits={limits} />);
 		type("fieldTo", "a@x.org");
 		type("fieldBody", "still here");
 		fireEvent.click(screen.getByRole("button", { name: "send" }));
@@ -151,7 +162,7 @@ describe("ComposeForm", () => {
 
 	it("says the message is too large and sends nothing when its request is over what the route reads, though its characters fit", async () => {
 		const sent = server({ ok: true, result: { kind: "draft", id: "d" } });
-		render(<ComposeForm initial={empty} />);
+		render(<ComposeForm initial={empty} limits={limits} />);
 		// 800 000 characters are under the body's 1 000 000, and 1.6 MB as UTF-8:
 		// over the 1.5 MB the route reads.
 		const long = "я".repeat(800_000);
@@ -168,7 +179,7 @@ describe("ComposeForm", () => {
 
 	it("sends a message just under what the route reads", async () => {
 		const sent = server({ ok: true, result: { kind: "draft", id: "d" } });
-		render(<ComposeForm initial={empty} />);
+		render(<ComposeForm initial={empty} limits={limits} />);
 		// 740 000 two-byte characters: 1.48 MB with the JSON around them.
 		type("fieldBody", "я".repeat(740_000));
 		fireEvent.click(screen.getByRole("button", { name: "saveDraft" }));
@@ -179,7 +190,7 @@ describe("ComposeForm", () => {
 
 	it("says too large, not unreachable, when the route refuses the request for its size", async () => {
 		const sent = server({ ok: false, reason: "invalid" }, 413);
-		render(<ComposeForm initial={empty} />);
+		render(<ComposeForm initial={empty} limits={limits} />);
 		type("fieldBody", "short");
 		fireEvent.click(screen.getByRole("button", { name: "saveDraft" }));
 
@@ -193,7 +204,12 @@ describe("ComposeForm", () => {
 
 	it("says so when the account has no sender, and when the server cannot be reached or answers badly", async () => {
 		server({ ok: true, result: { kind: "noSender" } });
-		render(<ComposeForm initial={{ ...empty, to: "a@x.org" }} />);
+		render(
+			<ComposeForm
+				initial={{ ...empty, to: "a@x.org" }}
+				limits={limits}
+			/>,
+		);
 		fireEvent.click(screen.getByRole("button", { name: "send" }));
 		expect(await screen.findByRole("alert")).toHaveTextContent("noSender");
 		globalThis.fetch = mock(async () => {
@@ -218,7 +234,9 @@ describe("ComposeForm", () => {
 
 	it("shows Cc and Bcc only when asked for or already filled, and sends them", async () => {
 		const sent = server({ ok: true, result: { kind: "draft", id: "d" } });
-		const { unmount } = render(<ComposeForm initial={empty} />);
+		const { unmount } = render(
+			<ComposeForm initial={empty} limits={limits} />,
+		);
 		expect(screen.queryByLabelText("fieldCc")).toBeNull();
 		fireEvent.click(screen.getByRole("button", { name: "showCcBcc" }));
 		type("fieldCc", "c@x.org");
@@ -230,12 +248,22 @@ describe("ComposeForm", () => {
 			bcc: [{ email: "d@x.org" }],
 		});
 		unmount();
-		render(<ComposeForm initial={{ ...empty, bcc: "z@x.org" }} />);
+		render(
+			<ComposeForm
+				initial={{ ...empty, bcc: "z@x.org" }}
+				limits={limits}
+			/>,
+		);
 		expect(screen.getByLabelText("fieldBcc")).toHaveValue("z@x.org");
 	});
 
 	it("gives the browser each field's length, one character over the schema's", () => {
-		render(<ComposeForm initial={{ ...empty, cc: "c@x.org" }} />);
+		render(
+			<ComposeForm
+				initial={{ ...empty, cc: "c@x.org" }}
+				limits={limits}
+			/>,
+		);
 
 		for (const label of ["fieldTo", "fieldCc", "fieldBcc"]) {
 			expect(screen.getByLabelText(label)).toHaveAttribute(
@@ -258,11 +286,11 @@ describe("ComposeForm", () => {
 			subject: "s".repeat(998),
 			text: "t".repeat(1_000_000),
 		};
-		expect(composeFormSchema.safeParse(fits).success).toBe(true);
+		expect(composeFormSchema(limits).safeParse(fits).success).toBe(true);
 		for (const field of ["to", "subject", "text"] as const) {
 			expect([
 				field,
-				composeFormSchema.safeParse({
+				composeFormSchema(limits).safeParse({
 					...fits,
 					[field]: `${fits[field]}x`,
 				}).success,
@@ -270,9 +298,52 @@ describe("ComposeForm", () => {
 		}
 	});
 
+	it("gives the browser the lengths the mail server's limits say, not the panel's own", () => {
+		const own: ComposeLimits = {
+			...FALLBACK_COMPOSE_LIMITS,
+			maxRecipientsText: 40,
+			maxSubject: 60,
+			maxText: 80,
+		};
+		render(
+			<ComposeForm initial={{ ...empty, cc: "c@x.org" }} limits={own} />,
+		);
+
+		for (const label of ["fieldTo", "fieldCc", "fieldBcc"]) {
+			expect(screen.getByLabelText(label)).toHaveAttribute(
+				"maxlength",
+				"41",
+			);
+		}
+		expect(screen.getByLabelText("fieldSubject")).toHaveAttribute(
+			"maxlength",
+			"61",
+		);
+		expect(screen.getByLabelText("fieldBody")).toHaveAttribute(
+			"maxlength",
+			"81",
+		);
+	});
+
+	it("says the message is too large when its request is over the limit the mail server published", async () => {
+		const sent = server({ ok: true, result: { kind: "draft", id: "d" } });
+		const own: ComposeLimits = {
+			...FALLBACK_COMPOSE_LIMITS,
+			maxRequestBytes: 1_000,
+		};
+		render(<ComposeForm initial={empty} limits={own} />);
+		type("fieldBody", "x".repeat(2_000));
+		fireEvent.click(screen.getByRole("button", { name: "saveDraft" }));
+
+		expect(await screen.findByRole("alert")).toHaveTextContent(
+			"refusal_tooLarge",
+		);
+		expect(sent).toHaveLength(0);
+	});
+
 	it("a value the browser cut to a field's length is stopped by the schema, which names the field in words", async () => {
 		const sent = server({ ok: true, result: { kind: "draft", id: "d" } });
-		render(<ComposeForm initial={empty} />);
+		render(<ComposeForm initial={empty} limits={limits} />);
 		type("fieldTo", "a".repeat(20_001));
 		type("fieldSubject", "x".repeat(999));
 		fireEvent.click(screen.getByRole("button", { name: "saveDraft" }));
@@ -285,6 +356,7 @@ describe("ComposeForm", () => {
 		const sent = server({ ok: true, result: { kind: "draft", id: "d" } });
 		render(
 			<ComposeForm
+				limits={limits}
 				initial={{
 					...empty,
 					to: "a@x.org",
@@ -302,11 +374,77 @@ describe("ComposeForm", () => {
 		fireEvent.click(screen.getByRole("button", { name: "saveDraft" }));
 		await waitFor(() => expect(sent).toHaveLength(1));
 		expect(sent[0]?.["attachments"]).toEqual([
-			{ blobId: "m1.2", name: "a.pdf", type: "application/pdf" },
+			{ blobId: "m1.2", name: "a.pdf", type: "application/pdf", size: 9 },
 		]);
 		expect(screen.getByRole("link", { name: "discard" })).toHaveAttribute(
 			"href",
 			"/app/mail/inbox",
 		);
 	});
+});
+
+it("refuses an oversized saved draft's attachment total locally and keeps the message", async () => {
+	const sent = server({ ok: true, result: { kind: "draft", id: "d" } });
+	render(
+		<ComposeForm
+			limits={{ ...limits, maxTotalAttachmentBytes: 5 }}
+			initial={{
+				...empty,
+				text: "keep me",
+				attachments: [
+					{ blobId: "m1.2", name: "a", type: "text/plain", size: 3 },
+					{ blobId: "m1.3", name: "b", type: "text/plain", size: 3 },
+				],
+			}}
+		/>,
+	);
+	fireEvent.click(screen.getByRole("button", { name: "saveDraft" }));
+	expect(await screen.findByRole("alert")).toHaveTextContent(
+		"tooLargeAttachments",
+	);
+	expect(sent).toHaveLength(0);
+	expect(screen.getByLabelText("fieldBody")).toHaveValue("keep me");
+});
+
+it("shows the total-specific message when the route reports its current attachment budget", async () => {
+	server(
+		{ ok: false, reason: "tooLargeAttachments", limit: 24_000_000 },
+		413,
+	);
+	render(<ComposeForm initial={empty} limits={limits} />);
+	fireEvent.click(screen.getByRole("button", { name: "saveDraft" }));
+	expect(await screen.findByRole("alert")).toHaveTextContent(
+		"tooLargeAttachments",
+	);
+});
+
+it("still says message too large for a non-JSON 413", async () => {
+	globalThis.fetch = (async () =>
+		new Response("request too large", {
+			status: 413,
+		})) as unknown as typeof fetch;
+	render(<ComposeForm initial={empty} limits={limits} />);
+	fireEvent.click(screen.getByRole("button", { name: "saveDraft" }));
+	expect(await screen.findByRole("alert")).toHaveTextContent(
+		"refusal_tooLarge",
+	);
+});
+
+it("allows exactly the total attachment budget when saving", async () => {
+	const sent = server({ ok: true, result: { kind: "draft", id: "d" } });
+	render(
+		<ComposeForm
+			limits={{ ...limits, maxTotalAttachmentBytes: 6 }}
+			initial={{
+				...empty,
+				attachments: [
+					{ blobId: "m1.2", name: "a", type: "text/plain", size: 3 },
+					{ blobId: "m1.3", name: "b", type: "text/plain", size: 3 },
+				],
+			}}
+		/>,
+	);
+	fireEvent.click(screen.getByRole("button", { name: "saveDraft" }));
+	await waitFor(() => expect(sent).toHaveLength(1));
+	expect(screen.queryByRole("alert")).toBeNull();
 });

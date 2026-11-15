@@ -1,10 +1,6 @@
 import * as z from "zod/mini";
 
-import {
-	MAX_COMPOSE_TEXT,
-	MAX_RECIPIENTS_TEXT,
-	MAX_SUBJECT,
-} from "@/features/mail/schemas/compose-input-limits";
+import type { ComposeLimits } from "@/features/mail/schemas/compose-input-limits";
 
 /**
  * Every message this schema can give, as a key of the `mail` namespace. The
@@ -34,12 +30,18 @@ const upTo = (max: number, message: ComposeSizeMessage) =>
  * pieces that are not addresses); here only the sizes are held. Each field
  * carries the same length as its `maxlength` attribute. The server is the gate
  * and parses the same limits again from the structured request.
+ *
+ * The schema is built from the limits the mail server publishes, so the
+ * browser, the form and the route all hold the same numbers.
  */
-export const composeFormSchema = z.object({
-	to: upTo(MAX_RECIPIENTS_TEXT, "recipientsTooLong"),
-	cc: upTo(MAX_RECIPIENTS_TEXT, "recipientsTooLong"),
-	bcc: upTo(MAX_RECIPIENTS_TEXT, "recipientsTooLong"),
-	subject: upTo(MAX_SUBJECT, "subjectTooLong"),
-	text: upTo(MAX_COMPOSE_TEXT, "bodyTooLong"),
-});
-export type ComposeFormValues = z.infer<typeof composeFormSchema>;
+export function composeFormSchema(limits: ComposeLimits) {
+	return z.object({
+		to: upTo(limits.maxRecipientsText, "recipientsTooLong"),
+		cc: upTo(limits.maxRecipientsText, "recipientsTooLong"),
+		bcc: upTo(limits.maxRecipientsText, "recipientsTooLong"),
+		subject: upTo(limits.maxSubject, "subjectTooLong"),
+		text: upTo(limits.maxText, "bodyTooLong"),
+	});
+}
+
+export type ComposeFormValues = z.infer<ReturnType<typeof composeFormSchema>>;

@@ -1,7 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { cleanup, render, screen } from "@testing-library/react";
 
-import { emailFixture, stubJmap } from "@/features/mail/test-support/jmap-stub";
+import {
+	emailFixture,
+	type JmapRequest,
+	stubJmap,
+} from "@/features/mail/test-support/jmap-stub";
 import {
 	mockRequestCookies,
 	RedirectSignal,
@@ -45,6 +49,10 @@ afterEach(() => {
 	globalThis.fetch = originalFetch;
 });
 
+/** The method calls the stub saw: the session resource is not one. */
+const methodCalls = (seen: JmapRequest[]) =>
+	seen.filter((request) => request.calls.length > 0);
+
 async function page(
 	params: Record<string, string | string[] | undefined> = {},
 ) {
@@ -75,7 +83,7 @@ describe("ComposePage", () => {
 		expect(
 			screen.getByRole("link", { name: "backToMail" }),
 		).toHaveAttribute("href", "/app/mail/inbox");
-		expect(seen).toHaveLength(0);
+		expect(methodCalls(seen)).toHaveLength(0);
 	});
 
 	it("opens a reply filled from the message, with the sender chosen on the server", async () => {
@@ -118,7 +126,7 @@ describe("ComposePage", () => {
 		cleanup();
 		await page({ mode: "reply", msg: "../x" });
 		expect(screen.getByLabelText("fieldTo")).toHaveValue("");
-		expect(seen).toHaveLength(0);
+		expect(methodCalls(seen)).toHaveLength(0);
 		cleanup();
 		stubJmap({ "Email/get": { list: [], notFound: [ID] } });
 		await page({ mode: "reply", msg: ID });

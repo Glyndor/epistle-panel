@@ -3,12 +3,12 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { cleanup, render, screen } from "@testing-library/react";
 import { SidebarProvider } from "@/components/ui/sidebar/provider";
-import { COPYRIGHT_NOTICE } from "@/features/branding/copyright";
 import {
 	BRAND_LOGO_VARIABLE,
 	BRAND_NAME_VARIABLE,
 } from "@/features/branding/queries/brand";
 import { TEST_ROUTES } from "@/features/navigation/test-support/admin-nav";
+import { DEFAULT_COPYRIGHT_NOTICE } from "@/lib/config/copyright-notice";
 import { resetIntl, saidWith } from "@/test/next-intl";
 
 const { AppSidebar } = await import(".");
@@ -95,13 +95,13 @@ describe("AppSidebar", () => {
 		expect(
 			container.querySelector(`a[href='${TEST_ROUTES.home}'] img`),
 		).toHaveAttribute("src", "/brand/logo");
-		expect(screen.getByText(COPYRIGHT_NOTICE)).toBeInTheDocument();
+		expect(screen.getByText(DEFAULT_COPYRIGHT_NOTICE)).toBeInTheDocument();
 	});
 
 	it("keeps the copyright notice with the default branding too", async () => {
 		await renderSidebar();
 
-		expect(screen.getByText(COPYRIGHT_NOTICE)).toBeInTheDocument();
+		expect(screen.getByText(DEFAULT_COPYRIGHT_NOTICE)).toBeInTheDocument();
 	});
 
 	it("says at its foot the version the panel's own manifest states", async () => {
@@ -119,7 +119,9 @@ describe("AppSidebar", () => {
 		expect(foot).toContainElement(
 			document.querySelector<HTMLElement>("[data-slot='panel-version']"),
 		);
-		expect(foot).toContainElement(screen.getByText(COPYRIGHT_NOTICE));
+		expect(foot).toContainElement(
+			screen.getByText(DEFAULT_COPYRIGHT_NOTICE),
+		);
 	});
 
 	it("puts what the area adds to the foot first, then the version, then the notice", async () => {
@@ -128,7 +130,9 @@ describe("AppSidebar", () => {
 		const foot = document.querySelector(
 			"[data-slot='sidebar-footer']",
 		) as HTMLElement;
-		expect(foot.textContent).toBe(`storageversion${COPYRIGHT_NOTICE}`);
+		expect(foot.textContent).toBe(
+			`storageversion${DEFAULT_COPYRIGHT_NOTICE}`,
+		);
 	});
 
 	it("keeps the foot's words for a screen reader while collapsed to icons, and does not draw them", async () => {
@@ -138,7 +142,9 @@ describe("AppSidebar", () => {
 			"[data-slot='panel-version']",
 		)?.parentElement;
 		expect(words).toHaveClass("group-data-[collapsible=icon]:sr-only");
-		expect(words).toContainElement(screen.getByText(COPYRIGHT_NOTICE));
+		expect(words).toContainElement(
+			screen.getByText(DEFAULT_COPYRIGHT_NOTICE),
+		);
 	});
 
 	it("keeps the navigation in the part that scrolls and the foot out of it", async () => {
@@ -159,7 +165,11 @@ describe("AppSidebar", () => {
 
 		// A `small` is 80% of its parent, which is already 12 px: it measured
 		// 9.6 px until it named its own size.
-		expect(screen.getByText(COPYRIGHT_NOTICE)).toHaveClass("text-xs");
-		expect(screen.getByText(COPYRIGHT_NOTICE).tagName).toBe("SMALL");
+		expect(screen.getByText(DEFAULT_COPYRIGHT_NOTICE)).toHaveClass(
+			"text-xs",
+		);
+		expect(screen.getByText(DEFAULT_COPYRIGHT_NOTICE).tagName).toBe(
+			"SMALL",
+		);
 	});
 });

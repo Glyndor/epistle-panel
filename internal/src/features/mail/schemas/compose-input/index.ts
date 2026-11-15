@@ -1,11 +1,7 @@
 import { z } from "zod";
-import {
-	MAX_COMPOSE_ATTACHMENTS,
-	MAX_COMPOSE_TEXT,
-	MAX_SUBJECT,
-} from "@/features/mail/schemas/compose-input-limits";
+import type { ComposeLimits } from "@/features/mail/schemas/compose-input-limits";
 import { messageIdSchema } from "@/features/mail/schemas/mail-input";
-import { isAddress, MAX_RECIPIENTS } from "@/features/mail/schemas/recipients";
+import { isAddress } from "@/features/mail/schemas/recipients";
 
 const control = /^[^\p{Cc}\p{Zl}\p{Zp}‪-‮⁦-⁩]*$/u;
 
@@ -13,8 +9,6 @@ const recipientSchema = z.strictObject({
 	name: z.string().max(200).regex(control).optional(),
 	email: z.string().refine(isAddress),
 });
-
-const recipientsSchema = z.array(recipientSchema).max(MAX_RECIPIENTS);
 
 /**
  * The id of a blob as epistle issues it, never a path: an upload's id, or the
@@ -39,7 +33,8 @@ const messageIdText = z
 	.max(255)
 	.regex(/^[^\s<>\p{C}]+$/u);
 
-/** What sending does to the message it came from: a reply marks it answered, a forward marks it forwarded. */
+/**
+ * What sending does to the message it came from: a reply marks it answered, a forward marks it forwarded. */
 export const ORIGIN_MARKS = ["answered", "forwarded"] as const;
 export type OriginMark = (typeof ORIGIN_MARKS)[number];
 
@@ -47,33 +42,52 @@ export type OriginMark = (typeof ORIGIN_MARKS)[number];
  * What the composer sends to save a draft or send a message. Strict: nothing the
  * client adds reaches JMAP. The server is the gate; the form checks the same
  * rules first only to name a field.
+ *
+ * The schema is built from the limits the mail server publishes, so the form
+ * and the route hold the same numbers.
  */
-export const composeInputSchema = z.strictObject({
-	op: z.enum(["draft", "send"]),
-	/** The draft this one replaces, once saved. */
-	draftId: messageIdSchema.optional(),
-	to: recipientsSchema,
-	cc: recipientsSchema,
-	bcc: recipientsSchema,
-	subject: z.string().max(MAX_SUBJECT).regex(control),
-	text: z.string().max(MAX_COMPOSE_TEXT),
-	attachments: z
-		.array(
-			z.strictObject({
-				blobId: blobIdSchema,
-				name: z.string().max(255),
-				type: mediaTypeSchema,
-			}),
-		)
-		.max(MAX_COMPOSE_ATTACHMENTS),
-	inReplyTo: messageIdText.optional(),
-	references: z.array(messageIdText).max(50).optional(),
-	/** The message this one answers or forwards, marked so once this one is sent. */
-	origin: z
-		.strictObject({
-			id: messageIdSchema,
-			as: z.enum(ORIGIN_MARKS),
-		})
-		.optional(),
-});
-export type ComposeInput = z.output<typeof composeInputSchema>;
+export function composeInputSchema(limits: ComposeLimits) {
+	const recipientsSchema = z.array(recipientSchema).max(limits.maxRecipients);
+	return z.strictObject({
+		op: z.enum(["draft", "send"]),
+		/** The draft this one replaces, once saved. */
+		draftId: messageIdSchema.optional(),
+		to: recipientsSchema,
+		cc: recipientsSchema,
+		bcc: recipientsSchema,
+		subject: z.string().max(limits.maxSubject).regex(control),
+		text: z.string().max(limits.maxText),
+		attachments: z
+			.array(
+				z.strictObject({
+					blobId: blobIdSchema,
+					name: z.string().max(255),
+					type: mediaTypeSchema,
+					size: z
+						.number()
+						.int()
+						.nonnegative()
+						.max(limits.maxAttachmentBytes),
+				}),
+			)
+			.max(limits.maxAttachments)
+			.refine(
+				(attachments) =>
+					limits.maxTotalAttachmentBytes === null ||
+					attachments.reduce((sum, file) => sum + file.size, 0) <=
+						limits.maxTotalAttachmentBytes,
+				{ message: "tooLargeAttachments" },
+			),
+		inReplyTo: messageIdText.optional(),
+		references: z.array(messageIdText).max(50).optional(),
+		/** The message this one answers or forwards, marked so once this one is sent. */
+		origin: z
+			.strictObject({
+				id: messageIdSchema,
+				as: z.enum(ORIGIN_MARKS),
+			})
+			.optional(),
+	});
+}
+
+export type ComposeInput = z.output<ReturnType<typeof composeInputSchema>>;

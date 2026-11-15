@@ -53,8 +53,9 @@ describe("proxy matcher", () => {
 		}
 	});
 
-	it("skips the attachment upload as that exact path, and nothing around it", () => {
+	it("skips the attachment upload and the composer as those exact paths, and nothing around them", () => {
 		expect(covered.test("/app/mail/upload")).toBe(false);
+		expect(covered.test("/app/mail/compose-message")).toBe(false);
 		for (const path of [
 			"/app/mail/uploadx",
 			"/app/mail/upload/",
@@ -62,8 +63,13 @@ describe("proxy matcher", () => {
 			"/app/mail/UPLOAD",
 			"/app/mail/upload%2f",
 			"/x/app/mail/upload",
+			"/app/mail/compose-messagex",
+			"/app/mail/compose-message/",
+			"/app/mail/compose-message/x",
+			"/app/mail/COMPOSE-MESSAGE",
+			"/app/mail/compose-message%2f",
+			"/x/app/mail/compose-message",
 			"/app/mail",
-			"/app/mail/compose-message",
 			"/app/upload",
 			"/upload",
 		]) {

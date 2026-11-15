@@ -1,6 +1,14 @@
 import { describe, expect, it } from "bun:test";
 
+import {
+	type ComposeLimits,
+	FALLBACK_COMPOSE_LIMITS,
+} from "@/features/mail/schemas/compose-input-limits";
+
 import { composeInputSchema } from ".";
+
+/** The limits the test works with: the panel's own by default. */
+const limits: ComposeLimits = FALLBACK_COMPOSE_LIMITS;
 
 const ID = "01890a5d-ac96-774b-b9aa-9be4c3bd6b0e";
 const ok = {
@@ -16,7 +24,7 @@ const ok = {
 describe("composeInputSchema: the message it came from", () => {
 	it("takes an id and one of the two marks, and is left out for a new message", () => {
 		for (const as of ["answered", "forwarded"] as const) {
-			const parsed = composeInputSchema.safeParse({
+			const parsed = composeInputSchema(limits).safeParse({
 				...ok,
 				origin: { id: ID, as },
 			});
@@ -25,16 +33,16 @@ describe("composeInputSchema: the message it came from", () => {
 				as,
 			});
 		}
-		const none = composeInputSchema.safeParse(ok);
+		const none = composeInputSchema(limits).safeParse(ok);
 		expect(none.success && none.data.origin).toBeUndefined();
 	});
 });
 
 describe("composeInputSchema", () => {
 	it("accepts a message, a reply and a draft with attachments", () => {
-		expect(composeInputSchema.safeParse(ok).success).toBe(true);
+		expect(composeInputSchema(limits).safeParse(ok).success).toBe(true);
 		expect(
-			composeInputSchema.safeParse({
+			composeInputSchema(limits).safeParse({
 				...ok,
 				op: "draft",
 				draftId: ID,
@@ -45,6 +53,7 @@ describe("composeInputSchema", () => {
 						blobId: "00000000-0000-4000-a000-000000000001",
 						name: "a.pdf",
 						type: "application/pdf",
+						size: 3,
 					},
 				],
 			}).success,
@@ -53,10 +62,10 @@ describe("composeInputSchema", () => {
 
 	it("accepts the blob of a stored message's part, as a draft carries it when edited again", () => {
 		const attach = (blobId: string) =>
-			composeInputSchema.safeParse({
+			composeInputSchema(limits).safeParse({
 				...ok,
 				attachments: [
-					{ blobId, name: "a.pdf", type: "application/pdf" },
+					{ blobId, name: "a.pdf", type: "application/pdf", size: 3 },
 				],
 			}).success;
 		expect(attach(`${ID}.2`)).toBe(true);
@@ -72,6 +81,41 @@ describe("composeInputSchema", () => {
 		]) {
 			expect(attach(hostile), hostile).toBe(false);
 		}
+	});
+
+	it("holds the counts and the sizes the mail server's limits say, not the panel's own", () => {
+		const own: ComposeLimits = {
+			...FALLBACK_COMPOSE_LIMITS,
+			maxRecipients: 1,
+			maxAttachments: 1,
+			maxSubject: 10,
+			maxText: 20,
+		};
+		const schema = composeInputSchema(own);
+		const attachment = {
+			blobId: "00000000-0000-4000-a000-000000000001",
+			name: "a.pdf",
+			type: "application/pdf",
+			size: 3,
+		};
+
+		expect(schema.safeParse(ok).success).toBe(true);
+		expect(
+			schema.safeParse({
+				...ok,
+				to: [{ email: "a@x.org" }, { email: "b@x.org" }],
+			}).success,
+		).toBe(false);
+		expect(
+			schema.safeParse({ ...ok, attachments: [attachment, attachment] })
+				.success,
+		).toBe(false);
+		expect(
+			schema.safeParse({ ...ok, subject: "x".repeat(11) }).success,
+		).toBe(false);
+		expect(schema.safeParse({ ...ok, text: "x".repeat(21) }).success).toBe(
+			false,
+		);
 	});
 
 	it("refuses an unknown field, a bad operation, a bad address, a long subject, a control in the subject and a bad blob or type", () => {
@@ -127,7 +171,43 @@ describe("composeInputSchema", () => {
 			null,
 			"x",
 		]) {
-			expect(composeInputSchema.safeParse(bad).success).toBe(false);
+			expect(composeInputSchema(limits).safeParse(bad).success).toBe(
+				false,
+			);
 		}
 	});
+});
+
+it("checks individual sizes and the sum, including the exact total boundary", () => {
+	const attachment = (size: unknown) => ({
+		blobId: ID,
+		name: "a",
+		type: "text/plain",
+		size,
+	});
+	const schema = composeInputSchema({
+		...limits,
+		maxTotalAttachmentBytes: 24_000_000,
+	});
+	const parse = (sizes: unknown[]) =>
+		schema.safeParse({ ...ok, attachments: sizes.map(attachment) });
+	expect(parse([12_000_000, 12_000_000]).success).toBe(true);
+	expect(parse([12_000_000, 12_000_001]).success).toBe(false);
+	expect(parse([25_000_000, 25_000_000]).success).toBe(false);
+	for (const size of [
+		undefined,
+		-1,
+		1.5,
+		"3",
+		Number.NaN,
+		limits.maxAttachmentBytes + 1,
+	]) {
+		expect(parse([size]).success).toBe(false);
+	}
+	expect(
+		composeInputSchema(limits).safeParse({
+			...ok,
+			attachments: [attachment(25_000_000), attachment(25_000_000)],
+		}).success,
+	).toBe(true);
 });

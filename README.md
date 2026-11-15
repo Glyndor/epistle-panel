@@ -154,9 +154,11 @@ for what each one can change and what needs a rebuild.
 | `EPISTLE_PANEL_BRAND_NAME` | Product name in the sidebar, the sign-in page and the tab title. 1 to 40 characters; an invalid value falls back to `Epistle`. |
 | `EPISTLE_PANEL_BRAND_LOGO_FILE` | Absolute path of a PNG, JPEG, WebP, ICO or SVG (at most 256 KiB) served at `/brand/logo`. An SVG with script is refused. |
 | `EPISTLE_PANEL_BRAND_FAVICON_FILE` | The same, served at `/brand/favicon` and used as the tab icon. |
+| `EPISTLE_PANEL_COPYRIGHT_NOTICE` | The line at the foot of the pages. Unset or empty keeps `© 2026 Glyndor`; a text is that text, at most 200 characters and without a control character, shown as text and never as markup; `none` (in lower case and alone) shows no line at all, for a white label. |
 
-The original copyright notice stays in the interface whatever is set. A file
-that cannot be used is answered with a 404 and one log line that names the
+The copyright line is the operator's to choose: a value that cannot be shown
+stops the start with a message that names the variable and never the value. A
+file that cannot be used is answered with a 404 and one log line that names the
 variable, never the path.
 
 ### Sign-in CAPTCHA (optional, off by default)

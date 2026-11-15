@@ -1,14 +1,12 @@
 import { PaperclipIcon, XIcon } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 import { useId, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toaster";
 import { Tooltip } from "@/components/ui/tooltip";
-import {
-	MAX_ATTACHMENT_BYTES,
-	MAX_COMPOSE_ATTACHMENTS,
-} from "@/features/mail/schemas/compose-input-limits";
+import { byteLimit } from "@/features/mail/format/byte-limit";
+import type { ComposeLimits } from "@/features/mail/schemas/compose-input-limits";
 
 /** One file stored for the message. */
 export interface ComposeAttachment {
@@ -21,21 +19,33 @@ export interface ComposeAttachment {
 /** Where attachments are uploaded. */
 export const UPLOAD_ENDPOINT = "/app/mail/upload";
 
+/** The largest file the mail server accepts, in the reader's number format. */
+export function useLimitText() {
+	const format = useFormatter();
+	return (bytes: number) => {
+		const limit = byteLimit(bytes);
+		return `${format.number(limit.value)} ${limit.unit}`;
+	};
+}
+
 /**
  * The composer's attachments: a file input that stores each file as soon as it is
  * chosen (so sending sends only ids), and the list of what is attached with a
- * remove control each. A file over 25 MB, or more than 20 files, is refused here
- * before anything is sent; the route refuses them too. A failed upload names the
- * file and attaches nothing.
+ * remove control each. A file over the size the mail server accepts, or more
+ * files than a message may carry, is refused here before anything is sent; the
+ * route refuses them too. A failed upload names the file and attaches nothing.
  */
 export function ComposeAttachments({
 	attachments,
+	limits,
 	onChange,
 }: {
 	attachments: readonly ComposeAttachment[];
+	limits: ComposeLimits;
 	onChange: (next: ComposeAttachment[]) => void;
 }) {
 	const t = useTranslations("mail");
+	const limitText = useLimitText();
 	const inputId = useId();
 	const input = useRef<HTMLInputElement>(null);
 	const [uploading, setUploading] = useState<string[]>([]);
@@ -43,18 +53,40 @@ export function ComposeAttachments({
 	const upload = async (files: FileList | null) => {
 		let next = [...attachments];
 		for (const file of Array.from(files ?? [])) {
-			if (next.length >= MAX_COMPOSE_ATTACHMENTS) {
-				toast.error(t("tooManyFiles"));
+			if (next.length >= limits.maxAttachments) {
+				toast.error(
+					t("tooManyFiles", { count: limits.maxAttachments }),
+				);
 				break;
 			}
-			if (file.size > MAX_ATTACHMENT_BYTES) {
-				toast.error(t("tooLargeFile", { name: file.name }));
+			if (file.size > limits.maxAttachmentBytes) {
+				toast.error(
+					t("tooLargeFile", {
+						name: file.name,
+						limit: limitText(limits.maxAttachmentBytes),
+					}),
+				);
+				continue;
+			}
+			const attachedBytes = next.reduce(
+				(sum, attachment) => sum + attachment.size,
+				0,
+			);
+			if (
+				limits.maxTotalAttachmentBytes !== null &&
+				attachedBytes + file.size > limits.maxTotalAttachmentBytes
+			) {
+				toast.error(
+					t("tooLargeAttachments", {
+						limit: limitText(limits.maxTotalAttachmentBytes),
+					}),
+				);
 				continue;
 			}
 			setUploading((names) => [...names, file.name]);
 			try {
 				const response = await fetch(
-					`${UPLOAD_ENDPOINT}?name=${encodeURIComponent(file.name)}`,
+					`${UPLOAD_ENDPOINT}?name=${encodeURIComponent(file.name)}&attachedBytes=${attachedBytes}`,
 					{
 						method: "POST",
 						headers: {
@@ -66,8 +98,21 @@ export function ComposeAttachments({
 				);
 				const body = (await response.json()) as {
 					ok?: boolean;
+					reason?: string;
+					limit?: number;
 					attachment?: ComposeAttachment;
 				};
+				if (
+					body.reason === "tooLargeAttachments" &&
+					typeof body.limit === "number"
+				) {
+					toast.error(
+						t("tooLargeAttachments", {
+							limit: limitText(body.limit),
+						}),
+					);
+					continue;
+				}
 				if (
 					!response.ok ||
 					body.ok !== true ||

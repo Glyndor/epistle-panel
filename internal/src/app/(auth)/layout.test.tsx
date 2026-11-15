@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { cleanup, render, screen } from "@testing-library/react";
 
-import { COPYRIGHT_NOTICE } from "@/features/branding/copyright";
+import { DEFAULT_COPYRIGHT_NOTICE } from "@/lib/config/copyright-notice";
 
 import AuthLayout from "./layout";
 
@@ -30,6 +30,6 @@ describe("AuthLayout", () => {
 		);
 
 		expect(screen.getByText("Epistle")).toBeInTheDocument();
-		expect(screen.getByText(COPYRIGHT_NOTICE)).toBeInTheDocument();
+		expect(screen.getByText(DEFAULT_COPYRIGHT_NOTICE)).toBeInTheDocument();
 	});
 });

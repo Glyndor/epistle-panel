@@ -6,12 +6,15 @@ import { emailFixture, SESSION, stubJmap } from "../../test-support/jmap-stub";
 import { composeMessage, refusalOf } from ".";
 
 const originalFetch = globalThis.fetch;
+const savedApiUrl = process.env["EPISTLE_API_URL"];
 beforeEach(() => {
 	clearSecretCache();
 	process.env["EPISTLE_API_URL"] = "http://127.0.0.1:8025";
 });
 afterEach(() => {
 	globalThis.fetch = originalFetch;
+	if (savedApiUrl === undefined) delete process.env["EPISTLE_API_URL"];
+	else process.env["EPISTLE_API_URL"] = savedApiUrl;
 });
 
 const input = (over: Partial<ComposeInput> = {}): ComposeInput => ({
@@ -127,6 +130,7 @@ describe("composeMessage: drafts", () => {
 						blobId: "00000000-0000-4000-a000-000000000001",
 						name: "a.pdf",
 						type: "application/pdf",
+						size: 3,
 					},
 				],
 				inReplyTo: "<orig@x.org>",
@@ -362,6 +366,7 @@ describe("composeMessage: attachment names", () => {
 						blobId: "00000000-0000-4000-a000-000000000001",
 						name,
 						type: "application/pdf",
+						size: 3,
 					},
 				],
 			}),
@@ -396,5 +401,14 @@ describe("composeMessage: attachment names", () => {
 		expect(await nameOf("Quarterly report 2026.pdf")).toBe(
 			"Quarterly report 2026.pdf",
 		);
+	});
+});
+
+it("maps a requestTooLarge SetError to the existing message-too-large category", async () => {
+	serve({ submission: { notCreated: { s: { type: "requestTooLarge" } } } });
+	expect(await composeMessage(SESSION, input())).toEqual({
+		kind: "refused",
+		reason: "tooLarge",
+		draftId: "new-1",
 	});
 });

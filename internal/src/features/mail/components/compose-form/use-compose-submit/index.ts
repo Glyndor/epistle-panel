@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import type { ComposeRefusal } from "@/features/mail/queries/compose-message";
-import { MAX_COMPOSE_BYTES } from "@/features/mail/schemas/compose-input-limits";
+import type { ComposeLimits } from "@/features/mail/schemas/compose-input-limits";
 
 /** What the form shows after a request: nothing, a saved draft, a sent message, or why not. */
 export type ComposeOutcome =
@@ -14,7 +14,8 @@ export type ComposeOutcome =
 			readonly draftId: string | null;
 	  }
 	| { readonly kind: "noSender" }
-	| { readonly kind: "unavailable" };
+	| { readonly kind: "unavailable" }
+	| { readonly kind: "tooLargeAttachments"; readonly limit: number };
 
 /** The request body: the structured message the route's schema reads. */
 /** The message a reply or a forward came from, and the mark sending leaves on it. */
@@ -31,7 +32,7 @@ export interface ComposeRequest {
 	readonly bcc: unknown[];
 	readonly subject: string;
 	readonly text: string;
-	readonly attachments: unknown[];
+	readonly attachments: readonly { readonly size: number }[];
 	readonly inReplyTo?: string | undefined;
 	readonly references?: string[] | undefined;
 	readonly origin?: ComposeOrigin | undefined;
@@ -53,8 +54,11 @@ export const COMPOSE_ENDPOINT = "/app/mail/compose-message";
  * is sent and again if the route answers 413. A network failure, a refusal that
  * is not JSON and an answer of another shape are all `unavailable`. In every
  * case the message stays on screen, nothing is lost.
+ *
+ * The size is the one the mail server publishes, so the browser refuses
+ * exactly what the route refuses.
  */
-export function useComposeSubmit() {
+export function useComposeSubmit(limits: ComposeLimits) {
 	const [pending, setPending] = useState<"draft" | "send" | null>(null);
 	const [outcome, setOutcome] = useState<ComposeOutcome>({ kind: "idle" });
 
@@ -62,7 +66,18 @@ export function useComposeSubmit() {
 		setPending(request.op);
 		let result: ComposeOutcome = { kind: "unavailable" };
 		const json = JSON.stringify(request);
-		if (new TextEncoder().encode(json).byteLength > MAX_COMPOSE_BYTES) {
+		if (
+			limits.maxTotalAttachmentBytes !== null &&
+			request.attachments.reduce((sum, file) => sum + file.size, 0) >
+				limits.maxTotalAttachmentBytes
+		) {
+			result = {
+				kind: "tooLargeAttachments",
+				limit: limits.maxTotalAttachmentBytes,
+			};
+		} else if (
+			new TextEncoder().encode(json).byteLength > limits.maxRequestBytes
+		) {
 			// The route would refuse it by its size: say so here, and send nothing.
 			result = TOO_LARGE;
 		} else {
@@ -73,7 +88,15 @@ export function useComposeSubmit() {
 					body: json,
 				});
 				if (response.status === 413) {
-					result = TOO_LARGE;
+					const body = (await response.json().catch(() => null)) as {
+						reason?: string;
+						limit?: number;
+					} | null;
+					result =
+						body?.reason === "tooLargeAttachments" &&
+						typeof body.limit === "number"
+							? { kind: "tooLargeAttachments", limit: body.limit }
+							: TOO_LARGE;
 				} else {
 					const body = (await response.json()) as {
 						ok?: boolean;

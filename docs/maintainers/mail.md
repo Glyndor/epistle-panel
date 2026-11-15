@@ -185,6 +185,10 @@ the focus) are in [`mail-list.md`](mail-list.md).
 
 - `POST /jmap/api` with `using` ignored; limits 16 calls, 500 objects per `/get`,
   10 MB per request, 4 requests in flight per credential.
+- `GET /jmap/session` publishes those limits (`maxSizeUpload`, `maxSizeRequest`,
+  `maxObjectsInGet`, `maxObjectsInSet` in the core capability,
+  `maxSizeAttachmentsPerEmail` in the mail one). The panel reads the ones the
+  composer needs; the recipient count is not among them.
 - Mailbox ids are the mailbox **names** (`INBOX`, `Sent`, `Work/Q4`); roles are
   guessed from the name. `Mailbox/get` carries `totalEmails` and `unreadEmails`.
 - `Email/query` takes **only** `filter.inMailbox` and a newest-first default
@@ -299,6 +303,35 @@ editor and no signature.
 - **The request is bounded as it streams.** A valid `Content-Length` is required (411),
   and the body is read as it arrives and cut at the first byte past the cap or past what
   it declared, counting bytes.
+- **The limits are the mail server's own.** The composer asks the server's JMAP
+  session resource (`GET /jmap/session`, read by
+  `features/mail/jmap/session`) for the limits it publishes, and the browser's
+  attributes, the form's schema and the route's own checks all read the same
+  object (`features/mail/schemas/compose-input-limits`): the request cap is the
+  session's `maxSizeRequest` and the file cap is its `maxSizeUpload`, so the
+  panel refuses exactly what the server refuses and never what it accepts. A
+  number the session does not publish, or publishes in a shape the panel cannot
+  use (missing, zero, negative, not a number, past a gigabyte), leaves the
+  panel's own: 25 MiB of file and 1.5 MB of request. A session that cannot be
+  read at all leaves every number as it was.
+- **The total attachment budget** is `maxSizeAttachmentsPerEmail` from the
+  mail capability. Missing or unusable means no total cap. The picker counts
+  existing files and each successful upload before the next file; uploads carry
+  that count as `attachedBytes`, checked before their body is read. Compose JSON
+  carries a nonnegative integer `size` per attachment; the server schema checks
+  each file and their sum again. These declared sizes are early checks; JMAP
+  remains authoritative for actual blob sizes. A total refusal names the budget
+  in all six languages, using the same binary-size formatter as a file refusal.
+  Displayed budgets are floored (whole KiB, tenths of MiB and larger), never
+  rounded above their actual bytes. HTTP 413 and JMAP `requestTooLarge` from
+  composing use the existing message-too-large outcome, preserving the form.
+- **Two limits are the panel's own, because the session says nothing about
+  them**: how many files a message may carry (20) and how many recipients a
+  field may take (100). The recipient count is **not discoverable yet**: epistle
+  keeps its `max_recipients` in its configuration and does not publish it in the
+  session, so the panel cannot learn the operator's number and holds its own
+  until the session does. The count of files is the panel's too, for the same
+  reason.
 - **The sender is never chosen by the browser.** It is the account's first sending
   identity (`Identity/get`); epistle refuses a `From` the account does not own.
 - **Saving a draft** creates the new message in the drafts folder and then removes
@@ -309,8 +342,9 @@ editor and no signature.
   the previous draft. When the server refuses, the work stays as a draft and the
   form says why with one of: no recipient, too many, from-address not owned,
   invalid address, mailbox full, rate limited, refused to send, too large, other.
-- **Attachments** are uploaded as soon as they are chosen, up to 20 files of 25 MiB,
-  and sent by blob id. The name is reduced on the server by the same `safeFilename` as a download (it ends up in MIME headers). The type is the declared one when it is a plain
+- **Attachments** are uploaded as soon as they are chosen, up to 20 files of as many
+  bytes as the server accepts (`maxSizeUpload`, 25 MiB by default), and sent by blob
+  id. The name is reduced on the server by the same `safeFilename` as a download (it ends up in MIME headers). The type is the declared one when it is a plain
   `type/subtype` (parameters dropped), else `application/octet-stream`; the name is
   cleaned like a download's.
 - **The upload route is outside the proxy, and is its own only gate.** Next's proxy
@@ -318,9 +352,9 @@ editor and no signature.
   (read in `next/dist/server/body-streams.js`, and measured on the built server: a
   request with no session got no answer until its whole body had arrived, and eight
   of them held at 26 MB took the server from 97 MB to 306 MB). So
-  `proxyClientMaxBodySize` is 2 MB, enough for the largest body a covered route
-  reads (the composer's message, 1.5 MB), and `/app/mail/upload` is skipped by the
-  proxy's matcher as that exact path. The route does every check itself before it
+  `proxyClientMaxBodySize` is 2 MB, and the two routes that take a big body,
+  `/app/mail/upload` and `/app/mail/compose-message`, are skipped by the proxy's
+  matcher as those exact paths. Each route does every check itself before it
   reads a byte: same origin, the session and its role, and the size from
   `Content-Length`, which is required. It then hands the body to the mail server as
   it arrives, counted against that size, and never buffers it; a body that is not
