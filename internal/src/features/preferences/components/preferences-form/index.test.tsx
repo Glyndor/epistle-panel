@@ -192,4 +192,40 @@ describe("PreferencesForm", () => {
 		expect(screen.queryByRole("status")).toBeNull();
 		expect(screen.queryByRole("alert")).toBeNull();
 	});
+
+	it("keeps the focus on the save button while the server answers, and does not send twice", async () => {
+		let release: () => void = () => undefined;
+		const held = new Promise<void>((resolve) => {
+			release = resolve;
+		});
+		let sent = 0;
+		const save = (async () => {
+			sent += 1;
+			await held;
+			return { outcome: "saved", values: VALUES };
+		}) as unknown as typeof import("@/features/preferences/actions/save-preferences").savePreferences;
+		render(<PreferencesForm values={VALUES} save={save} />);
+		const button = screen.getByRole("button", { name: "save" });
+		button.focus();
+
+		await act(async () => {
+			fireEvent.click(button);
+		});
+		const busy = screen.getByRole("button", { name: "saving" });
+		expect(busy).toHaveAttribute("aria-disabled", "true");
+		expect(busy).not.toBeDisabled();
+		expect(document.activeElement).toBe(busy);
+
+		await act(async () => {
+			fireEvent.click(busy);
+		});
+		expect(sent).toBe(1);
+
+		await act(async () => {
+			release();
+		});
+		expect(document.activeElement).toBe(
+			screen.getByRole("button", { name: "save" }),
+		);
+	});
 });

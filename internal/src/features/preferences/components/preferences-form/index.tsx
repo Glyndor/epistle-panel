@@ -152,9 +152,16 @@ export function PreferencesForm({
 				) : null}
 				<Button
 					type="submit"
-					disabled={pending}
+					// aria-disabled, not disabled: a disabled button gives up the focus,
+					// and the next Tab would start again from the top of the page.
+					aria-disabled={pending}
 					aria-busy={pending}
-					className="self-start"
+					onClick={(event) => {
+						if (pending) {
+							event.preventDefault();
+						}
+					}}
+					className="self-start aria-disabled:pointer-events-none aria-disabled:opacity-50"
 				>
 					{pending ? t("saving") : t("save")}
 				</Button>
