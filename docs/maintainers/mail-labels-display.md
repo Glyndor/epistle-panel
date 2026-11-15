@@ -50,8 +50,70 @@ forced colours the pill, whose tint is dropped, keeps a border
   (lowest 3.32, tone 8 on the current entry in light). The current entry under the
   pointer was not measured.
 
+## Applying and removing labels
+
+| Where | What | Code |
+|---|---|---|
+| The reader's toolbar | "Label as", a button with its words, beside Move | `components/label-menu`, `reader-toolbar` |
+| A row | a tag mark, first of the row's marks (keyboard: link, labels, important, star), shown like the others (pointer on the row, focus in it, always on a coarse pointer) | `row-actions/label-mark` |
+| A chip in the reader | a button inside the pill that takes the label off the message | `components/label-remove`, `components/label-chip` (`after`) |
+
+- **The dialog.** "Label as" is the panel's `Dialog`, not a menu: a field inside a
+  Radix menu has its typing read as typeahead, and a menu closes at a choice
+  while the person often chooses several labels. The focus goes to the field,
+  stays inside, and returns to the control on Escape or the close button. The
+  list exists only while it is open. Measured in the built server: no CSP
+  violation (the style element its scroll lock adds carries the nonce; test in
+  `src/test/overlays-inject-no-style`).
+- **The list.** The labels seen in the loaded lists (the sidebar's, `knownLabels`)
+  plus every label on the messages in hand, by name, and it only grows while the
+  dialog is open: a label taken off the last message that carried it stays, to be
+  put back. A tick box per label: ticked when all the messages carry it, empty
+  when none, indeterminate when some (a press puts it on all; when all have it, a
+  press takes it off all). The field filters by name, without regard to case.
+  "Create «text»" comes last when the text is no label by exact name (`Work` and
+  `work` are two) and is not blank or invisible.
+- **The name.** The one rule of `name-codec`, three times: the field's `maxlength`
+  (`fieldLength(LABEL_NAME_MAX)`, one over, so a cut paste is seen), the panel
+  (a name too long, counted in UTF-8 bytes, says so and is not offered) and the
+  action's schema. The server writes the keyword itself (`encodeLabelName`); the
+  client's guess is only for the optimistic chip.
+- **Keyboard.** The field is first. Down goes into the list, Down and Up move
+  between the boxes and the create button, Home and End go to the ends, Up from
+  the first returns to the field, Space and Enter press a box. One stop of Tab
+  for the whole list. Enter in the field makes the label when it is offered, or
+  presses the one label left.
+- **Writing.** `labelMessagesAction` (`kind: "keyword"` with `on`, or `kind:
+  "create"` with a name; at most `LABEL_BATCH` = 50 messages, never a keyword that
+  starts with `$`, so it cannot set a flag). epistle replaces a message's whole
+  keyword set, so the server reads the sets of all the messages in one
+  `Email/get` and writes them in one `Email/set`, touching only the label (found
+  without regard to case, taken off in every spelling) and not writing a message
+  that is already as asked. The answer is per message. Removal is always by
+  keyword, never by writing the displayed name again: two labels can show one name.
+- **On screen.** Shown at once on the open message and every row of every cached
+  page (`queries/label-cache`, with the rule of `patchFlags`: each label of each
+  message keeps the value the server last confirmed, and a refused change leaves
+  what a later one still waiting asked for). A refused message is put back and a
+  toast says so; success says nothing. Changes to one message share the scope of
+  its flags, so a label and a star on it wait for each other. A selection longer
+  than 50 is sent in runs of 50, one after the other; a failed run puts back only
+  its messages.
+- **Display of the keyword.** `labelOf` shows an `ep1-` keyword as the name it
+  holds, with the tone of that exact name, cleaned like any text (the page
+  collapses its spaces; the keyword is the identity). Every other keyword shows
+  as before.
+
 ## Not yet
 
-Applying or removing a label, creating one, choosing its tone, renaming, counts
-beside the labels, labels from the whole account and a route per label. The tone
-is a function of the keyword until the server keeps a choice.
+Choosing a label's tone, renaming, counts beside the labels, labels from the whole
+account and a route per label. The tone is a function of the keyword until the
+server keeps a choice. There is no way to select several messages in the list, so
+no control opens "Label as" for a selection: `LabelMenu`, the action and
+`useLabelChange` already take several messages (tested, indeterminate included),
+and the selection toolbar only has to mount them. A message can carry at most 32
+keywords (epistle's `MAX_KEYWORDS_PER_MESSAGE`); past it the server refuses the
+change and the toast says so, with no warning before. A batch is serialised with
+other batches, not with a flag change to one of its messages (the window is one
+round trip). On a coarse pointer the row's three marks take 136 px of the row; it
+was not measured with touch emulation.

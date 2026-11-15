@@ -6,8 +6,8 @@ does with the changes made from it and what it remembers for the page.
 ## Rows, date groups and density
 
 A row (`components/message-row`) is a list item that holds the link to the
-message and, after it, the two buttons of `components/row-actions` as siblings:
-a button inside a link is not valid HTML. The keyboard goes link, important,
+message and, after it, the three buttons of `components/row-actions` as siblings:
+a button inside a link is not valid HTML. The keyboard goes link, labels, important,
 star, and nothing sets a `tabindex`. Every state has a sign that is not a
 colour, and none changes the row's height:
 
@@ -38,7 +38,7 @@ the tooltip of a count.
   list below 768 px.
 - **Compact is two short lines, and one line only from 42rem of row.** One
   line cannot hold a row's parts at the widths the panes have: at 360 px with a
-  coarse pointer the margin, the two buttons, the state icons, a 6rem subject,
+  coarse pointer the margin, the three buttons, the state icons, a 6rem subject,
   a count, the clip and the date add up to 364 px of a 328 px row before any
   sender. So a compact row keeps its height and puts the sender, the clip and
   the date over the subject and the labels, in 12 px text. Where the row is

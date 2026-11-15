@@ -17,10 +17,20 @@ const PREFIX = "ep1-";
  */
 export const LABEL_NAME_MAX = (MAX_KEYWORD_BYTES - PREFIX.length) / 2;
 
-/** Shared client/server rule. Preserve every nonempty well-formed name exactly. */
+/**
+ * What a name must not hold because it cannot be seen or changes how the text
+ * around it reads: controls, line and paragraph separators, a zero-width
+ * space, the bidirectional marks and overrides, invisible operators and the
+ * byte order mark. The joiners that emoji sequences need stay allowed.
+ */
+const HIDDEN =
+	/[\p{Cc}\p{Zl}\p{Zp}\u061c\u200b\u200e\u200f\u202a-\u202e\u2060-\u2064\u2066-\u2069\ufeff]/u;
+
+/** Shared client/server rule: a visible, well-formed name, kept exactly as typed. */
 export function validateLabelName(name: string): boolean {
 	return (
 		name.length > 0 &&
+		!HIDDEN.test(name) &&
 		name.length <= LABEL_NAME_MAX &&
 		name.isWellFormed() &&
 		new TextEncoder().encode(name).length <= LABEL_NAME_MAX

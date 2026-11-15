@@ -6,6 +6,13 @@ import { BUSY_MARK } from "@/features/mail/components/busy-mark";
 import { cn } from "@/lib/class-names";
 
 /**
+ * What a mark of a row looks like and how it is shown: the rules below, for
+ * the marks that are a button of their own and for the one that opens a dialog.
+ */
+export const MARK_CLASS =
+	"pointer-events-auto size-6 px-0 opacity-0 hover:bg-foreground/10 focus-visible:opacity-100 active:bg-foreground/15 data-[set=true]:opacity-100 group-focus-within/row:opacity-100 group-hover/row:opacity-100 pointer-coarse:size-11 pointer-coarse:px-0 pointer-coarse:opacity-100 pointer-coarse:focus-visible:-outline-offset-2";
+
+/**
  * One mark of a row as a button: 24 px on a fine pointer, 44 px on a coarse
  * one. A mark that is set is always in view. One that is not shows when the
  * pointer is on the row, when the focus is anywhere in it, and always on a
@@ -47,10 +54,7 @@ export function Mark({
 				data-set={set}
 				aria-busy={busy ? true : undefined}
 				onClick={onPress}
-				className={cn(
-					BUSY_MARK,
-					"pointer-events-auto size-6 px-0 opacity-0 hover:bg-foreground/10 focus-visible:opacity-100 active:bg-foreground/15 data-[set=true]:opacity-100 group-focus-within/row:opacity-100 group-hover/row:opacity-100 pointer-coarse:size-11 pointer-coarse:px-0 pointer-coarse:opacity-100 pointer-coarse:focus-visible:-outline-offset-2",
-				)}
+				className={cn(BUSY_MARK, MARK_CLASS)}
 			>
 				{children}
 				<span className="sr-only">{label}</span>

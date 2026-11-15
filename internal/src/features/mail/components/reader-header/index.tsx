@@ -1,5 +1,6 @@
 import { useFormatter, useTranslations } from "next-intl";
 import { LabelChip } from "@/features/mail/components/label-chip";
+import { LabelRemove } from "@/features/mail/components/label-remove";
 import { Addresses } from "@/features/mail/components/reader-header/addresses";
 
 import { formatReceivedAt } from "@/features/mail/format/received-at";
@@ -11,7 +12,7 @@ import type {
 /**
  * The subject and the headers a reader looks at first: from, to, cc, reply-to
  * the labels and the date. Every label is there as a chip with its whole
- * name: a row of the list may show only a count, and the names behind a count
+ * name and a button that takes it off the message: a row of the list may show only a count, and the names behind a count
  * are under the pointer alone. Each is shown as text and isolated with `<bdi>`, so what the
  * sender wrote cannot rearrange its neighbours. The heading takes focus when
  * the reader is the only pane in view, which `MessageReader` arranges.
@@ -53,7 +54,13 @@ export function ReaderHeader({
 						<li key={label.keyword} className="flex min-w-0">
 							<LabelChip
 								label={label}
-								className="h-6 max-w-full"
+								className="h-6 max-w-full pointer-coarse:h-11"
+								after={
+									<LabelRemove
+										messageId={message.id}
+										label={label}
+									/>
+								}
 							/>
 						</li>
 					))}

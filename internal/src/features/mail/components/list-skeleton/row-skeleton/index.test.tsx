@@ -72,7 +72,7 @@ describe("RowSkeleton", () => {
 			"@container/row",
 			"ps-5",
 			"pe-3",
-			`${C}pe-15`,
+			`${C}pe-21`,
 		);
 	});
 

@@ -361,4 +361,50 @@ describe("ReaderToolbar", () => {
 			screen.getByRole("button", { name: "star" }),
 		).toBeInTheDocument();
 	});
+
+	it("opens the labels in a dialog that its own keys do not reach", async () => {
+		const seen = serve();
+		renderBar(
+			message({ labels: [{ keyword: "Work", name: "Work", tone: 1 }] }),
+		);
+		await new Promise((r) => setTimeout(r, 40));
+		const baseline = setCalls(seen).length;
+
+		fireEvent.click(screen.getByRole("button", { name: "labelAs" }));
+		const dialog = await screen.findByRole("dialog");
+		expect(
+			screen.getByRole("checkbox", { name: "Work" }) as HTMLInputElement,
+		).toHaveProperty("checked", true);
+
+		// A key pressed on the dialog's own buttons is the dialog's, not the message's.
+		fireEvent.keyDown(screen.getByRole("button", { name: "labelClose" }), {
+			key: "s",
+		});
+		fireEvent.keyDown(dialog, { key: "e" });
+		await new Promise((r) => setTimeout(r, 30));
+		expect(setCalls(seen)).toHaveLength(baseline);
+	});
+
+	it("shuts the labels button for a message on its way out", async () => {
+		serve();
+		renderBar();
+		await new Promise((r) => setTimeout(r, 40));
+		let release = () => {};
+		const held = new Promise<void>((resolve) => {
+			release = resolve;
+		});
+		const answer = globalThis.fetch;
+		globalThis.fetch = (async (...args: Parameters<typeof fetch>) => {
+			await held;
+			return answer(...args);
+		}) as typeof fetch;
+
+		fireEvent.keyDown(document.body, { key: "e" });
+		await waitFor(() =>
+			expect(
+				screen.getByRole("button", { name: "labelAs" }),
+			).toBeDisabled(),
+		);
+		release();
+	});
 });

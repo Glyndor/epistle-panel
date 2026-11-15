@@ -72,7 +72,7 @@ describe("MessageRow", () => {
 		expect(screen.getByText("preview")).toBeInTheDocument();
 	});
 
-	it("holds the link and then the two buttons as siblings, never one inside the other", () => {
+	it("holds the link and then the three buttons as siblings, never one inside the other", () => {
 		const { item, link, container } = row(summary());
 
 		expect(container.querySelector("a button")).toBeNull();
@@ -86,8 +86,10 @@ describe("MessageRow", () => {
 			"A",
 			"BUTTON",
 			"BUTTON",
+			"BUTTON",
 		]);
 		expect(stops.slice(1).map((stop) => stop.textContent)).toEqual([
+			"labelAs",
 			"markImportant",
 			"star",
 		]);

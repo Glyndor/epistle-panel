@@ -35,6 +35,7 @@ const { CreateAccountDialog } = await import(
 const { AccountRowActions } = await import(
 	"@/features/accounts/components/account-row-actions"
 );
+const { LabelMenu } = await import("@/features/mail/components/label-menu");
 const { DataTableFiltersMenu } = await import(
 	"@/components/data-table/filters-menu"
 );
@@ -161,6 +162,27 @@ describe("overlays and the CSP", () => {
 		setNonce("request-nonce");
 		render(withQuery(<CreateAccountDialog />, testQueryClient()));
 		fireEvent.click(screen.getByRole("button", { name: "create" }));
+		await screen.findByRole("dialog");
+
+		const styles = [...document.head.querySelectorAll("style")];
+		expect(styles.length).toBeGreaterThan(0);
+		for (const style of styles) {
+			expect(style.getAttribute("nonce")).toBe("request-nonce");
+		}
+	});
+
+	it("the label dialog injects a style element only with the request's nonce", async () => {
+		await cookies.signIn();
+		setNonce("request-nonce");
+		render(
+			withQuery(
+				<LabelMenu targets={[{ id: "m1", labels: [] }]}>
+					<button type="button">labels</button>
+				</LabelMenu>,
+				testQueryClient(),
+			),
+		);
+		fireEvent.click(screen.getByRole("button", { name: "labels" }));
 		await screen.findByRole("dialog");
 
 		const styles = [...document.head.querySelectorAll("style")];

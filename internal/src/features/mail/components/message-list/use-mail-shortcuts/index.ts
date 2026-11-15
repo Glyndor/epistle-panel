@@ -24,7 +24,7 @@ function belongsElsewhere(event: KeyboardEvent): boolean {
 	return (
 		target.isContentEditable ||
 		target.closest(
-			'input, textarea, select, [contenteditable]:not([contenteditable="false"]), dialog[open]',
+			'input, textarea, select, [contenteditable]:not([contenteditable="false"]), dialog[open], [role=dialog], [role=alertdialog]',
 		) !== null
 	);
 }

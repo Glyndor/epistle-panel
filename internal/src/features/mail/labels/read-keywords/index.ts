@@ -6,6 +6,7 @@ import {
 	MAX_KEYWORDS_PER_MESSAGE,
 } from "@/features/mail/labels/keyword-codec";
 import { labelTone } from "@/features/mail/labels/label-tone";
+import { decodeLabelKeyword } from "@/features/mail/labels/name-codec";
 import { safeLine } from "@/features/mail/sanitize/safe-text";
 import type { LabelView } from "@/features/mail/schemas/mail-view";
 
@@ -33,6 +34,34 @@ export function hasKeyword(
 }
 
 /**
+ * The label one keyword is, as it is shown, or `null` when it is not one a
+ * person sees: not an atom the server keeps, a keyword of the protocol, or a
+ * name that is nothing once it is cleaned. A keyword made by the label
+ * controls (`ep1-` and the name's bytes in hex, see `name-codec`) is shown as
+ * the exact name it holds, and its tone follows that name. Any other keyword
+ * is shown as the old codec reads it. The keyword stays the label's identity
+ * whatever name it is shown under.
+ */
+export function labelOf(keyword: string): LabelView | null {
+	// The server only keeps an atom. Anything else is not a keyword it
+	// could have sent, and is not shown or handed back to it.
+	if (!isKeywordAtom(keyword) || !isLabelKeyword(keyword)) {
+		return null;
+	}
+	const exact = decodeLabelKeyword(keyword);
+	const name = safeLine(exact ?? keywordToLabel(keyword), LABEL_TEXT);
+	if (name === "") {
+		return null;
+	}
+	return { keyword, name, tone: labelTone(exact ?? labelKey(keyword)) };
+}
+
+/** The order labels are listed in: by name, then by keyword. */
+export function compareLabels(a: LabelView, b: LabelView): number {
+	return a.name.localeCompare(b.name) || (a.keyword < b.keyword ? -1 : 1);
+}
+
+/**
  * The labels a message carries, by name. A keyword of the protocol is not a
  * label, two spellings of one keyword are one label, and a name is cleaned
  * like any other text of a message before it is shown. At most what the
@@ -46,20 +75,11 @@ export function readLabels(
 		if (labels.size >= MAX_KEYWORDS_PER_MESSAGE) {
 			break;
 		}
-		// The server only keeps an atom. Anything else is not a keyword it
-		// could have sent, and is not shown or handed back to it.
-		if (!on || !isKeywordAtom(keyword) || !isLabelKeyword(keyword)) {
-			continue;
-		}
 		const key = labelKey(keyword);
-		const name = safeLine(keywordToLabel(keyword), LABEL_TEXT);
-		if (name === "" || labels.has(key)) {
-			continue;
+		const label = on ? labelOf(keyword) : null;
+		if (label !== null && !labels.has(key)) {
+			labels.set(key, label);
 		}
-		labels.set(key, { keyword, name, tone: labelTone(key) });
 	}
-	return [...labels.values()].sort(
-		(a, b) =>
-			a.name.localeCompare(b.name) || (a.keyword < b.keyword ? -1 : 1),
-	);
+	return [...labels.values()].sort(compareLabels);
 }

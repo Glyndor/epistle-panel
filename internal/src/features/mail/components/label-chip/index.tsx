@@ -37,8 +37,16 @@ export const CHIP_PILL =
 export function LabelChip({
 	label,
 	className,
+	after,
 	...props
-}: { label: LabelView } & React.ComponentProps<"span">) {
+}: {
+	label: LabelView;
+	/**
+	 * A control drawn inside the pill after the name, such as the button that
+	 * takes the label off. The pill gives it the end's padding.
+	 */
+	after?: React.ReactNode;
+} & Omit<React.ComponentProps<"span">, "children">) {
 	// A name of four characters or fewer is never cut, so its pill is as wide
 	// as it; a longer one gives way down to four. One least width for both
 	// left a short name in a pill wider than itself.
@@ -50,6 +58,7 @@ export function LabelChip({
 			data-tone={label.tone}
 			className={cn(
 				CHIP_PILL,
+				after !== undefined && "pe-0",
 				className,
 				short ? "shrink-0" : "min-w-[calc(4ch+1.75rem)]",
 			)}
@@ -62,6 +71,7 @@ export function LabelChip({
 				)}
 			/>
 			<bdi className="min-w-0 truncate">{label.name}</bdi>
+			{after}
 		</span>
 	);
 }

@@ -40,7 +40,7 @@ const OPEN =
 
 /**
  * The link fills the row. Comfortable: the initials, then three lines beside
- * them; the end of the first line is left free for the two buttons. Compact:
+ * them; the end of the first line is left free for the three buttons. Compact:
  * two short lines, the sender and the date over the subject, in the same
  * 40 px; from 42rem of row, one line. The buttons of a compact row and of a
  * coarse pointer are as tall as the row, so the whole link stops short of
@@ -53,7 +53,7 @@ const OPEN =
  * `docs/maintainers/cursor-and-selection.md`.
  */
 const LINK =
-	"grid h-full grid-cols-[auto_minmax(0,1fr)_auto] content-center items-center rounded-xl ps-5 pe-3 text-sm outline-ring select-none focus-visible:outline-2 focus-visible:-outline-offset-2 group-data-[density=compact]/list:pe-15 group-data-[density=compact]/list:text-xs group-data-[density=compact]/list:@2xl/row:grid-cols-[auto_8rem_minmax(0,1fr)_auto] pointer-coarse:pe-23 pointer-coarse:group-data-[density=compact]/list:pe-23";
+	"grid h-full grid-cols-[auto_minmax(0,1fr)_auto] content-center items-center rounded-xl ps-5 pe-3 text-sm outline-ring select-none focus-visible:outline-2 focus-visible:-outline-offset-2 group-data-[density=compact]/list:pe-21 group-data-[density=compact]/list:text-xs group-data-[density=compact]/list:@2xl/row:grid-cols-[auto_8rem_minmax(0,1fr)_auto] pointer-coarse:pe-34 pointer-coarse:group-data-[density=compact]/list:pe-34";
 
 /** The initials. They leave a row too narrow to hold them beside the subject's least width: under 20rem, and under 24rem when compact. */
 const AVATAR =
@@ -86,11 +86,11 @@ const PREVIEW =
 
 /** The clip and the date. They keep their own width: the sender beside them gives way first. */
 const META =
-	"col-start-3 row-start-1 ms-2 me-12 flex h-5 shrink-0 items-center gap-1.5 text-muted-foreground text-xs group-data-[density=compact]/list:me-0 group-data-[density=compact]/list:h-4 group-data-[density=compact]/list:@2xl/row:col-start-4 pointer-coarse:me-0";
+	"col-start-3 row-start-1 ms-2 me-18 flex h-5 shrink-0 items-center gap-1.5 text-muted-foreground text-xs group-data-[density=compact]/list:me-0 group-data-[density=compact]/list:h-4 group-data-[density=compact]/list:@2xl/row:col-start-4 pointer-coarse:me-0";
 
 /**
  * One message of the list. The row is a list item that holds a link to the
- * message and, after it, the buttons for its two marks: siblings, because a
+ * message and, after it, the buttons for its three marks: siblings, because a
  * button inside a link is not valid and not reachable.
  *
  * Every state has a sign that is not a colour, and none changes the row's
@@ -248,6 +248,7 @@ export function MessageRow({
 				box={view.box}
 				flagged={message.flagged}
 				important={message.important}
+				labels={message.labels}
 			/>
 		</li>
 	);
