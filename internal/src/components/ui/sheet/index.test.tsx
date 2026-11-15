@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-
+import { FORCED_POINTER } from "@/lib/pointer-states";
 import { Sheet } from ".";
 
 afterEach(cleanup);
@@ -148,6 +148,14 @@ describe("Sheet", () => {
 		const close = screen.getByRole("button", { name: "Shut" });
 
 		expect(close).toHaveClass("hover:bg-accent", "active:bg-accent-press");
+	});
+
+	it("outlines its close button under the pointer when colours are forced", () => {
+		renderSheet(true);
+
+		expect(screen.getByRole("button", { name: "Shut" })).toHaveClass(
+			...FORCED_POINTER.split(" "),
+		);
 	});
 
 	it("sits on the chosen edge and sets no inline style", () => {

@@ -14,6 +14,8 @@ import {
 	SidebarGroupLabel,
 } from "@/components/ui/sidebar/group";
 import type { SidebarGroupId } from "@/components/ui/sidebar/groups-cookie";
+import { cn } from "@/lib/class-names";
+import { FORCED_POINTER } from "@/lib/pointer-states";
 
 /**
  * A group of the sidebar's navigation that opens and closes under its heading.
@@ -62,7 +64,12 @@ export function NavSection({
 		>
 			<SidebarGroup>
 				<SidebarGroupLabel asChild>
-					<CollapsibleTrigger className="group/toggle w-full justify-between gap-2 text-left hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sidebar-ring active:bg-sidebar-accent-press pointer-coarse:h-11">
+					<CollapsibleTrigger
+						className={cn(
+							"group/toggle w-full justify-between gap-2 text-left hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sidebar-ring active:bg-sidebar-accent-press pointer-coarse:h-11",
+							FORCED_POINTER,
+						)}
+					>
 						<span className="min-w-0 truncate">{label}</span>
 						<ChevronDownIcon
 							aria-hidden="true"

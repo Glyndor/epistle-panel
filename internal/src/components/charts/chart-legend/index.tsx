@@ -1,4 +1,5 @@
 import { cn } from "@/lib/class-names";
+import { FORCED_POINTER } from "@/lib/pointer-states";
 
 import type { SeriesIndex } from "../series";
 import { Swatch } from "../swatch";
@@ -40,7 +41,10 @@ export function ChartLegend({
 			{items.map((item) => (
 				<li
 					key={item.key}
-					className="-mx-1.5 -my-0.5 flex items-center gap-1.5 rounded-md px-1.5 py-0.5 transition-colors hover:bg-accent hover:text-accent-foreground active:bg-accent-press"
+					className={cn(
+						"-mx-1.5 -my-0.5 flex items-center gap-1.5 rounded-md px-1.5 py-0.5 transition-colors hover:bg-accent hover:text-accent-foreground active:bg-accent-press",
+						FORCED_POINTER,
+					)}
 				>
 					{item.series === undefined ? (
 						<span

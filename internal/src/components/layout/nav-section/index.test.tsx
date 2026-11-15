@@ -5,6 +5,7 @@ import { renderToString } from "react-dom/server";
 import { SidebarProvider } from "@/components/ui/sidebar/provider";
 import { Sidebar } from "@/components/ui/sidebar/sidebar";
 import { SidebarTrigger } from "@/components/ui/sidebar/trigger";
+import { FORCED_POINTER } from "@/lib/pointer-states";
 import { captureCookieWrites } from "@/test/cookie-capture";
 import { NavSection } from ".";
 
@@ -156,6 +157,12 @@ describe("NavSection", () => {
 		expect(
 			document.querySelector("[data-slot='sidebar-group-current']"),
 		).not.toBeNull();
+	});
+
+	it("outlines its heading under the pointer when colours are forced", () => {
+		render(tree());
+
+		expect(heading()).toHaveClass(...FORCED_POINTER.split(" "));
 	});
 
 	it("is a real button, as tall as a sidebar entry, with a ring of its own on the rail", () => {

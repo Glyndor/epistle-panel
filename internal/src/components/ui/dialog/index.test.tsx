@@ -6,7 +6,7 @@ import {
 	screen,
 	waitFor,
 } from "@testing-library/react";
-
+import { FORCED_POINTER } from "@/lib/pointer-states";
 import {
 	Dialog,
 	DialogClose,
@@ -98,6 +98,16 @@ describe("Dialog", () => {
 			"active:bg-accent-press",
 		);
 		expect(close.className).not.toContain("hover:bg-surface-sunken");
+	});
+
+	it("outlines its close button under the pointer when colours are forced", async () => {
+		setup();
+		fireEvent.click(screen.getByRole("button", { name: "Open" }));
+		await screen.findByRole("dialog");
+
+		expect(screen.getByRole("button", { name: "Shut" })).toHaveClass(
+			...FORCED_POINTER.split(" "),
+		);
 	});
 
 	it("brings its close button into view when it takes the focus", async () => {

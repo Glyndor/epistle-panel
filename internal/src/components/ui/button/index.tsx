@@ -16,7 +16,7 @@ import { cn } from "@/lib/class-names";
  * `docs/maintainers/cursor-and-selection.md`.
  */
 const buttonVariants = cva(
-	"inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium text-sm transition-colors select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+	"inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium text-sm transition-colors select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 forced-colors:outline-[color:Highlight] forced-colors:hover:outline-2 forced-colors:hover:-outline-offset-2 forced-colors:active:outline-4 forced-colors:active:-outline-offset-4",
 	{
 		variants: {
 			variant: {

@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { stubFetchJson, stubFetchReject } from "@/lib/api/test-support/fetch";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
 import { TEST_ADMIN_ID } from "@/lib/config/test-support/admin-id";
+import { FORCED_POINTER } from "@/lib/pointer-states";
 import { withAdminArea } from "@/test/admin-routes";
 
 const originalFetch = globalThis.fetch;
@@ -324,6 +325,16 @@ describe("AccountsTable", () => {
 			"underline",
 			"hover:no-underline",
 			"active:text-primary/70",
+		);
+	});
+
+	it("outlines the account's link under the pointer when colours are forced", async () => {
+		stubFetchJson({ accounts: [account("alice", true)] });
+
+		render(withAdminArea(<AccountsTable />));
+
+		expect(await screen.findByRole("link", { name: "alice" })).toHaveClass(
+			...FORCED_POINTER.split(" "),
 		);
 	});
 

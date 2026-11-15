@@ -1,6 +1,7 @@
 import type * as React from "react";
 
 import { cn } from "@/lib/class-names";
+import { FORCED_POINTER } from "@/lib/pointer-states";
 
 import { Mark } from "../mark";
 import { percent, SERIES } from "../series";
@@ -54,7 +55,10 @@ export function BarList({
 				<div
 					key={row.key}
 					data-row={row.key}
-					className="group/row -mx-2 -my-1 flex flex-col gap-1 rounded-lg px-2 py-1 transition-colors hover:bg-accent hover:text-accent-foreground active:bg-accent-press"
+					className={cn(
+						"group/row -mx-2 -my-1 flex flex-col gap-1 rounded-lg px-2 py-1 transition-colors hover:bg-accent hover:text-accent-foreground active:bg-accent-press",
+						FORCED_POINTER,
+					)}
 				>
 					<div className="flex items-baseline justify-between gap-3 text-sm">
 						<span className="min-w-0 truncate">{row.label}</span>

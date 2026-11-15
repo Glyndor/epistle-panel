@@ -3,6 +3,7 @@ import { IconTile } from "@/components/icon-tile";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/class-names";
+import { FORCED_POINTER } from "@/lib/pointer-states";
 
 /**
  * One counter of a summary row: the tile, the label and the number. It is one
@@ -34,7 +35,10 @@ export function SummaryCard({
 	return (
 		<Card
 			data-slot="summary-card"
-			className="group/summary grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-0.5 p-3 transition-colors hover:bg-accent active:bg-accent-press"
+			className={cn(
+				"group/summary grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-0.5 p-3 transition-colors hover:bg-accent active:bg-accent-press",
+				FORCED_POINTER,
+			)}
 		>
 			<IconTile
 				name={icon}

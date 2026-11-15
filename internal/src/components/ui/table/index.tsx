@@ -1,12 +1,16 @@
 import type * as React from "react";
 
 import { cn } from "@/lib/class-names";
+import { FORCED_ROW_POINTER } from "@/lib/pointer-states";
 
 /**
  * A semantic table in a container that scrolls sideways when the columns do
  * not fit, so an action column is never clipped on a narrow screen. No line
  * separates the rows: the body stripes every second row with the sunken
- * surface and tints the row under the pointer.
+ * surface and tints the row under the pointer, only where a pointer can hover
+ * (`(hover: hover)`): a tap on a touch screen leaves its `:hover` on the row
+ * until the next tap elsewhere, and the fill would stay. Where colours are
+ * forced the tint is gone, so the row is outlined instead (`lib/pointer-states`).
  *
  * A table with nothing to focus inside (no link, no button) cannot be scrolled
  * from the keyboard. Give such a table a `scrollLabel`: the container then
@@ -52,7 +56,8 @@ function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
 		<tbody
 			data-slot="table-body"
 			className={cn(
-				"[&_tr:nth-child(even):not(:hover)]:bg-surface-sunken [&_tr:hover]:bg-accent",
+				"[&_tr:nth-child(even)]:bg-surface-sunken [@media(hover:hover)]:[&_tr:hover]:bg-accent [@media(hover:hover)]:[&_tr:nth-child(even):hover]:bg-accent",
+				FORCED_ROW_POINTER,
 				className,
 			)}
 			{...props}

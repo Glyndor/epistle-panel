@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-
+import { FORCED_POINTER } from "@/lib/pointer-states";
 import { SidebarProvider } from "../provider";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from ".";
 
@@ -211,6 +211,14 @@ describe("SidebarMenuButton", () => {
 		expect(current).toHaveClass(
 			"hover:bg-sidebar-accent/60",
 			"active:bg-sidebar-accent-press",
+		);
+	});
+
+	it("outlines an entry under the pointer, and thicker while pressed, when colours are forced", () => {
+		renderMenu();
+
+		expect(screen.getByRole("button", { name: "Domains" })).toHaveClass(
+			...FORCED_POINTER.split(" "),
 		);
 	});
 

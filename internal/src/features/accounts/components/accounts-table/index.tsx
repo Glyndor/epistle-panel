@@ -16,6 +16,8 @@ import { CreateAccountDialog } from "@/features/accounts/components/create-accou
 import { accountsQueryOptions } from "@/features/accounts/queries/accounts-query";
 import type { AccountRow } from "@/features/accounts/schemas/accounts-view";
 import { isAccountName } from "@/lib/api/account-name-pattern";
+import { cn } from "@/lib/class-names";
+import { FORCED_POINTER } from "@/lib/pointer-states";
 import { unwrap } from "@/lib/query/action-result";
 
 const fetchAccounts = async () => unwrap(await getAccountsAction());
@@ -31,7 +33,10 @@ function AccountName({ name }: { name: string }) {
 	return isAccountName(name) ? (
 		<Link
 			href={routes.accountDetail(name)}
-			className="inline-flex items-center wrap-anywhere rounded-sm font-semibold text-primary underline underline-offset-4 hover:no-underline active:text-primary/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring pointer-coarse:min-h-11 pointer-coarse:min-w-11"
+			className={cn(
+				"inline-flex items-center wrap-anywhere rounded-sm font-semibold text-primary underline underline-offset-4 hover:no-underline active:text-primary/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring pointer-coarse:min-h-11 pointer-coarse:min-w-11",
+				FORCED_POINTER,
+			)}
 		>
 			{name}
 		</Link>

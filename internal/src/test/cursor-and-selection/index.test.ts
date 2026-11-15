@@ -8,9 +8,9 @@ import { utilityFailures } from "./utilities";
 const ALLOWLIST: Readonly<Record<string, string>> = {
 	"components/ui/alert-dialog/index.tsx:29 <AlertDialogPrimitive.Trigger>: missing select-none in base classes":
 		"Existing unstyled asChild adapter; callers supply the shared Button. Retained by this test-only change; give the adapter its own base before removing this exception.",
-	"components/ui/dialog/index.tsx:29 <DialogPrimitive.Trigger>: missing select-none in base classes":
+	"components/ui/dialog/index.tsx:30 <DialogPrimitive.Trigger>: missing select-none in base classes":
 		"Existing unstyled asChild adapter; callers supply the shared Button. Retained by this test-only change; give the adapter its own base before removing this exception.",
-	"components/ui/dialog/index.tsx:36 <DialogPrimitive.Close>: missing select-none in base classes":
+	"components/ui/dialog/index.tsx:37 <DialogPrimitive.Close>: missing select-none in base classes":
 		"Existing unstyled asChild close adapter delegates chrome to its child. Retained by this test-only change; its styled close button has a separate exception.",
 	"components/ui/dropdown-menu/index.tsx:34 <DropdownMenuPrimitive.Trigger>: missing select-none in base classes":
 		"Existing unstyled asChild menu adapter delegates to Button or SidebarMenuButton. Retained by this test-only change; new adapters need their own base or a reviewed exception.",
@@ -20,7 +20,7 @@ const ALLOWLIST: Readonly<Record<string, string>> = {
 		"Legacy keyboard skip link omitted by the two rule commits. Retained by this test-only change; add its own selection class when this control is migrated.",
 	"components/layout/trail/index.tsx:102 <Link>: missing select-none in base classes":
 		"Breadcrumb content can be a message subject or folder name; matches the explicit BreadcrumbLink content exception rather than disabling selection of those data labels.",
-	"features/accounts/components/accounts-table/index.tsx:32 <Link>: missing select-none in base classes":
+	"features/accounts/components/accounts-table/index.tsx:34 <Link>: missing select-none in base classes":
 		"The linked account name is a table value and identifier; the content rule requires it to remain copyable even though it also navigates.",
 	"features/mail/components/attachment-list/index.tsx:43 <a>: missing select-none in base classes":
 		"The download link contains the original attachment filename and size; these message data values remain copyable in the reader.",

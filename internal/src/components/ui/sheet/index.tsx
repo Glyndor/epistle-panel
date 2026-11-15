@@ -5,6 +5,7 @@ import * as React from "react";
 
 import { Tooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/class-names";
+import { FORCED_POINTER } from "@/lib/pointer-states";
 
 /** Elements Tab can reach inside the sheet. */
 const FOCUSABLE =
@@ -118,7 +119,10 @@ export function Sheet({
 				<button
 					type="button"
 					onClick={() => onOpenChange(false)}
-					className="absolute top-2 right-2 inline-flex select-none size-8 items-center justify-center rounded-md hover:bg-accent active:bg-accent-press focus-visible:outline-2 focus-visible:outline-ring pointer-coarse:size-11"
+					className={cn(
+						"absolute top-2 right-2 inline-flex select-none size-8 items-center justify-center rounded-md hover:bg-accent active:bg-accent-press focus-visible:outline-2 focus-visible:outline-ring pointer-coarse:size-11",
+						FORCED_POINTER,
+					)}
 				>
 					<XIcon className="size-4" aria-hidden="true" />
 					<span className="sr-only select-none">{closeLabel}</span>
