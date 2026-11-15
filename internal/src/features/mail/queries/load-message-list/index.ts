@@ -1,6 +1,5 @@
 import "server-only";
 
-import { utcDay } from "@/features/mail/format/date-group";
 import { jmapCall, methodResult } from "@/features/mail/jmap/call";
 import type { MailSession } from "@/features/mail/jmap/credentials";
 import {
@@ -24,6 +23,8 @@ import {
 	SCAN_LIMIT,
 } from "@/features/mail/schemas/mail-input";
 import type { MessageListView } from "@/features/mail/schemas/mail-view";
+import { dayInZone } from "@/features/time-zone/format/day";
+import { readEffectiveTimeZone } from "@/features/time-zone/queries/time-zone";
 
 /** The properties a list row needs; the server may send more. */
 const ROW_PROPERTIES = [
@@ -91,7 +92,9 @@ export async function loadMessageList(
 	input: MessageListInput,
 	now: Date = new Date(),
 ): Promise<MessageListView> {
-	const today = utcDay(now);
+	// The day the list is read on, in the zone of the person: it is what
+	// "today" means for the groups the rows stand under.
+	const today = dayInZone(now, await readEffectiveTimeZone());
 	const { conditions } = input;
 	// The folder of the page, unless the conditions name another one.
 	const box = conditions.folder ?? input.box;

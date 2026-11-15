@@ -6,10 +6,12 @@ const values = {
 	theme: "system",
 	density: "comfortable",
 } as const;
+/** The four fields the form posts when the operator fixed none of them. */
+const chosen = { ...values, timeZone: "UTC" } as const;
 it("requires a fourth exact mode when the preference is editable", () => {
 	for (const mode of ["ask", "always", "never"] as const)
 		expect(
-			preferencesSchema.parse({ ...values, remoteImages: mode })
+			preferencesSchema.parse({ ...chosen, remoteImages: mode })
 				.remoteImages,
 		).toBe(mode);
 	for (const value of [
@@ -23,7 +25,7 @@ it("requires a fourth exact mode when the preference is editable", () => {
 		["ask", "never"],
 	])
 		expect(
-			preferencesSchema.safeParse({ ...values, remoteImages: value })
+			preferencesSchema.safeParse({ ...chosen, remoteImages: value })
 				.success,
 		).toBe(false);
 });

@@ -26,6 +26,7 @@ const VALUES: PreferencesValues = {
 	theme: "light",
 	density: "compact",
 	remoteImages: "ask",
+	timeZone: "UTC",
 };
 
 beforeEach(() => {
@@ -119,6 +120,7 @@ describe("PreferencesForm", () => {
 			["theme", "dark"],
 			["list-density", "comfortable"],
 			["remote-images", "ask"],
+			["time-zone", "UTC"],
 		]);
 		expect(document.documentElement.getAttribute("data-theme")).toBe(
 			"dark",

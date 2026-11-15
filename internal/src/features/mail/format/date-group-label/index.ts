@@ -1,4 +1,5 @@
 import type { DateGroup } from "@/features/mail/format/date-group";
+import type { TimeZone } from "@/features/time-zone/config/zones";
 
 /** The message keys of the groups that are not a month. */
 export type DateGroupMessage =
@@ -11,21 +12,23 @@ export type DateGroupMessage =
 interface MonthFormatter {
 	dateTime(
 		value: Date,
-		options: { month: "long"; year: "numeric"; timeZone: "UTC" },
+		options: { month: "long"; year: "numeric"; timeZone: string },
 	): string;
 }
 
 /**
  * The words of a date group's heading in the reader's language: today,
  * yesterday, the last few days, or the month and the year of an older
- * message. The month is printed in UTC because the groups are days of UTC
- * (`date-group`): in the browser's own zone a message of the first hours of a
- * month would stand under the name of the month before, west of Greenwich.
+ * message. The month is printed in the zone of the person because the groups
+ * are days of that zone (`date-group`): in the clock of Greenwich a message
+ * of the first hours of a month would stand under the name of the month
+ * before.
  */
 export function dateGroupLabel(
 	group: DateGroup,
 	t: (key: DateGroupMessage) => string,
 	format: MonthFormatter,
+	timeZone: TimeZone,
 ): string {
 	switch (group.kind) {
 		case "today":
@@ -36,8 +39,10 @@ export function dateGroupLabel(
 			return t("groupRecent");
 		case "month":
 			return format.dateTime(
-				new Date(Date.UTC(group.year, group.month - 1, 1)),
-				{ month: "long", year: "numeric", timeZone: "UTC" },
+				// The fifteenth of the month, at noon: a day that is inside the
+				// month whatever the zone, so the name is the month's own.
+				new Date(Date.UTC(group.year, group.month - 1, 15, 12)),
+				{ month: "long", year: "numeric", timeZone },
 			);
 		default:
 			return t("groupUnknown");

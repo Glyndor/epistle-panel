@@ -10,9 +10,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { getDeliveriesAction } from "@/features/deliveries/actions/get-deliveries";
 import { DeliveriesTableSkeleton } from "@/features/deliveries/components/deliveries-table-skeleton";
 import { deliveriesQueryOptions } from "@/features/deliveries/queries/deliveries-query";
-import { formatUtcTime } from "@/features/deliveries/queries/format-time";
+import { formatTime } from "@/features/deliveries/queries/format-time";
 import type { DeliveryFilters } from "@/features/deliveries/schemas/deliveries-input";
 import type { DeliveryRow } from "@/features/deliveries/schemas/deliveries-view";
+import { useTimeZone } from "@/features/time-zone/components/time-zone-provider";
 import type { DELIVERY_OUTCOMES } from "@/lib/api/schemas";
 import { unwrap } from "@/lib/query/action-result";
 
@@ -49,6 +50,7 @@ const OUTCOME_VARIANT: Record<
  */
 export function DeliveriesTable({ filters }: { filters: DeliveryFilters }) {
 	const t = useTranslations("deliveries");
+	const timeZone = useTimeZone();
 	const { data, isPending } = useQuery(
 		deliveriesQueryOptions(filters, fetchDeliveries),
 	);
@@ -57,7 +59,7 @@ export function DeliveriesTable({ filters }: { filters: DeliveryFilters }) {
 			header: t("time"),
 			cell: (info) => (
 				<span className="whitespace-nowrap font-mono">
-					{formatUtcTime(info.getValue())}
+					{formatTime(info.getValue(), timeZone)}
 				</span>
 			),
 		}),

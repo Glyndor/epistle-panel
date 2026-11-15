@@ -3,6 +3,7 @@ import * as z from "zod/mini";
 import { LIST_DENSITIES } from "@/features/mail/config/list-density";
 import { REMOTE_IMAGE_MODES } from "@/features/mail/config/remote-images";
 import { THEME_CHOICES } from "@/features/theme/config/choices";
+import { TIME_ZONES } from "@/features/time-zone/config/zones";
 import { SUPPORTED_LOCALES } from "@/i18n/locales";
 
 /**
@@ -32,11 +33,9 @@ function refusal(issue: { input?: unknown }): PreferenceErrorKey {
 }
 
 /**
- * The preferences form: one choice from a closed list for each field, exactly
- * as the list spells it. The same schema is the form's fail-fast help in the
- * browser and the Server Action's gate, which is the real one. Nothing is
- * trimmed, lower-cased or otherwise made to fit: `ES` is not `es`. It is
- * `zod/mini` because the form ships it to the browser.
+ * The three fields no operator can take away: the language, the theme and the
+ * density of the message list. Each one is a choice of a closed list, exactly
+ * as the list spells it.
  */
 export const editablePreferencesSchema = z.object({
 	language: z.enum(SUPPORTED_LOCALES, { error: refusal }),
@@ -44,18 +43,21 @@ export const editablePreferencesSchema = z.object({
 	density: z.enum(LIST_DENSITIES, { error: refusal }),
 });
 
-export const preferencesSchema = z
-	.extend(editablePreferencesSchema, {
-		remoteImages: z.optional(
-			z.enum(REMOTE_IMAGE_MODES, { error: refusal }),
-		),
-	})
-	.check(
-		z.refine((value) => value["remoteImages"] !== undefined, {
-			message: "required",
-			path: ["remoteImages"],
-		}),
-	);
+/**
+ * The preferences form: one choice from a closed list for each field, exactly
+ * as the list spells it. The same schema is the form's fail-fast help in the
+ * browser and the Server Action's gate, which is the real one. Nothing is
+ * trimmed, lower-cased or otherwise made to fit: `ES` is not `es`. It is
+ * `zod/mini` because the form ships it to the browser.
+ *
+ * The two fields an operator can fix (the mode of the remote images and the
+ * time zone) are on it too: the Server Action puts the operator's value in
+ * place of the one that was not sent, so the schema always sees a choice.
+ */
+export const preferencesSchema = z.extend(editablePreferencesSchema, {
+	remoteImages: z.enum(REMOTE_IMAGE_MODES, { error: refusal }),
+	timeZone: z.enum(TIME_ZONES, { error: refusal }),
+});
 
 /** The values of a valid form. */
 export type PreferencesInput = z.infer<typeof editablePreferencesSchema>;

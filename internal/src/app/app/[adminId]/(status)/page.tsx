@@ -29,6 +29,7 @@ import { StatusCards } from "@/features/status/components/status-cards";
 import { StatusCardsSkeleton } from "@/features/status/components/status-cards-skeleton";
 import { StatusHeading } from "@/features/status/components/status-heading";
 import { statusQueryOptions } from "@/features/status/queries/status-query";
+import { readEffectiveTimeZone } from "@/features/time-zone/queries/time-zone";
 import { requireAdmin } from "@/lib/auth/require-session";
 import { prefetchSpec } from "@/lib/query/prefetch";
 
@@ -60,7 +61,8 @@ export default async function HomePage({
 	const { routes } = await requireAdmin();
 	const tCharts = await getTranslations("overview");
 	const period = parsePeriodParam((await searchParams).since);
-	const words = await skeletonWords(period);
+	const timeZone = await readEffectiveTimeZone();
+	const words = await skeletonWords(period, timeZone);
 
 	return (
 		<>
@@ -134,6 +136,7 @@ export default async function HomePage({
 					<TimelineCard
 						period={period}
 						logPath={routes.deliveries}
+						timeZone={timeZone}
 						className={CARD_SPAN.timeline}
 					/>
 				</Suspense>

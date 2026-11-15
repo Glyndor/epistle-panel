@@ -36,8 +36,8 @@
 	"timeline": {
 		"title": "Livraisons dans le temps",
 		"note": {
-			"hour": "Par heure, UTC · lu à {time}",
-			"day": "Par jour, UTC · lu à {time}"
+			"hour": "Par heure, {zone} · lu à {time}",
+			"day": "Par jour, {zone} · lu à {time}"
 		},
 		"description": "{total, plural, one {# enregistrement de livraison} other {# enregistrements de livraison}} {unit, select, hour {par heure} other {par jour}}. Le maximum, {peak}, le {when}.",
 		"hint": "{when} : {count, plural, one {# enregistrement} other {# enregistrements}}",
@@ -47,8 +47,8 @@
 		"notReturned": "Peut ne pas avoir été renvoyé",
 		"full": "Le serveur a renvoyé {limit} enregistrements, son maximum, donc les colonnes grisées peuvent ne pas avoir été renvoyées, ou seulement en partie. Rien n’indique que ce soient des moments sans livraison.",
 		"column": {
-			"hour": "Heure (UTC)",
-			"day": "Jour (UTC)"
+			"hour": "Heure ({zone})",
+			"day": "Jour ({zone})"
 		},
 		"total": "Total",
 		"state": {

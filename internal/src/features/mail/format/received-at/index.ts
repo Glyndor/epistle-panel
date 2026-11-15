@@ -1,8 +1,10 @@
+import type { TimeZone } from "@/features/time-zone/config/zones";
+
 /** What this asks of a date formatter. next-intl's `useFormatter()` satisfies it, and so does a test stand-in. */
 interface DateOptions {
 	dateStyle: "medium";
 	timeStyle?: "short";
-	timeZone: "UTC";
+	timeZone: string;
 }
 interface DateFormatter {
 	dateTime(value: Date, options: DateOptions): string;
@@ -10,12 +12,13 @@ interface DateFormatter {
 
 /**
  * A message's date for display, or an empty string when the server's value is
- * not a date. Printed in UTC, like the delivery log, so the server render and
- * the browser agree and nothing shifts on hydration.
+ * not a date. Printed in the zone of the person, so the server render and the
+ * browser agree and nothing shifts on hydration.
  */
 export function formatReceivedAt(
 	format: DateFormatter,
 	value: string,
+	timeZone: TimeZone,
 	withTime = true,
 ): string {
 	const date = new Date(value);
@@ -26,7 +29,7 @@ export function formatReceivedAt(
 		? format.dateTime(date, {
 				dateStyle: "medium",
 				timeStyle: "short",
-				timeZone: "UTC",
+				timeZone,
 			})
-		: format.dateTime(date, { dateStyle: "medium", timeZone: "UTC" });
+		: format.dateTime(date, { dateStyle: "medium", timeZone });
 }

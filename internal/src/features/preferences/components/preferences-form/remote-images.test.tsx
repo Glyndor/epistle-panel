@@ -27,11 +27,12 @@ const values = {
 	theme: "system",
 	density: "comfortable",
 	remoteImages: "never",
+	timeZone: "UTC",
 } as const;
 it("offers exactly the three modes as a fourth required labelled field", () => {
 	render(<PreferencesForm values={values} />);
 	const field = screen.getByRole("combobox", { name: "remoteImages" });
-	expect(screen.getAllByRole("combobox")).toHaveLength(4);
+	expect(screen.getAllByRole("combobox")).toHaveLength(5);
 	expect(field).toBeRequired();
 	expect(field).toHaveValue("never");
 	expect(
@@ -51,7 +52,13 @@ it("offers exactly the three modes as a fourth required labelled field", () => {
 it("uses ask when older values omit the fourth preference", () => {
 	render(
 		<PreferencesForm
-			values={{ language: "en", theme: "system", density: "comfortable" }}
+			values={{
+				language: "en",
+				theme: "system",
+				density: "comfortable",
+				remoteImages: "ask",
+				timeZone: "UTC",
+			}}
 		/>,
 	);
 	expect(screen.getByRole("combobox", { name: "remoteImages" })).toHaveValue(
@@ -62,7 +69,13 @@ it("submits to the action when older values omit the fourth preference, posting 
 	const posted: unknown[] = [];
 	render(
 		<PreferencesForm
-			values={{ language: "en", theme: "system", density: "comfortable" }}
+			values={{
+				language: "en",
+				theme: "system",
+				density: "comfortable",
+				remoteImages: "ask",
+				timeZone: "UTC",
+			}}
 			save={async (_previous, formData) => {
 				posted.push(formData.get("remoteImages"));
 				return { outcome: "idle" };
@@ -99,7 +112,7 @@ it("renders the operator statement as accessible text and posts no remote image 
 		const { container } = render(
 			<PreferencesForm values={values} operatorRemoteImagesMode={mode} />,
 		);
-		expect(screen.getAllByRole("combobox")).toHaveLength(3);
+		expect(screen.getAllByRole("combobox")).toHaveLength(4);
 		expect(container.querySelector('[name="remoteImages"]')).toBeNull();
 		const group = screen.getByRole("group", { name: "remoteImages" });
 		expect(group).toHaveTextContent("remoteImagesSetByOperator");

@@ -16,6 +16,7 @@ import { skeletonWords } from "@/features/overview/queries/skeleton-words";
 import { DEFAULT_PERIOD } from "@/features/overview/schemas/overview-input";
 import { StatusCardsSkeleton } from "@/features/status/components/status-cards-skeleton";
 import { StatusHeading } from "@/features/status/components/status-heading";
+import { readEffectiveTimeZone } from "@/features/time-zone/queries/time-zone";
 import { PUBLIC_ROUTES } from "@/lib/routes";
 
 /**
@@ -32,7 +33,10 @@ import { PUBLIC_ROUTES } from "@/lib/routes";
 export default async function Loading() {
 	const routes = await loadingRoutes();
 	const tCharts = await getTranslations("overview");
-	const words = await skeletonWords(DEFAULT_PERIOD);
+	const words = await skeletonWords(
+		DEFAULT_PERIOD,
+		await readEffectiveTimeZone(),
+	);
 	return (
 		<>
 			<StatusHeading />

@@ -36,8 +36,8 @@
 	"timeline": {
 		"title": "Deliveries over time",
 		"note": {
-			"hour": "Per hour, UTC · read at {time}",
-			"day": "Per day, UTC · read at {time}"
+			"hour": "Per hour, {zone} · read at {time}",
+			"day": "Per day, {zone} · read at {time}"
 		},
 		"description": "{total, plural, one {# delivery record} other {# delivery records}} {unit, select, hour {per hour} other {per day}}. The most, {peak}, on {when}.",
 		"hint": "{when}: {count, plural, one {# record} other {# records}}",
@@ -47,8 +47,8 @@
 		"notReturned": "May not have been returned",
 		"full": "The server returned {limit} records, the most it gives, so the shaded columns may not have been returned, or only in part. They are not known to be times without deliveries.",
 		"column": {
-			"hour": "Hour (UTC)",
-			"day": "Day (UTC)"
+			"hour": "Hour ({zone})",
+			"day": "Day ({zone})"
 		},
 		"total": "Total",
 		"state": {

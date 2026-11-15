@@ -208,6 +208,21 @@ uses it without asking, `never` ignores it and `ask` keeps today's button. A
 value outside the three modes stops the start with a message that names the
 variable and never the value.
 
+### The time zone of the dates
+
+Every date the panel prints for display is in the time zone the person chose
+on `/app/me`: the choice is kept in the `time-zone` cookie under `/app` and
+holds `UTC` or the name of an IANA zone. The dates inside a message are not
+changed: its body, its headers and the `Date` header it travels with stay as
+they are.
+
+| Variable | Effect |
+|---|---|
+| `EPISTLE_PANEL_TIME_ZONE` | Fixed zone for everyone: `UTC` or the name of an IANA zone (`America/Bogota`). Unset or empty leaves the choice to each person. When set, it wins over the cookie, `/app/me` shows it as read-only text and the Server Action refuses a posted change. |
+
+A value that is not a zone stops the start with a message that names the
+variable and never the value.
+
 ### Sessions and sign-in limits
 
 - The session cookie is named `__Host-epistle_session` and is always

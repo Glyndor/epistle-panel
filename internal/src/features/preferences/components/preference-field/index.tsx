@@ -12,6 +12,7 @@ import {
 import { FIELD_CLASS } from "@/components/ui/input";
 import {
 	NativeSelect,
+	NativeSelectGroup,
 	NativeSelectOption,
 } from "@/components/ui/native-select";
 import type { PreferenceErrorKey } from "@/features/preferences/schemas/preferences";
@@ -23,6 +24,29 @@ export interface PreferenceOption {
 	readonly label: string;
 	/** The language the label is written in, when it is not the page's. */
 	readonly lang?: string;
+	/** The group of the list the choice belongs to, when the list has groups. */
+	readonly group?: string;
+}
+
+/**
+ * The options as the select draws them: the groups in the order they come,
+ * each with its own options. The choices with no group of their own are drawn
+ * as they are, at the top.
+ */
+function grouped(
+	options: readonly PreferenceOption[],
+): Array<{ group: string; options: PreferenceOption[] }> {
+	const groups: Array<{ group: string; options: PreferenceOption[] }> = [];
+	for (const option of options) {
+		const group = option.group ?? "";
+		const last = groups.at(-1);
+		if (last !== undefined && last.group === group) {
+			last.options.push(option);
+			continue;
+		}
+		groups.push({ group, options: [option] });
+	}
+	return groups;
 }
 
 /**
@@ -72,15 +96,34 @@ function SelectAndMessage({
 				aria-invalid={message ? true : undefined}
 				aria-describedby={describedBy === "" ? undefined : describedBy}
 			>
-				{options.map((option) => (
-					<NativeSelectOption
-						key={option.value}
-						value={option.value}
-						lang={option.lang}
-					>
-						{option.label}
-					</NativeSelectOption>
-				))}
+				{grouped(options).map((group) =>
+					group.group === "" ? (
+						group.options.map((option) => (
+							<NativeSelectOption
+								key={option.value}
+								value={option.value}
+								lang={option.lang}
+							>
+								{option.label}
+							</NativeSelectOption>
+						))
+					) : (
+						<NativeSelectGroup
+							key={group.group}
+							label={group.group}
+						>
+							{group.options.map((option) => (
+								<NativeSelectOption
+									key={option.value}
+									value={option.value}
+									lang={option.lang}
+								>
+									{option.label}
+								</NativeSelectOption>
+							))}
+						</NativeSelectGroup>
+					),
+				)}
 			</NativeSelect>
 			<FormDescription>{help}</FormDescription>
 			{message ? (
