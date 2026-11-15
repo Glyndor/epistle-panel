@@ -35,11 +35,16 @@ async function layoutElement(adminId = TEST_ADMIN_ID) {
 		params: params(adminId),
 	})) as React.ReactElement<{
 		children: React.ReactElement<{
-			children: React.ReactElement<React.ComponentProps<typeof AppShell>>;
+			children: React.ReactElement<{
+				children: React.ReactElement<
+					React.ComponentProps<typeof AppShell>
+				>;
+			}>;
 		}>;
 	}>;
-	// The layout wraps the shell in the routes provider and the query provider.
-	return routes.props.children.props.children;
+	// The layout wraps the shell in the routes provider, the query provider and
+	// the refresh pace.
+	return routes.props.children.props.children.props.children;
 }
 
 async function renderLayout() {

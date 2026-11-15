@@ -13,6 +13,8 @@ session of any role. It is `app/app/me`, and it is not part of either area.
 | Density of the message list | `LIST_DENSITIES`, `features/mail/config/list-density` | `list-density`, `HttpOnly`, path `/app` |
 | Remote images in messages | `REMOTE_IMAGE_MODES`, `features/mail/config/remote-images`: ask, always or never | `remote-images`, `HttpOnly`, path `/app` |
 | Time zone of the dates | `TIME_ZONES`, `features/time-zone/config/zones`: `UTC` and every IANA zone the running Node knows | `time-zone`, `HttpOnly`, path `/app` |
+| Messages per page | `PAGE_SIZE_CHOICES`, `features/mail/config/page-size`: 25, 50 or 100 | `page-size`, `HttpOnly`, path `/app` |
+| Pace of the refreshes | `REFRESH_PACES`, `features/refresh/config/pace`: normal, slow or fast, never off | `refresh`, `HttpOnly`, path `/app` |
 
 A person does not choose an accent: the palette and the logos are the
 operator's, which is what keeps the measured contrasts true.
@@ -76,12 +78,12 @@ Each field has the three checks of `forms.md`:
 
 Without script the browser posts the form and the answer is the page again, with
 the state of the action in it. With script the form validates first and shows the
-theme at once; the language, the density, the remote image mode and the time
-zone are what the page renders next.
+theme at once; the language, the density, the remote image mode, the time
+zone, the page size and the pace of the refreshes are what the page renders next.
 
 Nothing read from a cookie reaches the page unchecked: `readPreferences` takes the
 language from the request's own resolution (`getLocale`, which already believes
-only a shipped code) and the other four from their readers, which believe a
+only a shipped code) and the other six from their readers, which believe a
 word of their list and nothing else, and the page prints the parsed value, never
 the cookie's text. The first paint has the choice: the root layout paints
 `data-theme` and `lang` on the server, the density is the attribute of the list
@@ -140,6 +142,43 @@ The operator may fix the zone for everyone with `EPISTLE_PANEL_TIME_ZONE`. The
 operator's zone wins over the cookie, the page on `/app/me` shows the zone as
 read-only text instead of a select, and the Server Action refuses a posted
 attempt to change it.
+
+## The page size and the pace of the refreshes
+
+Two choices of the same form, written like the others
+(`features/mail/cookie/page-size`, `features/refresh/cookie`) and read on the
+server (`features/mail/queries/page-size`,
+`features/refresh/queries/refresh-pace`), each by a reader that believes a word
+of its list and nothing else. `customising.md` has the numbers and what they do
+not move; here is how they are wired.
+
+- **The page size** is the number of messages one page of the message list
+  holds: 25, 50 or 100, 50 by default (what the list held before). The one
+  function that cuts the page reads it, so the page on the server and the one
+  the browser asks for are the same. The tables of the administration are not
+  paged by the server (the API gives them whole, or by its own cursor) and page
+  by themselves in the browser with a control of their own, so this choice does
+  not reach them.
+- **The pace** multiplies the interval of every list that refreshes by itself
+  (`normal` is today's, `slow` is twice that, `fast` is half of it and never
+  under 15 s, so the status counters and the queue, already at 15 s, do not
+  change). The layouts of the mail and of the administration read the
+  effective pace and put it in a context around the whole frame
+  (`features/refresh/components/refresh-provider`); a list asks the context for
+  its interval (`useRefreshInterval`) and gives it to its query options. There
+  is no `off`: a visible page left open keeps the session alive by refreshing
+  its lists, and the idle timeout counts that refresh as use, so the keepalive
+  runs on the effective interval. For that reason `slow` runs as `normal` when the
+  idle timeout is 2 minutes or less (`effectiveRefreshPace`, applied by
+  `readEffectiveRefreshPace`, which the layouts read); the form is given what was
+  chosen (`readChosenRefreshPace`) and says under the field, or in the operator's
+  read-only text, that it is used as `normal`.
+
+The operator may fix either for everyone with `EPISTLE_PANEL_PAGE_SIZE` and
+`EPISTLE_PANEL_REFRESH`, the same way as the others: the operator's value wins
+over the cookie, the page shows it as read-only text, the Server Action refuses
+a posted attempt to change it (naming every fixed field that was posted), and a
+value off the list stops the start with a message that names the variable.
 
 ## What waits
 

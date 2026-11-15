@@ -7,6 +7,8 @@ const values = {
 	theme: "system",
 	density: "comfortable",
 	remoteImages: "ask",
+	pageSize: "50",
+	refresh: "normal",
 };
 it("accepts every exact listed zone and classifies missing and hostile fifth fields", () => {
 	for (const zone of TIME_ZONES)

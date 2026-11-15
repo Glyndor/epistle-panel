@@ -1,5 +1,6 @@
 import "server-only";
 
+import { pageSizeOf } from "@/features/mail/config/page-size";
 import { jmapCall, methodResult } from "@/features/mail/jmap/call";
 import type { MailSession } from "@/features/mail/jmap/credentials";
 import {
@@ -11,6 +12,7 @@ import {
 	compareBy,
 	matchesConditions,
 } from "@/features/mail/queries/match-conditions";
+import { readEffectivePageSize } from "@/features/mail/queries/page-size";
 import { toSummary } from "@/features/mail/queries/to-views";
 import {
 	hasConditions,
@@ -19,7 +21,6 @@ import {
 import {
 	GET_CHUNK,
 	type MessageListInput,
-	PAGE_SIZE,
 	SCAN_LIMIT,
 } from "@/features/mail/schemas/mail-input";
 import type { MessageListView } from "@/features/mail/schemas/mail-view";
@@ -84,7 +85,8 @@ async function fetchEmails(
  * the page is the slice of the folder's ids and only those messages are
  * fetched. Otherwise the newest {@link SCAN_LIMIT} messages are fetched,
  * narrowed here, ordered as the conditions say, and `partial` says so when the
- * folder holds more. `now` is when the list is read, which dates the groups
+ * folder holds more. A page holds the number of messages the person chose, or
+ * the operator fixed (`readEffectivePageSize`), 50 by default. `now` is when the list is read, which dates the groups
  * the rows are shown under.
  */
 export async function loadMessageList(
@@ -95,6 +97,7 @@ export async function loadMessageList(
 	// The day the list is read on, in the zone of the person: it is what
 	// "today" means for the groups the rows stand under.
 	const today = dayInZone(now, await readEffectiveTimeZone());
+	const pageSize = pageSizeOf(await readEffectivePageSize());
 	const { conditions } = input;
 	// The folder of the page, unless the conditions name another one.
 	const box = conditions.folder ?? input.box;
@@ -106,18 +109,18 @@ export async function loadMessageList(
 		],
 	]);
 	const { ids } = methodResult(queried, "q", "Email/query", emailQuerySchema);
-	const start = (input.page - 1) * PAGE_SIZE;
+	const start = (input.page - 1) * pageSize;
 
 	if (!hasConditions(conditions) && isDefaultOrder(conditions.order)) {
 		const emails = await fetchEmails(
 			session,
-			ids.slice(start, start + PAGE_SIZE),
+			ids.slice(start, start + pageSize),
 		);
 		return {
 			items: emails.map(toSummary),
 			page: input.page,
 			total: ids.length,
-			hasNext: start + PAGE_SIZE < ids.length,
+			hasNext: start + pageSize < ids.length,
 			partial: false,
 			today,
 		};
@@ -128,10 +131,10 @@ export async function loadMessageList(
 		.filter((email) => matchesConditions(email, conditions))
 		.sort(compareBy(conditions.order));
 	return {
-		items: matching.slice(start, start + PAGE_SIZE).map(toSummary),
+		items: matching.slice(start, start + pageSize).map(toSummary),
 		page: input.page,
 		total: matching.length,
-		hasNext: start + PAGE_SIZE < matching.length,
+		hasNext: start + pageSize < matching.length,
 		partial: ids.length > SCAN_LIMIT,
 		today,
 	};

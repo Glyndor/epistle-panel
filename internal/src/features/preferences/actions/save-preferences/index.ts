@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 
 import { writeLocaleCookie } from "@/features/locale/cookie";
 import { writeListDensityCookie } from "@/features/mail/cookie/list-density";
+import { writePageSizeCookie } from "@/features/mail/cookie/page-size";
 import { writeRemoteImagesCookie } from "@/features/mail/cookie/remote-images";
 import {
 	PREFERENCE_FIELDS,
@@ -15,9 +16,12 @@ import {
 	preferencesSchema,
 } from "@/features/preferences/schemas/preferences";
 import type { PreferencesState } from "@/features/preferences/schemas/preferences-state";
+import { writeRefreshCookie } from "@/features/refresh/cookie";
 import { writeThemeCookie } from "@/features/theme/cookie";
 import { writeTimeZoneCookie } from "@/features/time-zone/cookie";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth/session";
+import { readOperatorPageSize } from "@/lib/config/page-size";
+import { readOperatorRefreshPace } from "@/lib/config/refresh";
 import { readOperatorRemoteImagesMode } from "@/lib/config/remote-images";
 import { readOperatorTimeZone } from "@/lib/config/time-zone";
 
@@ -34,6 +38,14 @@ function posted(formData: FormData, name: PreferenceField): unknown {
 	}
 	return values.length === 1 ? values[0] : values;
 }
+
+/** The fields an operator can fix for everyone with a variable. */
+const OPERATOR_FIELDS = [
+	"remoteImages",
+	"timeZone",
+	"pageSize",
+	"refresh",
+] as const satisfies readonly PreferenceField[];
 
 function isPreferenceField(name: unknown): name is PreferenceField {
 	return (
@@ -60,7 +72,8 @@ function refusedFields(
 
 /**
  * Server Action: save the person's preferences (language, theme, the density
- * of the message list, remote images and the time zone) from the form of
+ * of the message list, remote images, the time zone, the page size of the list
+ * and the pace of the refreshes) from the form of
  * `/app/me`. A Server Action is a public POST endpoint, so it checks the
  * session itself, and it is the last of the form's three checks (the browser's
  * attributes, the schema in the form, this).
@@ -70,10 +83,11 @@ function refusedFields(
  * and answers `failed`, the same for a missing and an expired session.
  *
  * Each choice is kept in the cookie it already had (`locale`, `theme`,
- * `list-density`, `remote-images`, `time-zone`), written by the same function
- * the control that changes it on its own uses. A choice the operator fixed
- * (the mode of the remote images, the time zone) is not written and a posted
- * attempt to change it is refused. When the per-account document of
+ * `list-density`, `remote-images`, `time-zone`, `page-size`, `refresh`),
+ * written by the same function the control that changes it on its own uses. A
+ * choice the operator fixed (the mode of the remote images, the time zone, the
+ * page size, the refresh pace) is not written and a posted attempt to change
+ * it is refused. When the per-account document of
  * preferences exists, this is where its write replaces them.
  */
 export async function savePreferences(
@@ -89,20 +103,24 @@ export async function savePreferences(
 	if (!(formData instanceof FormData)) {
 		return { outcome: "failed" };
 	}
-	const operatorMode = readOperatorRemoteImagesMode();
-	const operatorZone = readOperatorTimeZone();
-	const remoteImages = posted(formData, "remoteImages");
-	const timeZone = posted(formData, "timeZone");
-	if (operatorMode !== null && remoteImages !== undefined) {
+	const operator = {
+		remoteImages: readOperatorRemoteImagesMode(),
+		timeZone: readOperatorTimeZone(),
+		pageSize: readOperatorPageSize(),
+		refresh: readOperatorRefreshPace(),
+	};
+	// A choice the operator fixed is refused when it is posted, every one that
+	// was, so the answer names each of them.
+	const fixedAndPosted = OPERATOR_FIELDS.filter(
+		(name) =>
+			operator[name] !== null && posted(formData, name) !== undefined,
+	);
+	if (fixedAndPosted.length > 0) {
 		return {
 			outcome: "refused",
-			fields: { remoteImages: "notInList" },
-		};
-	}
-	if (operatorZone !== null && timeZone !== undefined) {
-		return {
-			outcome: "refused",
-			fields: { timeZone: "notInList" },
+			fields: Object.fromEntries(
+				fixedAndPosted.map((name) => [name, "notInList"] as const),
+			),
 		};
 	}
 	// A choice the operator fixed is not sent by the form, so the operator's
@@ -112,8 +130,10 @@ export async function savePreferences(
 		language: posted(formData, "language"),
 		theme: posted(formData, "theme"),
 		density: posted(formData, "density"),
-		remoteImages: operatorMode ?? remoteImages,
-		timeZone: operatorZone ?? timeZone,
+		remoteImages: operator.remoteImages ?? posted(formData, "remoteImages"),
+		timeZone: operator.timeZone ?? posted(formData, "timeZone"),
+		pageSize: operator.pageSize ?? posted(formData, "pageSize"),
+		refresh: operator.refresh ?? posted(formData, "refresh"),
 	});
 	if (!parsed.success) {
 		return {
@@ -121,30 +141,21 @@ export async function savePreferences(
 			fields: refusedFields(parsed.error.issues),
 		};
 	}
-	const {
-		language,
-		theme,
-		density,
-		remoteImages: chosen,
-		timeZone: chosenZone,
-	} = parsed.data;
-	writeLocaleCookie(store, language);
-	writeThemeCookie(store, theme);
-	writeListDensityCookie(store, density);
-	if (operatorMode === null) {
-		writeRemoteImagesCookie(store, chosen);
+	const values = parsed.data;
+	writeLocaleCookie(store, values.language);
+	writeThemeCookie(store, values.theme);
+	writeListDensityCookie(store, values.density);
+	if (operator.remoteImages === null) {
+		writeRemoteImagesCookie(store, values.remoteImages);
 	}
-	if (operatorZone === null) {
-		writeTimeZoneCookie(store, chosenZone);
+	if (operator.timeZone === null) {
+		writeTimeZoneCookie(store, values.timeZone);
 	}
-	return {
-		outcome: "saved",
-		values: {
-			language,
-			theme,
-			density,
-			remoteImages: chosen,
-			timeZone: chosenZone,
-		},
-	};
+	if (operator.pageSize === null) {
+		writePageSizeCookie(store, values.pageSize);
+	}
+	if (operator.refresh === null) {
+		writeRefreshCookie(store, values.refresh);
+	}
+	return { outcome: "saved", values };
 }

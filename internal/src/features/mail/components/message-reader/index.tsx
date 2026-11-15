@@ -28,10 +28,12 @@ import { ReaderSkeleton } from "@/features/mail/components/reader-skeleton";
 import { ReaderToolbar } from "@/features/mail/components/reader-toolbar";
 import type { RemoteImageMode } from "@/features/mail/config/remote-images";
 import { type ListAddress, mailHref } from "@/features/mail/links/mail-href";
+import { MAIL_REFRESH_MS } from "@/features/mail/queries/mail-query-keys";
 import {
 	mailboxesQueryOptions,
 	messageQueryOptions,
 } from "@/features/mail/queries/mail-query-options";
+import { useRefreshInterval } from "@/features/refresh/components/refresh-provider";
 import { unwrap } from "@/lib/query/action-result";
 
 const fetchMailboxes = async () => unwrap(await getMailboxesAction());
@@ -125,7 +127,10 @@ export function MessageReader({
 		messageQueryOptions(id, fetchMessage),
 	);
 
-	const mailboxes = useQuery(mailboxesQueryOptions(fetchMailboxes)).data;
+	const refreshMs = useRefreshInterval(MAIL_REFRESH_MS);
+	const mailboxes = useQuery(
+		mailboxesQueryOptions(fetchMailboxes, refreshMs),
+	).data;
 	const roleOf = (boxId: string | null) =>
 		mailboxes?.find((box) => box.id === boxId)?.role;
 

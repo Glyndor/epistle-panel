@@ -12,8 +12,12 @@ import { Button } from "@/components/ui/button";
 import { getQueuePageAction } from "@/features/queue/actions/get-queue-page";
 import { QueueTableSkeleton } from "@/features/queue/components/queue-table-skeleton";
 import { RemoveEntryButton } from "@/features/queue/components/remove-entry-button";
-import { queueQueryOptions } from "@/features/queue/queries/queue-query";
+import {
+	QUEUE_REFRESH_MS,
+	queueQueryOptions,
+} from "@/features/queue/queries/queue-query";
 import type { QueueRow } from "@/features/queue/schemas/queue-view";
+import { useRefreshInterval } from "@/features/refresh/components/refresh-provider";
 import { unwrap } from "@/lib/query/action-result";
 
 const fetchPage = async (cursor: string | undefined) =>
@@ -29,7 +33,10 @@ const helper = columnHelper<QueueRow>();
 export function QueueTable({ cursor }: { cursor: string | undefined }) {
 	const t = useTranslations("queue");
 	const routes = useAdminRoutes();
-	const { data, isPending } = useQuery(queueQueryOptions(cursor, fetchPage));
+	const refreshMs = useRefreshInterval(QUEUE_REFRESH_MS);
+	const { data, isPending } = useQuery(
+		queueQueryOptions(cursor, fetchPage, refreshMs),
+	);
 	const columns = helper.columns([
 		helper.accessor("from", {
 			header: t("from"),

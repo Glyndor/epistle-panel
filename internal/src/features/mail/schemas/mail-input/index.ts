@@ -17,9 +17,6 @@ export const messageIdSchema = z.uuid();
 /** The index of a MIME part of a message: digits only, as the JMAP blob id `<message>.<index>` spells it. */
 export const partIndexSchema = z.string().regex(/^[0-9]{1,6}$/);
 
-/** Messages on one page of the list. */
-export const PAGE_SIZE = 50;
-
 /** Most pages the list reaches, so the page number is bounded input. */
 export const MAX_PAGE = 200;
 

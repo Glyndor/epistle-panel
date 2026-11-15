@@ -15,15 +15,29 @@ me_locales_of() { me_list_of SUPPORTED_LOCALES src/i18n/locales/index.ts; }
 me_themes_of() { me_list_of THEME_CHOICES src/features/theme/config/choices/index.ts; }
 me_remote_images_of() { me_list_of REMOTE_IMAGE_MODES src/features/mail/config/remote-images/index.ts; }
 me_densities_of() { me_list_of LIST_DENSITIES src/features/mail/config/list-density/index.ts; }
+me_page_sizes_of() { me_list_of PAGE_SIZE_CHOICES src/features/mail/config/page-size/index.ts; }
+me_refresh_paces_of() { me_list_of REFRESH_PACES src/features/refresh/config/pace/index.ts; }
 
 # me_post COOKIE [NAME=VALUE...]: post the preferences form the way a browser
 # with no script does: read the page, send its hidden fields back as multipart
 # with the fields given (a field left out is not sent, one named twice is sent
 # twice). Status in $status, headers in $work/h, the page that answers in $work/b.
+# The page size and the refresh pace are sent as 50 and normal unless the call
+# names them; naming one with a leading dash (-pageSize) leaves it out.
 me_post() {
-	local cookie_arg=() html n a0 a1 key fields=() pair
+	local cookie_arg=() html n a0 a1 key fields=() pair args=() has_size=0 has_refresh=0
 	[[ -n "$1" ]] && cookie_arg=(-b "$1")
 	shift
+	for pair in "$@"; do
+		case "$pair" in
+			pageSize=* | -pageSize) has_size=1 ;;
+			refresh=* | -refresh) has_refresh=1 ;;
+		esac
+		[[ "$pair" == -* ]] || args+=("$pair")
+	done
+	[[ $has_size == 1 ]] || args+=(pageSize=50)
+	[[ $has_refresh == 1 ]] || args+=(refresh=normal)
+	set -- "${args[@]}"
 	html=$(curl -s "${cookie_arg[@]}" "$panel/app/me")
 	# React numbers the forms of a page as they render, and the header's sign-out
 	# form takes 1 or 2 depending on which part streamed first: read the number.
@@ -42,7 +56,7 @@ me_post() {
 
 # prefs_set: the Set-Cookie headers of the last response that name a preference.
 me_prefs_set() {
-	{ grep -i -E '^set-cookie: (locale|theme|list-density|remote-images|time-zone)=' "$work/h" || true; } | tr -d '\r'
+	{ grep -i -E '^set-cookie: (locale|theme|list-density|remote-images|time-zone|page-size|refresh)=' "$work/h" || true; } | tr -d '\r'
 }
 
 # prefs_set_count: how many of them there are.
@@ -57,6 +71,16 @@ me_selected() {
 			my $s = $&;
 			print $1 if $s =~ /<option\b[^>]*\bvalue="([^"]*)"[^>]*\bselected/s;
 		}' "$work/b"
+}
+
+# me_help NAME: the help text printed under the select NAME (the element its
+# aria-describedby names). The translations also travel in the page's data, so
+# a check on a sentence has to read the element and not the whole page.
+me_help() {
+	local id
+	id=$(perl -0777 -ne 'if (/<select\b[^>]*\bname="'"$1"'"[^>]*>/s) { print $1 if $& =~ /aria-describedby="([^" ]*)/ }' "$work/b")
+	[[ -n "$id" ]] || return 0
+	perl -0777 -ne 'print $1 if /<p\b[^>]*\bid="'"$id"'"[^>]*>([^<]*)</s' "$work/b"
 }
 
 # html_lang: the lang of the html element of the last page.
@@ -78,7 +102,7 @@ scenario_me() {
 	login user plain-staple
 	local user_cookie=$cookie
 	set_404_reference
-	local path code
+	local path code bad
 
 	# --- no session: the sign-in page, for the page and for a post, and nothing is written
 	for path in /app/me /app/me/x /APP/ME /app/Me /app/m%65; do
@@ -120,7 +144,7 @@ scenario_me() {
 		assert_eq "$role: no script tag without the nonce" \
 			"$(unnonced_scripts "$work/b" "$(nonce_of_csp "$(header content-security-policy)")")" 0
 		assert_contains "$role: the form posts to itself, as multipart, with no script" "$(cat "$work/b")" 'encType="multipart/form-data" method="POST"'
-		for field in language theme density remoteImages timeZone; do
+		for field in language theme density remoteImages timeZone pageSize refresh; do
 			assert_contains "$role: the $field select is required" "$(perl -0777 -ne "print \$& if /<select\\b[^>]*name=\"$field\"[^>]*>/" "$work/b")" 'required'
 		done
 		assert_eq "$role: the language in force is the browser's default, English" "$(me_selected language)" en
@@ -128,6 +152,8 @@ scenario_me() {
 		assert_eq "$role: the density in force is the comfortable one" "$(me_selected density)" comfortable
 		assert_eq "$role: time zone defaults to UTC" "$(me_selected timeZone)" UTC
 		assert_eq "$role: remote images ask before loading" "$(me_selected remoteImages)" ask
+		assert_eq "$role: the page holds 50 messages, as the list always did" "$(me_selected pageSize)" 50
+		assert_eq "$role: the lists refresh at the normal pace" "$(me_selected refresh)" normal
 		assert_eq "$role: the document says its language" "$(me_html_lang)" en
 		assert_eq "$role: and pins no theme" "$(me_html_theme)" ""
 	done
@@ -142,7 +168,7 @@ scenario_me() {
 	for locale in $(me_locales_of); do
 		me_post "$admin_cookie" "language=$locale" theme=system density=comfortable remoteImages=ask timeZone=UTC
 		assert_eq "$locale: the plain post is answered" "$status" 200
-		assert_eq "$locale: five preference cookies are written" "$(me_prefs_set_count)" 5
+		assert_eq "$locale: seven preference cookies are written" "$(me_prefs_set_count)" 7
 		lines=$(me_prefs_set)
 		assert_contains "$locale: the locale cookie holds it, out of reach of a script, for the whole site" "$lines" "locale=$locale; Path=/;"
 		assert_contains "$locale: and lives a year over HTTPS only, to the same site only" "$(grep -i '^set-cookie: locale=' "$work/h")" "Max-Age=31536000; Secure; HttpOnly; SameSite=lax"
@@ -174,7 +200,7 @@ scenario_me() {
 	for remote_images in $(me_remote_images_of); do
 		me_post "$user_cookie" language=en theme=system density=comfortable "remoteImages=$remote_images" timeZone=UTC
 		assert_eq "$remote_images: the plain post is answered" "$status" 200
-		assert_eq "$remote_images: five preference cookies" "$(me_prefs_set_count)" 5
+		assert_eq "$remote_images: seven preference cookies" "$(me_prefs_set_count)" 7
 		assert_contains "$remote_images: private app cookie" "$(grep -i '^set-cookie: remote-images=' "$work/h" | tr -d '\r')" "remote-images=$remote_images; Path=/app;"
 		assert_contains "$remote_images: secure cookie for a year" "$(grep -i '^set-cookie: remote-images=' "$work/h")" "Max-Age=31536000; Secure; HttpOnly; SameSite=lax"
 		assert_eq "$remote_images: the answering page shows it" "$(me_selected remoteImages)" "$remote_images"
@@ -183,22 +209,24 @@ scenario_me() {
 	done
 	me_post "$admin_cookie" language=de theme=dark density=compact remoteImages=ask timeZone=UTC
 	assert_contains "a saved post says so, in the language just chosen" "$(cat "$work/b")" 'role="status"'
-	fetch /app/me "$admin_cookie; locale=de; theme=dark; list-density=compact; remote-images=never; time-zone=America%2FBogota"
-	assert_eq "the next read has the five in force: language" "$(me_selected language)" de
-	assert_eq "the next read has the five in force: theme" "$(me_selected theme)" dark
-	assert_eq "the next read has the five in force: density" "$(me_selected density)" compact
-	assert_eq "the next read has the five in force: remote images" "$(me_selected remoteImages)" never
-	assert_eq "the next read has the five in force: time zone" "$(me_selected timeZone)" America/Bogota
+	fetch /app/me "$admin_cookie; locale=de; theme=dark; list-density=compact; remote-images=never; time-zone=America%2FBogota; page-size=25; refresh=fast"
+	assert_eq "the next read has the seven in force: language" "$(me_selected language)" de
+	assert_eq "the next read has the seven in force: theme" "$(me_selected theme)" dark
+	assert_eq "the next read has the seven in force: density" "$(me_selected density)" compact
+	assert_eq "the next read has the seven in force: remote images" "$(me_selected remoteImages)" never
+	assert_eq "the next read has the seven in force: time zone" "$(me_selected timeZone)" America/Bogota
+	assert_eq "the next read has the seven in force: page size" "$(me_selected pageSize)" 25
+	assert_eq "the next read has the seven in force: refresh pace" "$(me_selected refresh)" fast
 	assert_eq "and paints the theme on the html element" "$(me_html_theme)" dark
 
-	# --- a value no list holds is refused by the action, named under its field, and stores none of the five
+	# --- a value no list holds is refused by the action, named under its field, and stores none of the seven
 	local field value hostile
-	local -A good=([language]=es [theme]=dark [density]=compact [remoteImages]=never [timeZone]=America/Bogota)
-	for field in language theme density remoteImages timeZone; do
+	local -A good=([language]=es [theme]=dark [density]=compact [remoteImages]=never [timeZone]=America/Bogota [pageSize]=25 [refresh]=fast)
+	for field in language theme density remoteImages timeZone pageSize refresh; do
 		for hostile in 'xx' 'ES' 'Dark' ' compact' 'dark; Path=/' '../es' '__proto__' "$(printf 'e%.0s' $(seq 1 5000))" '%00' 'dark,light' 'e2emarker' '"><e2emarker>' 'e2emarker-es'; do
 			value=$hostile
 			local args=()
-			for name in language theme density remoteImages timeZone; do
+			for name in language theme density remoteImages timeZone pageSize refresh; do
 				if [[ "$name" == "$field" ]]; then
 					args+=("$name=$value")
 				else
@@ -207,7 +235,7 @@ scenario_me() {
 			done
 			me_post "$admin_cookie" "${args[@]}"
 			assert_eq "$field=${value:0:12}: the action answers" "$status" 200
-			assert_eq "$field=${value:0:12}: no preference cookie is written, whatever the other four hold" "$(me_prefs_set_count)" 0
+			assert_eq "$field=${value:0:12}: no preference cookie is written, whatever the other six hold" "$(me_prefs_set_count)" 0
 			assert_contains "$field=${value:0:12}: the answer names the refusal under the field" "$(perl -0777 -ne 'print $& while /role="alert"[^>]*>[^<]*<\/p>/g' "$work/b")" 'That is not one of the choices.'
 			assert_contains "$field=${value:0:12}: and says nothing was saved" "$(cat "$work/b")" 'Nothing was saved.'
 			if [[ "$value" == *e2emarker* ]]; then
@@ -230,7 +258,7 @@ scenario_me() {
 	assert_eq "two fields refused: both are named, each under its own field" \
 		"$(grep -o -E 'role="alert"[^>]*>That is not one of the choices\.</p>' "$work/b" | wc -l | tr -d ' ')" 2
 	me_post "$admin_cookie" language=es theme=dark density=compact 'extra=admin' 'role=admin' remoteImages=ask timeZone=UTC
-	assert_eq "an unknown field is ignored: the five are stored" "$(me_prefs_set_count)" 5
+	assert_eq "an unknown field is ignored: the seven are stored" "$(me_prefs_set_count)" 7
 
 	for value in missing empty duplicate; do
 		local remote_args=()
@@ -248,12 +276,69 @@ scenario_me() {
 	done
 
 
+	# --- sixth and seventh fields: the page size and the refresh pace, each choice of each list, no off
+	local page_size pace
+	for page_size in $(me_page_sizes_of); do
+		me_post "$user_cookie" language=en theme=system density=comfortable remoteImages=ask timeZone=UTC "pageSize=$page_size"
+		assert_eq "page size $page_size: the plain post is answered" "$status" 200
+		assert_eq "page size $page_size: seven preference cookies" "$(me_prefs_set_count)" 7
+		assert_contains "page size $page_size: private app cookie" "$(grep -i '^set-cookie: page-size=' "$work/h" | tr -d '\r')" "page-size=$page_size; Path=/app;"
+		assert_contains "page size $page_size: secure cookie for a year" "$(grep -i '^set-cookie: page-size=' "$work/h")" "Max-Age=31536000; Secure; HttpOnly; SameSite=lax"
+		assert_eq "page size $page_size: the answering page shows it" "$(me_selected pageSize)" "$page_size"
+		fetch /app/me "$user_cookie; page-size=$page_size"
+		assert_eq "page size $page_size: the next read shows it" "$(me_selected pageSize)" "$page_size"
+	done
+	for pace in $(me_refresh_paces_of); do
+		me_post "$user_cookie" language=en theme=system density=comfortable remoteImages=ask timeZone=UTC "refresh=$pace"
+		assert_eq "refresh $pace: the plain post is answered" "$status" 200
+		assert_eq "refresh $pace: seven preference cookies" "$(me_prefs_set_count)" 7
+		assert_contains "refresh $pace: private app cookie" "$(grep -i '^set-cookie: refresh=' "$work/h" | tr -d '\r')" "refresh=$pace; Path=/app;"
+		assert_contains "refresh $pace: secure cookie for a year" "$(grep -i '^set-cookie: refresh=' "$work/h")" "Max-Age=31536000; Secure; HttpOnly; SameSite=lax"
+		assert_eq "refresh $pace: the answering page shows it" "$(me_selected refresh)" "$pace"
+		fetch /app/me "$user_cookie; refresh=$pace"
+		assert_eq "refresh $pace: the next read shows it" "$(me_selected refresh)" "$pace"
+	done
+	assert_eq "the refresh offers three paces and no off" "$(me_refresh_paces_of)" "normal slow fast"
+	for value in missing empty duplicate same-duplicate; do
+		local size_args=() refresh_args=()
+		case "$value" in
+			missing) size_args+=(-pageSize); refresh_args+=(-refresh) ;;
+			empty) size_args+=(pageSize=); refresh_args+=(refresh=) ;;
+			duplicate) size_args+=(pageSize=25 pageSize=100); refresh_args+=(refresh=slow refresh=fast) ;;
+			same-duplicate) size_args+=(pageSize=50 pageSize=50); refresh_args+=(refresh=normal refresh=normal) ;;
+		esac
+		me_post "$admin_cookie" language=en theme=system density=comfortable remoteImages=ask timeZone=UTC "${size_args[@]}"
+		assert_eq "page size $value: no preference cookie" "$(me_prefs_set_count)" 0
+		me_post "$admin_cookie" language=en theme=system density=comfortable remoteImages=ask timeZone=UTC "${refresh_args[@]}"
+		assert_eq "refresh $value: no preference cookie" "$(me_prefs_set_count)" 0
+		if [[ "$value" == *duplicate ]]; then
+			assert_contains "refresh $value: outside list" "$(cat "$work/b")" 'That is not one of the choices.'
+		else
+			assert_contains "refresh $value: required" "$(cat "$work/b")" 'Choose one.'
+		fi
+	done
+	for value in 10 75 050 50.0 ' 50' 1e2 -25; do
+		me_post "$admin_cookie" language=en theme=system density=comfortable remoteImages=ask timeZone=UTC "pageSize=$value"
+		assert_eq "page size '$value': no preference cookie" "$(me_prefs_set_count)" 0
+		assert_contains "page size '$value': outside list" "$(cat "$work/b")" 'That is not one of the choices.'
+	done
+	for value in off never 0 Fast ' slow' e2emarker; do
+		me_post "$admin_cookie" language=en theme=system density=comfortable remoteImages=ask timeZone=UTC "refresh=$value"
+		assert_eq "refresh '$value': no preference cookie" "$(me_prefs_set_count)" 0
+		assert_contains "refresh '$value': outside list" "$(cat "$work/b")" 'That is not one of the choices.'
+	done
+	fetch /app/me "$admin_cookie; page-size=9999; refresh=off"
+	assert_eq "tampered page size falls back to 50" "$(me_selected pageSize)" 50
+	assert_eq "a refresh of off in a cookie falls back to normal: there is no off" "$(me_selected refresh)" normal
+	fetch /app/me "$admin_cookie; page-size=%22%3E%3Ce2emarker%3E; refresh=%22%3E%3Ce2emarker%3E"
+	assert_eq "tampered page size is not echoed" "$(grep -c e2emarker "$work/b" || true)" 0
+
 	# --- fifth field: fixed examples include a half-hour offset and the date line
 	local time_zone encoded_zone
 	for time_zone in UTC America/Bogota Asia/Kolkata Pacific/Kiritimati; do
 		me_post "$user_cookie" language=en theme=system density=comfortable remoteImages=ask "timeZone=$time_zone"
 		assert_eq "$time_zone: the plain post is answered" "$status" 200
-		assert_eq "$time_zone: five preference cookies" "$(me_prefs_set_count)" 5
+		assert_eq "$time_zone: seven preference cookies" "$(me_prefs_set_count)" 7
 		encoded_zone=${time_zone//\//%2F}
 		assert_contains "$time_zone: private app cookie" "$(grep -i '^set-cookie: time-zone=' "$work/h" | tr -d '\r')" "time-zone=$encoded_zone; Path=/app;"
 		assert_contains "$time_zone: secure cookie for a year" "$(grep -i '^set-cookie: time-zone=' "$work/h")" "Max-Age=31536000; Secure; HttpOnly; SameSite=lax"
@@ -301,10 +386,77 @@ scenario_me() {
 	local action_field
 	action_field="\$ACTION_ID_$(action_id features/preferences/actions/save-preferences/index.ts)"
 	curl -s -o "$work/b" -D "$work/h" "$panel/app/me" -b "$SESSION_COOKIE_NAME=forged.token" \
-		--form-string "$action_field=" --form-string language=de --form-string theme=dark --form-string density=compact --form-string remoteImages=ask --form-string timeZone=UTC
+		--form-string "$action_field=" --form-string language=de --form-string theme=dark --form-string density=compact --form-string remoteImages=ask --form-string timeZone=UTC --form-string pageSize=50 --form-string refresh=normal
 	assert_eq "a post with a forged session writes no preference" "$(me_prefs_set_count)" 0
 	code=$(curl -s -o "$work/b" -D "$work/h" -w '%{http_code}' -b "$user_cookie" "$panel/app/me" \
-		--form-string "$action_field=" --form-string language=de --form-string theme=dark --form-string density=compact --form-string remoteImages=ask --form-string timeZone=UTC)
+		--form-string "$action_field=" --form-string language=de --form-string theme=dark --form-string density=compact --form-string remoteImages=ask --form-string timeZone=UTC --form-string pageSize=50 --form-string refresh=normal)
 	assert_eq "the action called without its state argument does not fail" "$code" 200
 	assert_eq "the action called without its state argument stores nothing" "$(me_prefs_set_count)" 0
+
+	# --- the operator can fix the page size and the refresh pace for everyone; a value off the list stops the start
+	for bad in 30 e2emarker; do
+		cdn_start_refused "EPISTLE_PANEL_PAGE_SIZE=$bad"
+		assert_eq "page size '$bad' fixed by the operator stops the start" "$refused_status" 1
+		assert_contains "page size '$bad': the message names the variable" "$refused_log" "EPISTLE_PANEL_PAGE_SIZE is set to a page size the panel does not support"
+	done
+	assert_absent "a refused page size is not printed" "$refused_log" "e2emarker"
+	for bad in off FAST e2emarker; do
+		cdn_start_refused "EPISTLE_PANEL_REFRESH=$bad"
+		assert_eq "refresh '$bad' fixed by the operator stops the start" "$refused_status" 1
+		assert_contains "refresh '$bad': the message names the variable" "$refused_log" "EPISTLE_PANEL_REFRESH is set to a pace the panel does not support"
+	done
+	assert_absent "a refused pace is not printed" "$refused_log" "e2emarker"
+	panel_env=(EPISTLE_PANEL_PAGE_SIZE=100 EPISTLE_PANEL_REFRESH=slow)
+	start_panel
+	fetch /app/me "$admin_cookie; page-size=25; refresh=fast"
+	assert_eq "fixed by the operator: the page is served" "$status" 200
+	assert_eq "fixed page size: no select is offered" "$({ grep -o 'name="pageSize"' "$work/b" || true; } | wc -l | tr -d ' ')" 0
+	assert_eq "fixed pace: no select is offered" "$({ grep -o 'name="refresh"' "$work/b" || true; } | wc -l | tr -d ' ')" 0
+	assert_contains "fixed page size: the page says the operator's, not the cookie's" "$(cat "$work/b")" 'Set by the operator: 100 messages'
+	assert_contains "fixed pace: the page says the operator's, not the cookie's" "$(cat "$work/b")" 'Set by the operator: Slow: half as often'
+	me_post "$admin_cookie" language=en theme=system density=comfortable remoteImages=ask timeZone=UTC -pageSize -refresh
+	assert_eq "fixed by the operator: the rest is saved, and only the five that are the person's" "$(me_prefs_set_count)" 5
+	assert_absent "fixed by the operator: no page-size cookie is written" "$(me_prefs_set)" "page-size="
+	assert_absent "fixed by the operator: no refresh cookie is written" "$(me_prefs_set)" "refresh="
+	me_post "$admin_cookie" language=en theme=system density=comfortable remoteImages=ask timeZone=UTC pageSize=25 -refresh
+	assert_eq "a page size posted over the operator's: no preference cookie" "$(me_prefs_set_count)" 0
+	assert_contains "a page size posted over the operator's: refused" "$(cat "$work/b")" 'That is not one of the choices.'
+	me_post "$admin_cookie" language=en theme=system density=comfortable remoteImages=ask timeZone=UTC -pageSize refresh=fast
+	assert_eq "a pace posted over the operator's: no preference cookie" "$(me_prefs_set_count)" 0
+	assert_contains "a pace posted over the operator's: refused" "$(cat "$work/b")" 'That is not one of the choices.'
+	# --- a short idle timeout cannot be kept alive by a slow refresh: the page says "slow" runs as "normal"
+	# --- (read from the page, not by waiting a minute). Sessions need the activity claims of the idle timeout, so sign in again.
+	local idle_cookie note='idle timeout this short'
+	panel_env=(EPISTLE_PANEL_SESSION_IDLE_TIMEOUT_MINUTES=1)
+	start_panel
+	login admin correct-horse
+	idle_cookie=$cookie
+	for pace in slow normal fast; do
+		fetch /app/me "$idle_cookie; refresh=$pace"
+		assert_eq "idle timeout of 1 minute, $pace chosen: the page is served" "$status" 200
+		assert_eq "idle timeout of 1 minute, $pace chosen: the select still shows it" "$(me_selected refresh)" "$pace"
+		if [[ "$pace" == slow ]]; then
+			assert_contains "idle timeout of 1 minute: slow is said to run as normal" "$(me_help refresh)" "$note"
+		else
+			assert_absent "idle timeout of 1 minute, $pace: nothing is said" "$(me_help refresh)" "$note"
+			assert_contains "idle timeout of 1 minute, $pace: the help is there to be read" "$(me_help refresh)" "never off"
+		fi
+	done
+	panel_env=(EPISTLE_PANEL_SESSION_IDLE_TIMEOUT_MINUTES=3)
+	start_panel
+	login admin correct-horse
+	idle_cookie=$cookie
+	fetch /app/me "$idle_cookie; refresh=slow"
+	assert_eq "idle timeout of 3 minutes, slow chosen: the select shows it" "$(me_selected refresh)" slow
+	assert_absent "idle timeout of 3 minutes: slow runs as slow, nothing is said" "$(me_help refresh)" "$note"
+	assert_contains "idle timeout of 3 minutes: the help is there to be read" "$(me_help refresh)" "never off"
+	panel_env=(EPISTLE_PANEL_SESSION_IDLE_TIMEOUT_MINUTES=1 EPISTLE_PANEL_REFRESH=slow)
+	start_panel
+	login admin correct-horse
+	idle_cookie=$cookie
+	fetch /app/me "$idle_cookie; refresh=fast"
+	assert_contains "idle timeout of 1 minute, operator slow: the read-only text says it runs as normal" "$(cat "$work/b")" "Slow: half as often With the session"
+	assert_eq "idle timeout of 1 minute, operator slow: no select is offered" "$({ grep -o 'name="refresh"' "$work/b" || true; } | wc -l | tr -d ' ')" 0
+	panel_env=()
+	start_panel
 }

@@ -27,6 +27,8 @@ const VALUES: PreferencesValues = {
 	density: "compact",
 	remoteImages: "ask",
 	timeZone: "UTC",
+	pageSize: "50",
+	refresh: "normal",
 };
 
 beforeEach(() => {
@@ -56,7 +58,15 @@ describe("PreferencesForm", () => {
 		expect(
 			screen.getByRole("form", { name: "formLabel" }),
 		).toBeInTheDocument();
-		for (const label of ["language", "theme", "density", "remoteImages"]) {
+		for (const label of [
+			"language",
+			"theme",
+			"density",
+			"remoteImages",
+			"timeZone",
+			"pageSize",
+			"refresh",
+		]) {
 			expect(select(label).tagName).toBe("SELECT");
 			expect(select(label)).toBeRequired();
 		}
@@ -121,6 +131,8 @@ describe("PreferencesForm", () => {
 			["list-density", "comfortable"],
 			["remote-images", "ask"],
 			["time-zone", "UTC"],
+			["page-size", "50"],
+			["refresh", "normal"],
 		]);
 		expect(document.documentElement.getAttribute("data-theme")).toBe(
 			"dark",

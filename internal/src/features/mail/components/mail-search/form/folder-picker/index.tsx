@@ -8,7 +8,9 @@ import {
 	NativeSelectOption,
 } from "@/components/ui/native-select";
 import { getMailboxesAction } from "@/features/mail/actions/get-mailboxes";
+import { MAIL_REFRESH_MS } from "@/features/mail/queries/mail-query-keys";
 import { mailboxesQueryOptions } from "@/features/mail/queries/mail-query-options";
+import { useRefreshInterval } from "@/features/refresh/components/refresh-provider";
 import { unwrap } from "@/lib/query/action-result";
 
 const fetchMailboxes = async () => unwrap(await getMailboxesAction());
@@ -25,7 +27,8 @@ const fetchMailboxes = async () => unwrap(await getMailboxesAction());
  */
 export function FolderPicker({ value }: { value: string }) {
 	const t = useTranslations("mail");
-	const { data } = useQuery(mailboxesQueryOptions(fetchMailboxes));
+	const refreshMs = useRefreshInterval(MAIL_REFRESH_MS);
+	const { data } = useQuery(mailboxesQueryOptions(fetchMailboxes, refreshMs));
 	const boxes = data ?? [];
 	// The folder the address names is in the list even before the folders are
 	// read, so a search that names one does not lose it. A search that names

@@ -14,6 +14,7 @@ import { SEARCH_OPENER_ID } from "@/features/mail/components/mail-search/narrow"
 import { SEARCH_FIELD_ID } from "@/features/mail/components/mail-search/search-field";
 import { listMemory } from "@/features/mail/components/message-list/list-memory";
 import { mailHref } from "@/features/mail/links/mail-href";
+import { MAIL_REFRESH_MS } from "@/features/mail/queries/mail-query-keys";
 import { messageListQueryOptions } from "@/features/mail/queries/mail-query-options";
 import { stripBidi } from "@/features/mail/sanitize/safe-text";
 import {
@@ -26,6 +27,7 @@ import {
 	withoutCondition,
 } from "@/features/mail/schemas/list-conditions-model";
 import type { MailboxRole } from "@/features/mail/schemas/mail-view";
+import { useRefreshInterval } from "@/features/refresh/components/refresh-provider";
 import { unwrap } from "@/lib/query/action-result";
 
 const fetchList = async (input: Parameters<typeof getMessageListAction>[0]) =>
@@ -84,8 +86,13 @@ export function ConditionChips({
 	conditions: ListConditions;
 }) {
 	const t = useTranslations("mail");
+	const refreshMs = useRefreshInterval(MAIL_REFRESH_MS);
 	const { data } = useQuery(
-		messageListQueryOptions({ box, page, conditions }, fetchList),
+		messageListQueryOptions(
+			{ box, page, conditions },
+			fetchList,
+			refreshMs,
+		),
 	);
 	const active = activeConditions(conditions);
 

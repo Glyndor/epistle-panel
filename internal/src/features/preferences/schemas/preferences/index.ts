@@ -1,7 +1,9 @@
 import * as z from "zod/mini";
 
 import { LIST_DENSITIES } from "@/features/mail/config/list-density";
+import { PAGE_SIZE_CHOICES } from "@/features/mail/config/page-size";
 import { REMOTE_IMAGE_MODES } from "@/features/mail/config/remote-images";
+import { REFRESH_PACES } from "@/features/refresh/config/pace";
 import { THEME_CHOICES } from "@/features/theme/config/choices";
 import { TIME_ZONES } from "@/features/time-zone/config/zones";
 import { SUPPORTED_LOCALES } from "@/i18n/locales";
@@ -50,13 +52,15 @@ export const editablePreferencesSchema = z.object({
  * trimmed, lower-cased or otherwise made to fit: `ES` is not `es`. It is
  * `zod/mini` because the form ships it to the browser.
  *
- * The two fields an operator can fix (the mode of the remote images and the
- * time zone) are on it too: the Server Action puts the operator's value in
+ * The four fields an operator can fix (the mode of the remote images, the
+ * time zone, the page size and the refresh pace) are on it too: the Server Action puts the operator's value in
  * place of the one that was not sent, so the schema always sees a choice.
  */
 export const preferencesSchema = z.extend(editablePreferencesSchema, {
 	remoteImages: z.enum(REMOTE_IMAGE_MODES, { error: refusal }),
 	timeZone: z.enum(TIME_ZONES, { error: refusal }),
+	pageSize: z.enum(PAGE_SIZE_CHOICES, { error: refusal }),
+	refresh: z.enum(REFRESH_PACES, { error: refusal }),
 });
 
 /** The values of a valid form. */

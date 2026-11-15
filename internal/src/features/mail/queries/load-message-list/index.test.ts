@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { EMPTY_CONDITIONS } from "../../schemas/list-conditions-model";
-import { GET_CHUNK, PAGE_SIZE, SCAN_LIMIT } from "../../schemas/mail-input";
+import { GET_CHUNK, SCAN_LIMIT } from "../../schemas/mail-input";
 import {
 	emailFixture,
 	SESSION,
@@ -41,6 +41,9 @@ function folder(
 		},
 	};
 }
+
+/** What a page holds when nobody chose a size: the 50 the list always had. */
+const PAGE_SIZE = 50;
 
 const base = { box: "INBOX", page: 1, conditions: EMPTY_CONDITIONS } as const;
 

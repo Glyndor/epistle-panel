@@ -11,12 +11,17 @@ import { MAIL_REFRESH_MS, mailKeys } from "../mail-query-keys";
 /**
  * Options of the folder tree, shared by the server prefetch and the browser.
  * The counters refresh while the tab is in view and not while it is hidden.
+ * `refreshMs` is the interval at the person's pace; it defaults to the normal
+ * one, and the lists below take it the same way.
  */
-export function mailboxesQueryOptions(fetcher: () => Promise<MailboxView[]>) {
+export function mailboxesQueryOptions(
+	fetcher: () => Promise<MailboxView[]>,
+	refreshMs: number = MAIL_REFRESH_MS,
+) {
 	return queryOptions({
 		queryKey: mailKeys.mailboxes,
 		queryFn: fetcher,
-		refetchInterval: MAIL_REFRESH_MS,
+		refetchInterval: refreshMs,
 		refetchIntervalInBackground: false,
 	});
 }
@@ -25,12 +30,13 @@ export function mailboxesQueryOptions(fetcher: () => Promise<MailboxView[]>) {
 export function messageListQueryOptions(
 	input: MessageListInput,
 	fetcher: (input: MessageListInput) => Promise<MessageListView>,
+	refreshMs: number = MAIL_REFRESH_MS,
 ) {
 	return queryOptions({
 		queryKey: mailKeys.list(input.box, input.page, input.conditions),
 		queryFn: () => fetcher(input),
 		placeholderData: keepPreviousData,
-		refetchInterval: MAIL_REFRESH_MS,
+		refetchInterval: refreshMs,
 		refetchIntervalInBackground: false,
 	});
 }

@@ -9,6 +9,9 @@
  * shown stops the start, because a server that kept running would show a
  * notice nobody chose. The remote image mode settles the same way: an unknown
  * mode stops the start instead of quietly changing what a message may load.
+ * The page size of the message list and the pace of the refreshes settle the
+ * same way: a value outside their list stops the start instead of quietly
+ * paging or polling in a way nobody chose.
  * The time zone settles the same way: a zone the panel does not know stops the
  * start instead of quietly printing every date in a clock nobody chose.
  * The content delivery origins settle the same way: a value that is not one
@@ -44,6 +47,16 @@ export async function register(): Promise<void> {
 		"@/lib/config/remote-images-start-check"
 	);
 	checkRemoteImagesAtStart();
+
+	const { checkPageSizeAtStart } = await import(
+		"@/lib/config/page-size-start-check"
+	);
+	checkPageSizeAtStart();
+
+	const { checkRefreshAtStart } = await import(
+		"@/lib/config/refresh-start-check"
+	);
+	checkRefreshAtStart();
 
 	const { checkCopyrightNoticeAtStart } = await import(
 		"@/lib/config/copyright-notice-start-check"

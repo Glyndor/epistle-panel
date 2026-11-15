@@ -16,6 +16,8 @@ import {
 	QuotaPlaceholder,
 } from "@/features/mail/components/quota-meter";
 import { requestMailSession } from "@/features/mail/queries/request-mail";
+import { RefreshProvider } from "@/features/refresh/components/refresh-provider";
+import { readEffectiveRefreshPace } from "@/features/refresh/queries/refresh-pace";
 import { TimeZoneProvider } from "@/features/time-zone/components/time-zone-provider";
 import { readEffectiveTimeZone } from "@/features/time-zone/queries/time-zone";
 import { requireSession } from "@/lib/auth/require-session";
@@ -36,6 +38,10 @@ import { adminRoutes, PUBLIC_ROUTES } from "@/lib/routes";
  * the sidebar starts collapsed, and whether its folders start closed, are read
  * here from their cookies, so the first paint is already the one the person
  * left: the placeholder of the folders is drawn closed too.
+ *
+ * The pace of the refreshes wraps the whole frame, not only the page: the
+ * folders of the sidebar and the folder picker of the search poll too, and
+ * they are drawn from slots the page's children do not contain.
  */
 export default async function MailLayout({
 	children,
@@ -53,6 +59,7 @@ export default async function MailLayout({
 	const t = await getTranslations("mail");
 	const hasMail = (await requestMailSession()) !== null;
 	const timeZone = await readEffectiveTimeZone();
+	const refreshPace = await readEffectiveRefreshPace();
 	const jar = await cookies();
 	const open = sidebarStartsOpen(jar.get(SIDEBAR_COOKIE)?.value);
 	const closedGroups = closedSidebarGroups(
@@ -61,42 +68,46 @@ export default async function MailLayout({
 
 	return (
 		<QueryProvider>
-			<AppShell
-				navigation={
-					<MailNav foldersOpen={!closedGroups.includes("folders")} />
-				}
-				sidebarFooter={
-					// A session with no mail of its own has no storage to ask
-					// for: nothing is drawn, and nothing holds its place.
-					hasMail ? (
-						<Suspense fallback={<QuotaPlaceholder />}>
-							<QuotaMeter />
-						</Suspense>
-					) : null
-				}
-				homeHref={PUBLIC_ROUTES.mail}
-				subtitle={t("heading")}
-				search={search}
-				reserveSearch={search !== null && search !== undefined}
-				sheet={{
-					title: t("navTitle"),
-					description: t("foldersDescription"),
-				}}
-				trail={trail}
-				user={{ name: session.sub, role: session.role }}
-				adminHref={
-					adminId === undefined
-						? undefined
-						: adminRoutes(adminId).home
-				}
-				defaultOpen={open}
-				closedGroups={closedGroups}
-				content="panes"
-			>
-				<TimeZoneProvider timeZone={timeZone}>
-					{children}
-				</TimeZoneProvider>
-			</AppShell>
+			<RefreshProvider pace={refreshPace}>
+				<AppShell
+					navigation={
+						<MailNav
+							foldersOpen={!closedGroups.includes("folders")}
+						/>
+					}
+					sidebarFooter={
+						// A session with no mail of its own has no storage to ask
+						// for: nothing is drawn, and nothing holds its place.
+						hasMail ? (
+							<Suspense fallback={<QuotaPlaceholder />}>
+								<QuotaMeter />
+							</Suspense>
+						) : null
+					}
+					homeHref={PUBLIC_ROUTES.mail}
+					subtitle={t("heading")}
+					search={search}
+					reserveSearch={search !== null && search !== undefined}
+					sheet={{
+						title: t("navTitle"),
+						description: t("foldersDescription"),
+					}}
+					trail={trail}
+					user={{ name: session.sub, role: session.role }}
+					adminHref={
+						adminId === undefined
+							? undefined
+							: adminRoutes(adminId).home
+					}
+					defaultOpen={open}
+					closedGroups={closedGroups}
+					content="panes"
+				>
+					<TimeZoneProvider timeZone={timeZone}>
+						{children}
+					</TimeZoneProvider>
+				</AppShell>
+			</RefreshProvider>
 		</QueryProvider>
 	);
 }

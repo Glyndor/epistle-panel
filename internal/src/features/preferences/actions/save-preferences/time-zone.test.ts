@@ -20,6 +20,8 @@ function form(...modes: (string | File)[]) {
 	data.set("theme", "system");
 	data.set("density", "comfortable");
 	data.set("remoteImages", "ask");
+	data.set("pageSize", "50");
+	data.set("refresh", "normal");
 	for (const mode of modes) data.append("timeZone", mode);
 	return data;
 }
@@ -41,6 +43,8 @@ it("saves every valid time zone choice", async () => {
 				density: "comfortable",
 				remoteImages: "ask",
 				timeZone: mode,
+				pageSize: "50",
+				refresh: "normal",
 			},
 		});
 		expect(cookies.writes.map((w) => [w.name, w.value])).toEqual([
@@ -49,6 +53,8 @@ it("saves every valid time zone choice", async () => {
 			["list-density", "comfortable"],
 			["remote-images", "ask"],
 			["time-zone", mode],
+			["page-size", "50"],
+			["refresh", "normal"],
 		]);
 	}
 });
@@ -111,6 +117,8 @@ it("saves other fields when fixed without overwriting the time zone cookie", asy
 				density: "comfortable",
 				remoteImages: "ask",
 				timeZone: operator,
+				pageSize: "50",
+				refresh: "normal",
 			},
 		});
 		expect(cookies.writes.map((w) => w.name)).toEqual([
@@ -118,6 +126,8 @@ it("saves other fields when fixed without overwriting the time zone cookie", asy
 			"theme",
 			"list-density",
 			"remote-images",
+			"page-size",
+			"refresh",
 		]);
 		expect(cookies.jar.get("time-zone")).toBe("America/Bogota");
 	}

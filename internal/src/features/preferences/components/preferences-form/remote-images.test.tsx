@@ -28,11 +28,13 @@ const values = {
 	density: "comfortable",
 	remoteImages: "never",
 	timeZone: "UTC",
+	pageSize: "50",
+	refresh: "normal",
 } as const;
 it("offers exactly the three modes as a fourth required labelled field", () => {
 	render(<PreferencesForm values={values} />);
 	const field = screen.getByRole("combobox", { name: "remoteImages" });
-	expect(screen.getAllByRole("combobox")).toHaveLength(5);
+	expect(screen.getAllByRole("combobox")).toHaveLength(7);
 	expect(field).toBeRequired();
 	expect(field).toHaveValue("never");
 	expect(
@@ -58,6 +60,8 @@ it("uses ask when older values omit the fourth preference", () => {
 				density: "comfortable",
 				remoteImages: "ask",
 				timeZone: "UTC",
+				pageSize: "50",
+				refresh: "normal",
 			}}
 		/>,
 	);
@@ -75,6 +79,8 @@ it("submits to the action when older values omit the fourth preference, posting 
 				density: "comfortable",
 				remoteImages: "ask",
 				timeZone: "UTC",
+				pageSize: "50",
+				refresh: "normal",
 			}}
 			save={async (_previous, formData) => {
 				posted.push(formData.get("remoteImages"));
@@ -112,7 +118,7 @@ it("renders the operator statement as accessible text and posts no remote image 
 		const { container } = render(
 			<PreferencesForm values={values} operatorRemoteImagesMode={mode} />,
 		);
-		expect(screen.getAllByRole("combobox")).toHaveLength(4);
+		expect(screen.getAllByRole("combobox")).toHaveLength(6);
 		expect(container.querySelector('[name="remoteImages"]')).toBeNull();
 		const group = screen.getByRole("group", { name: "remoteImages" });
 		expect(group).toHaveTextContent("remoteImagesSetByOperator");

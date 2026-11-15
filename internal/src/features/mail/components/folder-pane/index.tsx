@@ -7,8 +7,10 @@ import { getMailboxesAction } from "@/features/mail/actions/get-mailboxes";
 import { FolderSkeleton } from "@/features/mail/components/folder-skeleton";
 import { FolderTree } from "@/features/mail/components/folder-tree";
 import { MailNotice } from "@/features/mail/components/mail-notice";
+import { MAIL_REFRESH_MS } from "@/features/mail/queries/mail-query-keys";
 import { mailboxesQueryOptions } from "@/features/mail/queries/mail-query-options";
 import type { MailboxView } from "@/features/mail/schemas/mail-view";
+import { useRefreshInterval } from "@/features/refresh/components/refresh-provider";
 import { unwrap } from "@/lib/query/action-result";
 
 const fetchMailboxes = async () => unwrap(await getMailboxesAction());
@@ -28,8 +30,9 @@ export function FolderPane({
 	boxes: MailboxView[] | undefined;
 }) {
 	const t = useTranslations("mail");
+	const refreshMs = useRefreshInterval(MAIL_REFRESH_MS);
 	const { data, isPending } = useQuery({
-		...mailboxesQueryOptions(fetchMailboxes),
+		...mailboxesQueryOptions(fetchMailboxes, refreshMs),
 		initialData: () => boxes,
 	});
 
