@@ -127,6 +127,22 @@ describe("FolderTree", () => {
 		expect(screen.getAllByText("unreadCount")).toHaveLength(1);
 	});
 
+	it("draws the unread count with the panel's badge, at the size the pill always had", () => {
+		renderTree(boxes);
+		const pill = screen
+			.getByText("unreadCount")
+			.closest("[data-slot=badge]");
+		expect(pill).not.toBeNull();
+		// The pill keeps its old geometry: two units of padding, no vertical
+		// padding, a regular weight; the badge's own defaults must not leak in.
+		expect(pill).toHaveClass("px-2", "py-0", "font-normal", "bg-primary");
+		expect(pill).not.toHaveClass("px-2.5", "py-0.5", "font-medium");
+		// The number is drawn for the eye and the translated text is spoken.
+		expect(pill?.querySelector("[aria-hidden=true]")?.textContent).toBe(
+			"3",
+		);
+	});
+
 	it("writes a mailbox id into one segment of the link", () => {
 		renderTree([box({ id: "A&b/c d", name: "A" })]);
 		expect(screen.getByRole("link")).toHaveAttribute(

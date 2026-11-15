@@ -12,8 +12,8 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-
 import { NavSection } from "@/components/layout/nav-section";
+import { Badge } from "@/components/ui/badge";
 import {
 	SidebarMenu,
 	SidebarMenuButton,
@@ -109,12 +109,15 @@ export function FolderTree({ boxes }: { boxes: readonly MailboxView[] }) {
 							<bdi>{name}</bdi>
 						</span>
 						{box.unread > 0 ? (
-							<span className="shrink-0 rounded-full bg-primary px-2 font-normal text-primary-foreground text-xs">
+							<Badge
+								variant="default"
+								className="px-2 py-0 font-normal"
+							>
 								<span aria-hidden="true">{box.unread}</span>
 								<span className="sr-only">
 									{t("unreadCount", { count: box.unread })}
 								</span>
-							</span>
+							</Badge>
 						) : null}
 					</Link>
 				</SidebarMenuButton>
