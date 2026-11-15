@@ -16,11 +16,12 @@ export function TableIdentity({
 	return (
 		<span
 			className={cn(
-				"inline-flex max-w-full items-center gap-2",
+				"inline-flex max-w-full items-start gap-2",
 				className,
 			)}
 		>
-			<Glyph name={icon} />
+			{/* The mark sits level with the first line of the text, whatever its line height, and stays there when a long name wraps. */}
+			<Glyph name={icon} className="mt-[calc((1lh-1rem)/2)]" />
 			<span className="min-w-0 wrap-anywhere">{children}</span>
 		</span>
 	);

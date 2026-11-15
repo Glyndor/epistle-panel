@@ -20,12 +20,14 @@ it.each(["users", "globe", "inbox", "send", "ban"] as const)(
 			`glyph-${icon}`,
 			"size-4",
 			"shrink-0",
+			// Level with the first line of a name that wraps, not with the middle of the block.
+			"mt-[calc((1lh-1rem)/2)]",
 		);
 		expect(mark?.childNodes.length).toBe(0);
 		expect(identity).toHaveClass(
 			"inline-flex",
 			"max-w-full",
-			"items-center",
+			"items-start",
 			"gap-2",
 		);
 		expect(identity?.children).toHaveLength(2);
