@@ -124,12 +124,12 @@ export async function TimelineCard({
 	}
 	const { timeline, readAt } = overview;
 	const at = (seconds: number) => new Date(seconds * 1000);
-	const clock = (seconds: number) =>
+	const clock = (seconds: number, zone: string = timeZone) =>
 		format.dateTime(at(seconds), {
 			hour: "2-digit",
 			minute: "2-digit",
 			hourCycle: "h23",
-			timeZone,
+			timeZone: zone,
 		});
 	// A column of a day is a day of Greenwich, because that is how the API counts
 	// its log. It is written as that day and the heading and the note name UTC;
@@ -156,7 +156,8 @@ export async function TimelineCard({
 	// Hours are written in the person's zone; days are the API's, in UTC.
 	const columnZone = hourly ? timeZone : "UTC";
 	const note = t(`timeline.note.${timeline.unit}`, {
-		time: clock(readAt),
+		// The reading time is written in the zone the note names.
+		time: clock(readAt, columnZone),
 		zone: columnZone,
 	});
 	if (timeline.total === 0) {

@@ -56,7 +56,7 @@ it("keeps UTC bucket boundaries while ticks, hints, reading clock and table use 
 				);
 				expect(zones.length).toBeGreaterThan(20);
 				expect(new Set(zones)).toEqual(
-					new Set(period === "24h" ? [zone] : [zone, "UTC"]),
+					new Set(period === "24h" ? [zone] : ["UTC"]),
 				);
 				expect(
 					saidWith(
