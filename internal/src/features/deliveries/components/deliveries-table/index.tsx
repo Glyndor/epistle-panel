@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 
 import { columnHelper, DataTable } from "@/components/data-table";
+import { TableIdentity } from "@/components/data-table/identity";
 import type { GlyphName } from "@/components/glyph";
 import { StatusBadge } from "@/components/status-badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -77,9 +78,9 @@ export function DeliveriesTable({ filters }: { filters: DeliveryFilters }) {
 		helper.accessor("recipient", {
 			header: t("recipient"),
 			cell: (info) => (
-				<span className="wrap-anywhere font-mono">
+				<TableIdentity icon="inbox" className="font-mono">
 					{info.getValue()}
-				</span>
+				</TableIdentity>
 			),
 		}),
 		helper.accessor("from", {
@@ -93,7 +94,14 @@ export function DeliveriesTable({ filters }: { filters: DeliveryFilters }) {
 		helper.accessor((row) => row.account ?? "", {
 			id: "account",
 			header: t("account"),
-			cell: (info) => info.getValue() || t("none"),
+			cell: (info) =>
+				info.getValue() ? (
+					<TableIdentity icon="users">
+						{info.getValue()}
+					</TableIdentity>
+				) : (
+					t("none")
+				),
 		}),
 		helper.accessor((row) => row.remote ?? "", {
 			id: "remote",

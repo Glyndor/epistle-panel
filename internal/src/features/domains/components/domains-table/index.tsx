@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 
 import { columnHelper, DataTable } from "@/components/data-table";
 import { DataTableFiltersMenu } from "@/components/data-table/filters-menu";
+import { TableIdentity } from "@/components/data-table/identity";
 import { StatusBadge } from "@/components/status-badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { getDomainsAction } from "@/features/domains/actions/get-domains";
@@ -31,9 +32,9 @@ export function DomainsTable() {
 		helper.accessor("name", {
 			header: t("name"),
 			cell: (info) => (
-				<span className="wrap-anywhere font-mono">
+				<TableIdentity icon="globe" className="font-mono">
 					{info.getValue()}
-				</span>
+				</TableIdentity>
 			),
 		}),
 		helper.accessor(stateOf, {

@@ -20,7 +20,7 @@ const ALLOWLIST: Readonly<Record<string, string>> = {
 		"Legacy keyboard skip link omitted by the two rule commits. Retained by this test-only change; add its own selection class when this control is migrated.",
 	"components/layout/trail/index.tsx:102 <Link>: missing select-none in base classes":
 		"Breadcrumb content can be a message subject or folder name; matches the explicit BreadcrumbLink content exception rather than disabling selection of those data labels.",
-	"features/accounts/components/accounts-table/index.tsx:34 <Link>: missing select-none in base classes":
+	"features/accounts/components/accounts-table/index.tsx:35 <Link>: missing select-none in base classes":
 		"The linked account name is a table value and identifier; the content rule requires it to remain copyable even though it also navigates.",
 	"features/mail/components/attachment-list/index.tsx:43 <a>: missing select-none in base classes":
 		"The download link contains the original attachment filename and size; these message data values remain copyable in the reader.",
