@@ -114,14 +114,24 @@
 	   Tone n is the same family in light and in dark: blue, brown or amber,
 	   red, violet, teal, green, pink, olive. Calculated values are in
 	   docs/maintainers/mail-list.md. */
+	/* Exact-name model chip pairs: --label-n is text on --label-n-chip.
+	   Existing label dots keep their palette; these pairs are AA tested. */
 	--label-1: #083a88;
+	--label-1-chip: #ffffff;
 	--label-2: #392b16;
+	--label-2-chip: #ffffff;
 	--label-3: #9b4251;
+	--label-3-chip: #ffffff;
 	--label-4: #794acb;
+	--label-4-chip: #ffffff;
 	--label-5: #0d7d89;
+	--label-5-chip: #ffffff;
 	--label-6: #155a06;
+	--label-6-chip: #ffffff;
 	--label-7: #671156;
+	--label-7-chip: #ffffff;
 	--label-8: #83710d;
+	--label-8-chip: #ffffff;
 }
 
 /* The dark values are written twice, once for each way of getting them: the
@@ -177,13 +187,21 @@
 		--chart-5: #34a08e;
 		--chart-missing: #6e6e76;
 		--label-1: #82c2f7;
+		--label-1-chip: #171717;
 		--label-2: #e58803;
+		--label-2-chip: #171717;
 		--label-3: #fcc1b6;
+		--label-3-chip: #171717;
 		--label-4: #ae83f8;
+		--label-4-chip: #171717;
 		--label-5: #aafcfe;
+		--label-5-chip: #171717;
 		--label-6: #8cd55e;
+		--label-6-chip: #171717;
 		--label-7: #fb78ae;
+		--label-7-chip: #171717;
 		--label-8: #f5f778;
+		--label-8-chip: #171717;
 	}
 }
 
@@ -227,13 +245,21 @@
 	--chart-5: #34a08e;
 	--chart-missing: #6e6e76;
 	--label-1: #82c2f7;
+	--label-1-chip: #171717;
 	--label-2: #e58803;
+	--label-2-chip: #171717;
 	--label-3: #fcc1b6;
+	--label-3-chip: #171717;
 	--label-4: #ae83f8;
+	--label-4-chip: #171717;
 	--label-5: #aafcfe;
+	--label-5-chip: #171717;
 	--label-6: #8cd55e;
+	--label-6-chip: #171717;
 	--label-7: #fb78ae;
+	--label-7-chip: #171717;
 	--label-8: #f5f778;
+	--label-8-chip: #171717;
 }
 
 /* Fonts and the spacing unit. System stacks only: the CSP is
@@ -291,13 +317,21 @@
 	--color-chart-5: var(--chart-5);
 	--color-chart-missing: var(--chart-missing);
 	--color-label-1: var(--label-1);
+	--color-label-1-chip: var(--label-1-chip);
 	--color-label-2: var(--label-2);
+	--color-label-2-chip: var(--label-2-chip);
 	--color-label-3: var(--label-3);
+	--color-label-3-chip: var(--label-3-chip);
 	--color-label-4: var(--label-4);
+	--color-label-4-chip: var(--label-4-chip);
 	--color-label-5: var(--label-5);
+	--color-label-5-chip: var(--label-5-chip);
 	--color-label-6: var(--label-6);
+	--color-label-6-chip: var(--label-6-chip);
 	--color-label-7: var(--label-7);
+	--color-label-7-chip: var(--label-7-chip);
 	--color-label-8: var(--label-8);
+	--color-label-8-chip: var(--label-8-chip);
 	--radius-sm: calc(var(--radius) - 4px);
 	--radius-md: calc(var(--radius) - 2px);
 	--radius-lg: var(--radius);
