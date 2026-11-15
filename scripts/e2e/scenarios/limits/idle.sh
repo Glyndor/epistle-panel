@@ -38,10 +38,25 @@ scenario_idle() {
 	local rss1b
 	rss1b=$(rss_kib)
 	echo "# after 400 requests and a pause: rss ${rss1b} KiB (+$((rss1b - rss0)) KiB)"
-	if ((rss1b < 512 * 1024)); then
-		ok "memory stays under 512 MiB after 400 requests"
+	# The first 400 requests warm the heap up: V8 and Next fill their caches and
+	# keep the memory, so the size after them sits around 500 MiB on a runner,
+	# some runs just under 512 MiB and some just over. A leak keeps growing; a
+	# warm-up does not. So the check is a roof that a runaway allocation would
+	# cross, and the growth of a further 400 requests, which has to be small.
+	if ((rss1b < 768 * 1024)); then
+		ok "memory stays under 768 MiB after 400 requests"
 	else
-		not_ok "memory stays under 512 MiB after 400 requests"
+		not_ok "memory stays under 768 MiB after 400 requests"
+	fi
+	burst
+	sleep 3
+	local rss1c
+	rss1c=$(rss_kib)
+	echo "# after 800 requests and a pause: rss ${rss1c} KiB (+$((rss1c - rss1b)) KiB over the second burst)"
+	if ((rss1c - rss1b < 96 * 1024)); then
+		ok "memory stops growing: under 96 MiB more over the next 400 requests"
+	else
+		not_ok "memory stops growing: under 96 MiB more over the next 400 requests"
 	fi
 	rss2=$(rss_kib)
 	if ((rss2 > 0)); then ok "server still alive"; else not_ok "server still alive"; fi
