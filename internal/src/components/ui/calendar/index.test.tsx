@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from "bun:test";
+import { readFileSync } from "node:fs";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { renderToString } from "react-dom/server";
 
@@ -173,5 +174,44 @@ describe("Calendar", () => {
 
 		expect(html).not.toMatch(/\sstyle=/);
 		expect(html).not.toContain("<style");
+	});
+
+	it("gives every week a row of 32 px (44 on a coarse pointer), so a month of five weeks keeps the height of one of six", () => {
+		render(calendar());
+
+		const rows = document.querySelectorAll("tbody tr");
+		expect(rows.length).toBeGreaterThanOrEqual(5);
+		for (const row of rows) {
+			expect(row).toHaveClass("h-8", "pointer-coarse:h-11");
+		}
+	});
+
+	it("steps the chosen day's fill on hover and press, with its own tokens and in forced colours too", () => {
+		render(calendar({ selected: new Date(2026, 10, 10, 12) }));
+		const classes = screen.getByRole("button", {
+			name: /November 10th/,
+		}).className;
+
+		expect(classes).toContain(
+			"data-[selected=true]:hover:bg-primary-hover",
+		);
+		expect(classes).toContain(
+			"data-[selected=true]:active:bg-primary-press",
+		);
+		for (const state of ["hover", "active"]) {
+			expect(classes).toContain(
+				`forced-colors:data-[selected=true]:${state}:bg-[Highlight]`,
+			);
+			expect(classes).toContain(
+				`forced-colors:data-[selected=true]:${state}:text-[HighlightText]`,
+			);
+		}
+		const theme = readFileSync("src/styles/theme.css", "utf8");
+		expect(theme).toContain(
+			"--color-primary-hover: color-mix(in oklab, var(--primary), var(--primary-foreground)",
+		);
+		expect(theme).toContain(
+			"--color-primary-press: color-mix(in oklab, var(--primary), var(--primary-foreground)",
+		);
 	});
 });

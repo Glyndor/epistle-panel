@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, mock, setSystemTime } from "bun:test";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { renderToString } from "react-dom/server";
 
+import { useSidebar } from "@/components/ui/sidebar/context";
 import { SidebarProvider } from "@/components/ui/sidebar/provider";
 import { mailKeys } from "@/features/mail/queries/mail-query-keys";
 import type { MailboxView } from "@/features/mail/schemas/mail-view";
@@ -83,6 +84,16 @@ const day = (n: number): HTMLElement => {
 	}
 	return button;
 };
+
+/** The state of the sheet a narrow screen opens, as a button that toggles it. */
+function Sheet() {
+	const { openMobile, toggleSidebar } = useSidebar();
+	return (
+		<button type="button" onClick={toggleSidebar}>
+			{`sheet-${openMobile}`}
+		</button>
+	);
+}
 
 describe("DayPickerNav", () => {
 	it("is a group named Calendar, open to start with, that describes what a day does", () => {
@@ -272,5 +283,51 @@ describe("DayPickerNav", () => {
 		expect(html).toContain("calendarNav");
 		expect(html).not.toMatch(/\sstyle=/);
 		expect(html).not.toContain("<style");
+	});
+
+	it("closes the sheet of a narrow screen when a day is chosen, like a folder", () => {
+		const width = window.innerWidth;
+		window.innerWidth = 360;
+		try {
+			const client = testQueryClient();
+			render(
+				withQuery(
+					<SidebarProvider>
+						<Sheet />
+						<DayPickerNav
+							today="2026-11-15"
+							timeZone="UTC"
+							weekStartsOn={1}
+						/>
+					</SidebarProvider>,
+					client,
+				),
+			);
+			fireEvent.click(
+				screen.getByRole("button", { name: "sheet-false" }),
+			);
+			expect(
+				screen.getByRole("button", { name: "sheet-true" }),
+			).toBeInTheDocument();
+
+			fireEvent.click(day(10));
+
+			expect(
+				screen.getByRole("button", { name: "sheet-false" }),
+			).toBeInTheDocument();
+			expect(pushed).toHaveLength(1);
+		} finally {
+			window.innerWidth = width;
+		}
+	});
+
+	it("draws a row of fixed height for every one of the six weeks, empty or not", () => {
+		render(tree({ today: "2026-02-10" }));
+
+		const rows = document.querySelectorAll("tbody tr");
+		expect(rows).toHaveLength(6);
+		for (const row of rows) {
+			expect(row).toHaveClass("h-8");
+		}
 	});
 });

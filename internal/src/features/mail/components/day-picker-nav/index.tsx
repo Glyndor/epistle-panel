@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useId, useMemo, useState } from "react";
 import { NavSection } from "@/components/layout/nav-section";
 import { Calendar } from "@/components/ui/calendar";
+import { useSidebar } from "@/components/ui/sidebar/context";
 import { useLoadedMail } from "@/features/mail/components/labels-nav/use-loaded-mail";
 import {
 	calendarFormatters,
@@ -62,6 +63,7 @@ export function DayPickerNav({
 	const pathname = usePathname();
 	const params = useSearchParams();
 	const { boxes } = useLoadedMail();
+	const { setOpenMobile } = useSidebar();
 	const today = useToday(serverToday, timeZone);
 	const chosen = selectedDay({
 		after: params.get("after"),
@@ -102,15 +104,18 @@ export function DayPickerNav({
 						selected={
 							chosen === null ? undefined : dayToDate(chosen)
 						}
-						onSelect={(next) =>
+						onSelect={(next) => {
+							// On a narrow screen the navigation is a sheet over the
+							// list: it closes once a day is chosen, like a folder.
+							setOpenMobile(false);
 							router.push(
 								dayHref(
 									next === undefined ? null : dateToDay(next),
 									activeId,
 									boxes,
 								),
-							)
-						}
+							);
+						}}
 						weekStartsOn={weekStartsOn}
 						startMonth={FIRST_DAY}
 						endMonth={LAST_DAY}
