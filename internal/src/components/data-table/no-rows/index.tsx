@@ -36,7 +36,7 @@ export function DataTableNoRows({
 	const t = useTranslations("table");
 	return (
 		<TableRow>
-			<TableCell colSpan={colSpan}>
+			<TableCell colSpan={colSpan} className="p-0">
 				{/*
 				 * The table can be wider than the box that scrolls it, and the
 				 * state is centred in the table: on a narrow screen it would sit

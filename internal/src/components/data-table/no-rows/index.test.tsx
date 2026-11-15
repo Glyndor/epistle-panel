@@ -82,6 +82,9 @@ describe("DataTableNoRows", () => {
 		expect(
 			container.querySelector("[data-slot='table-container']")?.className,
 		).toContain("@container");
+		// The cell adds no padding of its own, or the block would be 2rem wider
+		// than the box and the table would scroll sideways.
+		expect(container.querySelector("td")?.className).toContain("p-0");
 	});
 
 	it("announces the state that filters leave, as a status, and not the empty list", () => {
