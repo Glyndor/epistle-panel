@@ -44,7 +44,7 @@ function Disclosure({
 		if (element === null) {
 			return;
 		}
-		const onPointerDown = (event: PointerEvent) => {
+		const onPointerDown = (event: Event) => {
 			if (!element.open) {
 				return;
 			}
@@ -54,8 +54,24 @@ function Disclosure({
 			}
 			element.open = false;
 		};
+		// Keep the explicit state in step with native activation, including
+		// the summary's click and Space, without controlling `open` in React.
+		const syncExpanded = () => {
+			element
+				.querySelector("summary")
+				?.setAttribute("aria-expanded", String(element.open));
+		};
+		syncExpanded();
+		element.addEventListener("toggle", syncExpanded);
 		document.addEventListener("pointerdown", onPointerDown);
-		return () => document.removeEventListener("pointerdown", onPointerDown);
+		document.addEventListener("click", onPointerDown);
+		document.addEventListener("focusin", onPointerDown);
+		return () => {
+			element.removeEventListener("toggle", syncExpanded);
+			document.removeEventListener("pointerdown", onPointerDown);
+			document.removeEventListener("click", onPointerDown);
+			document.removeEventListener("focusin", onPointerDown);
+		};
 	}, []);
 
 	return (

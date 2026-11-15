@@ -1,8 +1,16 @@
 import { useEffect } from "react";
 
+import { SEARCH_OPENER_ID } from "@/features/mail/components/mail-search/narrow";
+
 /** Whether a key press is meant for a field, a dialog or a modifier combination, not for the list. */
 function belongsElsewhere(event: KeyboardEvent): boolean {
-	if (event.ctrlKey || event.metaKey || event.altKey || event.isComposing) {
+	if (
+		event.ctrlKey ||
+		event.metaKey ||
+		event.altKey ||
+		event.shiftKey ||
+		event.isComposing
+	) {
 		return true;
 	}
 	const target = event.target;
@@ -11,7 +19,9 @@ function belongsElsewhere(event: KeyboardEvent): boolean {
 	}
 	return (
 		target.isContentEditable ||
-		target.closest("input, textarea, select, dialog[open]") !== null
+		target.closest(
+			'input, textarea, select, [contenteditable]:not([contenteditable="false"]), dialog[open]',
+		) !== null
 	);
 }
 
@@ -59,7 +69,12 @@ export function useMailShortcuts({
 					document.querySelector<HTMLElement>("[data-mail-search]");
 				if (field) {
 					event.preventDefault();
-					field.focus();
+					const opener = document.getElementById(SEARCH_OPENER_ID);
+					if (window.innerWidth < 1024 && opener !== null) {
+						opener.click();
+					} else {
+						field.focus();
+					}
 				}
 			} else if (event.key === "u" && selectedId !== undefined) {
 				event.preventDefault();
