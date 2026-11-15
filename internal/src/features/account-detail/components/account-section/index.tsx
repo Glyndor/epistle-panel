@@ -1,73 +1,45 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
+import { lazy, Suspense, useMemo, useState } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AccountDetailSkeleton } from "@/features/account-detail/components/account-detail-skeleton";
+import { AccountSectionErrorBoundary } from "@/features/account-detail/components/account-section/error-boundary";
+import {
+	type AccountSectionLoader,
+	type AccountSectionProps,
+	loadAccountSection,
+} from "@/features/account-detail/components/account-section/load-section";
 import type { AccountSection as Section } from "@/features/account-detail/schemas/account-section";
 import { getAccountsAction } from "@/features/accounts/actions/get-accounts";
 import { accountsQueryOptions } from "@/features/accounts/queries/accounts-query";
+import type { AccountRow } from "@/features/accounts/schemas/accounts-view";
 import { unwrap } from "@/lib/query/action-result";
 
-/**
- * Each section is its own chunk: the code of a section is fetched when that
- * section is the one on screen, so a visit to the overview does not carry the
- * form library of the profile or the password section. The chunk arrives
- * inside its own `Suspense` (the `loading` of `next/dynamic`), so the page is
- * never suspended by it: the frame and the heading paint at once, and the
- * section streams in behind its skeleton.
- */
-const OverviewPanel = dynamic(
-	() =>
-		import("@/features/account-detail/components/overview-section").then(
-			(module) => module.OverviewSection,
-		),
-	{ loading: AccountDetailSkeleton },
-);
-
-const ProfilePanel = dynamic(
-	() =>
-		import("@/features/account-detail/components/profile-section").then(
-			(module) => module.ProfileSection,
-		),
-	{ loading: AccountDetailSkeleton },
-);
-
-const SecurityPanel = dynamic(
-	() =>
-		import("@/features/account-detail/components/security-section").then(
-			(module) => module.SecuritySection,
-		),
-	{ loading: AccountDetailSkeleton },
-);
-
-const MailboxesPanel = dynamic(
-	() =>
-		import("@/features/account-detail/components/mailboxes-section").then(
-			(module) => module.MailboxesSection,
-		),
-	{ loading: AccountDetailSkeleton },
-);
-
-const MaskedPanel = dynamic(
-	() =>
-		import("@/features/account-detail/components/masked-section").then(
-			(module) => module.MaskedSection,
-		),
-	{ loading: AccountDetailSkeleton },
-);
-
-const ArchivePanel = dynamic(
-	() =>
-		import("@/features/account-detail/components/archive-section").then(
-			(module) => module.ArchiveSection,
-		),
-	{ loading: AccountDetailSkeleton },
-);
-
 const fetchAccounts = async () => unwrap(await getAccountsAction());
+
+function sectionProps(
+	section: Section,
+	name: string,
+	account: AccountRow,
+): AccountSectionProps {
+	switch (section) {
+		case "overview":
+			return { section, account };
+		case "profile":
+			return { section, account };
+		case "security":
+			return { section, account, name };
+		case "mailboxes":
+			return { section, name };
+		case "masked":
+			return { section, name };
+		case "archive":
+			return { section, name };
+	}
+}
 
 /**
  * The section of the account page that the address names, and nothing else.
@@ -79,13 +51,25 @@ const fetchAccounts = async () => unwrap(await getAccountsAction());
 export function AccountSection({
 	section,
 	name,
+	loader = loadAccountSection,
 }: {
 	/** The section the address names. */
 	section: Section;
 	/** The account the page is about. */
 	name: string;
+	loader?: AccountSectionLoader;
 }) {
 	const t = useTranslations("accountDetail");
+	const [attempt, setAttempt] = useState(0);
+	const Loaded = useMemo(
+		() =>
+			lazy(() =>
+				loader(section, attempt).then((renderer) => ({
+					default: renderer,
+				})),
+			),
+		[attempt, loader, section],
+	);
 	const { data, isPending } = useQuery(accountsQueryOptions(fetchAccounts));
 	const account = data?.find((row) => row.name === name);
 
@@ -107,18 +91,16 @@ export function AccountSection({
 		);
 	}
 
-	switch (section) {
-		case "overview":
-			return <OverviewPanel account={account} />;
-		case "profile":
-			return <ProfilePanel account={account} />;
-		case "security":
-			return <SecurityPanel account={account} name={name} />;
-		case "mailboxes":
-			return <MailboxesPanel name={name} />;
-		case "masked":
-			return <MaskedPanel name={name} />;
-		case "archive":
-			return <ArchivePanel name={name} />;
-	}
+	return (
+		<AccountSectionErrorBoundary
+			key={`${section}-${attempt}`}
+			failedMessage={t("sectionLoadFailed")}
+			retryLabel={t("sectionRetry")}
+			onRetry={() => setAttempt((current) => current + 1)}
+		>
+			<Suspense fallback={<AccountDetailSkeleton />}>
+				<Loaded {...sectionProps(section, name, account)} />
+			</Suspense>
+		</AccountSectionErrorBoundary>
+	);
 }

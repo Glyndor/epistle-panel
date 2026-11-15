@@ -6,6 +6,8 @@
 	"sectionOverview": "Panoramica",
 	"sectionSecurity": "Sicurezza",
 	"unavailable": "Non è stato possibile completare la modifica. Riprova.",
+	"sectionLoadFailed": "Non è stato possibile caricare questa sezione.",
+	"sectionRetry": "Riprova",
 	"addresses": "Indirizzi",
 	"noAddresses": "Nessun indirizzo.",
 	"configManaged": "Questo account è dichiarato nel file di configurazione del server. Nome, password e autenticazione a due fattori si possono modificare solo lì.",

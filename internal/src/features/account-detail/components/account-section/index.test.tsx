@@ -181,4 +181,43 @@ describe("AccountSection", () => {
 
 		expect(container.querySelector("[aria-busy='true']")).not.toBeNull();
 	});
+
+	it("keeps the page around a failed section and asks for its code again", async () => {
+		const errors = spyOn(console, "error").mockImplementation(() => {});
+		api([account()]);
+		let attempts = 0;
+		const loader = async () => {
+			attempts += 1;
+			if (attempts === 1) {
+				throw new Error("ChunkLoadError");
+			}
+			return () => <p>section loaded</p>;
+		};
+
+		render(
+			withQuery(
+				<>
+					<header>page header</header>
+					<AccountSection
+						section="overview"
+						name="alice"
+						loader={loader}
+					/>
+				</>,
+			),
+		);
+
+		expect(
+			await screen.findByText("sectionLoadFailed"),
+		).toBeInTheDocument();
+		expect(screen.getByText("page header")).toBeInTheDocument();
+		expect(attempts).toBe(1);
+
+		fireEvent.click(screen.getByRole("button", { name: "sectionRetry" }));
+
+		expect(await screen.findByText("section loaded")).toBeInTheDocument();
+		expect(attempts).toBe(2);
+		expect(screen.queryByText("sectionLoadFailed")).toBeNull();
+		errors.mockRestore();
+	});
 });

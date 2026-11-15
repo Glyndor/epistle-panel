@@ -6,6 +6,8 @@
 	"sectionOverview": "Vue d’ensemble",
 	"sectionSecurity": "Sécurité",
 	"unavailable": "La modification n’a pas pu être effectuée. Veuillez réessayer.",
+	"sectionLoadFailed": "Cette section n’a pas pu être chargée.",
+	"sectionRetry": "Réessayer",
 	"addresses": "Adresses",
 	"noAddresses": "Aucune adresse.",
 	"configManaged": "Ce compte est déclaré dans le fichier de configuration du serveur. Son nom, son mot de passe et son authentification à deux facteurs ne peuvent être modifiés que là.",

@@ -6,6 +6,8 @@
 	"sectionOverview": "Übersicht",
 	"sectionSecurity": "Sicherheit",
 	"unavailable": "Die Änderung konnte nicht abgeschlossen werden. Bitte versuchen Sie es erneut.",
+	"sectionLoadFailed": "Dieser Abschnitt konnte nicht geladen werden.",
+	"sectionRetry": "Erneut versuchen",
 	"addresses": "Adressen",
 	"noAddresses": "Keine Adressen.",
 	"configManaged": "Dieses Konto ist in der Konfigurationsdatei des Servers deklariert. Name, Passwort und Zwei-Faktor-Einstellung können nur dort geändert werden.",
