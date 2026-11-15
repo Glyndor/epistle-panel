@@ -262,7 +262,7 @@ A message is hostile input. What the panel does:
   window with `noopener noreferrer`, and a URL with a user name is dropped.
 - **Remote images follow the effective mode** and are counted. The mode is
   the operator's `EPISTLE_PANEL_REMOTE_IMAGES` when it is set, otherwise the
-  person's `remote-images` cookie, otherwise `ask`. In `ask`, the reader offers
+  person's `__Host-remote-images` cookie, otherwise `ask`. In `ask`, the reader offers
   "load images" for that message and that visit (`?images=1`); only then does
   the response's policy allow `http:` and `https:` images. In `always`, the
   reader and the body route use that same `?images=1` path without asking. In

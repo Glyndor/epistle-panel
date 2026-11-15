@@ -51,7 +51,7 @@ it("saves every valid time zone choice", async () => {
 			["locale", "en"],
 			["theme", "system"],
 			["list-density", "comfortable"],
-			["remote-images", "ask"],
+			["__Host-remote-images", "ask"],
 			["time-zone", mode],
 			["page-size", "50"],
 			["refresh", "normal"],
@@ -125,7 +125,7 @@ it("saves other fields when fixed without overwriting the time zone cookie", asy
 			"locale",
 			"theme",
 			"list-density",
-			"remote-images",
+			"__Host-remote-images",
 			"page-size",
 			"refresh",
 		]);

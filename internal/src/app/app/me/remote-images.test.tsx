@@ -20,7 +20,7 @@ afterEach(() => {
 	else process.env[KEY] = saved;
 });
 it("paints the checked cookie as the fourth choice at first render", async () => {
-	cookies.jar.set("remote-images", "never");
+	cookies.jar.set("__Host-remote-images", "never");
 	render(await resolveServerTree(await MePage()));
 	expect(screen.getByRole("combobox", { name: "remoteImages" })).toHaveValue(
 		"never",
@@ -28,7 +28,7 @@ it("paints the checked cookie as the fourth choice at first render", async () =>
 });
 it("passes the fixed operator policy to the form instead of offering the cookie choice", async () => {
 	process.env[KEY] = "always";
-	cookies.jar.set("remote-images", "never");
+	cookies.jar.set("__Host-remote-images", "never");
 	render(await resolveServerTree(await MePage()));
 	expect(screen.queryByRole("combobox", { name: "remoteImages" })).toBeNull();
 	expect(

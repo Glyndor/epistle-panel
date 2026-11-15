@@ -1,19 +1,19 @@
 import { expect, it } from "bun:test";
 import { writeRemoteImagesCookie } from ".";
 
-it("writes every mode as a private secure app cookie for a year", () => {
+it("writes every mode as a host-locked secure cookie for a year", () => {
 	for (const mode of ["ask", "always", "never"] as const) {
 		const writes: unknown[][] = [];
 		writeRemoteImagesCookie({ set: (...args) => writes.push(args) }, mode);
 		expect(writes).toEqual([
 			[
-				"remote-images",
+				"__Host-remote-images",
 				mode,
 				{
 					httpOnly: true,
 					secure: true,
 					sameSite: "lax",
-					path: "/app",
+					path: "/",
 					maxAge: 31536000,
 				},
 			],

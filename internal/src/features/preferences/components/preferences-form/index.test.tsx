@@ -129,7 +129,7 @@ describe("PreferencesForm", () => {
 			["locale", "de"],
 			["theme", "dark"],
 			["list-density", "comfortable"],
-			["remote-images", "ask"],
+			["__Host-remote-images", "ask"],
 			["time-zone", "UTC"],
 			["page-size", "50"],
 			["refresh", "normal"],

@@ -148,9 +148,9 @@ it("sends the changed fourth field through the real action", async () => {
 		fireEvent.click(screen.getByRole("button", { name: "save" }));
 	});
 	expect(await screen.findByRole("status")).toHaveTextContent("saved");
-	expect(cookies.writes.find((w) => w.name === "remote-images")?.value).toBe(
-		"always",
-	);
+	expect(
+		cookies.writes.find((w) => w.name === "__Host-remote-images")?.value,
+	).toBe("always");
 });
 it("shows and focuses the server refusal of the fourth field", async () => {
 	render(

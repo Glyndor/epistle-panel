@@ -18,7 +18,7 @@ afterEach(() => {
 });
 it("hands the effective mode to MessageReader including operator precedence", async () => {
 	for (const mode of ["ask", "always", "never"]) {
-		cookies.jar.set("remote-images", mode);
+		cookies.jar.set("__Host-remote-images", mode);
 		const tree = await ReaderBoundary({
 			id: "m1",
 			place: { role: "inbox" },
@@ -31,7 +31,7 @@ it("hands the effective mode to MessageReader including operator precedence", as
 		).toBe(mode);
 	}
 	process.env[KEY] = "never";
-	cookies.jar.set("remote-images", "always");
+	cookies.jar.set("__Host-remote-images", "always");
 	const tree = await ReaderBoundary({
 		id: "m1",
 		place: { role: "inbox" },
