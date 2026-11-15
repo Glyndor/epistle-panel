@@ -39,10 +39,12 @@ scenario_idle() {
 	rss1b=$(rss_kib)
 	echo "# after 400 requests and a pause: rss ${rss1b} KiB (+$((rss1b - rss0)) KiB)"
 	# The first 400 requests warm the heap up: V8 and Next fill their caches and
-	# keep the memory, so the size after them sits around 500 MiB on a runner,
-	# some runs just under 512 MiB and some just over. A leak keeps growing; a
-	# warm-up does not. So the check is a roof that a runaway allocation would
-	# cross, and the growth of a further 400 requests, which has to be small.
+	# keep the memory, so the size after them sits around 500 MiB on a runner. A
+	# leak keeps growing and a warm-up does not, so the check is a roof that a
+	# runaway allocation would cross, and the growth of a further 400 requests,
+	# which has to be small. (The check found a real leak: a five-minute timer
+	# per prefetched query kept every request alive on the server, about 55 MB of
+	# heap per 200 requests; the server's query client no longer collects by timer.)
 	if ((rss1b < 768 * 1024)); then
 		ok "memory stays under 768 MiB after 400 requests"
 	else
