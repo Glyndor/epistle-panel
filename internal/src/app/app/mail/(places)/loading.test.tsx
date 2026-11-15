@@ -39,14 +39,14 @@ describe("the webmail's loading states", () => {
 		expect(await pane()).toHaveAttribute("data-density", "comfortable");
 		cleanup();
 
-		cookies.jar.set("mail-density", "compact");
+		cookies.jar.set("list-density", "compact");
 		const compact = await pane();
 		expect(compact).toHaveAttribute("data-density", "compact");
 		// The rows read the density through the pane's group.
 		expect(compact).toHaveClass("group/list");
 		cleanup();
 
-		cookies.jar.set("mail-density", "tiny");
+		cookies.jar.set("list-density", "tiny");
 		expect(await pane()).toHaveAttribute("data-density", "comfortable");
 	});
 

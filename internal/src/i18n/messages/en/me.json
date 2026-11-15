@@ -1,0 +1,20 @@
+{
+	"heading": "Preferences",
+	"intro": "What is yours: how the panel reads and looks for you. It is kept in this browser; another browser starts from its own.",
+	"formLabel": "Your preferences",
+	"language": "Language",
+	"languageHelp": "The language of the interface. Each name is written in its own language.",
+	"theme": "Theme",
+	"themeHelp": "Light, dark, or the one your system uses. The palette and the logos are the operator's.",
+	"density": "Message list",
+	"densityHelp": "How tall a row of the message list is.",
+	"density_comfortable": "Comfortable: two lines and a preview",
+	"density_compact": "Compact: one line",
+	"save": "Save preferences",
+	"saving": "Saving",
+	"saved": "Preferences saved.",
+	"failed": "The preferences could not be saved. Sign in again if the problem stays.",
+	"refused": "Some values are not among the choices. Nothing was saved.",
+	"required": "Choose one.",
+	"notInList": "That is not one of the choices."
+}

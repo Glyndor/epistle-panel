@@ -80,7 +80,11 @@ describe("adminRoutes", () => {
 	});
 
 	it("keeps the public paths free of the id", () => {
-		expect(PUBLIC_ROUTES).toEqual({ root: "/", mail: "/app/mail" });
+		expect(PUBLIC_ROUTES).toEqual({
+			root: "/",
+			mail: "/app/mail",
+			me: "/app/me",
+		});
 	});
 });
 
@@ -152,6 +156,25 @@ describe("classifyAppPath", () => {
 			"/app/mail;x",
 		]) {
 			expect(classifyAppPath(path), path).toEqual({ kind: "mail" });
+		}
+	});
+
+	it("is me for /app/me and below, in any spelling the router may read, and for no admin id", () => {
+		for (const path of [
+			"/app/me",
+			"/app/me/",
+			"/app/me/x",
+			"/APP/ME",
+			"/app/Me",
+			"/%61pp/m%65",
+			"//app//me",
+			"\\app\\me",
+			"/app/me;x",
+		]) {
+			expect(classifyAppPath(path), path).toEqual({ kind: "me" });
+		}
+		for (const path of ["/app/mex", "/app/m", "/app/mee", "/app/m%2fe"]) {
+			expect(classifyAppPath(path).kind, path).toBe("admin");
 		}
 	});
 

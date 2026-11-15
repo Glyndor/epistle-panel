@@ -122,6 +122,17 @@ bare=$(unnonced_scripts "$work/b" "$nonce")
 [ "$bare" = 0 ] || fail "authenticated page: $bare script tags lack the nonce"
 grep -q ' style="\|<style' "$work/b" && fail "authenticated page: inline style, blocked by style-src"
 
+# The person's own page is a page of its own with the same headers, and without a
+# session it is the same redirect as the mail area.
+fetch -H "Cookie: $SESSION_COOKIE_NAME=$cookie" "$base/app/me"
+status=$(sed -n '1s/^[^ ]* \([0-9]*\).*/\1/p' "$work/h")
+[ "$status" = 200 ] || fail "preferences page: status $status, want 200"
+grep -q '</html>' "$work/b" || fail "preferences page: the HTML document is cut short"
+expect_secure_headers "preferences page"
+bare=$(unnonced_scripts "$work/b" "$(header content-security-policy | sed -n "s/.*'nonce-\([^']*\)'.*/\1/p")")
+[ "$bare" = 0 ] || fail "preferences page: $bare script tags lack the nonce"
+grep -q ' style="\|<style' "$work/b" && fail "preferences page: inline style, blocked by style-src"
+
 # The sign-in page, at the root, is public but carries the same headers and a nonce.
 fetch "$base/"
 expect_secure_headers "login page"
@@ -133,12 +144,14 @@ fetch "$base/"
 [ "$first" != "$(header content-security-policy)" ] || fail "the nonce repeats between requests"
 
 # Redirects keep the headers, and a client-chosen host never reaches Location.
-# The only redirect left is the mail area without a session.
+# The only redirects left are the mail area and the preferences page without a session.
 for extra in "X-Forwarded-Host: evil.test" "Host: evil.test" "X-Forwarded-Proto: gopher"; do
-	fetch -H "$extra" "$base/app/mail"
-	[ "$(sed -n '1s/^[^ ]* \([0-9]*\).*/\1/p' "$work/h")" = 307 ] || fail "no 307 for '$extra'"
-	expect_header location / "redirect with '$extra'"
-	expect_secure_headers "redirect with '$extra'"
+	for area in /app/mail /app/me; do
+		fetch -H "$extra" "$base$area"
+		[ "$(sed -n '1s/^[^ ]* \([0-9]*\).*/\1/p' "$work/h")" = 307 ] || fail "no 307 for '$extra' at $area"
+		expect_header location / "redirect with '$extra' at $area"
+		expect_secure_headers "redirect with '$extra' at $area"
+	done
 done
 
 # The admin area without a session is the 404 of a missing path with the same

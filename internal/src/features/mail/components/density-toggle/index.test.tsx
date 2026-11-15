@@ -14,7 +14,7 @@ import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
 const cookies = mockRequestCookies();
 const { DensityToggle } = await import(".");
 
-const writes = () => cookies.writes.filter((w) => w.name === "mail-density");
+const writes = () => cookies.writes.filter((w) => w.name === "list-density");
 
 beforeEach(() => {
 	cookies.reset();

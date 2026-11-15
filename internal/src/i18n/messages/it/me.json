@@ -1,0 +1,20 @@
+{
+	"heading": "Preferenze",
+	"intro": "Ciò che è tuo: come il pannello si legge e si vede per te. Sono salvate in questo browser; un altro browser parte dalle sue.",
+	"formLabel": "Le tue preferenze",
+	"language": "Lingua",
+	"languageHelp": "La lingua dell’interfaccia. Ogni nome è scritto nella propria lingua.",
+	"theme": "Tema",
+	"themeHelp": "Chiaro, scuro o quello del tuo sistema. La palette e i loghi sono quelli dell’operatore.",
+	"density": "Elenco dei messaggi",
+	"densityHelp": "L’altezza di una riga dell’elenco dei messaggi.",
+	"density_comfortable": "Comoda: due righe e un’anteprima",
+	"density_compact": "Compatta: una riga",
+	"save": "Salva le preferenze",
+	"saving": "Salvataggio",
+	"saved": "Preferenze salvate.",
+	"failed": "Non è stato possibile salvare le preferenze. Accedi di nuovo se il problema persiste.",
+	"refused": "Alcuni valori non sono tra le scelte. Non è stato salvato nulla.",
+	"required": "Scegli un’opzione.",
+	"notInList": "Questa non è una delle scelte."
+}

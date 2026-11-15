@@ -23,14 +23,14 @@ describe("setListDensity", () => {
 
 				expect(cookies.writes).toHaveLength(1);
 				const [write] = cookies.writes;
-				expect(write?.name).toBe("mail-density");
+				expect(write?.name).toBe("list-density");
 				expect(write?.value).toBe(density);
-				// A year, only the mail area, and out of reach of a script.
+				// A year, under /app (the mail area and the preferences page), and out of reach of a script.
 				expect(write?.options).toEqual({
 					httpOnly: true,
 					secure: true,
 					sameSite: "lax",
-					path: "/app/mail",
+					path: "/app",
 					maxAge: 31_536_000,
 				});
 			}

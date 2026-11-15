@@ -176,9 +176,9 @@ every sign-in, with a log line that names the variable. The provider calls are c
 
 ### Default language
 
-The panel speaks English unless the person picks another language in the menu
-(the `locale` cookie, which is checked against the six languages the panel ships
-before it is believed) or the browser asks for one of them in its
+The panel speaks English unless the person picks another language on their
+preferences page, `/app/me` (the `locale` cookie, which is checked against the
+six languages the panel ships before it is believed) or the browser asks for one of them in its
 `Accept-Language` header.
 
 | Variable | Effect |

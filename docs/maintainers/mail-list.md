@@ -76,8 +76,10 @@ the tooltip of a count.
   count under 32rem, one chip and a count from there. The names behind a count
   show under the pointer, and the reader of the open message lists every label
   as a chip (`components/reader-header`), for whoever has no pointer.
-- **Density** is the reader's choice, kept in the `mail-density` cookie (a
-  year, `HttpOnly`, only under `/app/mail`) and read on the server
+- **Density** is the reader's choice, kept in the `list-density` cookie (a
+  year, `HttpOnly`, under `/app`, so the preferences page, which sets it as
+  well, receives it too; it was `mail-density` under `/app/mail` until
+  `/app/me`, a cookie of that name is never read now) and read on the server
   (`queries/list-density`): the list pane carries `data-density` and the class
   `group/list`, and the rows, the headings and the skeleton read it with
   `group-data-[density=compact]/list:`. The first frame is already right,
@@ -85,7 +87,8 @@ the tooltip of a count.
   end of the search's line: beside the filters it pushed them onto a second
   line at 360 px. It sets the attribute at once and then calls
   `setListDensity`, which checks the session and the value again; a refusal
-  puts the attribute back and says so.
+  puts the attribute back and says so. Both writers (the toolbar's action and
+  the preferences form's) use `features/mail/cookie/list-density`.
 - **No press is lost.** epistle replaces a message's whole keyword set, so the
   changes to one message are written one after the other, each on what the one
   before left (`useMessageChange` gives its mutation a scope by message, which

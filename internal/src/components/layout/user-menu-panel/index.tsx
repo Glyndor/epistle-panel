@@ -1,6 +1,7 @@
 "use client";
 
-import { LogOutIcon, ShieldIcon } from "lucide-react";
+import { LogOutIcon, ShieldIcon, SlidersHorizontalIcon } from "lucide-react";
+import Link from "next/link";
 import { unstable_rethrow } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useTransition } from "react";
@@ -16,17 +17,17 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "@/components/ui/toaster";
 import { logout } from "@/features/auth/actions/logout";
-import { LanguageOptions } from "@/features/locale/components/language-options";
-import { useLocaleChoice } from "@/features/locale/hooks/use-locale-choice";
 import { ThemeOptions } from "@/features/theme/components/theme-options";
 import { useThemeChoice } from "@/features/theme/hooks/use-theme-choice";
 import type { SessionRole } from "@/lib/auth/session";
 import { useFirstItemFocus } from "@/lib/first-item-focus";
+import { PUBLIC_ROUTES } from "@/lib/routes";
 
 /**
  * The profile menu itself, with the Radix menu code it needs: who is signed
- * in and as what, the language, the theme, the way into the administration
- * when the server gave one, and sign out. `UserMenu` loads it on demand.
+ * in and as what, the theme (one click, as in the header), the way into the
+ * preferences page, where the language and the rest are chosen, the way into
+ * the administration when the server gave one, and sign out. `UserMenu` loads it on demand.
  */
 export function UserMenuPanel({
 	name,
@@ -45,13 +46,12 @@ export function UserMenuPanel({
 	focusFirstItem?: boolean;
 }) {
 	const t = useTranslations("nav");
-	const language = useLocaleChoice();
 	const theme = useThemeChoice();
 	const [leaving, startLeaving] = useTransition();
 	const content = useFirstItemFocus(defaultOpen && focusFirstItem);
 	// One thing at a time in this menu: while a choice is being stored, or the
 	// session is being ended, the rows wait.
-	const busy = language.pending || theme.pending || leaving;
+	const busy = theme.pending || leaving;
 
 	return (
 		<DropdownMenu defaultOpen={defaultOpen}>
@@ -71,18 +71,18 @@ export function UserMenuPanel({
 					<span>{t(`role_${sessionRole}`)}</span>
 				</DropdownMenuLabel>
 				<DropdownMenuSeparator />
-				<LanguageOptions
-					locale={language.locale}
-					onChoose={language.choose}
-					disabled={busy}
-				/>
-				<DropdownMenuSeparator />
 				<ThemeOptions
 					choice={theme.choice}
 					onChoose={theme.choose}
 					disabled={busy}
 				/>
 				<DropdownMenuSeparator />
+				<DropdownMenuItem asChild>
+					<Link href={PUBLIC_ROUTES.me}>
+						<SlidersHorizontalIcon aria-hidden="true" />
+						{t("preferences")}
+					</Link>
+				</DropdownMenuItem>
 				{adminHref === undefined ? null : (
 					<DropdownMenuItem asChild>
 						<a href={adminHref}>

@@ -7,6 +7,9 @@ import type { Route } from "next";
  * - `/` is the one sign-in page, for every account. It is the only page that
  *   answers without a session; a signed-in visitor is sent on to the mail area.
  * - `/app/mail` is the end-user mail area, for a session of any role.
+ * - `/app/me` is the one page of what is the person's own (language, theme, the
+ *   density of the message list), for a session of any role. It is that exact
+ *   path and nothing below it.
  * - `/app/{id}` is the administration area, where `{id}` is a UUID v4 chosen for
  *   each installation. It needs a session with the admin role, and everyone else
  *   (no session, no role, another id) gets the same 404 as a path that does not
@@ -19,10 +22,17 @@ import type { Route } from "next";
 export const PUBLIC_ROUTES = {
 	root: "/",
 	mail: "/app/mail",
+	me: "/app/me",
 } as const;
 
-/** The one folder of `/app` that is not the admin area. */
+/** The folder of `/app` that is the mail area. */
 const MAIL_SEGMENT = "mail";
+
+/**
+ * The folder of `/app` that is the person's own page. An admin id is a UUID
+ * and can never spell it, so the two cannot meet.
+ */
+const ME_SEGMENT = "me";
 
 /** A UUID v4 in its canonical lower-case form, the only shape the id may have. */
 const ADMIN_ID_PATTERN =
@@ -89,6 +99,8 @@ export type AppArea =
 	| { kind: "root" }
 	/** `/app/mail` and below. */
 	| { kind: "mail" }
+	/** `/app/me` and below: only the exact path is a route (`lib/me-paths`). */
+	| { kind: "me" }
 	/** `/app/<segment>/...`: the admin area if `segment` is the configured id. */
 	| { kind: "admin"; segment: string }
 	/** Anything else: no route of the panel answers it, whatever it looks like. */
@@ -97,7 +109,7 @@ export type AppArea =
 /**
  * Sort a request path into an {@link AppArea}. A path is read the way a router
  * may read it (percent-decoded, backslashes as slashes, repeated slashes
- * collapsed, any letter case for `app` and `mail`, a `;` parameter dropped), so
+ * collapsed, any letter case for `app`, `mail` and `me`, a `;` parameter dropped), so
  * a spelling the proxy and the router disagree on is never let through as
  * something it is not. One that cannot be decoded is `other`. The admin segment
  * is returned as decoded, with its case: the caller compares it with the
@@ -126,6 +138,9 @@ export function classifyAppPath(pathname: string): AppArea {
 	}
 	if (second.toLowerCase() === MAIL_SEGMENT) {
 		return { kind: "mail" };
+	}
+	if (second.toLowerCase() === ME_SEGMENT) {
+		return { kind: "me" };
 	}
 	return { kind: "admin", segment: second };
 }

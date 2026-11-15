@@ -22,16 +22,17 @@
 	"account": "Conta: {name}",
 	"role_admin": "Administrador",
 	"role_user": "Utilizador",
-	"language": "Idioma",
 	"theme": "Tema",
 	"themeCurrent": "Tema: {theme}",
 	"theme_system": "Sistema",
 	"theme_light": "Claro",
 	"theme_dark": "Escuro",
 	"themeFailed": "Não foi possível guardar o tema.",
-	"languageFailed": "Não foi possível guardar o idioma.",
 	"logoutFailed": "A sessão continua aberta: não foi possível terminá-la. Tente de novo.",
 	"menuFailed": "Não foi possível carregar o menu. Tente novamente.",
 	"notifications": "Notificações",
-	"dismiss": "Dispensar"
+	"dismiss": "Dispensar",
+	"mail": "Correio",
+	"preferences": "Preferências",
+	"meSheetDescription": "Para onde leva a sua página de preferências."
 }

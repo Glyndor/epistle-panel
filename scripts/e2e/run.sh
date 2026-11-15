@@ -14,10 +14,10 @@
 # exercises.
 #
 # Usage: scripts/e2e/run.sh [scenario...]
-#   scenarios: headers logout limiter limiter-global noauth degraded rotation idle theme theme-choice profile-menu body-limit captcha csrf set-locale unknown-variable suppression deliveries account-detail accounts breadcrumbs admin-id mail streaming tables overview shell-state
+#   scenarios: headers logout limiter limiter-global noauth degraded rotation idle theme theme-choice profile-menu body-limit captcha csrf me unknown-variable suppression deliveries account-detail accounts breadcrumbs admin-id mail streaming tables overview shell-state
 # The name is the same wherever the file lives: the scripts are in
 # scripts/e2e/scenarios/, one folder per concern (accounts, auth, config,
-# limits, locale, mail, rendering, security, theme).
+# limits, mail, me, rendering, security, theme).
 # With no argument every scenario runs. Exit status is non-zero when any check
 # fails. Override the ports with PANEL_PORT and STAND_IN_PORT.
 set -euo pipefail
@@ -129,8 +129,8 @@ cp -R "$internal/.next/static" "$standalone/.next/static"
 . "$root/scripts/e2e/scenarios/security/body-limit.sh"
 # shellcheck source=scripts/e2e/scenarios/security/csrf.sh
 . "$root/scripts/e2e/scenarios/security/csrf.sh"
-# shellcheck source=scripts/e2e/scenarios/locale/set-locale.sh
-. "$root/scripts/e2e/scenarios/locale/set-locale.sh"
+# shellcheck source=scripts/e2e/scenarios/me/me.sh
+. "$root/scripts/e2e/scenarios/me/me.sh"
 # shellcheck source=scripts/e2e/scenarios/config/unknown-variable.sh
 . "$root/scripts/e2e/scenarios/config/unknown-variable.sh"
 # shellcheck source=scripts/e2e/scenarios/mail/suppression.sh
@@ -161,7 +161,7 @@ cp -R "$internal/.next/static" "$standalone/.next/static"
 
 # ---------------------------------------------------------------- main
 
-all=(headers logout limiter limiter-global noauth degraded rotation idle theme theme-choice profile-menu body-limit captcha csrf set-locale unknown-variable suppression deliveries account-detail accounts breadcrumbs admin-id mail streaming tables overview shell-state)
+all=(headers logout limiter limiter-global noauth degraded rotation idle theme theme-choice profile-menu body-limit captcha csrf me unknown-variable suppression deliveries account-detail accounts breadcrumbs admin-id mail streaming tables overview shell-state)
 selected=("$@")
 ((${#selected[@]})) || selected=("${all[@]}")
 
@@ -181,7 +181,7 @@ for name in "${selected[@]}"; do
 	body-limit) scenario_body_limit ;;
 	captcha) scenario_captcha ;;
 	csrf) scenario_csrf ;;
-	set-locale) scenario_set_locale ;;
+	me) scenario_me ;;
 	unknown-variable) scenario_unknown_variable ;;
 	suppression) scenario_suppression ;;
 	deliveries) scenario_deliveries ;;

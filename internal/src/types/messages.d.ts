@@ -7,6 +7,7 @@ import type deliveries from "@/i18n/messages/en/deliveries.json";
 import type domains from "@/i18n/messages/en/domains.json";
 import type error from "@/i18n/messages/en/error.json";
 import type mail from "@/i18n/messages/en/mail.json";
+import type me from "@/i18n/messages/en/me.json";
 import type nav from "@/i18n/messages/en/nav.json";
 import type notFound from "@/i18n/messages/en/notFound.json";
 import type overview from "@/i18n/messages/en/overview.json";
@@ -35,6 +36,7 @@ declare module "next-intl" {
 			table: typeof table;
 			mail: typeof mail;
 			confirm: typeof confirm;
+			me: typeof me;
 		};
 	}
 }

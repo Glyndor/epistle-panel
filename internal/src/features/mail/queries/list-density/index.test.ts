@@ -15,7 +15,7 @@ describe("readListDensity", () => {
 
 	it("is the cookie's density when it holds one, exactly", async () => {
 		for (const density of ["comfortable", "compact"] as const) {
-			cookies.jar.set("mail-density", density);
+			cookies.jar.set("list-density", density);
 
 			expect(await readListDensity()).toBe(density);
 		}
@@ -23,7 +23,7 @@ describe("readListDensity", () => {
 
 	it("is comfortable for a tampered cookie, whatever it holds", async () => {
 		for (const value of HOSTILE_DENSITY_VALUES) {
-			cookies.jar.set("mail-density", value);
+			cookies.jar.set("list-density", value);
 
 			expect(await readListDensity()).toBe("comfortable");
 		}
@@ -32,7 +32,7 @@ describe("readListDensity", () => {
 	it("reads only its own cookie", async () => {
 		cookies.jar.set("theme", "compact");
 		cookies.jar.set("Mail-Density", "compact");
-		cookies.jar.set("mail-density2", "compact");
+		cookies.jar.set("list-density2", "compact");
 
 		expect(await readListDensity()).toBe("comfortable");
 	});

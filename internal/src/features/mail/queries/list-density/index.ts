@@ -8,7 +8,7 @@ import {
 
 /**
  * The density of the message list this request chose, from the
- * `mail-density` cookie. The cookie comes from the browser, so its value is
+ * `list-density` cookie. The cookie comes from the browser, so its value is
  * never trusted: anything that is not exactly a density reads as the default,
  * and only the parsed density, never the cookie's text, reaches the page.
  */

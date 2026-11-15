@@ -8,6 +8,7 @@ import {
 	LIST_DENSITIES,
 	LIST_DENSITY_ATTRIBUTE,
 	LIST_DENSITY_COOKIE,
+	LIST_DENSITY_COOKIE_PATH,
 	parseListDensity,
 } from ".";
 
@@ -18,7 +19,8 @@ describe("list density", () => {
 	});
 
 	it("names its cookie and the attribute the stylesheet's variants read", () => {
-		expect(LIST_DENSITY_COOKIE).toBe("mail-density");
+		expect(LIST_DENSITY_COOKIE).toBe("list-density");
+		expect(LIST_DENSITY_COOKIE_PATH).toBe("/app");
 		expect(LIST_DENSITY_ATTRIBUTE).toBe("data-density");
 	});
 

@@ -20,6 +20,7 @@ export const NAMESPACES = [
 	"table",
 	"mail",
 	"confirm",
+	"me",
 ] as const;
 export type Namespace = (typeof NAMESPACES)[number];
 
@@ -44,6 +45,7 @@ export const CLIENT_NAMESPACES = [
 	"table",
 	"mail",
 	"confirm",
+	"me",
 ] as const satisfies readonly Namespace[];
 export type ClientNamespace = (typeof CLIENT_NAMESPACES)[number];
 

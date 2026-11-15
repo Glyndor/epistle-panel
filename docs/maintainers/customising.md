@@ -64,7 +64,10 @@ Example override, mounted read-only and named in the environment:
 ### The theme a person chooses
 
 The header of the admin area and of the webmail has a theme button: light, dark
-or the system's. A chosen theme is `data-theme="light"` or `data-theme="dark"`
+or the system's. The same choice is a field of the person's own page,
+`/app/me` (see `preferences.md`), which a person with no script can use too. It
+is the person's only say over how the panel looks: there is no accent to pick, so
+the operator's palette and logos, and the contrasts measured on them, hold. A chosen theme is `data-theme="light"` or `data-theme="dark"`
 on `<html>`; with the system's there is no attribute and the tokens follow
 `prefers-color-scheme`. So a dark override names both ways of getting dark, as
 above. The panel's own rules weigh the same as a plain `:root` (the attribute
