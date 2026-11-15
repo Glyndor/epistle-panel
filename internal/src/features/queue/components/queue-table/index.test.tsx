@@ -109,6 +109,22 @@ describe("QueueTable", () => {
 		expect(await screen.findByRole("alert")).toHaveClass("bg-warning");
 	});
 
+	it("tells an empty queue with a drawing, a sentence and the way to the delivery log", async () => {
+		stubFetchJson({ entries: [] });
+		const { container } = render(
+			withAdminArea(<QueueTable cursor={undefined} />),
+		);
+
+		expect(await screen.findByText("emptyHint")).toBeInTheDocument();
+		expect(container.querySelector("[data-illustration]")).toHaveAttribute(
+			"data-illustration",
+			"tray",
+		);
+		expect(
+			screen.getByRole("link", { name: "emptyAction" }),
+		).toHaveAttribute("href", `/app/${TEST_ADMIN_ID}/deliveries`);
+	});
+
 	it("shows the whole page the API sent, with no second paging and no Filters menu", async () => {
 		stubFetchJson({
 			entries: Array.from({ length: 30 }, (_, index) => ({

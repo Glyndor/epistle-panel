@@ -3,9 +3,9 @@ import "server-only";
 import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
+import { EmptyState } from "@/components/empty-state";
 import { ListBoundary } from "@/features/mail/components/list-boundary";
 import { ListPaneSkeleton } from "@/features/mail/components/list-pane-skeleton";
-import { MailNotice } from "@/features/mail/components/mail-notice";
 import { folderName } from "@/features/mail/components/mail-place/place-name";
 import { ReaderBoundary } from "@/features/mail/components/reader-boundary";
 import { ReaderSkeleton } from "@/features/mail/components/reader-skeleton";
@@ -95,7 +95,14 @@ export async function MailPlace({
 						/>
 					</Suspense>
 				) : (
-					<MailNotice tone="empty">{t("readerEmpty")}</MailNotice>
+					<EmptyState
+						role="status"
+						className="h-full justify-center"
+						illustration="letter"
+						title={t("readerEmptyTitle")}
+						description={t("readerEmpty")}
+						action={<WriteLink />}
+					/>
 				)}
 			</section>
 		</div>

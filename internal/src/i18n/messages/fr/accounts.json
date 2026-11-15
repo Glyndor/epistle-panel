@@ -2,6 +2,7 @@
 	"heading": "Comptes",
 	"unreachable": "L’API de gestion du serveur de messagerie est injoignable. Vérifiez que le serveur est en marche et que le panneau est configuré.",
 	"empty": "Aucun compte n’est encore configuré.",
+	"emptyHint": "Créez le premier compte pour que quelqu’un puisse se connecter et recevoir du courrier.",
 	"name": "Compte",
 	"addresses": "Adresses",
 	"origin": "Origine",

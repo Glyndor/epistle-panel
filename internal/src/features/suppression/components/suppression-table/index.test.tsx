@@ -94,6 +94,22 @@ describe("SuppressionTable", () => {
 		expect(await screen.findByRole("alert")).toHaveClass("bg-warning");
 	});
 
+	it("tells an empty list with a drawing, a sentence and the way to the delivery log", async () => {
+		stubFetchJson({ addresses: [] });
+		const { container } = render(
+			withAdminArea(<SuppressionTable after={undefined} />),
+		);
+
+		expect(await screen.findByText("emptyHint")).toBeInTheDocument();
+		expect(container.querySelector("[data-illustration]")).toHaveAttribute(
+			"data-illustration",
+			"shield",
+		);
+		expect(
+			screen.getByRole("link", { name: "emptyAction" }),
+		).toHaveAttribute("href", `/app/${TEST_ADMIN_ID}/deliveries`);
+	});
+
 	it("shows the whole page the API sent, with no second paging and no Filters menu", async () => {
 		stubFetchJson({
 			addresses: Array.from(

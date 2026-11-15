@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import type { PlaceRef } from "@/features/mail/queries/request-mail";
 import { emailFixture, stubJmap } from "@/features/mail/test-support/jmap-stub";
 import {
@@ -285,11 +285,30 @@ describe("MailPlace", () => {
 		);
 	});
 
+	it("tells the empty reader in words, with a drawing and the way to write", async () => {
+		stubJmap({ ...mailboxes, ...folder });
+		await renderPlace();
+
+		const reader = screen.getByRole("region", { name: "readerLabel" });
+		const status = within(reader).getByRole("status");
+		expect(status).toHaveTextContent("readerEmptyTitle");
+		expect(status).toHaveTextContent("readerEmpty");
+		expect(reader.querySelector("[data-illustration]")).toHaveAttribute(
+			"data-illustration",
+			"letter",
+		);
+		expect(
+			within(reader).getByRole("link", { name: "compose" }),
+		).toHaveAttribute("href", "/app/mail/compose");
+	});
+
 	it("keeps the way into the composer in reach where the sidebar is a sheet", async () => {
 		stubJmap({ ...mailboxes, ...folder });
 		await renderPlace();
 
-		const write = screen.getByRole("link", { name: "compose" });
+		const write = within(
+			screen.getByRole("region", { name: "listLabel" }),
+		).getByRole("link", { name: "compose" });
 		expect(write).toHaveAttribute("href", "/app/mail/compose");
 		expect(write.closest("div")).toHaveClass("md:hidden");
 	});

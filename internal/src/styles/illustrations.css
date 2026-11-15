@@ -1,0 +1,45 @@
+/* The drawings of the empty states (`components/illustration`), one file each
+   in `illustrations/`. Each is a mask: the file says where the drawing is and
+   how solid (its alpha), and the element that wears it paints the colour, so
+   the drawing follows the theme, the operator's theme included, and no markup
+   with children is sent to the browser. See docs/maintainers/empty-states.md.
+   Add a drawing here and to `ILLUSTRATIONS` in `components/illustration`; a
+   test reads both lists and the files. */
+.illustration {
+	mask-repeat: no-repeat;
+	mask-position: center;
+	mask-size: contain;
+	-webkit-mask-repeat: no-repeat;
+	-webkit-mask-position: center;
+	-webkit-mask-size: contain;
+}
+
+.illustration-tray {
+	-webkit-mask-image: url("./illustrations/tray.svg");
+	mask-image: url("./illustrations/tray.svg");
+}
+
+.illustration-search {
+	-webkit-mask-image: url("./illustrations/search.svg");
+	mask-image: url("./illustrations/search.svg");
+}
+
+.illustration-letter {
+	-webkit-mask-image: url("./illustrations/letter.svg");
+	mask-image: url("./illustrations/letter.svg");
+}
+
+.illustration-people {
+	-webkit-mask-image: url("./illustrations/people.svg");
+	mask-image: url("./illustrations/people.svg");
+}
+
+.illustration-shield {
+	-webkit-mask-image: url("./illustrations/shield.svg");
+	mask-image: url("./illustrations/shield.svg");
+}
+
+.illustration-globe {
+	-webkit-mask-image: url("./illustrations/globe.svg");
+	mask-image: url("./illustrations/globe.svg");
+}

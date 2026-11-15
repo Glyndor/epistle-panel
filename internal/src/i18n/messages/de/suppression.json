@@ -3,6 +3,8 @@
 	"description": "Adressen, an die der Server nicht sendet, zum Beispiel nach einem dauerhaften Bounce. Wird eine Adresse entfernt, kann sie wieder Nachrichten empfangen.",
 	"unreachable": "Die Verwaltungs-API des Mailservers ist nicht erreichbar. Prüfen Sie, ob der Server läuft und das Panel konfiguriert ist.",
 	"empty": "Keine Adresse ist unterdrückt.",
+	"emptyHint": "Eine Adresse, an die der Server nicht mehr sendet, etwa nach einem dauerhaften Bounce, steht hier; das Zustellprotokoll zeigt die Fehler.",
+	"emptyAction": "Zustellprotokoll öffnen",
 	"address": "Adresse",
 	"remove": "Entfernen",
 	"removing": "Wird entfernt…",

@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+	cleanup,
+	fireEvent,
+	render,
+	screen,
+	within,
+} from "@testing-library/react";
 
 import { stubFetchJson, stubFetchReject } from "@/lib/api/test-support/fetch";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
@@ -39,6 +45,21 @@ describe("DomainsTable", () => {
 		render(withQuery(<DomainsTable />));
 
 		expect(await screen.findByText("empty")).toBeInTheDocument();
+	});
+
+	it("tells no domains with a drawing and a sentence, and offers no button it cannot back", async () => {
+		stubFetchJson({ domains: [] });
+
+		const { container } = render(withQuery(<DomainsTable />));
+
+		expect(await screen.findByText("emptyHint")).toBeInTheDocument();
+		expect(container.querySelector("[data-illustration]")).toHaveAttribute(
+			"data-illustration",
+			"globe",
+		);
+		const cell = screen.getByRole("cell");
+		expect(within(cell).queryByRole("button")).toBeNull();
+		expect(within(cell).queryByRole("link")).toBeNull();
 	});
 
 	it("shows the unreachable warning when the API cannot be read", async () => {

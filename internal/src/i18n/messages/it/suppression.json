@@ -3,6 +3,8 @@
 	"description": "Indirizzi a cui il server non invia, ad esempio dopo un rimbalzo permanente. Rimuoverne uno gli permette di ricevere di nuovo posta.",
 	"unreachable": "L’API di gestione del server di posta non è raggiungibile. Verifica che il server sia in esecuzione e che il pannello sia configurato.",
 	"empty": "Nessun indirizzo è soppresso.",
+	"emptyHint": "Qui compare un indirizzo a cui il server non invierà più, per esempio dopo un rimbalzo permanente; il registro delle consegne mostra i fallimenti.",
+	"emptyAction": "Apri il registro delle consegne",
 	"address": "Indirizzo",
 	"remove": "Rimuovi",
 	"removing": "Rimozione…",

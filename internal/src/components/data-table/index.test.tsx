@@ -104,6 +104,7 @@ describe("DataTable", () => {
 				getRowId={(row) => row.name}
 				filterLabel="Filter"
 				emptyLabel="none"
+				empty={{ illustration: "tray", description: "Nothing yet." }}
 				toolbar={<a href="/next">Next</a>}
 			/>,
 		);
@@ -127,6 +128,7 @@ describe("DataTable columns", () => {
 				getRowId={(row) => row.name}
 				filterLabel="Filter"
 				emptyLabel="none"
+				empty={{ illustration: "tray", description: "Nothing yet." }}
 			/>,
 		);
 

@@ -4,6 +4,7 @@
 	"unreachable": "Die Verwaltungs-API des Mailservers ist nicht erreichbar. Prüfen Sie, ob der Server läuft und das Panel konfiguriert ist.",
 	"disabled": "Das Zustellungsprotokoll ist auf dem Server ausgeschaltet. Legen Sie in den Speichereinstellungen des Servers eine Aufbewahrung von mehr als 0 Tagen fest, um Zustellungen aufzuzeichnen.",
 	"empty": "Keine Zustellung passt.",
+	"emptyHint": "Versuchen Sie einen anderen Zeitraum oder entfernen Sie einen Filter.",
 	"full": "Die API liefert höchstens 100 Datensätze und hat keine nächste Seite. Grenzen Sie die Liste mit den Filtern ein, um andere zu sehen.",
 	"filter": "Diese Datensätze filtern",
 	"time": "Zeit (UTC)",

@@ -4,6 +4,7 @@
 	"unreachable": "L’API de gestion du serveur de messagerie est injoignable. Vérifiez que le serveur est en marche et que le panneau est configuré.",
 	"disabled": "Le journal des livraisons est désactivé sur le serveur. Définissez une rétention supérieure à 0 jour dans les paramètres de stockage du serveur pour enregistrer les livraisons.",
 	"empty": "Aucune livraison ne correspond.",
+	"emptyHint": "Essayez une autre période ou retirez un filtre.",
 	"full": "L’API renvoie au plus 100 enregistrements et n’a pas de page suivante. Affinez la liste avec les filtres pour voir les autres.",
 	"filter": "Filtrer ces enregistrements",
 	"time": "Heure (UTC)",

@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+	cleanup,
+	fireEvent,
+	render,
+	screen,
+	within,
+} from "@testing-library/react";
 
 import { stubFetchJson, stubFetchReject } from "@/lib/api/test-support/fetch";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
@@ -148,6 +154,22 @@ describe("DeliveriesTable", () => {
 		const alert = await screen.findByRole("alert");
 		expect(alert).toHaveTextContent("unreachable");
 		expect(alert).toHaveClass("bg-warning");
+	});
+
+	it("tells an empty log with a drawing and a sentence, and no button", async () => {
+		stubFetchJson({ entries: [] });
+		const { container } = render(
+			withQuery(<DeliveriesTable filters={{}} />),
+		);
+
+		expect(await screen.findByText("emptyHint")).toBeInTheDocument();
+		expect(container.querySelector("[data-illustration]")).toHaveAttribute(
+			"data-illustration",
+			"tray",
+		);
+		const cell = screen.getByRole("cell");
+		expect(within(cell).queryByRole("button")).toBeNull();
+		expect(within(cell).queryByRole("link")).toBeNull();
 	});
 
 	it("shows 25 records a page, and narrows through its own form, not a Filters menu", async () => {

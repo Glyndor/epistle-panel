@@ -126,6 +126,7 @@ export function DeliveriesTable({ filters }: { filters: DeliveryFilters }) {
 				getRowId={getRowId}
 				filterLabel={t("filter")}
 				emptyLabel={t("empty")}
+				empty={{ illustration: "tray", description: t("emptyHint") }}
 			/>
 			{data.full ? (
 				<p className="text-muted-foreground">{t("full")}</p>

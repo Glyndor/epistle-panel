@@ -84,9 +84,44 @@ describe("MessageList", () => {
 				/>,
 			),
 		);
+		expect(await screen.findByText("emptyMatches")).toBeInTheDocument();
+		expect(screen.getByText("emptyHint")).toBeInTheDocument();
+	});
+
+	it("draws an empty folder with a drawing and a way to write, and a search that matched nothing with another drawing", async () => {
+		stubJmap({ "Email/query": { ids: [] }, "Email/get": { list: [] } });
+		const { container } = render(
+			withQuery(<MessageList view={view} selectedId={undefined} />),
+		);
+
+		expect(await screen.findByText("emptyFolderHint")).toBeInTheDocument();
+		expect(container.querySelector("[data-illustration]")).toHaveAttribute(
+			"data-illustration",
+			"tray",
+		);
+		expect(screen.getByRole("link", { name: "compose" })).toHaveAttribute(
+			"href",
+			"/app/mail/compose",
+		);
+		expect(screen.getByRole("status")).toHaveTextContent("emptyFolder");
+		cleanup();
+
+		const found = render(
+			withQuery(
+				<MessageList
+					view={{
+						...view,
+						conditions: { ...view.conditions, q: "x" },
+					}}
+					selectedId={undefined}
+				/>,
+			),
+		);
+		await screen.findByText("emptyMatches");
 		expect(
-			await screen.findByText("emptyMatches emptyHint"),
-		).toBeInTheDocument();
+			found.container.querySelector("[data-illustration]"),
+		).toHaveAttribute("data-illustration", "search");
+		expect(screen.queryByRole("link", { name: "compose" })).toBeNull();
 	});
 
 	it("offers the way out of a search that matched nothing, and none for a folder that is empty", async () => {
@@ -329,8 +364,7 @@ describe("MessageList", () => {
 				container.querySelector('[data-slot="empty-list"]'),
 			),
 		);
-		expect(document.activeElement).toHaveTextContent(
-			"emptyMatches emptyHint",
-		);
+		expect(document.activeElement).toHaveTextContent("emptyMatches");
+		expect(document.activeElement).toHaveTextContent("emptyHint");
 	});
 });

@@ -1,6 +1,7 @@
 {
 	"rows": "{total, plural, =0 {Keine Zeilen} one {# Zeile} other {{shown} von # Zeilen}}",
 	"noMatches": "Keine Zeile passt zum Filter.",
+	"noMatchesHint": "Ändern Sie den Text oder die Filter, oder entfernen Sie alle.",
 	"sortable": "sortierbar",
 	"sortedAscending": "aufsteigend sortiert",
 	"sortedDescending": "absteigend sortiert",

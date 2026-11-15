@@ -3,6 +3,8 @@
 	"description": "Adresses auxquelles le serveur n’envoie pas, par exemple après un rebond permanent. Retirer une adresse lui permet de recevoir de nouveau des messages.",
 	"unreachable": "L’API de gestion du serveur de messagerie est injoignable. Vérifiez que le serveur est en marche et que le panneau est configuré.",
 	"empty": "Aucune adresse n’est supprimée.",
+	"emptyHint": "Une adresse à laquelle le serveur n’enverra plus, après un rebond définitif par exemple, est listée ici ; le journal des livraisons montre les échecs.",
+	"emptyAction": "Ouvrir le journal des livraisons",
 	"address": "Adresse",
 	"remove": "Retirer",
 	"removing": "Retrait…",

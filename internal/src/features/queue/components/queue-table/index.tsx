@@ -79,6 +79,15 @@ export function QueueTable({ cursor }: { cursor: string | undefined }) {
 			getRowId={getRowId}
 			filterLabel={t("filter")}
 			emptyLabel={t("empty")}
+			empty={{
+				illustration: "tray",
+				description: t("emptyHint"),
+				action: (
+					<Button asChild variant="outline">
+						<Link href={routes.deliveries}>{t("emptyAction")}</Link>
+					</Button>
+				),
+			}}
 			// The API pages this list with its cursor: not a second time here.
 			pagination={false}
 			toolbar={

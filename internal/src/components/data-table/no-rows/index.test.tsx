@@ -14,6 +14,11 @@ const setup = (onClearFilters: (() => void) | undefined) =>
 				<DataTableNoRows
 					colSpan={3}
 					emptyLabel="No accounts yet"
+					empty={{
+						illustration: "people",
+						description: "Create the first one.",
+						action: <a href="/new">Create</a>,
+					}}
 					onClearFilters={onClearFilters}
 				/>
 			</TableBody>
@@ -28,6 +33,32 @@ describe("DataTableNoRows", () => {
 		expect(screen.getByText("No accounts yet")).toBeInTheDocument();
 		expect(screen.queryByText("noMatches")).toBeNull();
 		expect(screen.queryByRole("button")).toBeNull();
+	});
+
+	it("gives the empty list its own drawing, sentence and next step", () => {
+		const { container } = setup(undefined);
+
+		expect(screen.getByText("Create the first one.")).toBeInTheDocument();
+		expect(screen.getByRole("link", { name: "Create" })).toHaveAttribute(
+			"href",
+			"/new",
+		);
+		expect(container.querySelector("[data-illustration]")).toHaveAttribute(
+			"data-illustration",
+			"people",
+		);
+	});
+
+	it("gives a filter that left no row the search drawing and its own sentence, not the list's", () => {
+		const { container } = setup(() => {});
+
+		expect(screen.getByText("noMatchesHint")).toBeInTheDocument();
+		expect(screen.queryByText("Create the first one.")).toBeNull();
+		expect(screen.queryByRole("link", { name: "Create" })).toBeNull();
+		expect(container.querySelector("[data-illustration]")).toHaveAttribute(
+			"data-illustration",
+			"search",
+		);
 	});
 
 	it("says the filters left no row and takes them off on request", () => {

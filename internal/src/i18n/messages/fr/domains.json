@@ -2,6 +2,7 @@
 	"heading": "Domaines",
 	"unreachable": "L’API de gestion du serveur de messagerie est injoignable. Vérifiez que le serveur est en marche et que le panneau est configuré.",
 	"empty": "Aucun domaine n’est encore configuré.",
+	"emptyHint": "Les domaines se configurent sur le serveur de messagerie ; dès qu’il y en a un, il est listé ici.",
 	"name": "Domaine",
 	"state": "État",
 	"stateActive": "Actif",

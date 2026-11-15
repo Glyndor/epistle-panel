@@ -67,6 +67,7 @@ export function DomainsTable() {
 			getRowId={getRowId}
 			filterLabel={t("filter")}
 			emptyLabel={t("empty")}
+			empty={{ illustration: "globe", description: t("emptyHint") }}
 			filtersMenu={DataTableFiltersMenu}
 			facets={[
 				{

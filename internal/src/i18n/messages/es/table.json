@@ -1,6 +1,7 @@
 {
 	"rows": "{total, plural, =0 {Sin filas} one {# fila} other {{shown} de # filas}}",
 	"noMatches": "Ninguna fila coincide con el filtro.",
+	"noMatchesHint": "Cambia el texto o los filtros, o quítalos todos.",
 	"sortable": "ordenable",
 	"sortedAscending": "orden ascendente",
 	"sortedDescending": "orden descendente",
