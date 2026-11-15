@@ -12,7 +12,7 @@ import type { AccountSection as Section } from "@/features/account-detail/schema
 import { useActionEnvironment } from "@/features/account-detail/test-support/action-checks";
 import { stubRoutes } from "@/features/account-detail/test-support/stub-routes";
 import { accountsKeys } from "@/features/accounts/queries/accounts-query";
-import { stubFetchReject } from "@/lib/api/test-support/fetch";
+import { sentRequests, stubFetchReject } from "@/lib/api/test-support/fetch";
 import { mockRequestCookies } from "@/lib/auth/test-support/cookies";
 import { answerConfirm } from "@/test/confirm-dialog";
 import { testQueryClient, withQuery } from "@/test/query-wrapper";
@@ -172,6 +172,22 @@ describe("AccountSection", () => {
 			screen.queryByRole("region", { name: "sectionOverview" }),
 		).toBeNull();
 		errors.mockRestore();
+	});
+
+	it("does not ask for the account list when the section only needs its own data", async () => {
+		api([account()]);
+
+		show("mailboxes");
+
+		expect(
+			await screen.findByRole("region", { name: "mailboxesTitle" }),
+		).toBeInTheDocument();
+		expect(
+			sentRequests().filter(
+				(request) =>
+					new URL(request.url).pathname === "/api/v1/accounts",
+			),
+		).toHaveLength(0);
 	});
 
 	it("shows a loading block while the list is on its way", () => {

@@ -81,6 +81,14 @@ describe("AccountSectionNav", () => {
 		).toHaveLength(1);
 	});
 
+	it("keeps one live region ready for a pending navigation", () => {
+		show("overview");
+
+		const status = screen.getByRole("status");
+		expect(status).toHaveAttribute("aria-live", "polite");
+		expect(status).toHaveTextContent("");
+	});
+
 	it("draws the links with the button's own variants", () => {
 		show("profile");
 

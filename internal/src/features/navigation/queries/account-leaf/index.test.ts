@@ -47,7 +47,7 @@ describe("accountLeaf", () => {
 			"<script>",
 			"Admin",
 			"a%0d%0ab",
-			"ålice",
+			"??lice",
 			"",
 		]) {
 			expect([segment, await accountLeaf(segment)]).toEqual([
@@ -67,5 +67,12 @@ describe("accountLeaf", () => {
 		} finally {
 			logged.mockRestore();
 		}
+	});
+
+	it("does not read the list when another part of the page validates the name", async () => {
+		stubFetchJson(accounts);
+
+		expect(await accountLeaf("alice", false)).toBe("alice");
+		expect(sentRequests()).toHaveLength(0);
 	});
 });

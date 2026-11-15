@@ -15,11 +15,13 @@ import { loadArchive } from "@/features/account-detail/queries/load-archive";
 import { loadMailboxes } from "@/features/account-detail/queries/load-mailboxes";
 import { loadMasked } from "@/features/account-detail/queries/load-masked";
 import {
+	accountSectionNeedsAccount,
 	parseSectionParam,
 	type AccountSection as Section,
 } from "@/features/account-detail/schemas/account-section";
 import { accountsQueryOptions } from "@/features/accounts/queries/accounts-query";
 import { loadAccounts } from "@/features/accounts/queries/load-accounts";
+import type { AccountRow } from "@/features/accounts/schemas/accounts-view";
 import { type AccountName, parseAccountNameParam } from "@/lib/api/schemas";
 import { requireAdmin } from "@/lib/auth/require-session";
 import {
@@ -30,34 +32,58 @@ import {
 import { getServerQueryClient } from "@/lib/query/server-query-client";
 
 /**
- * The data the section on screen needs: the accounts list, which every section
- * reads, and, for the section that lists something of the account, its own
- * dataset. The datasets of the other sections are not asked for at all, so a
- * visit to the overview asks the API for nothing but the list.
+ * The data the section on screen needs: the accounts list for the sections
+ * that show the account, and, for the section that lists something of the
+ * account, its own dataset. The datasets of the other sections are not asked
+ * for at all.
  */
-function sectionQueries(section: Section, name: AccountName): PrefetchSpec[] {
+async function sectionQueries(
+	section: Section,
+	name: AccountName,
+): Promise<PrefetchSpec[]> {
+	const client = getServerQueryClient();
 	switch (section) {
-		case "mailboxes":
-			return [
-				prefetchSpec(
-					mailboxesQueryOptions(name, () => loadMailboxes(name)),
-					"account mailboxes",
-				),
-			];
-		case "masked":
-			return [
-				prefetchSpec(
-					maskedQueryOptions(name, () => loadMasked(name)),
-					"account masked",
-				),
-			];
-		case "archive":
-			return [
-				prefetchSpec(
-					archiveQueryOptions(name, () => loadArchive(name)),
-					"account archive",
-				),
-			];
+		case "mailboxes": {
+			const query = mailboxesQueryOptions(name, () =>
+				loadMailboxes(name),
+			);
+			await prefetch(client, query, "account mailboxes");
+			const mailboxes = client.getQueryData(query.queryKey);
+			return mailboxes === undefined
+				? []
+				: [
+						prefetchSpec(
+							mailboxesQueryOptions(name, async () => mailboxes),
+							"account mailboxes",
+						),
+					];
+		}
+		case "masked": {
+			const query = maskedQueryOptions(name, () => loadMasked(name));
+			await prefetch(client, query, "account masked");
+			const masked = client.getQueryData(query.queryKey);
+			return masked === undefined
+				? []
+				: [
+						prefetchSpec(
+							maskedQueryOptions(name, async () => masked),
+							"account masked",
+						),
+					];
+		}
+		case "archive": {
+			const query = archiveQueryOptions(name, () => loadArchive(name));
+			await prefetch(client, query, "account archive");
+			const archive = client.getQueryData(query.queryKey);
+			return archive === undefined
+				? []
+				: [
+						prefetchSpec(
+							archiveQueryOptions(name, async () => archive),
+							"account archive",
+						),
+					];
+		}
 		default:
 			return [];
 	}
@@ -86,25 +112,29 @@ export default async function AccountDetailPage({
 		notFound();
 	}
 	const section = parseSectionParam((await searchParams)["section"]);
+	const needsAccount = accountSectionNeedsAccount(section);
 	const client = getServerQueryClient();
 	const accountsQuery = accountsQueryOptions(loadAccounts);
-	await prefetch(client, accountsQuery, "accounts fetch");
-	const accounts = client.getQueryData(accountsQuery.queryKey);
-	if (accounts && !accounts.some((row) => row.name === name)) {
-		notFound();
+	let accounts: readonly AccountRow[] | undefined;
+	if (needsAccount) {
+		await prefetch(client, accountsQuery, "accounts fetch");
+		accounts = client.getQueryData(accountsQuery.queryKey);
+		if (accounts && !accounts.some((row) => row.name === name)) {
+			notFound();
+		}
 	}
 	const t = await getTranslations("accountDetail");
-	const queries =
-		accounts === undefined
+	const queries = [
+		...(accounts === undefined
 			? []
 			: [
-					// Already read above: handed over, not asked again.
 					prefetchSpec(
 						accountsQueryOptions(async () => accounts),
 						"accounts fetch",
 					),
-					...sectionQueries(section, name),
-				];
+				]),
+		...(await sectionQueries(section, name)),
+	];
 
 	return (
 		<>
@@ -124,7 +154,7 @@ export default async function AccountDetailPage({
 					archive: t("archiveTitle"),
 				}}
 			/>
-			<Suspense fallback={<AccountDetailSkeleton />}>
+			<Suspense fallback={<AccountDetailSkeleton section={section} />}>
 				<PrefetchBoundary queries={queries}>
 					<AccountSection section={section} name={name} />
 				</PrefetchBoundary>

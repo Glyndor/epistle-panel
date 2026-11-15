@@ -54,7 +54,11 @@ const PAGES: Array<[string, string, () => Promise<unknown>]> = [
 	[
 		"account detail trail",
 		"@trail/accounts/[name]/page.tsx",
-		() => trails.account({ params: Promise.resolve({ name: "alice" }) }),
+		() =>
+			trails.account({
+				params: Promise.resolve({ name: "alice" }),
+				searchParams: Promise.resolve({}),
+			}),
 	],
 	["queue trail", "@trail/queue/page.tsx", () => trails.queue()],
 	[

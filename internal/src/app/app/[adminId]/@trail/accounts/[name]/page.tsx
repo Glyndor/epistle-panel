@@ -1,5 +1,9 @@
 import { Suspense } from "react";
 
+import {
+	accountSectionNeedsAccount,
+	parseSectionParam,
+} from "@/features/account-detail/schemas/account-section";
 import { AdminBreadcrumbs } from "@/features/navigation/components/admin-breadcrumbs";
 import { accountLeaf } from "@/features/navigation/queries/account-leaf";
 import { requireAdmin } from "@/lib/auth/require-session";
@@ -9,11 +13,13 @@ import type { AdminRoutes } from "@/lib/routes";
 async function AccountTrail({
 	routes,
 	segment,
+	validate,
 }: {
 	routes: AdminRoutes;
 	segment: string;
+	validate: boolean;
 }) {
-	const name = await accountLeaf(segment);
+	const name = await accountLeaf(segment, validate);
 
 	return (
 		<AdminBreadcrumbs
@@ -32,20 +38,27 @@ async function AccountTrail({
  */
 export default async function Trail({
 	params,
+	searchParams,
 }: {
 	params: Promise<{ name: string }>;
+	searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
 	const { routes } = await requireAdmin();
 	const segment = (await params).name;
+	const section = parseSectionParam((await searchParams)["section"]);
 
 	return (
 		<Suspense
-			key={segment}
+			key={`${segment}-${section}`}
 			fallback={
 				<AdminBreadcrumbs routes={routes} page="accounts" leaf={null} />
 			}
 		>
-			<AccountTrail routes={routes} segment={segment} />
+			<AccountTrail
+				routes={routes}
+				segment={segment}
+				validate={accountSectionNeedsAccount(section)}
+			/>
 		</Suspense>
 	);
 }

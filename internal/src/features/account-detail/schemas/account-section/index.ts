@@ -15,6 +15,14 @@ export const ACCOUNT_SECTIONS = [
 ] as const;
 export type AccountSection = (typeof ACCOUNT_SECTIONS)[number];
 
+export function accountSectionNeedsAccount(section: AccountSection): boolean {
+	return (
+		section === "overview" ||
+		section === "profile" ||
+		section === "security"
+	);
+}
+
 /** The section shown when the address names none, or one that is not offered. */
 export const DEFAULT_SECTION: AccountSection = "overview";
 

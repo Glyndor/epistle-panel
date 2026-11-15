@@ -1,7 +1,12 @@
+"use client";
+
 import type { Route } from "next";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { LinkPendingState } from "@/features/account-detail/components/account-section-nav/pending-state";
 import {
 	ACCOUNT_SECTIONS,
 	type AccountSection,
@@ -37,6 +42,9 @@ export function AccountSectionNav({
 	/** The words of each link. */
 	names: Readonly<Record<AccountSection, string>>;
 }) {
+	const t = useTranslations("accountDetail");
+	const [pending, setPending] = useState<AccountSection | null>(null);
+
 	return (
 		<nav aria-label={label}>
 			<ul className="flex flex-wrap gap-1">
@@ -51,16 +59,32 @@ export function AccountSectionNav({
 						>
 							<Link
 								href={accountSectionHref(base, option)}
+								prefetch={false}
 								aria-current={
 									option === section ? "page" : undefined
 								}
+								aria-busy={
+									pending === option ? true : undefined
+								}
 							>
 								{names[option]}
+								<LinkPendingState
+									section={option}
+									onPending={setPending}
+								/>
 							</Link>
 						</Button>
 					</li>
 				))}
 			</ul>
+			<p
+				role="status"
+				aria-live="polite"
+				aria-atomic="true"
+				className="sr-only"
+			>
+				{pending ? t("sectionLoading", { name: names[pending] }) : ""}
+			</p>
 		</nav>
 	);
 }

@@ -92,7 +92,7 @@ const cases: [
 				params: Promise.resolve({ name: "alice" }),
 				searchParams: Promise.resolve({}),
 			}),
-		"account-skeleton",
+		"account-skeleton-overview",
 		["/api/v1/accounts"],
 	],
 ];
@@ -111,7 +111,7 @@ describe("admin pages stream their data", () => {
 				"aria-busy",
 				"true",
 			);
-			expect(screen.getByRole("status")).toHaveTextContent("loading");
+			expect(screen.getByText("loading")).toBeInTheDocument();
 		});
 	}
 });
@@ -138,7 +138,11 @@ const trails: Record<keyof typeof loadings, () => Promise<ReactNode>> = {
 	domains: (await import("./@trail/domains/page")).default,
 	suppression: (await import("./@trail/suppression/page")).default,
 	deliveries: (await import("./@trail/deliveries/page")).default,
-	account: () => AccountTrail({ params: Promise.resolve({ name: "alice" }) }),
+	account: () =>
+		AccountTrail({
+			params: Promise.resolve({ name: "alice" }),
+			searchParams: Promise.resolve({}),
+		}),
 };
 
 /** The steps of the trail on screen, the addresses of its links and its current page. */
@@ -208,6 +212,20 @@ describe("the header draws the trail to every admin page before the page's data"
 		expect(paths()).toEqual(["/api/v1/accounts"]);
 	});
 
+	it("account: a list section does not read the accounts list for the trail", async () => {
+		render(
+			await resolveServerTree(
+				await AccountTrail({
+					params: Promise.resolve({ name: "alice" }),
+					searchParams: Promise.resolve({ section: "mailboxes" }),
+				}),
+			),
+		);
+
+		expect(trailOnScreen().current).toEqual(["alice"]);
+		expect(paths()).toEqual([]);
+	});
+
 	it("account: a name that is no account is never shown as a page, and one that could not be a name asks the API nothing", async () => {
 		for (const [name, asked] of [
 			["bob", ["/api/v1/accounts"]],
@@ -218,7 +236,10 @@ describe("the header draws the trail to every admin page before the page's data"
 			const before = paths().length;
 			render(
 				await resolveServerTree(
-					await AccountTrail({ params: Promise.resolve({ name }) }),
+					await AccountTrail({
+						params: Promise.resolve({ name }),
+						searchParams: Promise.resolve({}),
+					}),
 				),
 			);
 

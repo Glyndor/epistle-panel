@@ -115,10 +115,7 @@ describe("AccountDetailPage", () => {
 
 		await shown("alice", "mailboxes");
 
-		expect(paths().sort()).toEqual([
-			"/api/v1/accounts",
-			"/api/v1/accounts/alice/mailboxes",
-		]);
+		expect(paths().sort()).toEqual(["/api/v1/accounts/alice/mailboxes"]);
 	});
 
 	it("asks for the masked addresses only on their own section", async () => {
@@ -126,10 +123,7 @@ describe("AccountDetailPage", () => {
 
 		await shown("alice", "masked");
 
-		expect(paths().sort()).toEqual([
-			"/api/v1/accounts",
-			"/api/v1/accounts/alice/masked",
-		]);
+		expect(paths().sort()).toEqual(["/api/v1/accounts/alice/masked"]);
 	});
 
 	it("asks for the archive only on its own section", async () => {
@@ -137,10 +131,7 @@ describe("AccountDetailPage", () => {
 
 		await shown("alice", "archive");
 
-		expect(paths().sort()).toEqual([
-			"/api/v1/accounts",
-			"/api/v1/accounts/alice/archive",
-		]);
+		expect(paths().sort()).toEqual(["/api/v1/accounts/alice/archive"]);
 	});
 
 	it("answers 404, not a redirect, without a session and never calls the API", async () => {

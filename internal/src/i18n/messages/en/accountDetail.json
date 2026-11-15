@@ -8,6 +8,7 @@
 	"unavailable": "Could not complete the change. Please try again.",
 	"sectionLoadFailed": "This section could not be loaded.",
 	"sectionRetry": "Try again",
+	"sectionLoading": "Loading {name}…",
 	"addresses": "Addresses",
 	"noAddresses": "No addresses.",
 	"configManaged": "This account is declared in the server's configuration file. Its name, password and two-factor setting can only be changed there.",

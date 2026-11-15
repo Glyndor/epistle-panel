@@ -6,6 +6,7 @@ import { adminRoutes } from "@/lib/routes";
 import {
 	ACCOUNT_SECTIONS,
 	accountSectionHref,
+	accountSectionNeedsAccount,
 	DEFAULT_SECTION,
 	parseSectionParam,
 } from ".";
@@ -23,6 +24,15 @@ describe("the account page's sections", () => {
 			"archive",
 		]);
 		expect(DEFAULT_SECTION).toBe("overview");
+	});
+
+	it("asks for the account only where the section needs it", () => {
+		expect(accountSectionNeedsAccount("overview")).toBe(true);
+		expect(accountSectionNeedsAccount("profile")).toBe(true);
+		expect(accountSectionNeedsAccount("security")).toBe(true);
+		expect(accountSectionNeedsAccount("mailboxes")).toBe(false);
+		expect(accountSectionNeedsAccount("masked")).toBe(false);
+		expect(accountSectionNeedsAccount("archive")).toBe(false);
 	});
 
 	it("reads the section of the address, and the first of a repeated one", () => {
