@@ -4,6 +4,7 @@ import { JmapError } from "@/features/mail/jmap/call";
 import { currentMailSession } from "@/features/mail/jmap/credentials";
 import { loadComposeLimits } from "@/features/mail/queries/compose-limits";
 import { composeMessage } from "@/features/mail/queries/compose-message";
+import { declaredLength } from "@/features/mail/responses/plain-number";
 import { isSameOrigin } from "@/features/mail/responses/same-origin";
 import { composeInputSchema } from "@/features/mail/schemas/compose-input";
 import { logApiFailure } from "@/lib/api/log-failure";
@@ -69,7 +70,8 @@ async function readCapped(
  * not a Server Action because a message body is larger than the 16 KB a Server
  * Action may carry. Because it is a plain POST endpoint it does what an action
  * does and one thing more: the request must come from the panel's own origin,
- * then the session is checked, then a valid `Content-Length` is required (411) and the body is
+ * then the session is checked, then a `Content-Length` that is a plain decimal
+ * number of bytes is required (411) and the body is
  * read as it streams, cut at the first byte past the cap or past what was declared
  * (bytes, not characters), then parsed with the strict schema. The answer is a closed category, never the
  * server's words.
@@ -99,8 +101,8 @@ export async function composeResponse(request: Request): Promise<Response> {
 		) {
 			return answer(415, { ok: false, reason: "invalid" });
 		}
-		const declared = Number(request.headers.get("content-length"));
-		if (!Number.isInteger(declared) || declared <= 0) {
+		const declared = declaredLength(request.headers.get("content-length"));
+		if (declared === null) {
 			return answer(411, { ok: false, reason: "invalid" });
 		}
 		const limits = await loadComposeLimits(session);

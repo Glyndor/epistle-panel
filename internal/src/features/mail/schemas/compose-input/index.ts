@@ -45,49 +45,60 @@ export type OriginMark = (typeof ORIGIN_MARKS)[number];
  *
  * The schema is built from the limits the mail server publishes, so the form
  * and the route hold the same numbers.
+ *
+ * The limit of recipients holds for the whole message: the three fields
+ * together carry no more than `limits.maxRecipients`, so a message cannot
+ * spread what it may not send in one field over the three.
  */
 export function composeInputSchema(limits: ComposeLimits) {
 	const recipientsSchema = z.array(recipientSchema).max(limits.maxRecipients);
-	return z.strictObject({
-		op: z.enum(["draft", "send"]),
-		/** The draft this one replaces, once saved. */
-		draftId: messageIdSchema.optional(),
-		to: recipientsSchema,
-		cc: recipientsSchema,
-		bcc: recipientsSchema,
-		subject: z.string().max(limits.maxSubject).regex(control),
-		text: z.string().max(limits.maxText),
-		attachments: z
-			.array(
-				z.strictObject({
-					blobId: blobIdSchema,
-					name: z.string().max(255),
-					type: mediaTypeSchema,
-					size: z
-						.number()
-						.int()
-						.nonnegative()
-						.max(limits.maxAttachmentBytes),
-				}),
-			)
-			.max(limits.maxAttachments)
-			.refine(
-				(attachments) =>
-					limits.maxTotalAttachmentBytes === null ||
-					attachments.reduce((sum, file) => sum + file.size, 0) <=
-						limits.maxTotalAttachmentBytes,
-				{ message: "tooLargeAttachments" },
-			),
-		inReplyTo: messageIdText.optional(),
-		references: z.array(messageIdText).max(50).optional(),
-		/** The message this one answers or forwards, marked so once this one is sent. */
-		origin: z
-			.strictObject({
-				id: messageIdSchema,
-				as: z.enum(ORIGIN_MARKS),
-			})
-			.optional(),
-	});
+	return z
+		.strictObject({
+			op: z.enum(["draft", "send"]),
+			/** The draft this one replaces, once saved. */
+			draftId: messageIdSchema.optional(),
+			to: recipientsSchema,
+			cc: recipientsSchema,
+			bcc: recipientsSchema,
+			subject: z.string().max(limits.maxSubject).regex(control),
+			text: z.string().max(limits.maxText),
+			attachments: z
+				.array(
+					z.strictObject({
+						blobId: blobIdSchema,
+						name: z.string().max(255),
+						type: mediaTypeSchema,
+						size: z
+							.number()
+							.int()
+							.nonnegative()
+							.max(limits.maxAttachmentBytes),
+					}),
+				)
+				.max(limits.maxAttachments)
+				.refine(
+					(attachments) =>
+						limits.maxTotalAttachmentBytes === null ||
+						attachments.reduce((sum, file) => sum + file.size, 0) <=
+							limits.maxTotalAttachmentBytes,
+					{ message: "tooLargeAttachments" },
+				),
+			inReplyTo: messageIdText.optional(),
+			references: z.array(messageIdText).max(50).optional(),
+			/** The message this one answers or forwards, marked so once this one is sent. */
+			origin: z
+				.strictObject({
+					id: messageIdSchema,
+					as: z.enum(ORIGIN_MARKS),
+				})
+				.optional(),
+		})
+		.refine(
+			(message) =>
+				message.to.length + message.cc.length + message.bcc.length <=
+				limits.maxRecipients,
+			{ message: "tooManyRecipients" },
+		);
 }
 
 export type ComposeInput = z.output<ReturnType<typeof composeInputSchema>>;

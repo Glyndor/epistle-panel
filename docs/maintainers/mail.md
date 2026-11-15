@@ -334,8 +334,9 @@ editor and no signature.
   before anything is written or destroyed; an id the account does not have (another
   account's message looks like that) is refused the same way, and the composer page
   ignores `mode=draft` on a message that is not a draft.
-- **The request is bounded as it streams.** A valid `Content-Length` is required (411),
-  and the body is read as it arrives and cut at the first byte past the cap or past what
+- **The request is bounded as it streams.** A `Content-Length` that is a plain
+  decimal number of bytes is required (411), and the body is read as it arrives
+  and cut at the first byte past the cap or past what
   it declared, counting bytes.
 - **The limits are the mail server's own.** The composer asks the server's JMAP
   session resource (`GET /jmap/session`, read by
@@ -351,7 +352,9 @@ editor and no signature.
 - **The total attachment budget** is `maxSizeAttachmentsPerEmail` from the
   mail capability. Missing or unusable means no total cap. The picker counts
   existing files and each successful upload before the next file; uploads carry
-  that count as `attachedBytes`, checked before their body is read. Compose JSON
+  that count as `attachedBytes`, checked before their body is read. That count
+  is a plain decimal number of bytes too, and one that is not is refused as
+  invalid (400), like the size the request declares. Compose JSON
   carries a nonnegative integer `size` per attachment; the server schema checks
   each file and their sum again. These declared sizes are early checks; JMAP
   remains authoritative for actual blob sizes. A total refusal names the budget
@@ -361,11 +364,17 @@ editor and no signature.
   composing use the existing message-too-large outcome, preserving the form.
 - **Two limits are the panel's own, because the session says nothing about
   them**: how many files a message may carry (20) and how many recipients a
-  field may take (100). The recipient count is **not discoverable yet**: epistle
+  message may take (100). The recipient count is **not discoverable yet**: epistle
   keeps its `max_recipients` in its configuration and does not publish it in the
   session, so the panel cannot learn the operator's number and holds its own
   until the session does. The count of files is the panel's too, for the same
-  reason.
+  reason. The recipient limit is for the **whole message**: To, Cc and Bcc
+  together carry no more than it, in the compose schema
+  (`features/mail/schemas/compose-input`) and in the form's own check
+  (`features/mail/components/compose-form/check-recipients`), which shows the
+  same sentence a refusal from the mail server shows
+  (`refusal_tooManyRecipients`) under the field whose addresses took the
+  message over the limit.
 - **The sender is never chosen by the browser.** It is the account's first sending
   identity (`Identity/get`); epistle refuses a `From` the account does not own.
 - **Saving a draft** creates the new message in the drafts folder and then removes
@@ -381,6 +390,16 @@ editor and no signature.
   id. The name is reduced on the server by the same `safeFilename` as a download (it ends up in MIME headers). The type is the declared one when it is a plain
   `type/subtype` (parameters dropped), else `application/octet-stream`; the name is
   cleaned like a download's.
+- **The type that goes out with the message is checked again**, because it comes
+  from the browser: it must be a plain media type, and it must not be one a
+  browser or a mail client runs or renders as a page (`text/html`,
+  `application/xhtml+xml`, `image/svg+xml`, `application/javascript` and the
+  other markup and scripting types, `+xml` included). Those leave as
+  `application/octet-stream`, so the file is saved and never rendered
+  (`features/mail/sanitize/attachment-type`, used by
+  `features/mail/queries/compose-message`). The ordinary types keep the one
+  they have: a PDF, an image, an office document, an archive, plain text, a CSV,
+  a message.
 - **The upload route is outside the proxy, and is its own only gate.** Next's proxy
   holds in memory the body of every request it covers, before it decides anything
   (read in `next/dist/server/body-streams.js`, and measured on the built server: a
@@ -390,8 +409,11 @@ editor and no signature.
   `/app/mail/upload` and `/app/mail/compose-message`, are skipped by the proxy's
   matcher as those exact paths. Each route does every check itself before it
   reads a byte: same origin, the session and its role, and the size from
-  `Content-Length`, which is required. It then hands the body to the mail server as
-  it arrives, counted against that size, and never buffers it; a body that is not
+  `Content-Length`, which is required and must be a plain decimal number of
+  bytes: `Number()` would also read `1e3`, `0x64` and ` 100 `, which are not
+  lengths, so a header that is not one is answered 411, as a missing one is.
+  It then hands the body to the mail server as it arrives, counted against that
+  size, and never buffers it; a body that is not
   the size it declared breaks the call off and is answered `invalid`. Its answers
   carry their own policy (`default-src 'none'`), since the proxy's headers are not
   laid over them. The mail server takes four uploads at a time for one caller and

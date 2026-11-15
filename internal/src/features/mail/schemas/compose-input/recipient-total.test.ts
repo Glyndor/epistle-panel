@@ -3,7 +3,6 @@ import { FALLBACK_COMPOSE_LIMITS } from "@/features/mail/schemas/compose-input-l
 import { composeInputSchema } from ".";
 
 const message = {
-	op: "draft",
 	to: [],
 	cc: [],
 	bcc: [],
@@ -11,37 +10,73 @@ const message = {
 	text: "t",
 	attachments: [],
 };
-// Audit 11, REAL DEFECT: 100 applies per field; epistle's message-wide cap is 100.
-it("currently accepts 300 recipients distributed across To, Cc and Bcc", () => {
-	const recipients = Array.from({ length: 100 }, (_, i) => ({
+const recipients = (count: number) =>
+	Array.from({ length: count }, (_, i) => ({
 		email: `person${i}@example.org`,
 	}));
+
+it("#255 row 11: rejects a combined 101 recipients for send and draft", () => {
+	for (const op of ["draft", "send"]) {
+		for (const extra of ["cc", "bcc"]) {
+			const result = composeInputSchema(
+				FALLBACK_COMPOSE_LIMITS,
+			).safeParse({
+				...message,
+				op,
+				to: recipients(100),
+				[extra]: recipients(1),
+			});
+			expect(result.success).toBe(false);
+			if (!result.success)
+				expect(result.error.issues).toContainEqual(
+					expect.objectContaining({ message: "tooManyRecipients" }),
+				);
+		}
+	}
+});
+it("rejects 300 recipients even though every individual field fits", () => {
 	expect(
 		composeInputSchema(FALLBACK_COMPOSE_LIMITS).safeParse({
 			...message,
-			to: recipients,
-			cc: recipients,
-			bcc: recipients,
+			op: "draft",
+			to: recipients(100),
+			cc: recipients(100),
+			bcc: recipients(100),
 		}).success,
-	).toBe(true);
-	for (const field of ["to", "cc", "bcc"]) {
+	).toBe(false);
+});
+it("accepts exactly 100 recipients spread across all fields", () => {
+	for (const op of ["draft", "send"])
 		expect(
 			composeInputSchema(FALLBACK_COMPOSE_LIMITS).safeParse({
 				...message,
-				[field]: [...recipients, { email: "overflow@example.org" }],
+				op,
+				to: recipients(34),
+				cc: recipients(33),
+				bcc: recipients(33),
 			}).success,
-		).toBe(false);
-	}
+		).toBe(true);
 });
-
-// Run with bun test --todo: the panel currently accepts this over-limit message.
-it.todo("#255, row 11: refuses more than 100 recipients across all fields", () => {
-	const to = Array.from({ length: 100 }, () => ({ email: "a@example.org" }));
+it("uses the supplied recipient total limit", () => {
+	const schema = composeInputSchema({
+		...FALLBACK_COMPOSE_LIMITS,
+		maxRecipients: 2,
+	});
 	expect(
-		composeInputSchema(FALLBACK_COMPOSE_LIMITS).safeParse({
+		schema.safeParse({
 			...message,
-			to,
-			cc: [{ email: "extra@example.org" }],
+			op: "send",
+			to: recipients(1),
+			cc: recipients(1),
+			bcc: recipients(1),
 		}).success,
 	).toBe(false);
+	expect(
+		schema.safeParse({
+			...message,
+			op: "send",
+			cc: recipients(1),
+			bcc: recipients(1),
+		}).success,
+	).toBe(true);
 });
