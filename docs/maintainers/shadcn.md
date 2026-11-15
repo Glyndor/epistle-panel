@@ -186,6 +186,19 @@ colour transition, and with the colour set only on focus the ring faded in
 from the text colour over its first 150 ms. The item under the pointer shows
 the ring too, since in a Radix menu the pointer moves the focus.
 
+The same fade hit every other control with `transition-colors` (the button
+and its kin): `outline-color` is one of the properties that class transitions,
+and an outline's colour before it is drawn is the text colour, so the ring came
+in from near black over 150 ms and read as a heavy black border. The base layer
+of `app/globals.css` now gives every element `outline-color: var(--color-ring)`
+(zero specificity, a utility still wins), so there is nothing to fade. The ring
+itself, `--color-ring`, is `--ring` with a tenth of `--surface` mixed in
+(`styles/theme.css`): light 4.28:1 to 3.56:1 against the canvas, dark 7.87:1 to
+6.54:1. The lowest pair is the light ring on the hover fill `--accent` at
+3.23:1, held by `styles/pointer-tokens.test.ts` in both themes. The rail keeps
+`--sidebar-ring`, which already measured 3.30:1 on its current item and has no
+room to soften.
+
 The tick box of a menu item has a 2 px line on its four sides
 (`inset-ring-2 inset-ring-field-edge`) and a small corner (`rounded-xs`, a
 third of `--radius`, defined with the other radii in the theme). The line is

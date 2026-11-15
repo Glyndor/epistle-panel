@@ -10,7 +10,7 @@ import { cn } from "@/lib/class-names";
  * the marks that are a button of their own and for the one that opens a dialog.
  */
 export const MARK_CLASS =
-	"pointer-events-auto size-6 px-0 opacity-0 hover:bg-foreground/10 focus-visible:opacity-100 active:bg-foreground/15 data-[set=true]:opacity-100 group-focus-within/row:opacity-100 group-hover/row:opacity-100 pointer-coarse:size-11 pointer-coarse:px-0 pointer-coarse:opacity-100 pointer-coarse:focus-visible:-outline-offset-2";
+	"pointer-events-auto size-6 px-0 opacity-0 hover:bg-foreground/10 focus-visible:opacity-100 active:bg-foreground/15 data-[set=true]:opacity-100 group-focus-within/row:opacity-100 group-hover/row:opacity-100 pointer-coarse:size-11 pointer-coarse:px-0 pointer-coarse:opacity-100 focus-visible:-outline-offset-2";
 
 /**
  * One mark of a row as a button: 24 px on a fine pointer, 44 px on a coarse
@@ -24,9 +24,12 @@ export const MARK_CLASS =
  * its corner beside a dimmed icon. It stays pressable: a press made meanwhile
  * waits its turn.
  *
- * On a coarse pointer the button is as tall as a compact row, so its focus
- * ring is drawn inside it: outside, the ring of the first row of a date group
- * began over the row and the heading that sticks above it covered that side.
+ * The focus ring is drawn inside the button, on a fine pointer and on a coarse
+ * one. The buttons of a row touch (24 px, no gap), so an outside ring, 2 px off
+ * and 2 px thick, was drawn over the box of the next one; and on a coarse
+ * pointer, where the button is as tall as a compact row, the ring of the first
+ * row of a date group began over the row and the heading that sticks above it
+ * covered that side.
  */
 export function Mark({
 	mark,

@@ -307,7 +307,14 @@
 	--color-sidebar-ring: var(--sidebar-ring);
 	--color-field: var(--field);
 	--color-field-edge: var(--field-edge);
-	--color-ring: var(--ring);
+	/* The ring a control draws when it has the keyboard's focus, and the outline a
+	   mark of a chart takes under the pointer: `--ring` with a tenth of the
+	   surface mixed in, so it is a step softer than the role and still 3:1 or
+	   more against every surface a control sits on (`pointer-tokens.test.ts`
+	   evaluates it in both themes). The mix is made where it is used, so an
+	   operator's `--ring` carries it. The rail keeps its own ring, which is
+	   already at its floor against the current item. */
+	--color-ring: color-mix(in oklab, var(--ring), var(--surface) 10%);
 	/* The fills of a control under the pointer that the roles above do not
 	   give a second step for: the press of a ghost control and the hover and
 	   press of one that rests on `--secondary` or on the rail. Each is its

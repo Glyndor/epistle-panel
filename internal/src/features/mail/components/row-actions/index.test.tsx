@@ -159,15 +159,15 @@ describe("RowActions", () => {
 		).not.toMatch(/(^|\s)z-/);
 	});
 
-	it("draws the focus ring inside the button on a coarse pointer, where it is as tall as a compact row", () => {
+	it("draws the focus ring inside the button, so it never lands on the box of the next one", () => {
 		actions();
 
 		for (const each of screen.getAllByRole("button")) {
 			// Outside, the ring of a first row began over the row, under the
 			// date heading that sticks above it, and lost that side.
-			expect(each).toHaveClass(
-				"focus-visible:outline-offset-2",
-				"pointer-coarse:focus-visible:-outline-offset-2",
+			expect(each).toHaveClass("focus-visible:-outline-offset-2");
+			expect(each.className).not.toMatch(
+				/(^|\s)focus-visible:outline-offset-2/,
 			);
 		}
 	});
