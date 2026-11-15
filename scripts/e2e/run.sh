@@ -14,7 +14,7 @@
 # exercises.
 #
 # Usage: scripts/e2e/run.sh [scenario...]
-#   scenarios: headers logout limiter limiter-global noauth degraded rotation idle theme theme-choice profile-menu body-limit captcha csrf me unknown-variable suppression deliveries account-detail accounts breadcrumbs admin-id mail streaming tables overview shell-state
+#   scenarios: security headers logout limiter limiter-global noauth degraded rotation idle theme theme-choice profile-menu body-limit captcha csrf me unknown-variable suppression deliveries account-detail accounts breadcrumbs admin-id mail streaming tables overview shell-state
 # The name is the same wherever the file lives: the scripts are in
 # scripts/e2e/scenarios/, one folder per concern (accounts, auth, config,
 # limits, mail, me, rendering, security, theme).
@@ -159,14 +159,30 @@ cp -R "$internal/.next/static" "$standalone/.next/static"
 # shellcheck source=scripts/e2e/scenarios/rendering/overview.sh
 . "$root/scripts/e2e/scenarios/rendering/overview.sh"
 
+# shellcheck source=scripts/e2e/scenarios/security/cookie-parsing.sh
+. "$root/scripts/e2e/scenarios/security/cookie-parsing.sh"
+# shellcheck source=scripts/e2e/scenarios/security/unsupported-methods.sh
+. "$root/scripts/e2e/scenarios/security/unsupported-methods.sh"
+# shellcheck source=scripts/e2e/scenarios/security/forwarded-origin.sh
+. "$root/scripts/e2e/scenarios/security/forwarded-origin.sh"
+# shellcheck source=scripts/e2e/scenarios/security/upload-methods.sh
+. "$root/scripts/e2e/scenarios/security/upload-methods.sh"
+# shellcheck source=scripts/e2e/scenarios/security/body-spellings.sh
+. "$root/scripts/e2e/scenarios/security/body-spellings.sh"
+# shellcheck source=scripts/e2e/scenarios/security/legacy-host.sh
+. "$root/scripts/e2e/scenarios/security/legacy-host.sh"
+# shellcheck source=scripts/e2e/scenarios/security/security.sh
+. "$root/scripts/e2e/scenarios/security/security.sh"
+
 # ---------------------------------------------------------------- main
 
-all=(headers logout limiter limiter-global noauth degraded rotation idle theme theme-choice profile-menu body-limit captcha csrf me unknown-variable suppression deliveries account-detail accounts breadcrumbs admin-id mail streaming tables overview shell-state)
+all=(security headers logout limiter limiter-global noauth degraded rotation idle theme theme-choice profile-menu body-limit captcha csrf me unknown-variable suppression deliveries account-detail accounts breadcrumbs admin-id mail streaming tables overview shell-state)
 selected=("$@")
 ((${#selected[@]})) || selected=("${all[@]}")
 
 for name in "${selected[@]}"; do
 	case "$name" in
+	security) scenario_security ;;
 	headers) scenario_headers ;;
 	logout) scenario_logout ;;
 	limiter) scenario_limiter ;;
