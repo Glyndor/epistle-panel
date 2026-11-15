@@ -412,7 +412,7 @@ scenario_mail() {
 	assert_eq "a big body with no session still gets its answer" "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Origin: $panel" --data-binary "@$work/long.json" "$panel/app/mail/compose-message")" 401
 	rm -f "$work/long.json"
 
-	local send="{\"op\":\"send\",\"to\":[{\"name\":\"Zed\",\"email\":\"zed@example.org\"}],\"cc\":[],\"bcc\":[{\"email\":\"hidden@example.org\"}],\"subject\":\"Sent subject\",\"text\":\"sent body\",\"attachments\":[{\"blobId\":\"$blob\",\"name\":\"report_.pdf\",\"type\":\"application/pdf\"}],\"draftId\":\"$draft_id\"}"
+	local send="{\"op\":\"send\",\"to\":[{\"name\":\"Zed\",\"email\":\"zed@example.org\"}],\"cc\":[],\"bcc\":[{\"email\":\"hidden@example.org\"}],\"subject\":\"Sent subject\",\"text\":\"sent body\",\"attachments\":[{\"blobId\":\"$blob\",\"name\":\"report_.pdf\",\"type\":\"application/pdf\",\"size\":1000}],\"draftId\":\"$draft_id\"}"
 	assert_eq "sending" "$(mail_post /app/mail/compose-message "$send" "$good")" 200
 	assert_contains "it was sent" "$(cat "$work/b")" '"kind":"sent"'
 	assert_contains "to the recipient and the hidden one" "$(mail_sent)" '"to":["zed@example.org"],"cc":[],"bcc":["hidden@example.org"]'
