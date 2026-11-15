@@ -1,81 +1,18 @@
 "use client";
 
 import { Slot } from "@radix-ui/react-slot";
-import * as React from "react";
+import type * as React from "react";
 
 import { cn } from "@/lib/class-names";
+import {
+	isPointerUncovered,
+	lastInputWasTab,
+	setPointerUncovered,
+} from "./input-tracking";
+import type { TooltipAlign, TooltipSide } from "./placement";
+import { useTooltip } from "./use-tooltip";
 
-/** Where the tooltip is anchored, in viewport pixels, from the control's rectangle. */
-interface TooltipPlace {
-	/** Set when the tooltip hangs under its control, or sits beside it. */
-	top?: number;
-	/** Set instead of `top` when the tooltip stands over its control. */
-	bottom?: number;
-	left?: number;
-	right?: number;
-	height?: number;
-}
-
-/** Milliseconds the tooltip stays after the pointer leaves, so it can be reached. */
-const TOOLTIP_GRACE_MS = 120;
-
-/** The side of the control the tooltip sits on. */
-export type TooltipSide = "bottom" | "right";
-
-/** With `side="bottom"`: which edge of the control the tooltip lines up with. */
-export type TooltipAlign = "start" | "center" | "end";
-
-/** The height a tooltip of one line takes with its gap, before it has been drawn and can be measured. */
-const TOOLTIP_HEIGHT = 30;
-
-function placeOf(
-	box: DOMRect,
-	side: TooltipSide,
-	align: TooltipAlign,
-	tipHeight: number = TOOLTIP_HEIGHT,
-): TooltipPlace {
-	if (side === "right") {
-		return { top: box.top, left: box.right, height: box.height };
-	}
-	const view = document.documentElement;
-	// Under the control, unless it would leave the window there and fits
-	// over it: a control on the last row in view is named above itself.
-	const over =
-		view.clientHeight > 0 &&
-		box.bottom + tipHeight > view.clientHeight &&
-		box.top - tipHeight >= 0;
-	const block = over
-		? { bottom: view.clientHeight - box.top }
-		: { top: box.bottom };
-	if (align === "end") {
-		// Anchored by its far edge, so a control at the end of a bar keeps its
-		// tooltip inside the window.
-		return { ...block, right: view.clientWidth - box.right };
-	}
-	return {
-		...block,
-		left: align === "start" ? box.left : box.left + box.width / 2,
-	};
-}
-
-/** Whether two places are the same, to the pixel. */
-function samePlace(first: TooltipPlace, second: TooltipPlace): boolean {
-	return (
-		first.top === second.top &&
-		first.bottom === second.bottom &&
-		first.left === second.left &&
-		first.right === second.right &&
-		first.height === second.height
-	);
-}
-
-/** Whether the control is the button of a menu or a dialog that is open, which would sit under the tooltip. */
-function hasPopupOpen(element: HTMLElement): boolean {
-	return (
-		element.hasAttribute("aria-haspopup") &&
-		element.getAttribute("aria-expanded") === "true"
-	);
-}
+export type { TooltipAlign, TooltipSide };
 
 /**
  * Names the control given as its child, beside it: for a control that is an
@@ -104,87 +41,6 @@ function hasPopupOpen(element: HTMLElement): boolean {
  * Props it does not know go to the control, so it can stand between a Radix
  * trigger (`asChild`) and its button.
  */
-/**
- * What the person last did, as far as a focus that arrives can tell: the Tab
- * key moves the focus to a control, and anything else (Escape closing a menu,
- * Enter choosing in it, a press) only hands it back to one. Kept for the page
- * and not for a tooltip: the button of a menu that loads on demand is replaced
- * by another when it is first pressed, and a note kept by the first would be
- * lost with it.
- */
-let lastInput: "tab" | "other" = "other";
-/**
- * Set when a tooltip gave way to the control under the pointer: that control
- * was never told the pointer came in, so the next move on it shows its name.
- * Any key or press takes it back. It is the one case in which a move shows a
- * tooltip: after a press or Escape on a control, moving on it must not.
- */
-let pointerUncovered = false;
-let watching = false;
-
-/** Start noting the last key and press of the page, once. */
-function watchInput() {
-	if (watching) {
-		return;
-	}
-	watching = true;
-	document.addEventListener(
-		"keydown",
-		(event) => {
-			lastInput = event.key === "Tab" ? "tab" : "other";
-			pointerUncovered = false;
-		},
-		true,
-	);
-	document.addEventListener(
-		"pointerdown",
-		() => {
-			lastInput = "other";
-			pointerUncovered = false;
-		},
-		true,
-	);
-}
-
-/** What a pointer can press: a tooltip lying over one of these gives way to it. */
-const CONTROLS =
-	"a[href], button, input, select, textarea, summary, label, [role='button'], [role='menuitem'], [role='tab']";
-
-/** The values of `overflow` under which a box cuts off what leaves it. */
-const CLIPS = new Set(["auto", "scroll", "hidden", "clip"]);
-
-/**
- * Whether a control has been scrolled wholly out of a box that clips it: any
- * ancestor whose overflow is not `visible`. A control that is partly in view
- * is still there to be named.
- */
-function scrolledAway(element: HTMLElement, box: DOMRect): boolean {
-	for (
-		let parent = element.parentElement;
-		parent !== null;
-		parent = parent.parentElement
-	) {
-		const style = getComputedStyle(parent);
-		if (!CLIPS.has(style.overflowX) && !CLIPS.has(style.overflowY)) {
-			continue;
-		}
-		const clip = parent.getBoundingClientRect();
-		if (clip.width === 0 && clip.height === 0) {
-			// Not laid out: it clips nothing that can be measured.
-			continue;
-		}
-		if (
-			box.bottom <= clip.top ||
-			box.top >= clip.bottom ||
-			box.right <= clip.left ||
-			box.left >= clip.right
-		) {
-			return true;
-		}
-	}
-	return false;
-}
-
 export function Tooltip({
 	label,
 	shortcut,
@@ -212,104 +68,11 @@ export function Tooltip({
 	slot?: string;
 	children: React.ReactElement;
 } & Omit<React.HTMLAttributes<HTMLElement>, "children">) {
-	const [place, setPlace] = React.useState<TooltipPlace | null>(null);
-	const hideTimer = React.useRef<ReturnType<typeof setTimeout>>(undefined);
-	const control = React.useRef<HTMLElement | null>(null);
-	const tip = React.useRef<HTMLSpanElement | null>(null);
-	React.useEffect(watchInput, []);
-
-	const show = (element: HTMLElement) => {
-		clearTimeout(hideTimer.current);
-		if (!disabled && !hasPopupOpen(element)) {
-			control.current = element;
-			setPlace(placeOf(element.getBoundingClientRect(), side, align));
-		}
-	};
-	const hide = () => {
-		clearTimeout(hideTimer.current);
-		hideTimer.current = setTimeout(() => setPlace(null), TOOLTIP_GRACE_MS);
-	};
-	const dismiss = () => {
-		clearTimeout(hideTimer.current);
-		setPlace(null);
-	};
-	// The tooltip can be reached with the pointer, so it must not stand between
-	// the pointer and another control: over one that is not its own (the
-	// button of the next row, 12 px away) it goes at once and the press lands.
-	const yieldTo = (event: React.PointerEvent<HTMLElement>) => {
-		const box = event.currentTarget;
-		const under = document
-			.elementsFromPoint?.(event.clientX, event.clientY)
-			.find((element) => !box.contains(element));
-		const other = under?.closest(CONTROLS);
-		if (
-			other !== null &&
-			other !== undefined &&
-			other !== control.current &&
-			!control.current?.contains(other)
-		) {
-			pointerUncovered = true;
-			dismiss();
-		}
-	};
-	React.useEffect(() => () => clearTimeout(hideTimer.current), []);
-
-	const shown = place !== null;
-	React.useEffect(() => {
-		if (!shown) {
-			return;
-		}
-		let frame = 0;
-		const follow = () => {
-			const element = control.current;
-			// `checkVisibility` is false for a control that is no longer
-			// drawn, such as one inside a part that was just hidden.
-			if (
-				element === null ||
-				!element.isConnected ||
-				element.checkVisibility?.() === false
-			) {
-				setPlace(null);
-				return;
-			}
-			const box = element.getBoundingClientRect();
-			if (scrolledAway(element, box)) {
-				// The control left the box that scrolls it: a name drawn
-				// over another zone would be the name of nothing in view.
-				setPlace(null);
-				return;
-			}
-			const next = placeOf(
-				box,
-				side,
-				align,
-				tip.current?.offsetHeight || undefined,
-			);
-			setPlace((current) =>
-				current === null || samePlace(current, next) ? current : next,
-			);
-			frame = requestAnimationFrame(follow);
-		};
-		frame = requestAnimationFrame(follow);
-		return () => cancelAnimationFrame(frame);
-	}, [shown, side, align]);
-
-	React.useEffect(() => {
-		if (!shown) {
-			return;
-		}
-		// Escape sends the tooltip away wherever the focus is: one the pointer
-		// brought up is over a control that does not have it, and it must be
-		// possible to dismiss it without moving the pointer.
-		const onKeyDown = (event: KeyboardEvent) => {
-			if (event.key === "Escape") {
-				clearTimeout(hideTimer.current);
-				setPlace(null);
-			}
-		};
-		document.addEventListener("keydown", onKeyDown);
-		return () => document.removeEventListener("keydown", onKeyDown);
-	}, [shown]);
+	const { place, hideTimer, tip, show, hide, dismiss, yieldTo } = useTooltip({
+		side,
+		align,
+		disabled,
+	});
 
 	return (
 		<>
@@ -327,10 +90,10 @@ export function Tooltip({
 					// another tooltip lay over it and gave way under the pointer.
 					if (
 						place === null &&
-						pointerUncovered &&
+						isPointerUncovered() &&
 						event.pointerType !== "touch"
 					) {
-						pointerUncovered = false;
+						setPointerUncovered(false);
 						show(event.currentTarget);
 					}
 				}}
@@ -348,7 +111,7 @@ export function Tooltip({
 					// that closes hands the focus back to the control it was
 					// opened from: that is no visit, and the name was read.
 					if (
-						lastInput === "tab" &&
+						lastInputWasTab() &&
 						event.currentTarget.matches(":focus-visible")
 					) {
 						show(event.currentTarget);
