@@ -1,5 +1,5 @@
 import { expect, it } from "bun:test";
-import config from "./next.config";
+import config from "../../../next.config";
 
 // The static origin is read while the build runs, so what this file can see is
 // the build every test run makes: with no `EPISTLE_PANEL_STATIC_ORIGIN` in the
