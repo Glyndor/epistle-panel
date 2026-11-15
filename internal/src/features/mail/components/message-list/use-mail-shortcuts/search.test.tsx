@@ -8,6 +8,7 @@ afterEach(() => {
 	cleanup();
 	Object.defineProperty(window, "innerWidth", {
 		configurable: true,
+		writable: true,
 		value: width,
 	});
 });
@@ -37,6 +38,7 @@ function Harness() {
 function draw(size: number) {
 	Object.defineProperty(window, "innerWidth", {
 		configurable: true,
+		writable: true,
 		value: size,
 	});
 	render(<Harness />);
