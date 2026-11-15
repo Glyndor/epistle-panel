@@ -1,4 +1,13 @@
-import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
+import {
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	it,
+	mock,
+	setSystemTime,
+	spyOn,
+} from "bun:test";
 import {
 	LOGIN_NAME_MAX,
 	LOGIN_PASSWORD_MAX,
@@ -138,6 +147,70 @@ describe("login success", () => {
 		}
 
 		expect(cookies.writes[0]?.options).toMatchObject({ secure: true });
+	});
+	it("writes exact remaining role lifetime after slow signing", async () => {
+		const start = 1_800_000_000;
+		const sign = crypto.subtle.sign.bind(crypto.subtle);
+		const slowSign = spyOn(crypto.subtle, "sign").mockImplementation(
+			async (...args: Parameters<typeof crypto.subtle.sign>) => {
+				const result = await sign(...args);
+				setSystemTime(new Date((start + 2) * 1000));
+				return result;
+			},
+		);
+		try {
+			for (const [admin, minutes] of [
+				[true, 2],
+				[false, 7],
+			] as const) {
+				setSystemTime(new Date(start * 1000));
+				const variable = `EPISTLE_PANEL_SESSION_${admin ? "ADMIN" : "USER"}_MAX_AGE_MINUTES`;
+				process.env[variable] = String(minutes);
+				stubVerify(() => ({ valid: true, admin }));
+				cookies.reset();
+				try {
+					await followRedirect(
+						login(INITIAL, form("same-account", "pw")),
+					);
+					expect(cookies.writes[0]?.options?.["maxAge"]).toBe(
+						minutes * 60 - 2,
+					);
+					expect(
+						await verifySession(cookies.writes[0]?.value),
+					).toEqual({
+						sub: "same-account",
+						role: admin ? "admin" : "user",
+					});
+				} finally {
+					delete process.env[variable];
+				}
+			}
+		} finally {
+			slowSign.mockRestore();
+			setSystemTime();
+		}
+	});
+
+	it("writes no cookie when policy becomes unreadable during signing", async () => {
+		stubVerify(() => ({ valid: true, admin: true }));
+		const sign = crypto.subtle.sign.bind(crypto.subtle);
+		const changedPolicy = spyOn(crypto.subtle, "sign").mockImplementation(
+			async (...args: Parameters<typeof crypto.subtle.sign>) => {
+				const result = await sign(...args);
+				process.env["EPISTLE_PANEL_SESSION_IDLE_TIMEOUT_MINUTES"] =
+					"broken";
+				return result;
+			},
+		);
+		try {
+			expect(await login(INITIAL, form("ops", "pw"))).toEqual({
+				outcome: "failed",
+			});
+			expect(cookies.writes).toHaveLength(0);
+		} finally {
+			changedPolicy.mockRestore();
+			delete process.env["EPISTLE_PANEL_SESSION_IDLE_TIMEOUT_MINUTES"];
+		}
 	});
 });
 

@@ -1,12 +1,10 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { getRequestConfig } from "next-intl/server";
 
-import {
-	DEFAULT_LOCALE,
-	isSupportedLocale,
-	LOCALE_COOKIE,
-} from "@/i18n/locales";
+import { DEFAULT_LOCALE, LOCALE_COOKIE } from "@/i18n/locales";
 import { loadMessages } from "@/i18n/messages";
+import { resolveLocale } from "@/i18n/resolve";
+import { defaultLocale } from "@/lib/config/default-locale";
 
 /** Resolve a dot-namespaced key against the English source messages. */
 function englishMessage(catalog: unknown, key: string): string | undefined {
@@ -21,10 +19,12 @@ function englishMessage(catalog: unknown, key: string): string | undefined {
 }
 
 export default getRequestConfig(async () => {
+	// The person's own choice first, then what the browser asked for, then the
+	// operator's default, then English.
 	const cookieLocale = (await cookies()).get(LOCALE_COOKIE)?.value;
-	const locale = isSupportedLocale(cookieLocale)
-		? cookieLocale
-		: DEFAULT_LOCALE;
+	const acceptLanguage =
+		(await headers()).get("accept-language") ?? undefined;
+	const locale = resolveLocale(cookieLocale, acceptLanguage, defaultLocale());
 	const english = await loadMessages(DEFAULT_LOCALE);
 
 	return {

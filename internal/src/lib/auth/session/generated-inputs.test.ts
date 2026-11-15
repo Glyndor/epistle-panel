@@ -199,20 +199,48 @@ function subValue(rng: ReturnType<typeof createRng>): {
 	]);
 }
 
+/** A payload value for `jti`, the id that names the session, with the verdict. */
+function jtiValue(rng: ReturnType<typeof createRng>): {
+	json: string;
+	ok: boolean;
+} {
+	const value = rng.pick([
+		'"AAAAAAAAAAAAAAAAAAAAAA"',
+		'"x"',
+		"1",
+		"null",
+		"[]",
+	]);
+	return { json: value, ok: value === '"AAAAAAAAAAAAAAAAAAAAAA"' };
+}
+
 describe("verifySession on signed but odd payloads", () => {
-	it("accepts a payload only when sub is a string and exp a future integer in range", async () => {
+	it("accepts a payload only when sub is a string, exp a future integer in range and issuance and canonical identity claims are present", async () => {
 		let accepted = 0;
 		let refused = 0;
-		await runCases("signed payloads", 1200, async (rng) => {
-			const exp = expValue(rng);
-			const sub = subValue(rng);
+		await runCases("signed payloads", 1200, async (rng, index) => {
+			// Reserve valid samples so changing the seed cannot make the model
+			// vacuous merely by drawing too few complete claim sets.
+			const valid = index % 10 === 0;
+			const exp = valid
+				? { json: String(NOW_S + rng.int(1, 28_800)), ok: true }
+				: expValue(rng);
+			const sub = valid
+				? { json: JSON.stringify(rng.string("abcXYZ", 8)), ok: true }
+				: subValue(rng);
 			const fields = [
 				`"sub":${sub.json}`,
 				`"role":"user"`,
+				`"iat":${NOW_S}`,
 				`"exp":${exp.json}`,
 			];
-			if (rng.chance(0.3)) {
-				fields.push(`"jti":${rng.pick(['"x"', "1", "null", "[]"])}`);
+			let jtiOk = false;
+			if (valid || rng.chance(0.3)) {
+				const jti = valid
+					? { json: '"AAAAAAAAAAAAAAAAAAAAAA"', ok: true }
+					: jtiValue(rng);
+				fields.push(`"jti":${jti.json}`);
+				jtiOk = jti.ok;
 			}
 			if (rng.chance(0.3)) {
 				fields.push(
@@ -229,7 +257,7 @@ describe("verifySession on signed but odd payloads", () => {
 			}
 			const token = await signJson(`{${fields.join(",")}}`);
 			const result = await verifySession(token);
-			if (exp.ok && sub.ok) {
+			if (exp.ok && sub.ok && jtiOk) {
 				accepted++;
 				expect(result).toEqual({
 					sub: JSON.parse(sub.json),
@@ -248,7 +276,7 @@ describe("verifySession on signed but odd payloads", () => {
 	it("takes the last of duplicate keys, as JSON does, and still checks it", async () => {
 		const future = NOW_S + 60;
 		const good = await signJson(
-			`{"sub":"x","sub":"y","role":"admin","exp":${future}}`,
+			`{"sub":"x","sub":"y","role":"admin","iat":${NOW_S},"jti":"AAAAAAAAAAAAAAAAAAAAAA","exp":${future}}`,
 		);
 		expect(await verifySession(good)).toEqual({ sub: "y", role: "admin" });
 		const badLast = await signJson(
@@ -286,7 +314,7 @@ describe("verifySession on signed but odd payloads", () => {
 		}
 		// Depth in an unread field is harmless: the signed payload still verifies.
 		const nested = await signJson(
-			`{"sub":"a","role":"admin","exp":${NOW_S + 60},"deep":${deep("[", "]", 5000)}}`,
+			`{"sub":"a","role":"admin","iat":${NOW_S},"jti":"AAAAAAAAAAAAAAAAAAAAAA","exp":${NOW_S + 60},"deep":${deep("[", "]", 5000)}}`,
 		);
 		expect(await verifySession(nested)).toEqual({
 			sub: "a",

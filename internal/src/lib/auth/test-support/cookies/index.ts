@@ -55,6 +55,7 @@ export async function followRedirect(
 export function mockRequestCookies() {
 	const jar = new Map<string, string>();
 	const writes: CookieWrite[] = [];
+	const requestHeaders = new Map<string, string>();
 
 	mock.module("next/headers", () => ({
 		cookies: async () => ({
@@ -73,6 +74,9 @@ export function mockRequestCookies() {
 			delete: (name: string) => {
 				jar.delete(name);
 			},
+		}),
+		headers: async () => ({
+			get: (name: string) => requestHeaders.get(name) ?? null,
 		}),
 	}));
 	mock.module("next/navigation", () => ({
@@ -103,6 +107,8 @@ export function mockRequestCookies() {
 	return {
 		jar,
 		writes,
+		/** The headers of the request, as the stand-in for `next/headers` reads them. */
+		requestHeaders,
 		/** Put a freshly minted session for `sub` in the jar and return its token. */
 		async signIn(
 			sub = "admin",
@@ -112,10 +118,11 @@ export function mockRequestCookies() {
 			jar.set(SESSION_COOKIE, token);
 			return token;
 		},
-		/** Empty the jar and the write log. */
+		/** Empty the jar, the header map and the write log. */
 		reset(): void {
 			jar.clear();
 			writes.length = 0;
+			requestHeaders.clear();
 		},
 	};
 }

@@ -147,6 +147,47 @@ a measured choice for this palette, not a rule for another one.
 The original copyright notice stays in the sidebar and on the sign-in page. It is
 a constant in `features/branding/copyright`, not configuration.
 
+## What runtime configuration can change (no rebuild)
+
+The look is not the only thing an operator can change without a rebuild: the
+length of a session and the language the panel starts in are read from the
+environment when the process starts.
+
+| Variable | Effect |
+|---|---|
+| `EPISTLE_PANEL_SESSION_USER_MAX_AGE_MINUTES` | Absolute lifetime of a user's session, in whole minutes (1 to 43200). Unset or empty keeps eight hours (480). |
+| `EPISTLE_PANEL_SESSION_ADMIN_MAX_AGE_MINUTES` | The same for an admin's session. Unset or empty keeps eight hours (480). |
+| `EPISTLE_PANEL_SESSION_IDLE_TIMEOUT_MINUTES` | Optional, in whole minutes (1 to 43200): a session nobody used for that long is refused and the person goes to the sign-in page. Unset or empty leaves it off. |
+| `EPISTLE_PANEL_DEFAULT_LOCALE` | The language the panel falls back to when the person chose none and the browser asked for none of the six: `en`, `es`, `pt`, `fr`, `de` or `it`. Unset or empty keeps `en`. |
+
+Every one of them is checked when the server starts: a value that cannot be
+used stops the start with a message that names the variable and never the
+value, because a server that kept running would apply a policy nobody chose.
+The session lifetimes travel in the signed token and in the cookie, and the
+idle timeout travels in the token as the moment of the last use, so the server
+alone judges a session; the browser cannot extend one. Renewal changes only
+`act`: `iat`, `exp`, role and `jti` stay fixed, and cookie Max-Age is the exact
+remaining absolute lifetime. Static assets, prefetches, HEAD, proxy redirects
+and hidden rewrites do not count as activity. Reducing a role's configured
+lifetime rejects sessions issued for longer, even if they would expire soon;
+increasing it never extends an existing session. Older tokens without the new
+issuance and canonical identity claims require signing in again.
+
+Roles remain snapshots from authenticated sign-in: upstream demotion takes
+effect on a new sign-in, logout or absolute expiry. For immediate invalidation,
+rotate the session secret (ending all sessions). Revocations remain local to
+one process; run one instance. At 10,000 live revocations, it fails closed
+until any unrecorded revocation has expired, rather than allowing replay. To
+clear overflow early, restart with a new session secret; restarting alone loses
+revocations.
+
+The order in which the language of a page is settled: the person's own choice
+(the `locale` cookie, checked against the six languages before it is believed),
+then what the browser asked for in `Accept-Language`, then the operator's
+default, then English. The header is read up to 4096 characters and 64 ranges,
+and a range with a quality value nobody can read is not wanted at all, so a
+hostile header costs no more than an ordinary one.
+
 ## What needs a rebuild
 
 Anything that changes the stylesheet's source or the markup:
