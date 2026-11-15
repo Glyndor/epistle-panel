@@ -1,5 +1,6 @@
 import { afterEach, expect, it } from "bun:test";
 import { composeInputSchema } from "@/features/mail/schemas/compose-input";
+import { FALLBACK_COMPOSE_LIMITS } from "@/features/mail/schemas/compose-input-limits";
 import { clearSecretCache } from "@/lib/config/secret";
 import { SESSION, stubJmap } from "../../test-support/jmap-stub";
 import { composeMessage } from ".";
@@ -27,8 +28,9 @@ it.each(["text/html", "image/svg+xml", "application/javascript"])(
 			blobId: "00000000-0000-4000-a000-000000000001",
 			name: "x.html",
 			type,
+			size: 1,
 		};
-		const input = composeInputSchema.parse({
+		const input = composeInputSchema(FALLBACK_COMPOSE_LIMITS).parse({
 			op: "draft",
 			to: [],
 			cc: [],
@@ -48,7 +50,14 @@ it.each(["text/html", "image/svg+xml", "application/javascript"])(
 		expect(creates[0]?.[1]).toMatchObject({
 			create: {
 				c: {
-					attachments: [{ ...attachment, disposition: "attachment" }],
+					attachments: [
+						{
+							blobId: attachment.blobId,
+							name: attachment.name,
+							type: attachment.type,
+							disposition: "attachment",
+						},
+					],
 				},
 			},
 		});
@@ -66,7 +75,7 @@ it.todo("#255, row 6: rejects executable attachment types supplied by the compos
 		"application/javascript",
 	]) {
 		expect(
-			composeInputSchema.safeParse({
+			composeInputSchema(FALLBACK_COMPOSE_LIMITS).safeParse({
 				op: "draft",
 				to: [],
 				cc: [],
@@ -78,6 +87,7 @@ it.todo("#255, row 6: rejects executable attachment types supplied by the compos
 						blobId: "00000000-0000-4000-a000-000000000001",
 						name: "x.html",
 						type,
+						size: 1,
 					},
 				],
 			}).success,

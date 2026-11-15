@@ -35,14 +35,19 @@ it.each(["1e3", "0x64", " 100 "])(
 				return null;
 			},
 		});
-		const fetch = mock(async () => {
+		const fetch = mock(async (..._args: unknown[]) => {
 			throw new Error("must not contact JMAP");
 		});
 		globalThis.fetch = fetch as unknown as typeof globalThis.fetch;
 		const response = await uploadResponse(request);
 		expect(response.status).toBe(400); // A fixed decimal gate would answer 411 before body access.
 		expect(touched).toBe(1);
-		expect(fetch).not.toHaveBeenCalled();
+		// The session limits are asked for first; the upload itself must not be sent.
+		expect(
+			fetch.mock.calls.some((call) =>
+				String(call[0]).includes("/jmap/upload"),
+			),
+		).toBe(false);
 	},
 );
 

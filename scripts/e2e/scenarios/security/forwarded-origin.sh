@@ -12,7 +12,7 @@ audit_forwarded_origin() {
   if [[ "$path" == /app/mail/compose-message ]]; then
    assert_eq "row 5: matched forged host passes origin gate, then fails schema" "$code" 400
    assert_contains "row 5: schema refusal rather than forbidden" "$(cat "$work/b")" '"reason":"invalid"'
-   assert_eq "row 5: invalid compose still cannot reach JMAP" "$(api_count '"method"')" 0
+   assert_eq "row 5: invalid compose still cannot reach the JMAP API (the session is read for the limits)" "$(api_count '"path":"/jmap/api"')" 0
   else
    assert_eq "row 5: matched forged host permits upload under proxy trust contract" "$code" 200
    assert_contains "row 5: permitted upload reaches blob store" "$(api_log)" /jmap/upload/

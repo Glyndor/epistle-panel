@@ -1,4 +1,5 @@
 import { expect, it } from "bun:test";
+import { FALLBACK_COMPOSE_LIMITS } from "@/features/mail/schemas/compose-input-limits";
 import { composeInputSchema } from ".";
 
 const message = {
@@ -15,7 +16,10 @@ it.each(["__proto__", "constructor", "prototype"])(
 	"rejects the own JSON key %s",
 	(key) => {
 		const payload = JSON.parse(`{${JSON.stringify(key)}:{"admin":true}}`);
-		const parsed = composeInputSchema.safeParse({ ...message, ...payload });
+		const parsed = composeInputSchema(FALLBACK_COMPOSE_LIMITS).safeParse({
+			...message,
+			...payload,
+		});
 		expect(Object.hasOwn(payload, key)).toBe(true);
 		expect(parsed.success).toBe(false);
 		if (!parsed.success) {

@@ -1,4 +1,5 @@
 import { expect, it } from "bun:test";
+import { FALLBACK_COMPOSE_LIMITS } from "@/features/mail/schemas/compose-input-limits";
 import { composeInputSchema } from ".";
 
 const message = {
@@ -16,7 +17,7 @@ it("currently accepts 300 recipients distributed across To, Cc and Bcc", () => {
 		email: `person${i}@example.org`,
 	}));
 	expect(
-		composeInputSchema.safeParse({
+		composeInputSchema(FALLBACK_COMPOSE_LIMITS).safeParse({
 			...message,
 			to: recipients,
 			cc: recipients,
@@ -25,7 +26,7 @@ it("currently accepts 300 recipients distributed across To, Cc and Bcc", () => {
 	).toBe(true);
 	for (const field of ["to", "cc", "bcc"]) {
 		expect(
-			composeInputSchema.safeParse({
+			composeInputSchema(FALLBACK_COMPOSE_LIMITS).safeParse({
 				...message,
 				[field]: [...recipients, { email: "overflow@example.org" }],
 			}).success,
@@ -37,7 +38,7 @@ it("currently accepts 300 recipients distributed across To, Cc and Bcc", () => {
 it.todo("#255, row 11: refuses more than 100 recipients across all fields", () => {
 	const to = Array.from({ length: 100 }, () => ({ email: "a@example.org" }));
 	expect(
-		composeInputSchema.safeParse({
+		composeInputSchema(FALLBACK_COMPOSE_LIMITS).safeParse({
 			...message,
 			to,
 			cc: [{ email: "extra@example.org" }],
