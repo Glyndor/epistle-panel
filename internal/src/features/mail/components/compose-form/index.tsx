@@ -1,8 +1,6 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { SendIcon } from "lucide-react";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -23,7 +21,14 @@ import {
 	type ComposeAttachment,
 	ComposeAttachments,
 } from "@/features/mail/components/compose-attachments";
+import {
+	checkRecipients,
+	RECIPIENT_FIELDS,
+	type RecipientField,
+} from "@/features/mail/components/compose-form/check-recipients";
+import { ComposeActions } from "@/features/mail/components/compose-form/compose-actions";
 import { fieldMessage } from "@/features/mail/components/compose-form/field-message";
+import { RecipientInput } from "@/features/mail/components/compose-form/recipient-input";
 import {
 	type ComposeOrigin,
 	useComposeSubmit,
@@ -36,10 +41,8 @@ import {
 } from "@/features/mail/schemas/compose-form";
 import {
 	MAX_COMPOSE_TEXT,
-	MAX_RECIPIENTS_TEXT,
 	MAX_SUBJECT,
 } from "@/features/mail/schemas/compose-input-limits";
-import { parseRecipients } from "@/features/mail/schemas/recipients";
 import { fieldLength } from "@/lib/field-length";
 
 /** What opens the composer: empty, or filled for a reply, a forward or a stored draft. */
@@ -51,9 +54,6 @@ export interface ComposeInitial extends ComposeFormValues {
 	readonly origin?: ComposeOrigin | undefined;
 	readonly attachments?: ComposeAttachment[] | undefined;
 }
-
-type RecipientField = "to" | "cc" | "bcc";
-const RECIPIENT_FIELDS: readonly RecipientField[] = ["to", "cc", "bcc"];
 
 /**
  * The composer: recipients, subject, body, attachments, and the three ways out
@@ -89,33 +89,16 @@ export function ComposeForm({ initial }: { initial: ComposeInitial }) {
 
 	const run = (op: "draft" | "send") =>
 		form.handleSubmit(async (values) => {
-			const parsed = Object.fromEntries(
-				RECIPIENT_FIELDS.map((field) => [
-					field,
-					parseRecipients(values[field]),
-				]),
-			) as Record<RecipientField, ReturnType<typeof parseRecipients>>;
-			let refused = false;
-			for (const field of RECIPIENT_FIELDS) {
-				const { invalid } = parsed[field];
-				if (invalid.length > 0) {
-					form.setError(field, {
-						message: t("invalidRecipients", {
-							list: invalid.join(", "),
-						}),
-					});
-					refused = true;
-				}
+			const { parsed, problems } = checkRecipients(values, op);
+			for (const problem of problems) {
+				form.setError(problem.field, {
+					message:
+						problem.kind === "invalid"
+							? t("invalidRecipients", { list: problem.list })
+							: t("needRecipient"),
+				});
 			}
-			const count = RECIPIENT_FIELDS.reduce(
-				(total, field) => total + parsed[field].recipients.length,
-				0,
-			);
-			if (op === "send" && count === 0 && !refused) {
-				form.setError("to", { message: t("needRecipient") });
-				refused = true;
-			}
-			if (refused) {
+			if (problems.length > 0) {
 				return;
 			}
 			const result = await submit({
@@ -172,58 +155,20 @@ export function ComposeForm({ initial }: { initial: ComposeInitial }) {
 						<AlertDescription>{problem}</AlertDescription>
 					</Alert>
 				)}
-				<FormField
+				<RecipientInput
 					control={form.control}
 					name="to"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>{t("fieldTo")}</FormLabel>
-							<FormControl>
-								<Input
-									{...field}
-									type="text"
-									maxLength={fieldLength(MAX_RECIPIENTS_TEXT)}
-									inputMode="email"
-									autoCapitalize="none"
-									autoComplete="off"
-									spellCheck={false}
-								/>
-							</FormControl>
-							<FormMessage render={translate} />
-						</FormItem>
-					)}
+					label={t("fieldTo")}
+					translate={translate}
 				/>
 				{showCopies ? (
 					RECIPIENT_FIELDS.slice(1).map((name) => (
-						<FormField
+						<RecipientInput
 							key={name}
 							control={form.control}
-							name={name}
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>
-										{t(
-											name === "cc"
-												? "fieldCc"
-												: "fieldBcc",
-										)}
-									</FormLabel>
-									<FormControl>
-										<Input
-											{...field}
-											type="text"
-											maxLength={fieldLength(
-												MAX_RECIPIENTS_TEXT,
-											)}
-											inputMode="email"
-											autoCapitalize="none"
-											autoComplete="off"
-											spellCheck={false}
-										/>
-									</FormControl>
-									<FormMessage render={translate} />
-								</FormItem>
-							)}
+							name={name as RecipientField}
+							label={t(name === "cc" ? "fieldCc" : "fieldBcc")}
+							translate={translate}
 						/>
 					))
 				) : (
@@ -279,30 +224,10 @@ export function ComposeForm({ initial }: { initial: ComposeInitial }) {
 					attachments={attachments}
 					onChange={setAttachments}
 				/>
-				<div className="flex flex-wrap items-center gap-2">
-					<Button
-						type="submit"
-						disabled={pending !== null}
-						aria-busy={pending === "send"}
-					>
-						<SendIcon aria-hidden="true" />
-						{t("send")}
-					</Button>
-					<Button
-						type="button"
-						variant="secondary"
-						disabled={pending !== null}
-						aria-busy={pending === "draft"}
-						onClick={() => void run("draft")()}
-					>
-						{pending === "draft"
-							? t("savingDraft")
-							: t("saveDraft")}
-					</Button>
-					<Button asChild variant="ghost">
-						<Link href={mailHref({})}>{t("discard")}</Link>
-					</Button>
-				</div>
+				<ComposeActions
+					pending={pending}
+					onSaveDraft={() => void run("draft")()}
+				/>
 			</form>
 		</Form>
 	);
