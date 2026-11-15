@@ -30,6 +30,14 @@ const box = () =>
 	screen.getByRole("checkbox", { name: "Work" }) as HTMLInputElement;
 
 describe("OptionRow", () => {
+	it("fills its row under the pointer and presses it one step deeper", () => {
+		draw("none");
+		const row = box().closest("label");
+
+		expect(row).toHaveClass("hover:bg-accent", "active:bg-accent-press");
+		expect(row).not.toHaveClass("hover:bg-surface-sunken");
+	});
+
 	it("is a box named for the label, ticked when all carry it", () => {
 		draw("all");
 		expect(box().checked).toBe(true);

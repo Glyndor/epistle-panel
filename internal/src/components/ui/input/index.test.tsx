@@ -71,6 +71,20 @@ describe("Input", () => {
 		);
 	});
 
+	it("darkens the line of a field under the pointer, since the well alone moves five steps of 255", () => {
+		render(<Input aria-label="Name" />);
+		const field = screen.getByLabelText("Name");
+
+		expect(field).toHaveClass(
+			"hover:bg-accent",
+			"hover:shadow-[inset_0_-2px_0_0_var(--foreground)]",
+		);
+		// An invalid field keeps its destructive line over a hover.
+		expect(field.className.indexOf("hover:shadow-")).toBeLessThan(
+			field.className.indexOf("aria-invalid:shadow-"),
+		);
+	});
+
 	it("takes the focus ring on keyboard focus", () => {
 		render(<Input aria-label="Name" />);
 

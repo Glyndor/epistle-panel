@@ -20,6 +20,13 @@ import { cn } from "@/lib/class-names";
  * A mark keeps its colour when the reader's system forces colours (a high
  * contrast theme): a background is one of the things such a theme repaints,
  * and a chart whose marks took the page's colour would be blank.
+ *
+ * Under the pointer a mark is ringed by an outline in the foreground, two
+ * pixels while the pointer is on it and four while it is pressed, with the
+ * mark lifted over its neighbours so the ring is not covered by the next
+ * one. The mark itself is never recoloured: a series colour is held at 3:1
+ * against the card, and any fade or brightening of it would break that in one
+ * of the two themes. An outline is also what a forced-colours theme keeps.
  */
 export function Mark({
 	width,
@@ -40,7 +47,10 @@ export function Mark({
 			height={height}
 			aria-hidden="true"
 			focusable="false"
-			className={cn("block shrink-0 forced-color-adjust-none", className)}
+			className={cn(
+				"relative block shrink-0 forced-color-adjust-none outline-foreground outline-offset-1 hover:z-10 hover:outline-2 active:outline-4",
+				className,
+			)}
 			{...props}
 		/>
 	);

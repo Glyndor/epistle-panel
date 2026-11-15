@@ -66,6 +66,55 @@ describe("Button", () => {
 		expect(classes).toContain("active:text-primary/70");
 	});
 
+	it("gives every variant a hover and a press fill that differ from each other and from rest", () => {
+		// A hover that equals the rest state, or a press that equals the hover,
+		// is no feedback. The fills are read from the classes: the colours they
+		// name are held apart in `styles/pointer-tokens.test.ts`.
+		const fill = (classes: string, state: "hover" | "active") =>
+			classes
+				.split(" ")
+				.find((name) => name.startsWith(`${state}:bg-`))
+				?.slice(state.length + 1);
+		for (const variant of [
+			"default",
+			"destructive",
+			"outline",
+			"secondary",
+			"ghost",
+		] as const) {
+			const classes = buttonVariants({ variant });
+			const rest = classes
+				.split(" ")
+				.find((name) => name.startsWith("bg-"))
+				?.slice(3);
+			const hover = fill(classes, "hover");
+			const press = fill(classes, "active");
+
+			expect(hover, variant).toBeDefined();
+			expect(press, variant).toBeDefined();
+			expect(hover?.replace("bg-", ""), variant).not.toBe(rest);
+			expect(press, variant).not.toBe(hover);
+		}
+	});
+
+	it("presses a ghost, an outline and a secondary button one step deeper than their hover", () => {
+		expect(buttonVariants({ variant: "ghost" })).toContain(
+			"active:bg-accent-press",
+		);
+		expect(buttonVariants({ variant: "outline" })).toContain(
+			"hover:bg-secondary-hover",
+		);
+		expect(buttonVariants({ variant: "outline" })).toContain(
+			"active:bg-secondary-press",
+		);
+		expect(buttonVariants({ variant: "secondary" })).toContain(
+			"hover:bg-secondary-hover",
+		);
+		expect(buttonVariants({ variant: "secondary" })).toContain(
+			"active:bg-secondary-press",
+		);
+	});
+
 	it("lets a caller class override a variant utility", () => {
 		render(<Button className="px-2">Save</Button>);
 

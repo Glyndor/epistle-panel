@@ -247,6 +247,24 @@ describe("StackedColumns", () => {
 		expect(column(container, "h2")).toHaveAttribute("title", "02:00: 20");
 	});
 
+	it("tints a column under the pointer, and deeper while it is pressed", () => {
+		const { container } = render(
+			<StackedColumns
+				columns={three}
+				series={SERIES}
+				formatTick={tick}
+			/>,
+		);
+
+		for (const key of ["h1", "h2", "h3"]) {
+			expect(column(container, key)).toHaveClass(
+				"transition-colors",
+				"hover:bg-foreground/10",
+				"active:bg-foreground/15",
+			);
+		}
+	});
+
 	it("draws few columns 24 px wide and many as a share of their slot", () => {
 		const few = render(
 			<StackedColumns

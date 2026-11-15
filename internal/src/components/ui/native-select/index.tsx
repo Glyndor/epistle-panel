@@ -25,7 +25,7 @@ function NativeSelect({
 				data-slot="native-select"
 				className={cn(
 					FIELD_CLASS,
-					"appearance-none pe-8 active:bg-accent/70",
+					"appearance-none pe-8 active:bg-accent-press",
 					className,
 				)}
 				{...props}

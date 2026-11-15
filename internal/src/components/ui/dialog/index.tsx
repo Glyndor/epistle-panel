@@ -6,6 +6,7 @@ import type * as React from "react";
 
 import { Tooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/class-names";
+import { FORCED_POINTER } from "@/lib/pointer-states";
 
 /**
  * A modal for a task that belongs to the page behind it, a form most of the
@@ -80,7 +81,10 @@ function DialogContent({
 								block: "nearest",
 							})
 						}
-						className="absolute top-3 right-3 inline-flex size-8 select-none scroll-m-2 pointer-coarse:size-11 items-center justify-center rounded-lg text-muted-foreground hover:bg-surface-sunken hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 [&_svg]:size-4"
+						className={cn(
+							"absolute top-3 right-3 inline-flex size-8 select-none scroll-m-2 pointer-coarse:size-11 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-accent-foreground active:bg-accent-press focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 [&_svg]:size-4",
+							FORCED_POINTER,
+						)}
 					>
 						<XIcon aria-hidden="true" />
 						<span className="sr-only select-none">

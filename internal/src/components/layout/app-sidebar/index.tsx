@@ -60,7 +60,7 @@ export async function AppSidebar({
 						<SidebarMenuButton
 							asChild
 							tooltip={brand.name}
-							className="min-h-10"
+							className="group/brand min-h-10"
 						>
 							<Link href={homeHref}>
 								<BrandMark hasLogo={brand.hasLogo} />
@@ -68,7 +68,7 @@ export async function AppSidebar({
 									<span className="truncate font-semibold">
 										{brand.name}
 									</span>
-									<span className="truncate text-muted-foreground text-xs">
+									<span className="truncate text-muted-foreground text-xs group-active/brand:text-sidebar-accent-foreground">
 										{subtitle}
 									</span>
 								</span>

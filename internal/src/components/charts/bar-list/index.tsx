@@ -1,6 +1,7 @@
 import type * as React from "react";
 
 import { cn } from "@/lib/class-names";
+import { FORCED_POINTER } from "@/lib/pointer-states";
 
 import { Mark } from "../mark";
 import { percent, SERIES } from "../series";
@@ -34,7 +35,8 @@ export interface BarListRow {
  * series: the name says which.
  *
  * A bar is a {@link Mark} as wide as a percentage of the row, drawn on the
- * server.
+ * server. A row is tinted under the pointer and one step deeper while it is
+ * pressed; its padding is cancelled by a negative margin, so no row moves.
  */
 export function BarList({
 	rows,
@@ -53,14 +55,17 @@ export function BarList({
 				<div
 					key={row.key}
 					data-row={row.key}
-					className="flex flex-col gap-1"
+					className={cn(
+						"group/row -mx-2 -my-1 flex flex-col gap-1 rounded-lg px-2 py-1 transition-colors hover:bg-accent hover:text-accent-foreground active:bg-accent-press",
+						FORCED_POINTER,
+					)}
 				>
 					<div className="flex items-baseline justify-between gap-3 text-sm">
 						<span className="min-w-0 truncate">{row.label}</span>
 						<span className="shrink-0 tabular-nums">
 							{row.valueText}
 							{row.detail ? (
-								<span className="ms-2 text-muted-foreground">
+								<span className="ms-2 text-muted-foreground group-hover/row:text-accent-foreground">
 									{row.detail}
 								</span>
 							) : null}

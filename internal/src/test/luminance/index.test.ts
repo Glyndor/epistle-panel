@@ -1,6 +1,12 @@
 import { describe, expect, it } from "bun:test";
 
-import { contrastRatio, luminance, parseColor } from ".";
+import {
+	contrastOfRgb,
+	contrastRatio,
+	luminance,
+	mixInOklab,
+	parseColor,
+} from ".";
 
 describe("the luminance helper of the theme tests", () => {
 	it("reads the two spellings of the theme file", () => {
@@ -25,5 +31,14 @@ describe("the luminance helper of the theme tests", () => {
 		expect(contrastRatio("#777777", "#777777")).toBe(1);
 		// A pair with a published ratio: #767676 on white is 4.54:1.
 		expect(contrastRatio("#767676", "#ffffff")).toBeCloseTo(4.54, 2);
+	});
+
+	it("mixes in OKLab as color-mix does: the ends are the colours, the middle is perceptual", () => {
+		expect(mixInOklab("#171717", "#ffffff", 0)).toEqual([23, 23, 23]);
+		expect(mixInOklab("#171717", "#ffffff", 100)).toEqual([255, 255, 255]);
+		// Half way between black and white in OKLab is lightness 0.5: 99 of
+		// 255 in sRGB, not the 128 a mix of the channels would give.
+		expect(mixInOklab("#000000", "#ffffff", 50)).toEqual([99, 99, 99]);
+		expect(contrastOfRgb([0, 0, 0], [255, 255, 255])).toBeCloseTo(21, 10);
 	});
 });

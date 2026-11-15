@@ -28,7 +28,7 @@ describe("NativeSelect", () => {
 		expect(select.className).toContain("appearance-none");
 		expect(select.className).toContain("focus-visible:outline-2");
 		// Hover and press each answer with their own tone.
-		expect(select).toHaveClass("hover:bg-accent", "active:bg-accent/70");
+		expect(select).toHaveClass("hover:bg-accent", "active:bg-accent-press");
 		expect(container.querySelector("svg")).toHaveAttribute(
 			"aria-hidden",
 			"true",

@@ -2,6 +2,7 @@ import { axisLabels } from "@/lib/charts/axis-ticks";
 import { niceCountScale } from "@/lib/charts/nice-scale";
 import { columnWidth, stackColumn } from "@/lib/charts/stack";
 import { cn } from "@/lib/class-names";
+import { FORCED_POINTER } from "@/lib/pointer-states";
 
 import { Mark } from "../mark";
 import { SERIES, type SeriesIndex } from "../series";
@@ -133,7 +134,10 @@ export function StackedColumns({
 										column.shaded ? "true" : undefined
 									}
 									title={column.hint}
-									className="flex min-w-0 flex-1 flex-col-reverse gap-0.5"
+									className={cn(
+										"flex min-w-0 flex-1 flex-col-reverse gap-0.5 rounded-xs transition-colors hover:bg-foreground/10 active:bg-foreground/15",
+										FORCED_POINTER,
+									)}
 								>
 									{stack.height > 0 ? (
 										<div

@@ -94,6 +94,27 @@ describe("SegmentedBar", () => {
 		expect(bar?.innerHTML).not.toMatch(/border|stroke/);
 	});
 
+	it("clips nothing, so the ring of a part under the pointer is whole, and rounds its two ends itself", () => {
+		const { container } = render(
+			<SegmentedBar
+				parts={[
+					{ key: "a", value: 1, series: 0 },
+					{ key: "b", value: 1, series: 1 },
+				]}
+			/>,
+		);
+		const bar = container.querySelector('[data-slot="segmented-bar"]');
+
+		expect(bar).not.toHaveClass("overflow-hidden");
+		expect(bar).not.toHaveClass("rounded-full");
+		for (const part of container.querySelectorAll("svg")) {
+			expect(part).toHaveClass(
+				"first:rounded-s-full",
+				"last:rounded-e-full",
+			);
+		}
+	});
+
 	it("has no part to draw when every value is nothing, and no style attribute", () => {
 		const { container } = render(
 			<SegmentedBar

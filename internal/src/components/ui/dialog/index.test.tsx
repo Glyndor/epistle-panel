@@ -6,7 +6,7 @@ import {
 	screen,
 	waitFor,
 } from "@testing-library/react";
-
+import { FORCED_POINTER } from "@/lib/pointer-states";
 import {
 	Dialog,
 	DialogClose,
@@ -83,6 +83,31 @@ describe("Dialog", () => {
 		// Brought into view with room for its ring, not flush with the box's edge.
 		expect(close.className).toContain("scroll-m-2");
 		expect(close.className).not.toContain("outline-none");
+	});
+
+	it("fills its close button under the pointer with the hover tone and presses it one step deeper", async () => {
+		setup();
+		fireEvent.click(screen.getByRole("button", { name: "Open" }));
+		await screen.findByRole("dialog");
+		const close = screen.getByRole("button", { name: "Shut" });
+
+		// The sunken tone it had is one step of 255 from the dialog's surface.
+		expect(close).toHaveClass(
+			"hover:bg-accent",
+			"hover:text-accent-foreground",
+			"active:bg-accent-press",
+		);
+		expect(close.className).not.toContain("hover:bg-surface-sunken");
+	});
+
+	it("outlines its close button under the pointer when colours are forced", async () => {
+		setup();
+		fireEvent.click(screen.getByRole("button", { name: "Open" }));
+		await screen.findByRole("dialog");
+
+		expect(screen.getByRole("button", { name: "Shut" })).toHaveClass(
+			...FORCED_POINTER.split(" "),
+		);
 	});
 
 	it("brings its close button into view when it takes the focus", async () => {
