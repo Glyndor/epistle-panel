@@ -1,23 +1,16 @@
 "use client";
 
-import { ListFilterIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useId, useState } from "react";
+import { useId } from "react";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { FilterMenu } from "@/components/filter-menu";
 import {
-	DropdownMenu,
-	DropdownMenuCheckboxItem,
-	DropdownMenuContent,
 	DropdownMenuGroup,
-	DropdownMenuItem,
 	DropdownMenuLabel,
 	DropdownMenuRadioGroup,
 	DropdownMenuRadioItem,
 	DropdownMenuSeparator,
-	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { mailHref } from "@/features/mail/links/mail-href";
 import {
@@ -57,6 +50,7 @@ const ORDERS = [
  * address is what the list reads. The list is drawn again with what the
  * address says.
  */
+/** The presentation is now shared; the order and address changes stay here. */
 export function FiltersMenu({
 	box,
 	role,
@@ -72,7 +66,6 @@ export function FiltersMenu({
 	const t = useTranslations("mail");
 	const router = useRouter();
 	const id = useId();
-	const [main, setMain] = useState<HTMLElement | null>(null);
 	const active = QUICK_FILTERS.filter((name) => conditions[name]).length;
 
 	const go = (next: ListConditions) => {
@@ -80,87 +73,58 @@ export function FiltersMenu({
 	};
 
 	return (
-		<DropdownMenu
-			onOpenChange={(open) => {
-				if (open) {
-					setMain(document.getElementById("main-content"));
-				}
-			}}
+		<FilterMenu
+			label={t("filters")}
+			activeLabel={t("filtersActive", { count: active })}
+			clearLabel={t("showAll")}
+			active={active}
+			groups={[
+				{
+					id: "filters",
+					label: t("filtersLabel"),
+					options: FILTERS.map((filter) => ({
+						value: filter.name,
+						label: t(filter.label),
+						checked: conditions[filter.name],
+						onToggle: () =>
+							go({
+								...conditions,
+								[filter.name]: !conditions[filter.name],
+							}),
+					})),
+				},
+			]}
+			onClear={() =>
+				go({
+					...conditions,
+					unread: false,
+					starred: false,
+					important: false,
+					attachment: false,
+				})
+			}
 		>
-			<DropdownMenuTrigger asChild>
-				<Button variant="outline">
-					<ListFilterIcon aria-hidden="true" />
-					{t("filters")}
-					{active > 0 ? (
-						<>
-							<Badge variant="default" aria-hidden="true">
-								{active}
-							</Badge>
-							<span className="sr-only">
-								{t("filtersActive", { count: active })}
-							</span>
-						</>
-					) : null}
-				</Button>
-			</DropdownMenuTrigger>
-			<DropdownMenuContent align="start" container={main}>
-				<DropdownMenuGroup aria-labelledby={`${id}-filters`}>
-					<DropdownMenuLabel id={`${id}-filters`}>
-						{t("filtersLabel")}
-					</DropdownMenuLabel>
-					{FILTERS.map((filter) => (
-						<DropdownMenuCheckboxItem
-							key={filter.name}
-							checked={conditions[filter.name]}
-							onCheckedChange={() =>
-								go({
-									...conditions,
-									[filter.name]: !conditions[filter.name],
-								})
-							}
-							onSelect={(event) => event.preventDefault()}
-						>
-							{t(filter.label)}
-						</DropdownMenuCheckboxItem>
-					))}
-				</DropdownMenuGroup>
-				<DropdownMenuSeparator />
-				<DropdownMenuGroup aria-labelledby={`${id}-order`}>
-					<DropdownMenuLabel id={`${id}-order`}>
-						{t("order")}
-					</DropdownMenuLabel>
-					<DropdownMenuRadioGroup
-						value={conditions.order}
-						onValueChange={(value) =>
-							go({ ...conditions, order: value as ListOrder })
-						}
-					>
-						{ORDERS.map((order) => (
-							<DropdownMenuRadioItem
-								key={order.name}
-								value={order.name}
-							>
-								{t(order.label)}
-							</DropdownMenuRadioItem>
-						))}
-					</DropdownMenuRadioGroup>
-				</DropdownMenuGroup>
-				<DropdownMenuSeparator />
-				<DropdownMenuItem
-					disabled={active === 0}
-					onSelect={() =>
-						go({
-							...conditions,
-							unread: false,
-							starred: false,
-							important: false,
-							attachment: false,
-						})
+			<DropdownMenuSeparator />
+			<DropdownMenuGroup aria-labelledby={`${id}-order`}>
+				<DropdownMenuLabel id={`${id}-order`}>
+					{t("order")}
+				</DropdownMenuLabel>
+				<DropdownMenuRadioGroup
+					value={conditions.order}
+					onValueChange={(value) =>
+						go({ ...conditions, order: value as ListOrder })
 					}
 				>
-					{t("showAll")}
-				</DropdownMenuItem>
-			</DropdownMenuContent>
-		</DropdownMenu>
+					{ORDERS.map((order) => (
+						<DropdownMenuRadioItem
+							key={order.name}
+							value={order.name}
+						>
+							{t(order.label)}
+						</DropdownMenuRadioItem>
+					))}
+				</DropdownMenuRadioGroup>
+			</DropdownMenuGroup>
+		</FilterMenu>
 	);
 }

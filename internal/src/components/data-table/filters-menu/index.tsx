@@ -1,23 +1,9 @@
-import { ListFilterIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useId, useState } from "react";
-
 import {
 	countFacets,
 	type DataTableFiltersMenuProps,
 } from "@/components/data-table/facets";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-	DropdownMenu,
-	DropdownMenuCheckboxItem,
-	DropdownMenuContent,
-	DropdownMenuGroup,
-	DropdownMenuItem,
-	DropdownMenuLabel,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { FilterMenu } from "@/components/filter-menu";
 
 /**
  * The Filters button of a table and its menu: one group of tick boxes per
@@ -40,66 +26,25 @@ export function DataTableFiltersMenu({
 	onClear,
 }: DataTableFiltersMenuProps) {
 	const t = useTranslations("table");
-	const id = useId();
-	const [main, setMain] = useState<HTMLElement | null>(null);
 	const active = countFacets(selection);
-
 	return (
-		<DropdownMenu
-			onOpenChange={(open) => {
-				if (open) {
-					setMain(document.getElementById("main-content"));
-				}
-			}}
-		>
-			<DropdownMenuTrigger asChild>
-				<Button variant="outline">
-					<ListFilterIcon aria-hidden="true" />
-					{t("filters")}
-					{active > 0 ? (
-						<>
-							<Badge variant="default" aria-hidden="true">
-								{active}
-							</Badge>
-							<span className="sr-only">
-								{t("filtersActive", { count: active })}
-							</span>
-						</>
-					) : null}
-				</Button>
-			</DropdownMenuTrigger>
-			<DropdownMenuContent align="start" container={main}>
-				{facets.map((facet) => (
-					<DropdownMenuGroup
-						key={facet.columnId}
-						aria-labelledby={`${id}-${facet.columnId}`}
-					>
-						<DropdownMenuLabel id={`${id}-${facet.columnId}`}>
-							{facet.label}
-						</DropdownMenuLabel>
-						{facet.options.map((option) => (
-							<DropdownMenuCheckboxItem
-								key={option.value}
-								checked={
-									selection[facet.columnId]?.includes(
-										option.value,
-									) ?? false
-								}
-								onCheckedChange={() =>
-									onToggle(facet.columnId, option.value)
-								}
-								onSelect={(event) => event.preventDefault()}
-							>
-								{option.label}
-							</DropdownMenuCheckboxItem>
-						))}
-					</DropdownMenuGroup>
-				))}
-				<DropdownMenuSeparator />
-				<DropdownMenuItem disabled={active === 0} onSelect={onClear}>
-					{t("deselectAll")}
-				</DropdownMenuItem>
-			</DropdownMenuContent>
-		</DropdownMenu>
+		<FilterMenu
+			label={t("filters")}
+			activeLabel={t("filtersActive", { count: active })}
+			clearLabel={t("deselectAll")}
+			active={active}
+			groups={facets.map((facet) => ({
+				id: facet.columnId,
+				label: facet.label,
+				options: facet.options.map((option) => ({
+					...option,
+					checked:
+						selection[facet.columnId]?.includes(option.value) ??
+						false,
+					onToggle: () => onToggle(facet.columnId, option.value),
+				})),
+			}))}
+			onClear={onClear}
+		/>
 	);
 }
