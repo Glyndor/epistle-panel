@@ -72,4 +72,23 @@ describe("DataTableNoRows", () => {
 		fireEvent.click(clear);
 		expect(onClearFilters).toHaveBeenCalledTimes(1);
 	});
+
+	it("keeps the state inside the visible box of a table wider than the screen, so it is not left out of sight", () => {
+		const { container } = setup(undefined);
+		const block = container.querySelector("td > div");
+		expect(block?.className).toContain("sticky");
+		expect(block?.className).toContain("left-0");
+		expect(block?.className).toContain("w-[100cqw]");
+		expect(
+			container.querySelector("[data-slot='table-container']")?.className,
+		).toContain("@container");
+	});
+
+	it("announces the state that filters leave, as a status, and not the empty list", () => {
+		setup(() => undefined);
+		expect(screen.getByRole("status")).toHaveTextContent("noMatches");
+		cleanup();
+		setup(undefined);
+		expect(screen.queryByRole("status")).toBeNull();
+	});
 });

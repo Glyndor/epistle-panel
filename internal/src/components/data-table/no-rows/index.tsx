@@ -37,27 +37,39 @@ export function DataTableNoRows({
 	return (
 		<TableRow>
 			<TableCell colSpan={colSpan}>
-				{onClearFilters ? (
-					<EmptyState
-						className="p-4"
-						illustration="search"
-						title={t("noMatches")}
-						description={t("noMatchesHint")}
-						action={
-							<Button variant="outline" onClick={onClearFilters}>
-								{t("clearFilters")}
-							</Button>
-						}
-					/>
-				) : (
-					<EmptyState
-						className="p-4"
-						illustration={empty.illustration}
-						title={emptyLabel}
-						description={empty.description}
-						action={empty.action}
-					/>
-				)}
+				{/*
+				 * The table can be wider than the box that scrolls it, and the
+				 * state is centred in the table: on a narrow screen it would sit
+				 * out of sight. The block is as wide as the visible box (`cqw`
+				 * of the table container) and stays at the left edge.
+				 */}
+				<div className="sticky left-0 w-[100cqw] max-w-full">
+					{onClearFilters ? (
+						<EmptyState
+							role="status"
+							className="p-4"
+							illustration="search"
+							title={t("noMatches")}
+							description={t("noMatchesHint")}
+							action={
+								<Button
+									variant="outline"
+									onClick={onClearFilters}
+								>
+									{t("clearFilters")}
+								</Button>
+							}
+						/>
+					) : (
+						<EmptyState
+							className="p-4"
+							illustration={empty.illustration}
+							title={emptyLabel}
+							description={empty.description}
+							action={empty.action}
+						/>
+					)}
+				</div>
 			</TableCell>
 		</TableRow>
 	);
