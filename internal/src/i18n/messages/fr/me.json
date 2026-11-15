@@ -1,0 +1,20 @@
+{
+	"heading": "Préférences",
+	"intro": "Ce qui vous appartient : la façon dont le panneau se lit et s’affiche pour vous. Elles sont conservées dans ce navigateur ; un autre navigateur part des siennes.",
+	"formLabel": "Vos préférences",
+	"language": "Langue",
+	"languageHelp": "La langue de l’interface. Chaque nom est écrit dans sa propre langue.",
+	"theme": "Thème",
+	"themeHelp": "Clair, sombre ou celui de votre système. La palette et les logos sont ceux de l’opérateur.",
+	"density": "Liste des messages",
+	"densityHelp": "La hauteur d’une ligne de la liste des messages.",
+	"density_comfortable": "Confortable : deux lignes et un aperçu",
+	"density_compact": "Compacte : une ligne",
+	"save": "Enregistrer les préférences",
+	"saving": "Enregistrement",
+	"saved": "Préférences enregistrées.",
+	"failed": "Les préférences n’ont pas pu être enregistrées. Reconnectez-vous si le problème persiste.",
+	"refused": "Certaines valeurs ne font pas partie des choix. Rien n’a été enregistré.",
+	"required": "Choisissez une option.",
+	"notInList": "Ce n’est pas l’un des choix."
+}

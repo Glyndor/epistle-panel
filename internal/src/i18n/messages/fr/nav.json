@@ -22,16 +22,17 @@
 	"account": "Compte : {name}",
 	"role_admin": "Administrateur",
 	"role_user": "Utilisateur",
-	"language": "Langue",
 	"theme": "Thème",
 	"themeCurrent": "Thème : {theme}",
 	"theme_system": "Système",
 	"theme_light": "Clair",
 	"theme_dark": "Sombre",
 	"themeFailed": "Le thème n’a pas pu être enregistré.",
-	"languageFailed": "La langue n’a pas pu être enregistrée.",
 	"logoutFailed": "Vous êtes toujours connecté : la déconnexion a échoué. Réessayez.",
 	"menuFailed": "Le menu n’a pas pu être chargé. Réessayez.",
 	"notifications": "Notifications",
-	"dismiss": "Fermer"
+	"dismiss": "Fermer",
+	"mail": "Courrier",
+	"preferences": "Préférences",
+	"meSheetDescription": "Où mène votre page de préférences."
 }

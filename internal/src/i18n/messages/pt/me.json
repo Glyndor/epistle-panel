@@ -1,0 +1,20 @@
+{
+	"heading": "Preferências",
+	"intro": "O que é seu: como o painel se lê e se vê para você. Fica guardado neste navegador; outro navegador parte do que é dele.",
+	"formLabel": "Suas preferências",
+	"language": "Idioma",
+	"languageHelp": "O idioma da interface. Cada nome está escrito no seu próprio idioma.",
+	"theme": "Tema",
+	"themeHelp": "Claro, escuro ou o que o seu sistema usa. A paleta e os logotipos são os do operador.",
+	"density": "Lista de mensagens",
+	"densityHelp": "A altura de cada linha da lista de mensagens.",
+	"density_comfortable": "Confortável: duas linhas e uma prévia",
+	"density_compact": "Compacta: uma linha",
+	"save": "Guardar preferências",
+	"saving": "Guardando",
+	"saved": "Preferências guardadas.",
+	"failed": "Não foi possível guardar as preferências. Entre de novo se o problema continuar.",
+	"refused": "Alguns valores não estão entre as opções. Nada foi guardado.",
+	"required": "Escolha uma opção.",
+	"notInList": "Isso não é uma das opções."
+}

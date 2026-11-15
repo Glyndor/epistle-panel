@@ -11,6 +11,7 @@ role.
 |---|---|---|---|
 | Sign-in | `/` (`(auth)/page.tsx`) | anyone without a session; a visitor with one is sent to `/app/mail` | `(auth)/layout.tsx`: a bare `main`, no navigation |
 | Mail | `/app/mail` (`app/app/mail`) | a session of any role | `mail/layout.tsx`: checks the session, then `AppShell` with the mail's own parts (the composer and the folders in the sidebar, the storage at its foot, the way into the admin for an admin session in the profile menu); `/app/mail/body/[id]` and `/app/mail/attachment/[id]/[part]` are its route handlers. See `mail.md` |
+| Preferences | `/app/me` (`app/app/me`) | a session of any role | `me/layout.tsx`: checks the session, then `AppShell` with a navigation of its own (the way back to the mail, the way into the administration for an admin session in an installation whose admin area is on, and the page). See `preferences.md` |
 | Admin | `/app/{id}/...` (`app/app/[adminId]`) | a session with the admin role, and the installation's id | `[adminId]/layout.tsx`: checks the role and the id, then `AppShell` with the admin navigation |
 
 `{id}` is a UUID v4 that belongs to the installation (`EPISTLE_PANEL_ADMIN_ID`).
@@ -149,25 +150,26 @@ shell's and the webmail's: the theme button and the profile menu. It is one
 component, so the two areas cannot drift. The profile menu
 (`components/layout/user-menu`, its Radix code loaded on the first press) shows
 what the layout read from the session and nothing else: the account's name,
-its initials and its role, then the language, the theme, the way into the
-administration and sign out. The address of the administration is built on the
+its initials and its role, then the theme (one click, as in the button of the
+header), the way into the preferences page (`/app/me`, where the language and
+the rest are chosen), the way into the administration and sign out. The address of the administration is built on the
 server and handed down only for an admin session in an installation whose
 admin area is on; the menu never derives it from the role.
 
-Inside one menu, one thing goes to the server at a time: while a language or a
-theme picked there is being stored, or the session is being ended, that menu's
-button is marked busy and looks it, and its rows wait. The two menus are
-independent of each other on purpose: the theme and the language are separate
-choices, each stored by its own action, so a theme picked from the theme button
-while a language is on its way is stored as well, and both hold.
+Inside one menu, one thing goes to the server at a time: while a theme picked
+there is being stored, or the session is being ended, that menu's button is
+marked busy and looks it, and its rows wait. The theme button and the profile
+menu are independent of each other on purpose, each with its own pending state
+and the document's attribute as their one source, so a theme picked in one
+shows in the other.
 
 Both buttons open from the keyboard with Enter, Space or the down arrow, with
 the focus on the first row, also on the first press, before the menu's code has
 arrived.
 
-The menu needs script. Sign out and the way into the administration are also
-in the served page as a plain form and a plain link, inside a `noscript`, so a
-browser without script keeps both. They take room the menu does not: the
+The menu needs script. The preferences page, sign out and the way into the
+administration are also in the served page as plain links and a plain form,
+inside a `noscript`, so a browser without script keeps all three. They take room the menu does not: the
 header is a row with a least height that wraps, so on a narrow window without
 script that end goes under the rest of the bar and the page is not pushed
 sideways.

@@ -10,7 +10,6 @@ import {
 import { Component, type ReactNode } from "react";
 
 import { clearToasts, Toaster } from "@/components/ui/toaster";
-import { LOCALE_NAMES, SUPPORTED_LOCALES } from "@/i18n/locales";
 import {
 	mockRequestCookies,
 	RedirectSignal,
@@ -102,22 +101,32 @@ describe("UserMenuPanel", () => {
 		expect(await screen.findByRole("menu")).toHaveTextContent("role_admin");
 	});
 
-	it("offers the language and the theme as two named groups of radio items", async () => {
+	it("offers the theme as a named group of radio items, and the language nowhere: that choice is on the preferences page", async () => {
 		renderPanel();
 		await screen.findByRole("menu");
 
-		const language = screen.getByRole("group", { name: "language" });
-		expect(
-			within(language)
-				.getAllByRole("menuitemradio")
-				.map((item) => item.textContent),
-		).toEqual(SUPPORTED_LOCALES.map((code) => LOCALE_NAMES[code]));
 		const theme = screen.getByRole("group", { name: "theme" });
 		expect(
 			within(theme)
 				.getAllByRole("menuitemradio")
 				.map((item) => item.textContent),
 		).toEqual(["theme_system", "theme_light", "theme_dark"]);
+		expect(screen.queryByRole("group", { name: "language" })).toBeNull();
+		expect(
+			screen.queryByRole("menuitemradio", { name: "Deutsch" }),
+		).toBeNull();
+	});
+
+	it("points to the preferences page with a plain link, whatever the role", async () => {
+		for (const sessionRole of ["user", "admin"] as const) {
+			renderPanel({ sessionRole });
+			await screen.findByRole("menu");
+
+			const link = screen.getByRole("menuitem", { name: "preferences" });
+			expect(link.tagName).toBe("A");
+			expect(link).toHaveAttribute("href", "/app/me");
+			cleanup();
+		}
 	});
 
 	it("offers the way into the administration only when the server gave one", async () => {
@@ -128,7 +137,7 @@ describe("UserMenuPanel", () => {
 		).toBeNull();
 		expect(
 			screen.getAllByRole("menuitem").map((item) => item.textContent),
-		).toEqual(["logout"]);
+		).toEqual(["preferences", "logout"]);
 		cleanup();
 
 		renderPanel({ sessionRole: "admin", adminHref: "/app/abc" });
@@ -146,20 +155,12 @@ describe("UserMenuPanel", () => {
 		expect(
 			screen.queryByRole("menuitem", { name: "administration" }),
 		).toBeNull();
-		expect(document.querySelector("a")).toBeNull();
-	});
-
-	it("stores a picked language through the Server Action", async () => {
-		await cookies.signIn();
-		renderPanel();
-
-		fireEvent.click(
-			await screen.findByRole("menuitemradio", { name: "Deutsch" }),
-		);
-
-		await waitFor(() =>
-			expect(writes("locale").map((w) => w.value)).toEqual(["de"]),
-		);
+		// The preferences page is the one link there is.
+		expect(
+			[...document.querySelectorAll("a")].map((a) =>
+				a.getAttribute("href"),
+			),
+		).toEqual(["/app/me"]);
 	});
 
 	it("shows a picked theme at once and stores it", async () => {

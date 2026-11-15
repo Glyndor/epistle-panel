@@ -130,14 +130,14 @@ describe("/app/mail", () => {
 		await settled();
 		cleanup();
 
-		cookies.jar.set("mail-density", "compact");
+		cookies.jar.set("list-density", "compact");
 		await home();
 		expect(pane()).toHaveAttribute("data-density", "compact");
 		expect(toggle()).toHaveAttribute("aria-pressed", "true");
 		await settled();
 		cleanup();
 
-		cookies.jar.set("mail-density", '"><script>');
+		cookies.jar.set("list-density", '"><script>');
 		await home();
 		expect(pane()).toHaveAttribute("data-density", "comfortable");
 	});

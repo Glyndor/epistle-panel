@@ -14,7 +14,7 @@ noscript_html() {
 
 # language_options: how many options of the banner carry a language. The
 # language chooser the webmail's banner used to hold marked every one of its
-# options with its language, and the profile menu holds the chooser now.
+# options with its language; the preferences page holds the chooser now.
 language_options() {
 	printf '%s' "$header" | { grep -o '<option[^>]*>' || true; } |
 		{ grep -c 'lang=' || true; }
@@ -40,6 +40,7 @@ scenario_profile_menu() {
 		assert_contains "$path: and it is a menu button, closed in the served page" "$header" 'aria-haspopup="menu"'
 		assert_absent "$path: no picture is loaded for it" "$header" '<img'
 		assert_contains "$path: without script, the way into the administration is a plain link built with the id" "$fallback" "href=\"$adm\""
+		assert_contains "$path: without script, the preferences page is a plain link" "$fallback" 'href="/app/me"'
 		assert_contains "$path: without script, sign out is a plain form" "$fallback" 'name="$ACTION_ID_'
 		assert_absent "$path: the banner has no language list of its own" "$header" 'aria-label="Language"'
 		assert_eq "$path: the banner has no option marked with a language" "$(language_options)" 0
@@ -55,7 +56,8 @@ scenario_profile_menu() {
 	fallback=$(noscript_html)
 	assert_contains "a user's profile button names that account" "$header" '>Account: user</span>'
 	assert_contains "a user keeps sign out without script" "$fallback" 'name="$ACTION_ID_'
-	assert_absent "a user is given no link to the administration" "$fallback" '<a '
+	assert_contains "a user keeps the way into the preferences page without script" "$fallback" 'href="/app/me"'
+	assert_absent "a user is given no link to the administration" "$fallback" 'Administration'
 	assert_absent "nor the word for it" "$header" 'Administration'
 	assert_absent "the id is nowhere in a user's page" "$(cat "$work/b")" "$admin_id"
 

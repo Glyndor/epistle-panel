@@ -1,0 +1,20 @@
+{
+	"heading": "Einstellungen",
+	"intro": "Was Ihnen gehört: wie das Panel für Sie aussieht und sich liest. Sie werden in diesem Browser gespeichert; ein anderer Browser beginnt mit seinen eigenen.",
+	"formLabel": "Ihre Einstellungen",
+	"language": "Sprache",
+	"languageHelp": "Die Sprache der Oberfläche. Jeder Name steht in seiner eigenen Sprache.",
+	"theme": "Design",
+	"themeHelp": "Hell, dunkel oder das, was Ihr System verwendet. Palette und Logos sind die des Betreibers.",
+	"density": "Nachrichtenliste",
+	"densityHelp": "Wie hoch eine Zeile der Nachrichtenliste ist.",
+	"density_comfortable": "Bequem: zwei Zeilen und eine Vorschau",
+	"density_compact": "Kompakt: eine Zeile",
+	"save": "Einstellungen speichern",
+	"saving": "Speichern",
+	"saved": "Einstellungen gespeichert.",
+	"failed": "Die Einstellungen konnten nicht gespeichert werden. Melden Sie sich erneut an, wenn das Problem bleibt.",
+	"refused": "Einige Werte gehören nicht zur Auswahl. Es wurde nichts gespeichert.",
+	"required": "Wählen Sie eine Option.",
+	"notInList": "Das gehört nicht zur Auswahl."
+}

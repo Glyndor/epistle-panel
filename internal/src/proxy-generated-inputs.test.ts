@@ -32,7 +32,8 @@ const isDotDot = (segment: string) => /^(\.|%2e)(\.|%2e)$/i.test(segment);
  * any spelling a router may read it (percent-encoded, any case, backslashes,
  * repeated slashes, a `;` parameter, an undecodable escape): under `/app`,
  * `mail` wants a session of any role and sends the others to the sign-in page,
- * and a second segment that is exactly the configured id lets an admin in; every
+ * `me` wants the same and lets only its one path through, and a second segment
+ * that is exactly the configured id lets an admin in; every
  * other path is hidden as a 404.
  */
 /**
@@ -47,6 +48,9 @@ const FOLDER = "(?:[A-Za-z0-9-]|_[0-9A-F]{2})(?:[A-Za-z0-9.-]|_[0-9A-F]{2})*";
 const MAIL_ROUTE = new RegExp(
 	`^/app/mail(?:/(?:inbox|drafts|sent|archive|junk|trash)(?:/${MESSAGE})?|/folder/${FOLDER}(?:/${MESSAGE})?|/compose|/compose-message|/upload|/body/[^/]+|/attachment/[^/]+/[^/]+)?$`,
 );
+
+/** The person's own page: that exact path, one slash at the end the same, nothing else. */
+const ME_ROUTE = /^\/app\/me$/;
 
 function expectedVerdict(rawPath: string, caller: Caller): Verdict {
 	// A parser drops tabs and newlines anywhere and trailing control characters
@@ -113,6 +117,16 @@ function expectedVerdict(rawPath: string, caller: Caller): Verdict {
 			return "gated";
 		}
 		return MAIL_ROUTE.test(path.endsWith("/") ? path.slice(0, -1) : path)
+			? "passed"
+			: "hidden";
+	}
+	if (second?.toLowerCase() === "me") {
+		// The same gate as the mail area: no session goes to the sign-in page,
+		// and with one only the exact path passes.
+		if (caller === "anonymous") {
+			return "gated";
+		}
+		return ME_ROUTE.test(path.endsWith("/") ? path.slice(0, -1) : path)
 			? "passed"
 			: "hidden";
 	}
@@ -200,6 +214,16 @@ const BASES = [
 	"/app/mail/inbox/01890a5d-ac96-074b-b9aa-9be4c3bd6b0e",
 	"/app/mail/sent/01890a5d-ac96-774b-c9aa-9be4c3bd6b0e",
 	"/app/mail/folder/Work%2FQ4",
+	"/app/me",
+	"/app/me/",
+	"/app/me/x",
+	"/app/me/inbox",
+	"/app/Me",
+	"/app/ME",
+	"/app/m%65",
+	"/app/me;x",
+	"/app/mex",
+	"/app/m",
 	"/app/Mail",
 	"/app/MAIL/x",
 	"/app/mailx",

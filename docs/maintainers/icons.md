@@ -61,7 +61,8 @@ told by its name: the icon is on the heading of the run.
 | Lucide: `StarIcon`, `PaperclipIcon`, `ReplyIcon`, `ForwardIcon`, `Rows2Icon`, `Rows4Icon` | the star, the clip of an attachment and the answered and forwarded icons of a message row, the density switch of the list | `lucide-react` | ISC |
 | Lucide: `ListFilterIcon`, `CheckIcon`, `ChevronLeftIcon`, `ChevronRightIcon`, `MoreHorizontalIcon` | the Filters button of a table, the tick of a menu box, previous and next page, the gap between page numbers | `lucide-react` | ISC |
 | Lucide: `ChevronDownIcon`, `PenLineIcon`, `InboxIcon`, `FileEditIcon`, `SendIcon`, `ArchiveIcon`, `ShieldAlertIcon`, `Trash2Icon`, `FolderIcon` | the heading of a navigation group, the composer and the folders of the mail area's sidebar | `lucide-react` | ISC |
-| Lucide: `PaletteIcon`, `LanguagesIcon`, `UserCogIcon`, `Trash2Icon` | the headings of the theme and language runs of the profile menu, the two actions of an account's row | `lucide-react` | ISC |
+| Lucide: `PaletteIcon`, `UserCogIcon`, `Trash2Icon` | the heading of the theme run of the profile menu, the two actions of an account's row | `lucide-react` | ISC |
+| Lucide: `SlidersHorizontalIcon` | the preferences entry of the profile menu and of the preferences page's sidebar | `lucide-react` | ISC |
 
 The custom component's test asserts the properties above: decorative, 24 px
 `viewBox`, `currentColor`, and no script, style or external reference.

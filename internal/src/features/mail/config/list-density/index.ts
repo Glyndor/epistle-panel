@@ -10,8 +10,19 @@ export type ListDensity = (typeof LIST_DENSITIES)[number];
 /** The density when the cookie is missing or holds anything else. */
 export const DEFAULT_LIST_DENSITY: ListDensity = "comfortable";
 
-/** Name of the cookie that holds the chosen density. */
-export const LIST_DENSITY_COOKIE = "mail-density";
+/**
+ * Name of the cookie that holds the chosen density. It is not `mail-density`,
+ * the name it had while it was sent to the mail area only: that cookie is
+ * never read now, and a browser that still holds one keeps the default until
+ * the density is chosen again.
+ */
+export const LIST_DENSITY_COOKIE = "list-density";
+
+/**
+ * Where the cookie is sent: everything under `/app`, since the choice is made
+ * on the person's own page (`/app/me`) and used in the mail area.
+ */
+export const LIST_DENSITY_COOKIE_PATH = "/app";
 
 /**
  * The attribute of the list pane that says the density. The rows, the date

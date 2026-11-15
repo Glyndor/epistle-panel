@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { logout } from "@/features/auth/actions/logout";
 import { ThemeSwitcher } from "@/features/theme/components/theme-switcher";
 import type { SessionRole } from "@/lib/auth/session";
+import { PUBLIC_ROUTES } from "@/lib/routes";
 
 /**
  * The far end of a header, the same in the admin area and in the webmail: the
@@ -13,9 +14,9 @@ import type { SessionRole } from "@/lib/auth/session";
  * the layout already checked: the account's name, its role and, for an admin
  * session only, the address of the administration built on the server.
  *
- * The menu needs script. Without it the two things nobody can do without stay
- * reachable: the way into the administration and sign out, a plain link and a
- * plain form, here in a `noscript`. They take room the menu does not, so this
+ * The menu needs script. Without it the things nobody can do without stay
+ * reachable: the preferences page, the way into the administration and sign
+ * out, two plain links and a plain form, here in a `noscript`. They take room the menu does not, so this
  * end wraps under the rest of the bar where the window is narrow.
  */
 export function HeaderActions({
@@ -39,6 +40,9 @@ export function HeaderActions({
 			/>
 			<noscript>
 				<span className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
+					<Button asChild variant="ghost">
+						<a href={PUBLIC_ROUTES.me}>{t("preferences")}</a>
+					</Button>
 					{adminHref === undefined ? null : (
 						<Button asChild variant="ghost">
 							<a href={adminHref}>{t("administration")}</a>

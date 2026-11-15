@@ -34,8 +34,21 @@ describe("HeaderActions", () => {
 			/<form[^>]*action=[^>]*>.*<button[^>]*type="submit"[^>]*>.*logout.*<\/form>/s,
 		);
 		// A user session is given no way into the administration.
-		expect(fallback).not.toContain("<a ");
 		expect(fallback).not.toContain("administration");
+	});
+
+	it("keeps the way into the preferences page as a plain link there, for both roles", () => {
+		for (const sessionRole of ["user", "admin"] as const) {
+			const fallback = withoutScript(
+				renderToStaticMarkup(
+					<HeaderActions name="ana" sessionRole={sessionRole} />,
+				),
+			);
+
+			expect(fallback).toMatch(
+				/<a[^>]*href="\/app\/me"[^>]*>preferences<\/a>/,
+			);
+		}
 	});
 
 	it("keeps the way into the administration as a plain link there, when the server gave one", () => {
@@ -61,7 +74,6 @@ describe("HeaderActions", () => {
 			),
 		);
 
-		expect(fallback).not.toContain("<a ");
 		expect(fallback).not.toContain("administration");
 		expect(fallback).toContain("<form");
 	});
@@ -99,7 +111,8 @@ describe("HeaderActions", () => {
 			...fallback.matchAll(/<(?:a|button) [^>]*class="([^"]*)"/g),
 		];
 
-		expect(controls).toHaveLength(2);
+		// The preferences link, the administration link and the sign-out button.
+		expect(controls).toHaveLength(3);
 		for (const [, classes] of controls) {
 			expect(classes?.split(" ")).toEqual(
 				expect.arrayContaining(["min-h-8", "pointer-coarse:min-h-11"]),
