@@ -1,10 +1,46 @@
+/**
+ * Zones whose current IANA name the `Intl` of some runtimes still lists under
+ * the old one (`Intl.supportedValuesOf` of Node 24 and Chromium 157 name
+ * `Asia/Calcutta`, not `Asia/Kolkata`). People and operators write the current
+ * name, so it is a choice when the process prints it, and the old name stays a
+ * choice too, so a cookie that holds it keeps working. Each pair is [current, old].
+ */
+const RENAMED_ZONES: ReadonlyArray<readonly [string, string]> = [
+	["Asia/Kolkata", "Asia/Calcutta"],
+	["Asia/Kathmandu", "Asia/Katmandu"],
+	["Asia/Ho_Chi_Minh", "Asia/Saigon"],
+	["Asia/Yangon", "Asia/Rangoon"],
+	["Europe/Kyiv", "Europe/Kiev"],
+	["America/Argentina/Buenos_Aires", "America/Buenos_Aires"],
+	["Atlantic/Faroe", "Atlantic/Faeroe"],
+	["Pacific/Chuuk", "Pacific/Truk"],
+	["Pacific/Pohnpei", "Pacific/Ponape"],
+	["America/Nuuk", "America/Godthab"],
+];
+
+/** Whether this process can print dates in a zone of that name. */
+function printsIn(zone: string): boolean {
+	try {
+		new Intl.DateTimeFormat("en", { timeZone: zone });
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+/** The current names of {@link RENAMED_ZONES} that this process prints and does not list. */
+export const currentNames = (listed: readonly string[]): string[] =>
+	RENAMED_ZONES.filter(
+		([current]) => !listed.includes(current) && printsIn(current),
+	).map(([current]) => current);
+
 /** The zones the running process knows, plus the panel's own clock. */
 const supportedZones = (): readonly string[] => {
-	const list =
-		typeof Intl.supportedValuesOf === "function"
-			? Intl.supportedValuesOf("timeZone")
-			: [];
-	return Object.freeze(["UTC", ...list]);
+	if (typeof Intl.supportedValuesOf !== "function") {
+		return Object.freeze(["UTC"]);
+	}
+	const list = Intl.supportedValuesOf("timeZone");
+	return Object.freeze(["UTC", ...list, ...currentNames(list)]);
 };
 
 /**
@@ -44,9 +80,19 @@ export function isTimeZone(value: unknown): value is TimeZone {
 	return typeof value === "string" && TIME_ZONES.includes(value);
 }
 
-/** A stored value as a zone: anything that is not exactly a zone is `UTC`. */
+/** The current name of a zone that has been renamed, when this process prints it; the name itself otherwise. */
+export function currentZoneName(zone: TimeZone): TimeZone {
+	const pair = RENAMED_ZONES.find(([, old]) => old === zone);
+	return pair !== undefined && TIME_ZONES.includes(pair[0]) ? pair[0] : zone;
+}
+
+/**
+ * A stored value as a zone: anything that is not exactly a zone is `UTC`, and
+ * an old name of a renamed zone is read under its current one, which is the
+ * one the select shows.
+ */
 export function parseTimeZone(value: unknown): TimeZone {
-	return isTimeZone(value) ? value : DEFAULT_TIME_ZONE;
+	return isTimeZone(value) ? currentZoneName(value) : DEFAULT_TIME_ZONE;
 }
 
 /**
@@ -73,8 +119,18 @@ export interface TimeZoneGroup {
  * written; it is shown as it is, the way the menu shows a language's own name.
  */
 export const TIME_ZONE_GROUPS: readonly TimeZoneGroup[] = Object.freeze(
-	groupZones(["UTC", ...TIME_ZONES.filter((zone) => zone !== "UTC")]),
+	groupZones([
+		"UTC",
+		...TIME_ZONES.filter((zone) => zone !== "UTC" && !hasCurrentName(zone)),
+	]),
 );
+
+/** Whether the zone is an old name whose current name is a choice too: the select shows the current one only. */
+function hasCurrentName(zone: string): boolean {
+	return RENAMED_ZONES.some(
+		([current, old]) => old === zone && TIME_ZONES.includes(current),
+	);
+}
 
 function groupZones(zones: readonly string[]): TimeZoneGroup[] {
 	const groups: Array<{ region: string; zones: string[] }> = [];

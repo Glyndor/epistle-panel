@@ -34,7 +34,6 @@ import { cn } from "@/lib/class-names";
 const ID = "overview-timeline";
 
 /** Half a day, in seconds: the middle of a column that is a day. */
-const HALF_DAY = 43_200;
 
 /** The palette series of each outcome, in the API's order: the same as the outcomes card. */
 const OUTCOME_SERIES: readonly SeriesIndex[] = [0, 1, 2, 3, 4];
@@ -132,15 +131,15 @@ export async function TimelineCard({
 			hourCycle: "h23",
 			timeZone,
 		});
-	// The day a column covers, as the person sees it: the middle of the column,
-	// which is the day it holds most of. A column that is a day of Greenwich
-	// is not a day of the person's clock, and the label names the day of it
-	// that the person would call it.
+	// A column of a day is a day of Greenwich, because that is how the API counts
+	// its log. It is written as that day and the heading and the note name UTC;
+	// moving its label into the person's zone would put the counts of one day
+	// under the date of another.
 	const day = (seconds: number) =>
-		format.dateTime(at(seconds + HALF_DAY), {
+		format.dateTime(at(seconds), {
 			month: "short",
 			day: "numeric",
-			timeZone,
+			timeZone: "UTC",
 		});
 	const hourly = timeline.unit === "hour";
 	const when = (seconds: number) =>
@@ -154,9 +153,11 @@ export async function TimelineCard({
 					timeZone,
 				})
 			: day(seconds);
+	// Hours are written in the person's zone; days are the API's, in UTC.
+	const columnZone = hourly ? timeZone : "UTC";
 	const note = t(`timeline.note.${timeline.unit}`, {
 		time: clock(readAt),
-		zone: timeZone,
+		zone: columnZone,
 	});
 	if (timeline.total === 0) {
 		return (
@@ -255,7 +256,7 @@ export async function TimelineCard({
 						<TableRow>
 							<TableHead scope="col">
 								{t(`timeline.column.${timeline.unit}`, {
-									zone: timeZone,
+									zone: columnZone,
 								})}
 							</TableHead>
 							{names.map((name) => (

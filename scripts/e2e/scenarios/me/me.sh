@@ -250,7 +250,7 @@ scenario_me() {
 
 	# --- fifth field: fixed examples include a half-hour offset and the date line
 	local time_zone encoded_zone
-	for time_zone in UTC America/Bogota Asia/Calcutta Pacific/Kiritimati; do
+	for time_zone in UTC America/Bogota Asia/Kolkata Pacific/Kiritimati; do
 		me_post "$user_cookie" language=en theme=system density=comfortable remoteImages=ask "timeZone=$time_zone"
 		assert_eq "$time_zone: the plain post is answered" "$status" 200
 		assert_eq "$time_zone: five preference cookies" "$(me_prefs_set_count)" 5

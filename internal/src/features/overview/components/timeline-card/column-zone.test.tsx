@@ -17,7 +17,7 @@ afterEach(() => {
 	globalThis.fetch = fetchBefore;
 });
 // The translated column heading contains {zone}, and the card has to pass it.
-it("supplies the zone required by both translated table column headings", async () => {
+it("names the person's zone for hour columns and UTC for day columns in the table headings", async () => {
 	useFakeClock();
 	for (const period of ["24h", "7d"] as const) {
 		stubOverviewApi({
@@ -37,7 +37,8 @@ it("supplies the zone required by both translated table column headings", async 
 		saidWith("timeline.column.hour").at(-1),
 		saidWith("timeline.column.day").at(-1),
 	]).toEqual([
+		// Hours are the person's; a column of a day is a day of Greenwich.
 		{ zone: "Pacific/Kiritimati" },
-		{ zone: "Pacific/Kiritimati" },
+		{ zone: "UTC" },
 	]);
 });

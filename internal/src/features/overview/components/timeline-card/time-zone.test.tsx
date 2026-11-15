@@ -55,12 +55,14 @@ it("keeps UTC bucket boundaries while ticks, hints, reading clock and table use 
 					screen.getByRole("button", { name: "viewData" }),
 				);
 				expect(zones.length).toBeGreaterThan(20);
-				expect(new Set(zones)).toEqual(new Set([zone]));
+				expect(new Set(zones)).toEqual(
+					new Set(period === "24h" ? [zone] : [zone, "UTC"]),
+				);
 				expect(
 					saidWith(
 						`timeline.note.${period === "24h" ? "hour" : "day"}`,
 					).at(-1)?.["zone"],
-				).toBe(zone);
+				).toBe(period === "24h" ? zone : "UTC");
 				const labels = Array.from(
 					container.querySelectorAll('[data-slot="chart-tick"]'),
 				).map((x) => x.textContent);
@@ -71,12 +73,13 @@ it("keeps UTC bucket boundaries while ticks, hints, reading clock and table use 
 						"05:30",
 						"11:30",
 					]);
+				// A column of a day is a day of Greenwich: the same labels in every zone.
 				if (period === "7d" && zone === "Pacific/Kiritimati")
 					expect(labels).toEqual([
-						"10 Jan",
-						"12 Jan",
-						"14 Jan",
-						"16 Jan",
+						"9 Jan",
+						"11 Jan",
+						"13 Jan",
+						"15 Jan",
 					]);
 				cleanup();
 			}
