@@ -178,8 +178,9 @@ The session lifetimes travel in the signed token and in the cookie, and the
 idle timeout travels in the token as the moment of the last use, so the server
 alone judges a session; the browser cannot extend one. Renewal changes only
 `act`: `iat`, `exp`, role and `jti` stay fixed, and cookie Max-Age is the exact
-remaining absolute lifetime. Static assets, prefetches, HEAD, proxy redirects
-and hidden rewrites do not count as activity. Reducing a role's configured
+remaining absolute lifetime. Only a GET (a navigation) or a POST (a server
+action) renews it; static assets, prefetches, HEAD, every other method, proxy
+redirects and hidden rewrites do not count as activity. Reducing a role's configured
 lifetime rejects sessions issued for longer, even if they would expire soon;
 increasing it never extends an existing session. Older tokens without the new
 issuance and canonical identity claims require signing in again.

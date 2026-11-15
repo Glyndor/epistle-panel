@@ -57,6 +57,10 @@ export const HIDDEN_PATH = "/__not-found__";
  * unreadable id all resolve to "hidden". Each page and Server
  * Action checks the role again itself.
  *
+ * Only a foreground request renews the idle clock: a GET navigation or a POST
+ * server action. A prefetch, a HEAD, any other method and a request that ends
+ * in a redirect or a hidden 404 leave it where it was.
+ *
  * The admin decision evaluates the session and the id comparison every time,
  * so its time does not tell which part was wrong. A redirect target is the
  * request's own origin with a fixed path and no query. Next rewrites a
@@ -76,9 +80,14 @@ export async function proxy(request: NextRequest) {
 		area.kind === "root" ? captchaWideningFromEnv() : undefined,
 	);
 
-	// Prefetch and HEAD are not activity. They still pass the same auth gate.
+	// Only the foreground requests a person's browser makes are activity: GET
+	// (navigation) and POST (server actions). A prefetch is a GET the browser
+	// sends on its own, so it is not activity either, and no other method is
+	// (PUT, DELETE, PATCH, OPTIONS, TRACE): the router refuses them, so a
+	// request that ends in a 405 must not keep a session alive. They all still
+	// pass the same auth gate.
 	const activity =
-		request.method !== "HEAD" &&
+		(request.method === "GET" || request.method === "POST") &&
 		!request.headers.has("next-router-prefetch") &&
 		!request.headers.has("next-router-segment-prefetch") &&
 		!/(?:^|\s|,)prefetch(?:$|\s|,|;)/i.test(
@@ -158,7 +167,9 @@ export async function proxy(request: NextRequest) {
 	// While the operator's idle timeout is on, the token carries the moment of
 	// the last activity, so the cookie the browser holds is re-signed with this
 	// request's moment. Without it the idle clock would run from the sign-in
-	// and a session in use would end anyway.
+	// and a session in use would end anyway. Only a request that counts as
+	// activity comes with a new token; every other one leaves the clock where
+	// it was.
 	if (
 		checked?.refreshed &&
 		response.headers.get("x-middleware-next") === "1"

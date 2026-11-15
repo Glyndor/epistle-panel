@@ -26,6 +26,8 @@
  *   slots so concurrent successes cannot exceed it; failures and API errors
  *   release their reservations without spending the budget. Once exhausted,
  *   every password is refused before the API, without checking its correctness.
+ *   The names with a record are bounded ({@link MAX_TRACKED_SUCCESSES}), so
+ *   many distinct names cannot grow the map without end.
  *
  * What an attacker can still do: sustain {@link GLOBAL_MAX_FAILURES} failing
  * attempts per window to hold the ceiling shut for any name that has not signed
@@ -46,7 +48,9 @@
  * failure is recorded. State is in memory, per process, and sits on
  * `globalThis` for the same reason as the revocation set.
  * The success budget is also per-process memory: a restart clears it and
- * replicas do not share it. Expired success records are pruned on each success.
+ * replicas do not share it. Expired success records are pruned on each success,
+ * and the number of names with a record is bounded, so the map cannot grow
+ * with the number of distinct names.
  */
 
 /** Attempts per account name before backoff starts. */
@@ -71,6 +75,16 @@ export const KNOWN_GOOD_MS = 8 * 60 * 60_000;
 export const MAX_TRACKED_NAMES = 10_000;
 /** Names exempt from the global ceiling at once; the oldest is dropped. */
 export const MAX_KNOWN_GOOD_NAMES = 1_000;
+/**
+ * Names with a success record at once. The map is pruned when a success
+ * arrives: records whose window has ended go first, and if it is still full,
+ * the record with the oldest window start goes. A dropped record only forgets
+ * a count, so that name starts again from zero: the bound can admit sign-ins
+ * the budget would have refused, and it never refuses a name the budget would
+ * have admitted. It grants no access on its own, so dropping is the safe
+ * direction for memory.
+ */
+export const MAX_TRACKED_SUCCESSES = 1_000;
 /** Twenty sign-ins in ten minutes is beyond normal use; cap logout/revocation churn. */
 export const SUCCESS_MAX_SIGN_INS = 20;
 /** Fixed success window, long enough to slow repeated login/logout loops. */
@@ -248,7 +262,11 @@ function settleAttempt(key: string, outcome: Outcome, now: number): void {
 				limiter.successes.delete(name);
 			}
 		}
-		const record = limiter.successes.get(key) ?? {
+		const known = limiter.successes.get(key);
+		if (!known && limiter.successes.size >= MAX_TRACKED_SUCCESSES) {
+			dropOldestSuccess(limiter);
+		}
+		const record = known ?? {
 			count: 0,
 			windowStart: now,
 		};
@@ -281,9 +299,33 @@ function forgetStale(names: Map<string, NameRecord>, now: number): void {
 	}
 }
 
+/**
+ * Drop the success record whose window started first. The map keeps the order
+ * in which the names arrived, which is not the order of their windows, so the
+ * oldest window is looked for.
+ */
+function dropOldestSuccess(limiter: LimiterState): void {
+	let oldestKey: string | undefined;
+	let oldestStart = Number.POSITIVE_INFINITY;
+	for (const [key, record] of limiter.successes) {
+		if (record.windowStart < oldestStart) {
+			oldestKey = key;
+			oldestStart = record.windowStart;
+		}
+	}
+	if (oldestKey !== undefined) {
+		limiter.successes.delete(oldestKey);
+	}
+}
+
 /** Number of names tracked, for tests of the bound. */
 export function trackedNames(): number {
 	return state().names.size;
+}
+
+/** Number of names with a success record, for tests of the bound. */
+export function trackedSuccesses(): number {
+	return state().successes.size;
 }
 
 /** Attempts currently waiting on the API, for tests of the cap. */
