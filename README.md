@@ -216,8 +216,9 @@ names the variable and never the value.
   stops the start with a message that names the variable and never the value.
   The idle timeout counts from the last use, which the token carries and the
   panel renews on admitted foreground requests, so its signed activity
-  timestamp survives a restart. Static assets, prefetches, HEAD requests, proxy
-  redirects and hidden rewrites do not renew it. Renewal preserves the original
+  timestamp survives a restart. Only a GET (a navigation) or a POST (a server
+  action) renews it: static assets, prefetches, HEAD requests, every other
+  method, proxy redirects and hidden rewrites do not renew it. Renewal preserves the original
   issuance (`iat`), absolute expiry (`exp`), role and session id (`jti`). A page
   left open and visible keeps the session alive (the panel refreshes its lists);
   a hidden tab does not. Enabling the idle timeout refuses sessions without
