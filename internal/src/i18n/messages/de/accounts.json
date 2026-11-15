@@ -47,6 +47,7 @@
 	"deletedLeft": "Konto {name} gelöscht. {count, plural, one {# Nachricht in der Warteschlange wird} other {# Nachrichten in der Warteschlange werden}} noch zugestellt.",
 	"deletedDiscarded": "Konto {name} gelöscht. Verworfene Nachrichten aus der Warteschlange: {count}.",
 	"deleteGone": "Das Konto existiert nicht mehr, oder es ist in der Konfigurationsdatei deklariert und kann hier nicht gelöscht werden.",
+	"deleteLoadFailed": "Das Fenster zum Löschen konnte nicht geöffnet werden. Versuchen Sie es erneut.",
 	"passwordTooShort": "Verwenden Sie mindestens 12 Zeichen.",
 	"passwordTooLong": "Verwenden Sie höchstens 64 Zeichen.",
 	"passwordCharset": "Verwenden Sie nur druckbare ASCII-Zeichen: Buchstaben, Ziffern, Leerzeichen und gängige Satzzeichen.",

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it, mock } from "bun:test";
 import {
 	cleanup,
 	fireEvent,
@@ -7,6 +7,7 @@ import {
 	waitFor,
 } from "@testing-library/react";
 
+import { clearToasts, Toaster } from "@/components/ui/toaster";
 import { useActionEnvironment } from "@/features/account-detail/test-support/action-checks";
 import type { AccountRow } from "@/features/accounts/schemas/accounts-view";
 import { sentRequests } from "@/lib/api/test-support/fetch";
@@ -15,9 +16,25 @@ import { TEST_ADMIN_ID } from "@/lib/config/test-support/admin-id";
 import { withAdminArea } from "@/test/admin-routes";
 
 const cookies = mockRequestCookies();
+/** What the dialog's code does when asked for: the real module, or a failure a case puts in its place. */
+let loadImpl: () => Promise<unknown> = () =>
+	import("@/features/accounts/components/delete-account-dialog").then(
+		(module) => module.DeleteAccountDialog,
+	);
+mock.module(
+	"@/features/accounts/components/account-row-actions/load-delete-dialog",
+	() => ({ loadDeleteDialog: () => loadImpl() }),
+);
 const { AccountRowActions } = await import(".");
 
-afterEach(cleanup);
+afterEach(() => {
+	cleanup();
+	clearToasts();
+	loadImpl = () =>
+		import("@/features/accounts/components/delete-account-dialog").then(
+			(module) => module.DeleteAccountDialog,
+		);
+});
 
 const row = (over: Partial<AccountRow> = {}): AccountRow => ({
 	name: "alice",
@@ -40,6 +57,7 @@ const setup = (value: AccountRow) =>
 				<div data-testid="cell">
 					<AccountRowActions row={value} />
 				</div>
+				<Toaster label="toasts" closeLabel="close" />
 			</main>,
 		),
 	);
@@ -153,5 +171,35 @@ describe("AccountRowActions", () => {
 			),
 		);
 		expect(sentRequests()).toHaveLength(0);
+	});
+
+	it("says the dialog could not be opened when its code does not come, keeps the page, and asks again on the next press", async () => {
+		let asked = 0;
+		loadImpl = async () => {
+			asked++;
+			throw new Error("ChunkLoadError");
+		};
+		setup(row());
+		await open();
+		fireEvent.click(screen.getByRole("menuitem", { name: "delete" }));
+
+		expect(await screen.findByRole("alert")).toHaveTextContent(
+			"deleteLoadFailed",
+		);
+		expect(screen.queryByRole("alertdialog")).toBeNull();
+		expect(screen.getByTestId("cell")).toBeInTheDocument();
+
+		// The network is back: the next press asks again and the dialog opens.
+		const failures = asked;
+		loadImpl = () =>
+			import("@/features/accounts/components/delete-account-dialog").then(
+				(module) => module.DeleteAccountDialog,
+			);
+		await open();
+		fireEvent.click(screen.getByRole("menuitem", { name: "delete" }));
+		expect(
+			await screen.findByRole("alertdialog", { name: "deleteTitle" }),
+		).toBeInTheDocument();
+		expect(failures).toBeGreaterThan(0);
 	});
 });

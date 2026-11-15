@@ -47,6 +47,7 @@
 	"deletedLeft": "Compte {name} supprimé. {count, plural, one {# message en file d’attente sera} other {# messages en file d’attente seront}} encore distribués.",
 	"deletedDiscarded": "Compte {name} supprimé. Messages en file d’attente abandonnés : {count}.",
 	"deleteGone": "Le compte n’existe plus, ou il est déclaré dans le fichier de configuration et ne peut pas être supprimé d’ici.",
+	"deleteLoadFailed": "La fenêtre de suppression n’a pas pu s’ouvrir. Réessayez.",
 	"passwordTooShort": "Utilisez au moins 12 caractères.",
 	"passwordTooLong": "Utilisez 64 caractères au maximum.",
 	"passwordCharset": "Utilisez uniquement des caractères ASCII imprimables : lettres, chiffres, espaces et ponctuation courante.",

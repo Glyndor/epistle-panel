@@ -47,6 +47,7 @@
 	"deletedLeft": "Conta {name} eliminada. {count, plural, one {# mensagem em fila} other {# mensagens em fila}} ainda serão entregues.",
 	"deletedDiscarded": "Conta {name} eliminada. Mensagens em fila descartadas: {count}.",
 	"deleteGone": "A conta já não existe, ou está declarada no ficheiro de configuração e não pode ser eliminada a partir daqui.",
+	"deleteLoadFailed": "Não foi possível abrir a janela para eliminar. Tente novamente.",
 	"passwordTooShort": "Use pelo menos 12 caracteres.",
 	"passwordTooLong": "Use no máximo 64 caracteres.",
 	"passwordCharset": "Use apenas caracteres ASCII imprimíveis: letras, dígitos, espaços e pontuação comum.",
