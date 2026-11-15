@@ -3,6 +3,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 
 import { getBrand } from "@/features/branding/queries/brand";
+import { brandImagePath } from "@/features/branding/queries/brand-image-path";
 import { ThemeChoiceProvider } from "@/features/theme/components/theme-choice-provider";
 import { forcedTheme } from "@/features/theme/config/choices";
 import { readThemeChoice } from "@/features/theme/queries/theme-choice";
@@ -24,7 +25,7 @@ export async function generateMetadata(): Promise<Metadata> {
 		title: brand.name,
 		// The operator's favicon, when set; otherwise the file Next serves for
 		// `favicon.ico` in this folder.
-		...(brand.hasFavicon && { icons: { icon: "/brand/favicon" } }),
+		...(brand.hasFavicon && { icons: { icon: brandImagePath("favicon") } }),
 		robots: {
 			index: false,
 			follow: false,

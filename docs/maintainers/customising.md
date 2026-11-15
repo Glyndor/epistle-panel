@@ -15,6 +15,7 @@ new image.
 | Spacing density | `--spacing` (the unit every padding, gap and size multiplies; the default is `0.25rem`) |
 | Product name | `EPISTLE_PANEL_BRAND_NAME` |
 | Logo, favicon | `EPISTLE_PANEL_BRAND_LOGO_FILE`, `EPISTLE_PANEL_BRAND_FAVICON_FILE` |
+| Where the browser fetches the logo and the favicon from | `EPISTLE_PANEL_BRAND_ORIGIN`, see "Serving the files from a CDN" |
 | The line at the foot of the pages | `EPISTLE_PANEL_COPYRIGHT_NOTICE` |
 
 All the variables live in one file, `internal/src/styles/theme.css`: the colour
@@ -247,6 +248,85 @@ default, then English. The header is read up to 4096 characters and 64 ranges,
 and a range with a quality value nobody can read is not wanted at all, so a
 hostile header costs no more than an ordinary one.
 
+## Serving the files from a CDN (optional)
+
+Two variables, each one `https` origin, both unset by default. Unset, the panel
+serves its own files and its policy is the one it always was, with no network
+beyond the panel and the API.
+
+| Variable | What moves | When it is read |
+|---|---|---|
+| `EPISTLE_PANEL_BRAND_ORIGIN` | The logo and the favicon: the page asks `<origin>/brand/logo` and `<origin>/brand/favicon` instead of the panel's own paths | at start, no rebuild |
+| `EPISTLE_PANEL_STATIC_ORIGIN` | Everything under `/_next/static`: the scripts, the stylesheet and the icons the stylesheet draws | **when the image is built**, and again at start as a check |
+
+A value is one exact origin: `https`, a host, an optional port, at most one
+trailing `/`. No wildcard, no path, no query or fragment, no credentials, no
+space, no IP literal in brackets, no `http` (not even for loopback), and a name
+outside ASCII is written in its `xn--` form. The host is lowercased and a port
+of 443 dropped. A value that is not one stops the start (the build, for the
+static origin) with a message that names the variable and never the value.
+
+**What the policy gains.** Only `img-src`, and only the origins that are set
+(`img-src 'self' data: https://static.example.com https://brand.example.com`).
+It was measured in Chromium (Playwright build 1243) with the `securitypolicyviolation` event, a
+panel built with `assetPrefix` on `https://cdn.example.test:48443` and a second
+server on that origin, over the sign-in page, the overview, the accounts, the
+deliveries and the mail pages and twelve client-side navigations:
+
+- With the policy unchanged, the only violations were `img-src` ones: the
+  icons are drawn by the stylesheet as `mask-image: url(../media/x.svg)`, which
+  resolves against the stylesheet, so they come from the static origin. Eight to
+  fifteen per page.
+- Scripts and the stylesheet loaded with no violation and no change: the
+  server stamps its nonce on every `<script>` and `<link rel="stylesheet">`, the
+  chunks the runtime adds are the trusted scripts' (`'strict-dynamic'`), and the
+  `style-src-elem` nonce covers the link. Adding the origin to `script-src`
+  would do nothing in a browser that honours `'strict-dynamic'`, so it is not
+  added. A browser that ignores `'strict-dynamic'` would refuse the chunks from
+  another origin; none was measured.
+- `font-src`, `connect-src` and `style-src` saw nothing: the build has no font
+  file and the panel asks the CDN for no data.
+- With `img-src` widened: zero violations on every page, and the brand images
+  came from the second origin.
+
+**What the CDN must serve.** The files under `/_next/static/` of the image, at
+the same paths (`<origin>/_next/static/...`), and `/brand/logo` and
+`/brand/favicon` for the brand origin, the same bytes the panel serves from its
+disk. The icons are fetched in CORS mode (a CSS mask is), so the CDN must send
+`Access-Control-Allow-Origin` for `/_next/static/media/*`: without it Chromium
+refused all of them (`net::ERR_FAILED`, no policy violation) and every icon
+vanished. `Cache-Control` is the CDN's to set; the file names carry a hash.
+
+**The brand files stay on the disk.** `EPISTLE_PANEL_BRAND_LOGO_FILE` and
+`EPISTLE_PANEL_BRAND_FAVICON_FILE` still say whether there is a logo and a
+favicon, and the panel still serves them at `/brand/logo` and `/brand/favicon`;
+the origin only changes where the browser asks.
+
+**Why the static origin is a build setting.** Next fixes `assetPrefix` while it
+builds: it is written into the markup, and Turbopack's chunk loader carries it
+as a literal (`TURBOPACK_CHUNK_BASE_PATH ... "https://cdn.example.test:48443/_next/"`
+in `_next/static/chunks/turbopack-*.js`). The loader's literal cannot be
+changed without rebuilding, and the markup takes its prefix from the same
+build, so a run-time value would leave a loader that asks where the markup no
+longer points (read in the build output, not run). There is no run-time form.
+`next.config.ts` reads `EPISTLE_PANEL_STATIC_ORIGIN` while building and writes
+the value back as `PANEL_BUILT_STATIC_ORIGIN`, which Next compiles in; the policy
+follows that compiled value, so it always matches the markup. At start the
+variable must be set to the same origin: a different one, none on an image that
+was built for one, or one on an image that was built without it (the published
+image) stops the start and says so.
+
+```sh
+podman build --build-arg EPISTLE_PANEL_STATIC_ORIGIN=https://static.example.com \
+  -t panel-with-cdn .
+# and run it with EPISTLE_PANEL_STATIC_ORIGIN=https://static.example.com
+```
+
+Built without the variable, the client files (`.next/static`) are byte-identical
+to a build before this existed; only the server code differs. The published
+image is built that way, so an operator who wants the static origin builds
+their own image.
+
 ## What needs a rebuild
 
 Anything that changes the stylesheet's source or the markup:
@@ -254,7 +334,8 @@ Anything that changes the stylesheet's source or the markup:
 - the Tailwind configuration or a new utility the panel does not use yet;
 - a component, a page, a layout, a message string or a new route;
 - the navigation entries (`features/navigation/config/items`);
-- a font file to bundle, or any change to the CSP.
+- a font file to bundle, the static origin (`EPISTLE_PANEL_STATIC_ORIGIN`, a
+  build argument as well as a variable) or any change to the CSP.
 
 Build the image from the repository's `Containerfile` after editing the source;
 the maintainer docs ([shadcn.md](shadcn.md), [layouts.md](layouts.md),

@@ -151,3 +151,61 @@ describe("applySecurityHeaders", () => {
 		]);
 	});
 });
+
+describe("buildCsp image origins", () => {
+	const directives = (csp: string) => csp.split("; ");
+	const without = (csp: string, name: string) =>
+		directives(csp).filter((part) => !part.startsWith(`${name} `));
+	const CDN = "https://cdn.example.com";
+	const BRAND = "https://brand.example.com:8443";
+
+	it("is the policy it always was when no origin is given", () => {
+		expect(buildCsp("abc", false, undefined, [])).toBe(buildCsp("abc"));
+		expect(buildCsp("abc")).toContain(
+			"img-src 'self' data:; font-src 'self'",
+		);
+	});
+
+	it("adds each origin to `img-src` and changes no other directive", () => {
+		for (const origins of [[CDN], [BRAND], [CDN, BRAND]]) {
+			const csp = buildCsp("abc", false, undefined, origins);
+			expect(directives(csp)).toContain(
+				`img-src 'self' data: ${origins.join(" ")}`,
+			);
+			expect(without(csp, "img-src")).toEqual(
+				without(buildCsp("abc"), "img-src"),
+			);
+		}
+	});
+
+	it("keeps the scripts, styles, fonts and requests as they were", () => {
+		const csp = buildCsp("abc", false, undefined, [CDN, BRAND]);
+		for (const name of [
+			"script-src",
+			"style-src",
+			"style-src-elem",
+			"font-src",
+			"connect-src",
+			"default-src",
+		]) {
+			expect(csp).not.toContain(`${name} ${CDN}`);
+			expect(
+				directives(csp).find((part) => part.startsWith(`${name} `)),
+			).not.toContain("https://");
+		}
+		expect(csp).not.toContain("frame-src");
+	});
+
+	it("adds nothing but the origins, with a provider's widening and in development", () => {
+		const widening = {
+			script: ["https://captcha.example"],
+			frame: ["https://captcha.example"],
+			connect: ["https://captcha.example"],
+		};
+		const csp = buildCsp("abc", true, widening, [CDN]);
+		expect(without(csp, "img-src")).toEqual(
+			without(buildCsp("abc", true, widening), "img-src"),
+		);
+		expect(csp).toContain(`img-src 'self' data: ${CDN}`);
+	});
+});

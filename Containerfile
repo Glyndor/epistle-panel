@@ -26,6 +26,15 @@ COPY internal/package.json internal/bun.lock ./
 RUN bun install --frozen-lockfile
 
 COPY internal/ ./
+# The origin of the files under /_next/static, when they are served from a
+# content delivery network: `podman build --build-arg
+# EPISTLE_PANEL_STATIC_ORIGIN=https://static.example.com`. Next fixes
+# `assetPrefix` while it builds, in the markup and in the code the browser runs
+# to load its chunks, so this cannot be set when the container runs: an image
+# built with it must run with the same value in its environment (the server
+# stops at start otherwise), and an image built without it, which is the
+# published one, serves its own files. Empty means unset.
+ARG EPISTLE_PANEL_STATIC_ORIGIN=
 RUN bun run build
 
 # The standalone output is self-contained: server.js plus the traced subset of

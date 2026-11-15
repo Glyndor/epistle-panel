@@ -11,6 +11,10 @@
  * mode stops the start instead of quietly changing what a message may load.
  * The time zone settles the same way: a zone the panel does not know stops the
  * start instead of quietly printing every date in a clock nobody chose.
+ * The content delivery origins settle the same way: a value that is not one
+ * exact https origin stops the start, and so does a static origin that is not
+ * the one this build was made for, because the policy would no longer match
+ * the files the markup points to.
  */
 export async function register(): Promise<void> {
 	if (process.env["NEXT_RUNTIME"] !== "nodejs") {
@@ -50,4 +54,9 @@ export async function register(): Promise<void> {
 		"@/lib/config/time-zone-start-check"
 	);
 	checkTimeZoneAtStart();
+
+	const { checkOriginsAtStart } = await import(
+		"@/lib/config/origins-start-check"
+	);
+	checkOriginsAtStart();
 }

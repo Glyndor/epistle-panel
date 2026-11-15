@@ -53,6 +53,22 @@ describe("generateMetadata", () => {
 		expect(metadata.icons).toEqual({ icon: "/brand/favicon" });
 	});
 
+	it("takes the favicon from the brand origin when one is set, and only then", async () => {
+		process.env["EPISTLE_PANEL_BRAND_FAVICON_FILE"] = "/run/favicon.ico";
+		process.env["EPISTLE_PANEL_BRAND_ORIGIN"] = "https://cdn.example.com";
+		try {
+			expect((await generateMetadata()).icons).toEqual({
+				icon: "https://cdn.example.com/brand/favicon",
+			});
+			// No favicon configured: the brand origin alone adds no icon.
+			delete process.env["EPISTLE_PANEL_BRAND_FAVICON_FILE"];
+			expect(await generateMetadata()).not.toHaveProperty("icons");
+		} finally {
+			delete process.env["EPISTLE_PANEL_BRAND_FAVICON_FILE"];
+			delete process.env["EPISTLE_PANEL_BRAND_ORIGIN"];
+		}
+	});
+
 	it("carries no description, canonical link, Open Graph, Twitter or sitemap metadata", async () => {
 		const metadata = await generateMetadata();
 

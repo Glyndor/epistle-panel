@@ -1,15 +1,27 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
+import {
+	readOperatorStaticOrigin,
+	staticOriginBuildConfig,
+} from "./src/lib/config/static-origin";
 import { STATIC_SECURITY_HEADERS } from "./src/lib/security-headers";
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request/index.ts");
+
+// The origin of the files under `/_next/static`, when the operator set one
+// while building. Next fixes `assetPrefix` here, in the markup and in the code
+// the browser runs to load its chunks, so it cannot change at run time; the
+// same value is written into the build as `PANEL_BUILT_STATIC_ORIGIN`, which
+// the policy and the start check read. An unusable value stops the build.
+const staticOrigin = readOperatorStaticOrigin();
 
 const nextConfig: NextConfig = {
 	// Emit a self-contained server bundle so the panel ships as a minimal
 	// container image running under the isolated user — the container is the
 	// install, so the standalone output is required, not optional.
 	output: "standalone",
+	...staticOriginBuildConfig(staticOrigin),
 	reactCompiler: true,
 	typedRoutes: true,
 	experimental: {
