@@ -11,7 +11,7 @@ session of any role. It is `app/app/me`, and it is not part of either area.
 | Language | `SUPPORTED_LOCALES`, `i18n/locales` | `locale`, `HttpOnly`, path `/` |
 | Theme | `THEME_CHOICES`, `features/theme/config/choices`: light, dark or the system's, nothing else | `theme`, readable by script (the page that replaces a failed layout reads it), path `/` |
 | Density of the message list | `LIST_DENSITIES`, `features/mail/config/list-density` | `list-density`, `HttpOnly`, path `/app` |
-| Remote images in messages | `REMOTE_IMAGE_MODES`, `features/mail/config/remote-images`: ask, always or never | `remote-images`, `HttpOnly`, path `/app` |
+| Remote images in messages | `REMOTE_IMAGE_MODES`, `features/mail/config/remote-images`: ask, always or never | `__Host-remote-images`, `HttpOnly`, path `/` |
 | Time zone of the dates | `TIME_ZONES`, `features/time-zone/config/zones`: `UTC` and every IANA zone the running Node knows | `time-zone`, `HttpOnly`, path `/app` |
 | Messages per page | `PAGE_SIZE_CHOICES`, `features/mail/config/page-size`: 25, 50 or 100 | `page-size`, `HttpOnly`, path `/app` |
 | Pace of the refreshes | `REFRESH_PACES`, `features/refresh/config/pace`: normal, slow or fast, never off | `refresh`, `HttpOnly`, path `/app` |
@@ -98,7 +98,9 @@ The person's choice is one of three modes in `REMOTE_IMAGE_MODES`:
 - `always` loads them without asking;
 - `never` blocks them and offers no button.
 
-The mode is kept in the `remote-images` cookie under `/app`. The cookie is not
+The mode is kept in the `__Host-remote-images` cookie (`Secure`, `HttpOnly`, `Path=/`, no `Domain`, `SameSite=Lax`).
+The `__Host-` prefix is deliberate: a browser refuses a cookie of that name set with a `Domain`, so a sibling domain cannot plant
+`always` over the person's choice. The old `remote-images` name is not read. The cookie is not
 itself a policy: the body route reads the effective mode and uses the same
 `?images=1` path as the button, so the sanitiser keeps its link and URL policy
 and the response's `img-src` widens only when that path already allowed remote

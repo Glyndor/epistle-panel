@@ -56,7 +56,7 @@ me_post() {
 
 # prefs_set: the Set-Cookie headers of the last response that name a preference.
 me_prefs_set() {
-	{ grep -i -E '^set-cookie: (locale|theme|list-density|remote-images|time-zone|page-size|refresh)=' "$work/h" || true; } | tr -d '\r'
+	{ grep -i -E '^set-cookie: (locale|theme|list-density|__Host-remote-images|time-zone|page-size|refresh)=' "$work/h" || true; } | tr -d '\r'
 }
 
 # prefs_set_count: how many of them there are.
@@ -201,15 +201,15 @@ scenario_me() {
 		me_post "$user_cookie" language=en theme=system density=comfortable "remoteImages=$remote_images" timeZone=UTC
 		assert_eq "$remote_images: the plain post is answered" "$status" 200
 		assert_eq "$remote_images: seven preference cookies" "$(me_prefs_set_count)" 7
-		assert_contains "$remote_images: private app cookie" "$(grep -i '^set-cookie: remote-images=' "$work/h" | tr -d '\r')" "remote-images=$remote_images; Path=/app;"
-		assert_contains "$remote_images: secure cookie for a year" "$(grep -i '^set-cookie: remote-images=' "$work/h")" "Max-Age=31536000; Secure; HttpOnly; SameSite=lax"
+		assert_contains "$remote_images: host-locked cookie (__Host-, Path=/, no Domain)" "$(grep -i '^set-cookie: __Host-remote-images=' "$work/h" | tr -d '\r')" "__Host-remote-images=$remote_images; Path=/;"
+		assert_contains "$remote_images: secure cookie for a year" "$(grep -i '^set-cookie: __Host-remote-images=' "$work/h")" "Max-Age=31536000; Secure; HttpOnly; SameSite=lax"
 		assert_eq "$remote_images: the answering page shows it" "$(me_selected remoteImages)" "$remote_images"
-		fetch /app/me "$user_cookie; remote-images=$remote_images"
+		fetch /app/me "$user_cookie; __Host-remote-images=$remote_images"
 		assert_eq "$remote_images: the next read shows it" "$(me_selected remoteImages)" "$remote_images"
 	done
 	me_post "$admin_cookie" language=de theme=dark density=compact remoteImages=ask timeZone=UTC
 	assert_contains "a saved post says so, in the language just chosen" "$(cat "$work/b")" 'role="status"'
-	fetch /app/me "$admin_cookie; locale=de; theme=dark; list-density=compact; remote-images=never; time-zone=America%2FBogota; page-size=25; refresh=fast"
+	fetch /app/me "$admin_cookie; locale=de; theme=dark; list-density=compact; __Host-remote-images=never; time-zone=America%2FBogota; page-size=25; refresh=fast"
 	assert_eq "the next read has the seven in force: language" "$(me_selected language)" de
 	assert_eq "the next read has the seven in force: theme" "$(me_selected theme)" dark
 	assert_eq "the next read has the seven in force: density" "$(me_selected density)" compact
@@ -371,7 +371,7 @@ scenario_me() {
 	assert_absent "tampered time zone is not echoed" "$(cat "$work/b")" e2e-zone-marker
 
 	# --- the state of the form posted back is not believed, and a tampered cookie is never printed
-	fetch /app/me "$admin_cookie; locale=ES; theme=\"><script>alert(1)</script>; list-density=huge; remote-images=\"><e2emarker>"
+	fetch /app/me "$admin_cookie; locale=ES; theme=\"><script>alert(1)</script>; list-density=huge; __Host-remote-images=\"><e2emarker>"
 	assert_eq "tampered cookies: the page still renders" "$status" 200
 	assert_eq "tampered cookies: the language falls back" "$(me_selected language)" en
 	assert_eq "tampered cookies: the theme falls back" "$(me_selected theme)" system

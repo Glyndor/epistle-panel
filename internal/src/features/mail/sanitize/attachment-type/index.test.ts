@@ -28,6 +28,35 @@ it("neutralizes every named active MIME", () => {
 		]);
 	}
 });
+it("neutralizes every WHATWG JavaScript MIME alias, with or without parameters", () => {
+	for (const type of [
+		"application/x-javascript",
+		"text/x-javascript",
+		"text/jscript",
+		"text/livescript",
+		"text/javascript1.0",
+		"text/javascript1.1",
+		"text/javascript1.2",
+		"text/javascript1.3",
+		"text/javascript1.4",
+		"text/javascript1.5",
+		"application/x-ecmascript",
+		"text/x-ecmascript",
+		"text/javascript;charset=utf-8",
+		"text/javascript; charset=utf-8",
+		"application/x-javascript;charset=utf-8",
+	]) {
+		expect([type, safeAttachmentType(type)]).toEqual([
+			type,
+			"application/octet-stream",
+		]);
+	}
+});
+it("keeps the types it did not change", () => {
+	expect(safeAttachmentType("application/x-httpd-php")).toBe(
+		"application/x-httpd-php",
+	);
+});
 it("neutralizes an unlisted structured XML suffix", () => {
 	expect(safeAttachmentType("application/vnd.example+xml")).toBe(
 		"application/octet-stream",

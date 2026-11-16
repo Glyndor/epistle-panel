@@ -136,6 +136,19 @@ describe("composeResponse", () => {
 		expect(methodCalls(seen).length).toBeGreaterThan(0);
 	});
 
+	it("refuses past 64 MiB even when the mail server publishes a gigabyte", async () => {
+		const seen = server(sessionResource({ maxSizeRequest: 1_073_741_824 }));
+
+		expect(
+			(
+				await composeResponse(
+					post(message, { length: 64 * 1024 * 1024 + 1 }),
+				)
+			).status,
+		).toBe(413);
+		expect(methodCalls(seen)).toHaveLength(0);
+	});
+
 	it("falls back to the cap it held when the server publishes none", async () => {
 		const seen = server(null);
 		const long = JSON.stringify({ ...message, text: "€".repeat(800_000) });

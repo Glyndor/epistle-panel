@@ -179,7 +179,8 @@ policy are read from the environment when the process starts.
 ### Remote images
 
 `EPISTLE_PANEL_REMOTE_IMAGES` is unset when each person chooses through
-`/app/me`. The choice is kept in the `remote-images` cookie under `/app` and
+`/app/me`. The choice is kept in the `__Host-remote-images` cookie (`Path=/`, no `Domain`, so a
+sibling domain cannot override it) and
 has one of three modes: `ask` blocks remote images until the reader asks for
 that message and visit, `always` loads them, and `never` blocks them without
 offering the button.

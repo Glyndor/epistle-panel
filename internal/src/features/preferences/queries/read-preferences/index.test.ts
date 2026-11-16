@@ -32,7 +32,7 @@ describe("readPreferences", () => {
 		intl.locale = "de";
 		cookies.jar.set("theme", "dark");
 		cookies.jar.set("list-density", "compact");
-		cookies.jar.set("remote-images", "never");
+		cookies.jar.set("__Host-remote-images", "never");
 
 		expect(await readPreferences()).toEqual({
 			language: "de",

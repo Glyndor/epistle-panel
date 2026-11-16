@@ -16,8 +16,9 @@ it("uses operator then cookie then ask across the precedence table", async () =>
 		for (const cookie of [undefined, "ask", "always", "never", "hostile"]) {
 			if (operator === undefined) delete process.env[KEY];
 			else process.env[KEY] = operator;
-			cookies.jar.delete("remote-images");
-			if (cookie !== undefined) cookies.jar.set("remote-images", cookie);
+			cookies.jar.delete("__Host-remote-images");
+			if (cookie !== undefined)
+				cookies.jar.set("__Host-remote-images", cookie);
 			expect([
 				operator,
 				cookie,

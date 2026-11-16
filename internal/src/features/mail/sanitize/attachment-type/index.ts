@@ -27,6 +27,20 @@ const ACTIVE_TYPES: ReadonlySet<string> = new Set([
 	"application/javascript",
 	"text/ecmascript",
 	"application/ecmascript",
+	// The rest of the WHATWG MIME Sniffing "JavaScript MIME type" list: a
+	// browser runs a script served under any of these aliases.
+	"application/x-javascript",
+	"application/x-ecmascript",
+	"text/x-javascript",
+	"text/x-ecmascript",
+	"text/jscript",
+	"text/livescript",
+	"text/javascript1.0",
+	"text/javascript1.1",
+	"text/javascript1.2",
+	"text/javascript1.3",
+	"text/javascript1.4",
+	"text/javascript1.5",
 ]);
 
 /**

@@ -47,7 +47,7 @@ it("saves every valid remote image choice", async () => {
 			["locale", "en"],
 			["theme", "system"],
 			["list-density", "comfortable"],
-			["remote-images", mode],
+			["__Host-remote-images", mode],
 			["time-zone", "UTC"],
 			["page-size", "50"],
 			["refresh", "normal"],
@@ -91,7 +91,7 @@ it("saves other fields when fixed without overwriting the remote image cookie", 
 	for (const operator of ["ask", "always", "never"] as const) {
 		cookies.writes.length = 0;
 		process.env[KEY] = operator;
-		cookies.jar.set("remote-images", "always");
+		cookies.jar.set("__Host-remote-images", "always");
 		expect(await save()).toEqual({
 			outcome: "saved",
 			values: {
@@ -112,7 +112,7 @@ it("saves other fields when fixed without overwriting the remote image cookie", 
 			"page-size",
 			"refresh",
 		]);
-		expect(cookies.jar.get("remote-images")).toBe("always");
+		expect(cookies.jar.get("__Host-remote-images")).toBe("always");
 	}
 });
 it("still validates other fields with an operator policy", async () => {

@@ -65,11 +65,48 @@ export const FALLBACK_COMPOSE_LIMITS: ComposeLimits = {
 };
 
 /**
+ * Ceiling for the request the compose route reads, in bytes (64 MiB). The route
+ * buffers the whole JSON body in memory, so a session that advertises a
+ * larger `maxSizeRequest` (a hostile or misconfigured upstream may say 1 GiB)
+ * is not believed past this: the panel never buffers more than this for one
+ * message, whatever the server says.
+ */
+export const MAX_REQUEST_BYTES_CEILING = 64 * 1024 * 1024;
+
+/**
+ * Ceiling for one attachment and for the total of attachments, in bytes
+ * (1 GiB). An upload is streamed to the mail server and never held in memory,
+ * so it may be far above the request ceiling, but a number past this is not a
+ * limit the panel works with.
+ */
+export const MAX_ATTACHMENT_BYTES_CEILING = 1024 * 1024 * 1024;
+
+/**
+ * A number the session published, held to the panel's ceiling: `fallback`
+ * when it is not a usable limit (missing, not a number, NaN, infinite, zero,
+ * negative), `ceiling` when it is above it, and itself, as a whole number of
+ * bytes, otherwise.
+ */
+export function clampPublishedLimit<T extends number | null>(
+	value: unknown,
+	ceiling: number,
+	fallback: T,
+): number | T {
+	if (typeof value !== "number" || !Number.isFinite(value)) {
+		return fallback;
+	}
+	const whole = Math.floor(Math.min(value, ceiling));
+	return whole >= 1 ? whole : fallback;
+}
+
+/**
  * The limits the composer works with: the server's numbers when it publishes
  * them, the panel's own when it does not.
  *
  * The server is the gate, so the panel takes its numbers: it must never refuse
- * what the server accepts nor let through what the server refuses. Two limits
+ * what the server accepts nor let through what the server refuses. Every
+ * number is held to a ceiling of the panel's own first (see the two above),
+ * because the session is input from upstream and a request limit is memory. Two limits
  * are the panel's own, because the session does not publish them: how many
  * attachments a message may carry and how many recipients a field may take.
  * The session says nothing about either, so the panel keeps what it had.
@@ -80,11 +117,20 @@ export function composeLimits(published: SessionLimits | null): ComposeLimits {
 	}
 	return {
 		...FALLBACK_COMPOSE_LIMITS,
-		maxTotalAttachmentBytes: published.maxSizeAttachmentsPerEmail ?? null,
-		maxRequestBytes:
-			published.maxSizeRequest ?? FALLBACK_COMPOSE_LIMITS.maxRequestBytes,
-		maxAttachmentBytes:
-			published.maxSizeUpload ??
+		maxTotalAttachmentBytes: clampPublishedLimit(
+			published.maxSizeAttachmentsPerEmail,
+			MAX_ATTACHMENT_BYTES_CEILING,
+			null,
+		),
+		maxRequestBytes: clampPublishedLimit(
+			published.maxSizeRequest,
+			MAX_REQUEST_BYTES_CEILING,
+			FALLBACK_COMPOSE_LIMITS.maxRequestBytes,
+		),
+		maxAttachmentBytes: clampPublishedLimit(
+			published.maxSizeUpload,
+			MAX_ATTACHMENT_BYTES_CEILING,
 			FALLBACK_COMPOSE_LIMITS.maxAttachmentBytes,
+		),
 	};
 }

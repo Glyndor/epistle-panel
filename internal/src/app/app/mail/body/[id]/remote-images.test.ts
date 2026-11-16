@@ -48,7 +48,7 @@ function installBody() {
 for (const mode of ["ask", "always", "never"] as const)
 	for (const requested of [false, true]) {
 		it(`${mode} with images=${requested ? "1" : "absent"} enforces HTML and CSP`, async () => {
-			cookies.jar.set("remote-images", mode);
+			cookies.jar.set("__Host-remote-images", mode);
 			installBody();
 			const response = await GET(
 				new Request(
@@ -87,7 +87,7 @@ it("default ask preserves the previous response bytes and headers with and witho
 });
 it("operator never overrides cookie always and images=1 at the route", async () => {
 	process.env["EPISTLE_PANEL_REMOTE_IMAGES"] = "never";
-	cookies.jar.set("remote-images", "always");
+	cookies.jar.set("__Host-remote-images", "always");
 	installBody();
 	const response = await GET(
 		new Request(`https://panel.test/app/mail/body/${ID}?images=1`),

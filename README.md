@@ -197,7 +197,8 @@ names the variable and never the value.
 
 Messages can load images from remote servers only when the effective mode
 allows it. The person chooses `ask`, `always` or `never` on `/app/me`; the
-choice is kept in the `remote-images` cookie under `/app`. The operator may
+choice is kept in the `__Host-remote-images` cookie, which a sibling domain cannot
+override. The operator may
 fix the mode for everyone.
 
 | Variable | Effect |
