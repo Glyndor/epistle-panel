@@ -14,7 +14,7 @@
 FROM docker.io/oven/bun:1.4.4-debian@sha256:93d5032fe06d163427822dc1598f420363759bb18155c9cc90eb1be05a64a19e AS bun
 
 # 24-trixie-slim. Node comes from this image, Bun is copied in from the stage above.
-FROM docker.io/library/node@sha256:6418e1ff99a5db6608cd55a020036dde6b7d18df9a0b7e44209b4ef5891766fb AS builder
+FROM docker.io/library/node@sha256:e18c3ccdf7d71619990b0e85639f506e2028a95410999cab24cc373cbd10e0ac AS builder
 COPY --from=bun /usr/local/bin/bun /usr/local/bin/bun
 
 WORKDIR /build
