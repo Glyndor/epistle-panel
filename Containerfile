@@ -42,7 +42,7 @@ RUN bun run build
 # nodejs24-debian13:nonroot, uid:gid 65532:65532, no shell. To inspect the tag:
 #   podman manifest inspect gcr.io/distroless/nodejs24-debian13:nonroot
 # Bump the digest deliberately.
-FROM gcr.io/distroless/nodejs24-debian13@sha256:d1c8c1be703f1dca243457ac656e7eee7c571a7136a6e681d17c4294e6fe7a6d
+FROM gcr.io/distroless/nodejs24-debian13@sha256:24bc0fe0225c7518f202a822587dad74fe143b96326b81fe5cc08c1df8bed03e
 
 # OCI labels. `--label=...` on the `podman build` command line overrides them,
 # so a release job can stamp the actual git revision without editing this file.
