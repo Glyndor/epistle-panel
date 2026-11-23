@@ -304,21 +304,29 @@ class Workflow(unittest.TestCase):
     def test_the_jobs_are_the_suites_plus_plan_and_gate(self):
         self.assertEqual(set(self.jobs), set(SUITES) | {"plan", "gate"})
 
-    def test_every_suite_job_waits_for_the_plan_and_runs_on_its_word(self):
+    def test_every_suite_job_waits_for_the_plan_and_is_skipped_only_by_an_explicit_no(self):
+        """A job runs unless the plan said `false`: a missing or empty word is a run.
+
+        `== 'true'` would skip a job whose word never arrived (a plan that failed),
+        and a skipped required check counts as passed. `!cancelled()` lets the job
+        start even if a job before it failed, so the condition, not the default
+        `success()`, decides; the gate fails for whatever should not have run.
+        """
         for suite in SUITES:
             block = self.jobs[suite]
             self.assertIn("plan", needs_of(block), suite)
             cond = re.search(r"\n    if: \$\{\{ (.*) \}\}\n", block).group(1)
-            self.assertIn("!cancelled()", cond, suite)
-            self.assertIn("needs.plan.result == 'success'", cond, suite)
-            self.assertIn(f"needs.plan.outputs.{suite} == 'true'", cond, suite)
+            self.assertTrue(cond.startswith("!cancelled() && "), suite)
+            self.assertIn(f"needs.plan.outputs.{suite} != 'false'", cond, suite)
+            self.assertNotIn("== 'true'", cond, suite)
+            self.assertNotIn("needs.plan.result", cond, suite)
 
     def test_the_order_names_the_real_gates_and_never_the_plan(self):
         """`contains(needs.*.result, 'failure')` would take the plan in with the rest.
 
         The condition that orders the layers lists the jobs one by one. The plan is
-        read for its word and its success only: a plan that fails skips every suite,
-        and `ci gate` turns that skip into a failure instead of a green.
+        read for its word only: a plan that fails leaves the word empty, which is not
+        a `false`, so the suites run, and `ci gate` fails on the plan itself.
         """
         for suite in SUITES:
             block = self.jobs[suite]

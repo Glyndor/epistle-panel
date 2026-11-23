@@ -20,8 +20,10 @@ name: CI
 # Layers, cheap first. A job waits for every job of the layers before it and
 # names them one by one in its condition (never `needs.*`, which would take the
 # plan in with them), so a failure in one stops the dearer ones from starting.
-# The plan is read for its word and its success: if it fails, every suite is
-# skipped and `ci gate` fails, because GitHub counts a skipped check as passed:
+# The plan is read for its word only, and a job is skipped only by an explicit
+# `false`: a plan that fails leaves the word empty, so the suites run, and
+# `ci gate` fails on the plan itself, because GitHub counts a skipped check as
+# passed. The layers:
 #   1  plan, line-limit, actionlint, bun-version, ci-scripts, lint   about 5 to 40 s each
 #   2  unit, randomized, debian, release-scripts                      about 40 to 90 s each
 #   3  e2e, container                                                 about 70 and 230 s
@@ -103,7 +105,7 @@ jobs:
   line-limit:
     name: line limit
     needs: [plan]
-    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.line-limit == 'true' }}
+    if: ${{ !cancelled() && needs.plan.outputs.line-limit != 'false' }}
     runs-on: ubuntu-latest
     # Measured 2026-11-15: 6 s.
     timeout-minutes: 5
@@ -132,7 +134,7 @@ jobs:
   actionlint:
     name: actionlint
     needs: [plan]
-    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.actionlint == 'true' }}
+    if: ${{ !cancelled() && needs.plan.outputs.actionlint != 'false' }}
     runs-on: ubuntu-latest
     # Measured 2026-11-22: 5 s.
     timeout-minutes: 5
@@ -167,7 +169,7 @@ jobs:
   bun-version:
     name: bun version
     needs: [plan]
-    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.bun-version == 'true' }}
+    if: ${{ !cancelled() && needs.plan.outputs.bun-version != 'false' }}
     runs-on: ubuntu-latest
     # Measured 2026-11-22: 7 s.
     timeout-minutes: 5
@@ -192,7 +194,7 @@ jobs:
   ci-scripts:
     name: ci scripts
     needs: [plan]
-    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.ci-scripts == 'true' }}
+    if: ${{ !cancelled() && needs.plan.outputs.ci-scripts != 'false' }}
     runs-on: ubuntu-latest
     # Measured 2026-11-22: about 25 s, almost all of it the tests that build
     # throwaway repositories.
@@ -224,7 +226,7 @@ jobs:
   lint:
     name: lint
     needs: [plan]
-    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.lint == 'true' }}
+    if: ${{ !cancelled() && needs.plan.outputs.lint != 'false' }}
     runs-on: ubuntu-latest
     # Measured 2026-11-22: about 25 s (install 8, biome 15).
     timeout-minutes: 10
@@ -251,7 +253,7 @@ jobs:
   unit:
     name: unit
     needs: [plan, line-limit, actionlint, bun-version, ci-scripts, lint]
-    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.unit == 'true' && needs.line-limit.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' }}
+    if: ${{ !cancelled() && needs.plan.outputs.unit != 'false' && needs.line-limit.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' }}
     runs-on: ubuntu-latest
     # Measured 2026-11-15: 71 s with the lint (install 8, build 18, tests with
     # coverage 44).
@@ -283,7 +285,7 @@ jobs:
   randomized:
     name: randomized
     needs: [plan, line-limit, actionlint, bun-version, ci-scripts, lint]
-    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.randomized == 'true' && needs.line-limit.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' }}
+    if: ${{ !cancelled() && needs.plan.outputs.randomized != 'false' && needs.line-limit.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' }}
     runs-on: ubuntu-latest
     # Measured 2026-11-15: 42 s (the suite 35, the install 7).
     timeout-minutes: 10
@@ -310,25 +312,25 @@ jobs:
   debian:
     name: debian
     needs: [plan, line-limit, actionlint, bun-version, ci-scripts, lint]
-    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.debian == 'true' && needs.line-limit.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' }}
+    if: ${{ !cancelled() && needs.plan.outputs.debian != 'false' && needs.line-limit.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' }}
     uses: ./.github/workflows/ci-debian.yml
 
   release-scripts:
     name: release scripts
     needs: [plan, line-limit, actionlint, bun-version, ci-scripts, lint]
-    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.release-scripts == 'true' && needs.line-limit.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' }}
+    if: ${{ !cancelled() && needs.plan.outputs.release-scripts != 'false' && needs.line-limit.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' }}
     uses: ./.github/workflows/ci-release-scripts.yml
 
   e2e:
     name: e2e
     needs: [plan, line-limit, actionlint, bun-version, ci-scripts, lint, unit, randomized, debian, release-scripts]
-    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.e2e == 'true' && needs.line-limit.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' && needs.unit.result != 'failure' && needs.randomized.result != 'failure' && needs.debian.result != 'failure' && needs.release-scripts.result != 'failure' }}
+    if: ${{ !cancelled() && needs.plan.outputs.e2e != 'false' && needs.line-limit.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' && needs.unit.result != 'failure' && needs.randomized.result != 'failure' && needs.debian.result != 'failure' && needs.release-scripts.result != 'failure' }}
     uses: ./.github/workflows/ci-e2e.yml
 
   container:
     name: container
     needs: [plan, line-limit, actionlint, bun-version, ci-scripts, lint, unit, randomized, debian, release-scripts]
-    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.container == 'true' && needs.line-limit.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' && needs.unit.result != 'failure' && needs.randomized.result != 'failure' && needs.debian.result != 'failure' && needs.release-scripts.result != 'failure' }}
+    if: ${{ !cancelled() && needs.plan.outputs.container != 'false' && needs.line-limit.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' && needs.unit.result != 'failure' && needs.randomized.result != 'failure' && needs.debian.result != 'failure' && needs.release-scripts.result != 'failure' }}
     uses: ./.github/workflows/ci-container.yml
 
   gate:
