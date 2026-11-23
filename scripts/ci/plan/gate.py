@@ -9,6 +9,9 @@ and the outputs of `plan`. The gate passes when each suite did what `plan` said:
   plan said true  -> the job succeeded
   plan said false -> the job was skipped
 
+and each job the map lists under `always` (what judges the whole tree) succeeded,
+whatever the plan said: the plan does not decide those.
+
 Anything else fails it: a suite that was skipped without being told to (a job
 before it failed), one that ran when nothing of its own changed, a cancelled or
 failed one, a suite of the map that is missing from `needs`, or a `plan` that
@@ -23,7 +26,7 @@ import sys
 import tomllib
 
 
-def verdicts(needs: dict, suites: "list[str]") -> "list[str]":
+def verdicts(needs: dict, suites: "list[str]", always: "list[str]" = ()) -> "list[str]":
     """The problems found, empty when the gate may pass."""
     problems = []
     plan = needs.get("plan")
@@ -46,7 +49,12 @@ def verdicts(needs: dict, suites: "list[str]") -> "list[str]":
                 problems.append(f"{suite}: nothing of its own changed and it finished {result}")
         else:
             problems.append(f"{suite}: plan printed {wanted!r}, not true or false")
-    extra = sorted(set(needs) - set(suites) - {"plan"})
+    for job in always:
+        got = needs.get(job)
+        result = got.get("result") if isinstance(got, dict) else "missing"
+        if result != "success":
+            problems.append(f"{job}: runs on every change and finished {result}")
+    extra = sorted(set(needs) - set(suites) - set(always) - {"plan"})
     if extra:
         problems.append(f"jobs the map does not know: {', '.join(extra)}")
     return problems
@@ -63,13 +71,17 @@ def main() -> int:
         print("::error::NEEDS is missing or is not JSON", file=sys.stderr)
         return 1
     with open(map_path, "rb") as handle:
-        suites = list(tomllib.load(handle)["suites"])
+        data = tomllib.load(handle)
+    suites = list(data["suites"])
+    always = list(data.get("always", []))
 
-    problems = verdicts(needs, suites)
+    problems = verdicts(needs, suites, always)
     outputs = (needs.get("plan") or {}).get("outputs") or {}
     for suite in suites:
         job = needs.get(suite) or {}
         print(f"{suite:16} planned={outputs.get(suite, '?'):5} result={job.get('result', '-')}")
+    for job in always:
+        print(f"{job:16} always  result={(needs.get(job) or {}).get('result', '-')}")
     for problem in problems:
         print(f"::error::{problem}")
     if problems:

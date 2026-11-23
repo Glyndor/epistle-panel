@@ -6,10 +6,9 @@ name: Dependabot watch
 # - Is a security bump stuck? Dependabot security updates ignore `target-branch`
 #   and open against `main`, where `main-guard` refuses any pull request whose
 #   source branch is not `develop`. The bump then sits open with one red check
-#   and nothing reports it. The org standard (ci/dependabot-security-updates)
-#   keeps `target-branch: develop` and `main-guard` as they are, has the bump
-#   re-landed by hand off `develop`, and makes the stuck state loud. This job is
-#   the loud part: it lists the open pull requests into `main` and fails when
+#   and nothing reports it. `target-branch: develop` and `main-guard` stay as they
+#   are, the bump is re-landed by hand off `develop`, and the stuck state has to
+#   be loud. This job is the loud part: it lists the open pull requests into `main` and fails when
 #   Dependabot authored one whose head is not `develop`
 #   (scripts/ci/dependabot_security_watch.py).
 # - Is Dependabot alive? A silent Dependabot reports nothing, and "everything is

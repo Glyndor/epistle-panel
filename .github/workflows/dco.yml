@@ -9,8 +9,9 @@ name: DCO
 # The script that judges a pull request is the base commit's copy, so the pull
 # request cannot rewrite the rule that reads it; the change that introduces the
 # script is the one exception. This workflow file is still the pull request's
-# own, which is the residual risk of every check (standards/ci/required-checks/
-# gate-spoofing): the owner reads each change under .github/.
+# own, which is the residual risk of every check: a job that reports a required
+# name can be replaced by one that does nothing, so every change under .github/ is
+# read before it merges.
 
 on:
   pull_request:

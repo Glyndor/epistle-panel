@@ -66,7 +66,6 @@ jobs:
       release-scripts: ${{ steps.plan.outputs.release-scripts }}
       bun-version: ${{ steps.plan.outputs.bun-version }}
       actionlint: ${{ steps.plan.outputs.actionlint }}
-      line-limit: ${{ steps.plan.outputs.line-limit }}
       ci-scripts: ${{ steps.plan.outputs.ci-scripts }}
     steps:
       # Two commits: on a pull request this is the merge commit, whose first
@@ -102,10 +101,11 @@ jobs:
           cat "$dir/out" >>"$GITHUB_OUTPUT"
           exit "$status"
 
+  # Not a suite: it judges the whole tree, so it runs on every change and the plan
+  # does not decide it. A change of prose alone can push a file past the limit.
   line-limit:
     name: line limit
-    needs: [plan]
-    if: ${{ !cancelled() && needs.plan.outputs.line-limit != 'false' }}
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     # Measured 2026-11-15: 6 s.
     timeout-minutes: 5

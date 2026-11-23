@@ -4,11 +4,10 @@
 Dependabot security updates do not honour `target-branch`; they open against
 the default branch, which here is `main`. `main-guard` refuses any pull
 request into `main` whose source is not `develop`, so a security bump lands
-with a red check and then sits open, and nothing anywhere says so. The org
-standard (ci/dependabot-security-updates) keeps `target-branch: develop` and
-`main-guard` exactly as they are, re-lands every security bump by hand off
-`develop`, and makes the stuck state loud instead of silent. This script is
-the loud part.
+with a red check and then sits open, and nothing anywhere says so. The setup
+keeps `target-branch: develop` and `main-guard` exactly as they are, re-lands
+every security bump by hand off `develop`, and makes the stuck state loud
+instead of silent. This script is the loud part.
 
 Usage:
   gh pr list --repo R --base main --state open \\
@@ -42,7 +41,7 @@ RELEASE_BRANCH = "develop"
 
 # The procedure is deliberately short and mechanical: a stuck security bump is
 # an open advisory, and whoever reads this at 3 a.m. should not have to work
-# out the branch flow from the workflow standard.
+# out the branch flow from somewhere else.
 RELAND_PROCEDURE = """\
 Re-land each one by hand off develop; main-guard is right to refuse it as is:
   1. git switch -c deps/<name>-<version> origin/develop
@@ -132,7 +131,7 @@ def report(stuck: list, now: datetime, out) -> int:
 
 def _parse_args(argv: list) -> argparse.Namespace:
 	parser = argparse.ArgumentParser(
-		description="Report Dependabot security pull requests stuck against main (see ai-context standards/ci/dependabot-security-updates.md).",
+		description="Report Dependabot security pull requests stuck against main.",
 	)
 	parser.add_argument(
 		"listing",

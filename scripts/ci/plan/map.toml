@@ -15,6 +15,12 @@
 # the job, listing it in the `needs` of `gate`, and writing its cases in the
 # test; the test fails until all three agree.
 
+# What judges the whole tree runs on every change, whatever it touches, because
+# a change of prose alone can push a folder or a file past its limit. Those jobs
+# are not suites: the plan does not decide them and `ci gate` requires each one to
+# succeed.
+always = ["line-limit"]
+
 # A change to what decides what runs, or to the workflow that runs it, runs every
 # suite: it is the one change that can switch the others off.
 machinery = [
@@ -36,6 +42,7 @@ paths = [
 	# Read by Dependabot and by the folder limit, which have workflows of their own.
 	".github/dependabot.yml",
 	".github/folder-limit-exceptions.txt",
+	"scripts/folder-limit/**",
 ]
 
 # Biome reads every file of the project, its own settings and the shadcn ones
@@ -114,18 +121,6 @@ include = [
 
 [suites.actionlint]
 include = [".github/workflows/**"]
-
-# The check reads every tracked file with an extension of its list (EXTS in
-# scripts/ci/line-limit/check.sh). A file with another of them is claimed by no
-# suite, and `plan` fails until it is added here: test_plan.py compares the two.
-[suites.line-limit]
-include = [
-	"**/*.ts",
-	"**/*.tsx",
-	"**/*.mjs",
-	"**/*.py",
-	"**/*.sh",
-]
 
 # The tests of the scripts the other jobs run, and of the wiring of the CI: the
 # map against ci.yml, the workflows it calls and the gate. A change to any

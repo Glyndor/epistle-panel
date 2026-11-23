@@ -66,6 +66,39 @@ class Verdicts(unittest.TestCase):
     def test_a_suite_nobody_planned_that_failed(self):
         self.assertTrue(self.check(needs(results={"lint": "failure"})))
 
+    def test_each_suite_is_judged_by_its_own_result_and_by_no_other(self):
+        """With every suite planned, the one that failed is the one named."""
+        for failed in SUITES:
+            wanted = {s: "true" for s in SUITES}
+            results = {s: ("failure" if s == failed else "success") for s in SUITES}
+            problems = self.check(needs(wanted=wanted, results=results))
+            self.assertEqual(len(problems), 1, failed)
+            self.assertTrue(problems[0].startswith(f"{failed}:"), problems)
+
+    def test_each_suite_is_judged_by_its_own_word_of_the_plan_and_by_no_other(self):
+        """Only one suite planned, the others skipped: a skipped one that ran is named."""
+        for planned in SUITES:
+            wanted = {planned: "true"}
+            results = {s: ("success" if s == planned else "skipped") for s in SUITES}
+            self.assertEqual(self.check(needs(wanted=wanted, results=results)), [], planned)
+            for ran in set(SUITES) - {planned}:
+                bad = dict(results, **{ran: "success"})
+                problems = self.check(needs(wanted=wanted, results=bad))
+                self.assertEqual(len(problems), 1, (planned, ran))
+                self.assertTrue(problems[0].startswith(f"{ran}:"), problems)
+
+    def test_a_job_that_runs_on_every_change_has_to_succeed(self):
+        for result in ("failure", "cancelled", "skipped"):
+            n = needs()
+            n["always"] = {"result": result, "outputs": {}}
+            self.assertTrue(gate.verdicts(n, SUITES, ["always"]), result)
+        n = needs()
+        n["always"] = {"result": "success", "outputs": {}}
+        self.assertEqual(gate.verdicts(n, SUITES, ["always"]), [])
+
+    def test_a_job_that_runs_on_every_change_and_is_missing(self):
+        self.assertTrue(gate.verdicts(needs(), SUITES, ["always"]))
+
     def test_a_cancelled_job_fails_the_gate_whatever_the_plan_said(self):
         self.assertTrue(self.check(needs(results={"lint": "cancelled"})))
         self.assertTrue(self.check(needs(wanted={"lint": "true"}, results={"lint": "cancelled"})))
@@ -110,12 +143,20 @@ class Command(unittest.TestCase):
         with open(MAP, "rb") as handle:
             import tomllib
 
-            suites = list(tomllib.load(handle)["suites"])
-        return json.dumps(needs(wanted=wanted, results=results, suites=suites))
+            data = tomllib.load(handle)
+        suites = list(data["suites"])
+        out = needs(wanted=wanted, results=results, suites=suites)
+        for job in data["always"]:
+            out[job] = {"result": results.get(job, "success"), "outputs": {}}
+        return json.dumps(out)
 
     def test_passes_when_nothing_is_planned_and_nothing_ran(self):
         done = self.run_gate(self.real({}, {}))
         self.assertEqual(done.returncode, 0, done.stdout)
+
+    def test_fails_when_the_job_that_runs_on_every_change_failed(self):
+        done = self.run_gate(self.real({}, {"line-limit": "failure"}))
+        self.assertEqual(done.returncode, 1)
 
     def test_fails_for_a_planned_suite_that_failed(self):
         done = self.run_gate(self.real({"unit": "true"}, {"unit": "failure"}))

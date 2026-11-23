@@ -358,23 +358,25 @@ suites the changed files can move: `lint`, `unit` (build and tests with the
 coverage threshold), `randomized` (the unit suite in random order with a fixed
 seed), `e2e`, `container`, `debian` (the package inputs), `release-scripts`
 (the tag check, image tags, signing and publishing scripts), `actionlint`,
-`bun-version` (one Bun release across the workflows and the Containerfile),
-`line-limit` and `ci-scripts` (the tests of the scripts the checks run). A pull
-request of prose alone runs none of them. The suites run in three layers, the
-cheap ones first, and a suite waits for every layer before it, so a failure stops
-the dearer ones from starting. A push to `main` or `develop` runs `lint` and
-`unit`. The gate fails for a suite that had to run and did not, and for one that
-ran when the plan said nothing of its own had changed; the map and its test are in
-`scripts/ci/plan`.
+`bun-version` (one Bun release across the workflows and the Containerfile) and
+`ci-scripts` (the tests of the scripts the checks run, and of the wiring of the CI
+itself). A pull request of prose alone runs none of them. The `line limit` job
+judges the whole tree, so it runs on every change. The suites run in three layers,
+the cheap ones first, and a suite waits for every layer before it, so a failure
+stops the dearer ones from starting. A push to `main` or `develop` runs `lint` and
+`unit`. The gate fails for a suite that had to run and did not, for one that ran
+when the plan said nothing of its own had changed, and for a plan that did not
+succeed; the map and its tests are in `scripts/ci/plan`.
 
 The workflows that answer another question: `DCO` runs on every pull request into
 `main` or `develop`, `guard` on every pull request into `main`, `Folder limit` on
-every pull request into `develop`, and `Dependency audit` when the lockfile or
-the manifest changes, and weekly. `Dependabot watch` runs daily and looks for a
-stuck security bump and for a Dependabot that went quiet. `CodeQL` analyses the
-workflows, the Next.js project and the Python scripts on every pull request into
-`main` or `develop`, on every push to either, and weekly. `Release` runs on a `v*`
-tag.
+every pull request into `develop`, and `Dependency audit` on every pull request
+into `develop`, on every push to `develop` or `main`, and weekly on both branches,
+because a new advisory appears without a file changing. `Dependabot watch` runs
+daily and looks for a stuck security bump and for a Dependabot that went quiet.
+`CodeQL` analyses the workflows, the Next.js project and the Python scripts on
+every pull request into `main` or `develop`, on every push to either, and weekly.
+`Release` runs on a `v*` tag.
 
 ## License
 

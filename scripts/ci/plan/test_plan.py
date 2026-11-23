@@ -47,12 +47,12 @@ CASES = {
     ".editorconfig": set(),
     ".github/dependabot.yml": set(),
     ".github/folder-limit-exceptions.txt": set(),
-    "scripts/folder-limit/folder-limit.sh": {"line-limit"},
-    "internal/src/app/page.tsx": APP | SHIPPED | {"line-limit"},
-    "internal/src/features/mail/index.test.ts": APP | {"line-limit"},
-    "internal/src/features/mail/index.test.tsx": APP | {"line-limit"},
-    "internal/src/test/setup/index.ts": APP | {"line-limit"},
-    "internal/src/lib/x/test-support/fake.ts": APP | {"line-limit"},
+    "scripts/folder-limit/folder-limit.sh": set(),
+    "internal/src/app/page.tsx": APP | SHIPPED,
+    "internal/src/features/mail/index.test.ts": APP,
+    "internal/src/features/mail/index.test.tsx": APP,
+    "internal/src/test/setup/index.ts": APP,
+    "internal/src/lib/x/test-support/fake.ts": APP,
     "internal/src/messages/en.json": APP | SHIPPED,
     "internal/biome.json": {"lint"},
     "internal/components.json": {"lint"},
@@ -60,27 +60,27 @@ CASES = {
     "internal/bunfig.toml": APP,
     "internal/package.json": APP | SHIPPED | {"debian"},
     "internal/bun.lock": APP | SHIPPED,
-    "internal/next.config.ts": APP | SHIPPED | {"line-limit"},
-    "scripts/test/coverage.sh": {"unit", "randomized", "line-limit"},
-    "scripts/e2e/run.sh": {"e2e", "line-limit"},
-    "scripts/e2e/scenarios/auth/login.ts": {"e2e", "line-limit"},
-    "scripts/headers/verify.sh": {"e2e", "line-limit"},
+    "internal/next.config.ts": APP | SHIPPED,
+    "scripts/test/coverage.sh": {"unit", "randomized"},
+    "scripts/e2e/run.sh": {"e2e"},
+    "scripts/e2e/scenarios/auth/login.ts": {"e2e"},
+    "scripts/headers/verify.sh": {"e2e"},
     "Containerfile": {"container", "bun-version"},
     ".containerignore": {"container"},
-    "scripts/consistency/check-base-indexes.sh": {"container", "bun-version", "line-limit"},
-    "scripts/consistency/check-bun-version.sh": {"bun-version", "line-limit"},
+    "scripts/consistency/check-base-indexes.sh": {"container", "bun-version"},
+    "scripts/consistency/check-bun-version.sh": {"bun-version"},
     "debian/control": {"debian"},
     "debian/changelog": {"debian"},
-    "scripts/debian/build.sh": {"debian", "line-limit"},
-    "scripts/release/version/check-changelog.sh": {"debian", "release-scripts", "line-limit"},
-    "scripts/release/sign/sign.py": {"release-scripts", "line-limit"},
-    "scripts/release/lib/assertions.sh": {"release-scripts", "bun-version", "line-limit"},
+    "scripts/debian/build.sh": {"debian"},
+    "scripts/release/version/check-changelog.sh": {"debian", "release-scripts"},
+    "scripts/release/sign/sign.py": {"release-scripts"},
+    "scripts/release/lib/assertions.sh": {"release-scripts", "bun-version"},
     ".github/workflows/dco.yml": {"actionlint", "bun-version", "ci-scripts"},
     ".github/workflows/release.yml": {"actionlint", "bun-version", "ci-scripts"},
     ".github/workflows/ci-e2e.yml": {"actionlint", "bun-version", "ci-scripts"},
-    "scripts/ci/dco/check.sh": {"ci-scripts", "line-limit"},
-    "scripts/ci/freshness/check.test.sh": {"ci-scripts", "line-limit"},
-    "scripts/ci/dependabot_security_watch.py": {"ci-scripts", "line-limit"},
+    "scripts/ci/dco/check.sh": {"ci-scripts"},
+    "scripts/ci/freshness/check.test.sh": {"ci-scripts"},
+    "scripts/ci/dependabot_security_watch.py": {"ci-scripts"},
 }
 
 # A change to the machinery runs everything.
@@ -90,6 +90,35 @@ MACHINERY = [
     "scripts/ci/plan/map.toml",
     "scripts/ci/plan/gate.py",
     "scripts/ci/plan/test_plan.py",
+]
+
+
+# Prose is the one kind of file that needs no suite. Everything else is below.
+PROSE = ["**/*.md", "docs/**", "LICENSE"]
+NOTHING = set()
+# (patterns, suites) in order; the first that matches a file is its expectation.
+# A callable gets the set of all suites.
+EXPECTED = [
+    (["scripts/ci/plan/**", ".github/workflows/ci.yml"], lambda everything: everything),
+    ([".github/workflows/*.yml"], {"actionlint", "bun-version", "ci-scripts"}),
+    ([".github/dependabot.yml", ".github/folder-limit-exceptions.txt", ".editorconfig", ".gitignore", "internal/.gitignore", "scripts/folder-limit/**"], NOTHING),
+    (["scripts/ci/**"], {"ci-scripts"}),
+    (["internal/package.json"], APP | SHIPPED | {"debian"}),
+    (["internal/bun.lock", "internal/next.config.ts", "internal/postcss.config.mjs", "internal/tsconfig.json"], APP | SHIPPED),
+    (["internal/bunfig.toml"], APP),
+    (["internal/biome.json", "internal/components.json"], {"lint"}),
+    (["internal/src/**/*.test.ts", "internal/src/**/*.test.tsx", "internal/src/test/**", "internal/src/**/test-support/**"], APP),
+    (["internal/src/**"], APP | SHIPPED),
+    (["Containerfile"], {"container", "bun-version"}),
+    ([".containerignore"], {"container"}),
+    (["debian/**", "scripts/debian/**"], {"debian"}),
+    (["scripts/release/version/check-changelog.sh"], {"debian", "release-scripts"}),
+    (["scripts/release/lib/assertions.sh"], {"release-scripts", "bun-version"}),
+    (["scripts/release/**"], {"release-scripts"}),
+    (["scripts/consistency/check-base-indexes.sh"], {"container", "bun-version"}),
+    (["scripts/consistency/**"], {"bun-version"}),
+    (["scripts/e2e/**", "scripts/headers/**"], {"e2e"}),
+    (["scripts/test/**"], {"unit", "randomized"}),
 ]
 
 
@@ -251,14 +280,30 @@ class Integrity(unittest.TestCase):
         for pattern in patterns:
             self.assertTrue(any(plan.matches([pattern], f) for f in self.files), f"{pattern} matches no tracked file")
 
-    def test_line_limit_reads_every_extension_its_script_reads(self):
-        with open(os.path.join(ROOT, "scripts", "ci", "line-limit", "check.sh"), encoding="utf-8") as handle:
-            exts = set(re.search(r'EXTS="\$\{EXTS:-([^}]*)\}"', handle.read()).group(1).split())
-        suite = DATA["suites"]["line-limit"]
-        for f in self.files:
-            ext = f.rsplit(".", 1)[-1] if "." in os.path.basename(f) else ""
-            if ext in exts:
-                self.assertTrue(plan.selects(suite, f), f"{f} is read by the line limit and not by its suite")
+    def test_the_suites_of_every_file_that_is_not_prose_are_the_expected_ones(self):
+        """The map written a second time, by hand, for every tracked file.
+
+        Moving a toolchain file, a lockfile, the installer or a workflow to "no
+        suite", or taking a workflow out of the suite that watches it, changes the
+        suites of some file below and fails here: the answer is not read off the map.
+        """
+        everything = set(SUITES)
+        for path in self.files:
+            if plan.matches(PROSE, path):
+                continue
+            expected = next((want for patterns, want in EXPECTED if plan.matches(patterns, path)), None)
+            self.assertIsNotNone(expected, f"{path}: no expectation written for this file")
+            verdict, unclaimed = run_plan([path])
+            self.assertEqual(unclaimed, [], path)
+            self.assertEqual({s for s, on in verdict.items() if on}, expected(everything) if callable(expected) else expected, path)
+
+    def test_the_side_with_no_suite_is_this_list_and_no_other(self):
+        self.assertEqual(
+            DATA["ignore"]["paths"],
+            ["**/*.md", "docs/**", "LICENSE", ".editorconfig", ".gitignore", "internal/.gitignore", ".github/dependabot.yml", ".github/folder-limit-exceptions.txt", "scripts/folder-limit/**"],
+        )
+        self.assertEqual(DATA["machinery"], ["scripts/ci/plan/**", ".github/workflows/ci.yml"])
+        self.assertEqual(DATA["always"], ["line-limit"])
 
     def test_every_ignore_pattern_covers_a_file_nobody_else_reads(self):
         """An ignore that only repeats what a suite reads is a pattern to delete."""
@@ -269,137 +314,6 @@ class Integrity(unittest.TestCase):
                 if plan.matches([pattern], f) and not any(plan.selects(s, f) for s in DATA["suites"].values())
             ]
             self.assertTrue(alone, f"{pattern} ignores nothing a suite would not read")
-
-
-def jobs_of(text):
-    """{job id: its block of text} for the top-level jobs of a workflow."""
-    body = text.split("\njobs:\n", 1)[1]
-    blocks = re.split(r"\n(?=  [a-z0-9-]+:\n)", "\n" + body)
-    out = {}
-    for block in blocks:
-        m = re.match(r"\n?  ([a-z0-9-]+):\n", block + "\n")
-        if m:
-            out[m.group(1)] = block
-    return out
-
-
-def needs_of(block):
-    """The jobs a job waits for, from `needs: [a, b]` or from a list."""
-    m = re.search(r"\n    needs: \[([^\]]*)\]", block)
-    if m:
-        return {n.strip() for n in m.group(1).split(",") if n.strip()}
-    m = re.search(r"\n    needs:\n((?:      - [^\n]+\n)+)", block + "\n")
-    return {line.strip()[2:] for line in m.group(1).splitlines()} if m else set()
-
-
-class Workflow(unittest.TestCase):
-    """.github/workflows/ci.yml against the map."""
-
-    @classmethod
-    def setUpClass(cls):
-        with open(CI, encoding="utf-8") as handle:
-            cls.text = handle.read()
-        cls.jobs = jobs_of(cls.text)
-
-    def test_the_jobs_are_the_suites_plus_plan_and_gate(self):
-        self.assertEqual(set(self.jobs), set(SUITES) | {"plan", "gate"})
-
-    def test_every_suite_job_waits_for_the_plan_and_is_skipped_only_by_an_explicit_no(self):
-        """A job runs unless the plan said `false`: a missing or empty word is a run.
-
-        `== 'true'` would skip a job whose word never arrived (a plan that failed),
-        and a skipped required check counts as passed. `!cancelled()` lets the job
-        start even if a job before it failed, so the condition, not the default
-        `success()`, decides; the gate fails for whatever should not have run.
-        """
-        for suite in SUITES:
-            block = self.jobs[suite]
-            self.assertIn("plan", needs_of(block), suite)
-            cond = re.search(r"\n    if: \$\{\{ (.*) \}\}\n", block).group(1)
-            self.assertTrue(cond.startswith("!cancelled() && "), suite)
-            self.assertIn(f"needs.plan.outputs.{suite} != 'false'", cond, suite)
-            self.assertNotIn("== 'true'", cond, suite)
-            self.assertNotIn("needs.plan.result", cond, suite)
-
-    def test_the_order_names_the_real_gates_and_never_the_plan(self):
-        """`contains(needs.*.result, 'failure')` would take the plan in with the rest.
-
-        The condition that orders the layers lists the jobs one by one. The plan is
-        read for its word only: a plan that fails leaves the word empty, which is not
-        a `false`, so the suites run, and `ci gate` fails on the plan itself.
-        """
-        for suite in SUITES:
-            block = self.jobs[suite]
-            cond = re.search(r"\n    if: \$\{\{ (.*) \}\}\n", block).group(1)
-            self.assertNotIn("needs.*", cond, suite)
-            self.assertNotIn("needs.plan.result != ", cond, suite)
-            named = set(re.findall(r"needs\.([a-z0-9-]+)\.result != 'failure'", cond))
-            self.assertEqual(named, needs_of(block) - {"plan"}, suite)
-
-    def test_no_job_but_the_gate_runs_without_the_word_of_the_plan(self):
-        for name, block in self.jobs.items():
-            if name in ("plan", "gate"):
-                continue
-            self.assertEqual(len(re.findall(r"needs\.plan\.outputs\.", block)), 1, name)
-
-    def test_the_plan_prints_every_suite(self):
-        block = self.jobs["plan"]
-        for suite in SUITES:
-            self.assertRegex(block, rf"\n      {re.escape(suite)}: \$\{{\{{ steps\.plan\.outputs\.{re.escape(suite)} \}}\}}", suite)
-
-    def test_the_gate_waits_for_every_job_and_runs_always(self):
-        block = self.jobs["gate"]
-        self.assertEqual(needs_of(block), set(SUITES) | {"plan"})
-        self.assertIn("if: ${{ always() }}", block)
-
-    def test_a_job_does_not_switch_itself_off(self):
-        self.assertNotIn("continue-on-error", self.text)
-
-    def test_the_layers_hold(self):
-        """Cheap first, and a job waits for every job of the layers before it.
-
-        `needs.*.result` only sees the direct needs, so a job that waited for the
-        layer above alone would not see a failure two layers up, and would run.
-        """
-        first = {"line-limit", "actionlint", "bun-version", "ci-scripts", "lint"}
-        second = {"unit", "randomized", "debian", "release-scripts"}
-        third = {"e2e", "container"}
-        self.assertEqual(first | second | third, set(SUITES))
-        for suite in first:
-            self.assertEqual(needs_of(self.jobs[suite]), {"plan"}, suite)
-        for suite in second:
-            self.assertEqual(needs_of(self.jobs[suite]), {"plan"} | first, suite)
-        for suite in third:
-            self.assertEqual(needs_of(self.jobs[suite]), {"plan"} | first | second, suite)
-
-    def test_a_change_to_the_wiring_runs_the_tests_of_the_wiring(self):
-        """What watches the CI is watched by the CI: workflows, scripts and the map."""
-        for path in [
-            ".github/workflows/dco.yml",
-            ".github/workflows/ci-e2e.yml",
-            ".github/workflows/release.yml",
-            ".github/workflows/main-guard.yml",
-            "scripts/ci/dco/check.sh",
-            "scripts/ci/cancel/others.sh",
-            "scripts/ci/plan/map.toml",
-            "scripts/ci/plan/gate.py",
-            ".github/workflows/ci.yml",
-        ]:
-            verdict, unclaimed = run_plan([path])
-            self.assertTrue(verdict["ci-scripts"], path)
-            self.assertEqual(unclaimed, [], path)
-
-    def test_the_workflows_a_job_calls_exist_and_are_callable_only(self):
-        for name, block in self.jobs.items():
-            m = re.search(r"\n    uses: \./\.github/workflows/([a-z-]+\.yml)\n", block)
-            if not m:
-                continue
-            path = os.path.join(ROOT, ".github", "workflows", m.group(1))
-            self.assertTrue(os.path.isfile(path), f"{name} calls {m.group(1)}")
-            with open(path, encoding="utf-8") as handle:
-                called = handle.read()
-            self.assertRegex(called, r"\non:\n  workflow_call:\n\npermissions:\n  contents: read\n", m.group(1))
-            self.assertNotRegex(called, r"\n  (push|pull_request|schedule|workflow_dispatch):", m.group(1))
 
 
 if __name__ == "__main__":
