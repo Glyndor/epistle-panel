@@ -45,8 +45,9 @@ CASES = {
     "LICENSE": set(),
     ".gitignore": set(),
     ".editorconfig": set(),
-    ".github/dependabot.yml": set(),
-    ".github/folder-limit-exceptions.txt": set(),
+    ".github/dependabot.yml": {"action-pins"},
+    ".github/folder-limit-exceptions.txt": {"action-pins"},
+    "scripts/ci/pins/check.sh": {"ci-scripts", "action-pins"},
     "scripts/folder-limit/folder-limit.sh": set(),
     "internal/src/app/page.tsx": APP | SHIPPED,
     "internal/src/features/mail/index.test.ts": APP,
@@ -75,9 +76,9 @@ CASES = {
     "scripts/release/version/check-changelog.sh": {"debian", "release-scripts"},
     "scripts/release/sign/sign.py": {"release-scripts"},
     "scripts/release/lib/assertions.sh": {"release-scripts", "bun-version"},
-    ".github/workflows/dco.yml": {"actionlint", "bun-version", "ci-scripts"},
-    ".github/workflows/release.yml": {"actionlint", "bun-version", "ci-scripts"},
-    ".github/workflows/ci-e2e.yml": {"actionlint", "bun-version", "ci-scripts"},
+    ".github/workflows/dco.yml": {"actionlint", "bun-version", "ci-scripts", "action-pins"},
+    ".github/workflows/release.yml": {"actionlint", "bun-version", "ci-scripts", "action-pins"},
+    ".github/workflows/ci-e2e.yml": {"actionlint", "bun-version", "ci-scripts", "action-pins"},
     "scripts/ci/dco/check.sh": {"ci-scripts"},
     "scripts/ci/freshness/check.test.sh": {"ci-scripts"},
     "scripts/ci/dependabot_security_watch.py": {"ci-scripts"},
@@ -102,8 +103,10 @@ NOTHING = set()
 # A callable gets the set of all suites.
 EXPECTED = [
     (["scripts/ci/plan/**", "scripts/ci/bun/**", ".github/workflows/ci.yml"], lambda everything: everything),
-    ([".github/workflows/*.yml"], {"actionlint", "bun-version", "ci-scripts"}),
-    ([".github/dependabot.yml", ".github/folder-limit-exceptions.txt", ".editorconfig", ".gitignore", "internal/.gitignore", "scripts/folder-limit/**"], NOTHING),
+    ([".github/workflows/*.yml"], {"actionlint", "bun-version", "ci-scripts", "action-pins"}),
+    ([".editorconfig", ".gitignore", "internal/.gitignore", "scripts/folder-limit/**"], NOTHING),
+    ([".github/dependabot.yml", ".github/folder-limit-exceptions.txt"], {"action-pins"}),
+    (["scripts/ci/pins/**"], {"ci-scripts", "action-pins"}),
     (["scripts/ci/**"], {"ci-scripts"}),
     (["internal/package.json"], APP | SHIPPED | {"debian"}),
     (["internal/bun.lock", "internal/next.config.ts", "internal/postcss.config.mjs", "internal/tsconfig.json"], APP | SHIPPED),
@@ -302,7 +305,7 @@ class Integrity(unittest.TestCase):
     def test_the_side_with_no_suite_is_this_list_and_no_other(self):
         self.assertEqual(
             DATA["ignore"]["paths"],
-            ["**/*.md", "docs/**", "LICENSE", ".editorconfig", ".gitignore", "internal/.gitignore", ".github/dependabot.yml", ".github/folder-limit-exceptions.txt", "scripts/folder-limit/**"],
+            ["**/*.md", "docs/**", "LICENSE", ".editorconfig", ".gitignore", "internal/.gitignore", "scripts/folder-limit/**"],
         )
         self.assertEqual(DATA["machinery"], ["scripts/ci/plan/**", "scripts/ci/bun/**", ".github/workflows/ci.yml"])
         self.assertEqual(DATA["always"], ["line-limit"])

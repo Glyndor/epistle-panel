@@ -12,10 +12,17 @@ and the outputs of `plan`. The gate passes when each suite did what `plan` said:
 and each job the map lists under `always` (what judges the whole tree) succeeded,
 whatever the plan said: the plan does not decide those.
 
+A suite the map lists under `optional` is known and may be missing from `needs`:
+the map is the base commit's, so a job that a pull request adds to the gate has to
+be taught to the base first, by a pull request that adds the suite to the map as
+optional, and added to the workflow by the next. While it is missing nothing is
+asked of it; once it is in `needs` it is judged like any other. A third pull
+request takes the word `optional` off and the job is required from then on.
+
 Anything else fails it: a suite that was skipped without being told to (a job
 before it failed), one that ran when nothing of its own changed, a cancelled or
-failed one, a suite of the map that is missing from `needs`, or a `plan` that
-did not succeed. GitHub reports a skipped job as a success, so a required check
+failed one, a suite of the map that is missing from `needs` and is not optional,
+a job the map does not know, or a `plan` that did not succeed. GitHub reports a skipped job as a success, so a required check
 that leans on a job directly can be satisfied by a job that never ran; this one
 cannot.
 """
@@ -26,7 +33,7 @@ import sys
 import tomllib
 
 
-def verdicts(needs: dict, suites: "list[str]", always: "list[str]" = ()) -> "list[str]":
+def verdicts(needs: dict, suites: "list[str]", always: "list[str]" = (), optional: "list[str]" = ()) -> "list[str]":
     """The problems found, empty when the gate may pass."""
     problems = []
     plan = needs.get("plan")
@@ -37,7 +44,8 @@ def verdicts(needs: dict, suites: "list[str]", always: "list[str]" = ()) -> "lis
     for suite in suites:
         job = needs.get(suite)
         if not isinstance(job, dict):
-            problems.append(f"{suite}: not among the jobs the gate waits for")
+            if suite not in optional:
+                problems.append(f"{suite}: not among the jobs the gate waits for")
             continue
         result = job.get("result")
         wanted = outputs.get(suite)
@@ -74,12 +82,18 @@ def main() -> int:
         data = tomllib.load(handle)
     suites = list(data["suites"])
     always = list(data.get("always", []))
+    optional = list(data.get("optional", []))
+    unknown = [name for name in optional if name not in suites]
+    if unknown:
+        print(f"::error::the map lists as optional what is not a suite: {', '.join(unknown)}", file=sys.stderr)
+        return 1
 
-    problems = verdicts(needs, suites, always)
+    problems = verdicts(needs, suites, always, optional)
     outputs = (needs.get("plan") or {}).get("outputs") or {}
     for suite in suites:
         job = needs.get(suite) or {}
-        print(f"{suite:16} planned={outputs.get(suite, '?'):5} result={job.get('result', '-')}")
+        absent = " (optional, not in the workflow yet)" if suite in optional and suite not in needs else ""
+        print(f"{suite:16} planned={outputs.get(suite, '?'):5} result={job.get('result', '-')}{absent}")
     for job in always:
         print(f"{job:16} always  result={(needs.get(job) or {}).get('result', '-')}")
     for problem in problems:

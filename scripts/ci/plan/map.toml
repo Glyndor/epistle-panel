@@ -15,6 +15,13 @@
 # the job, listing it in the `needs` of `gate`, and writing its cases in the
 # test; the test fails until all three agree.
 
+# Suites that the map knows and the workflow may not have a job for yet. The gate
+# runs the base commit's copy of this file, so a job that a pull request adds to the
+# gate has to be taught to the base first: one pull request adds the suite here as
+# optional, the next adds the job to ci.yml, and a third takes the word off this
+# list so that the job is required. See docs/maintainers/ci.md.
+optional = ["action-pins"]
+
 # What judges the whole tree runs on every change, whatever it touches, because
 # a change of prose alone can push a folder or a file past its limit. Those jobs
 # are not suites: the plan does not decide them and `ci gate` requires each one to
@@ -40,9 +47,7 @@ paths = [
 	".editorconfig",
 	".gitignore",
 	"internal/.gitignore",
-	# Read by Dependabot and by the folder limit, which have workflows of their own.
-	".github/dependabot.yml",
-	".github/folder-limit-exceptions.txt",
+	# Read by the folder limit, which has a workflow of its own.
 	"scripts/folder-limit/**",
 ]
 
@@ -125,6 +130,12 @@ include = [
 
 [suites.actionlint]
 include = [".github/workflows/**"]
+
+# Every pin of an action and of an image is the one its release says. It asks the
+# repositories and the registry, so it runs whenever anything under .github/ changes,
+# or the check itself.
+[suites.action-pins]
+include = [".github/**", "scripts/ci/pins/**"]
 
 # The tests of the scripts the other jobs run, and of the wiring of the CI: the
 # map against ci.yml, the workflows it calls and the gate. A change to any

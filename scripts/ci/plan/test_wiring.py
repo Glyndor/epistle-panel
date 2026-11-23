@@ -32,11 +32,13 @@ from wiring_support import (
     ROOT,
     RUNS,
     SECOND,
+    OPTIONAL,
     SUITES,
     StrictLoader,
     THIRD,
     _mapping,
     enumerate_files,
+    present_suites,
     load,
     names_of,
     resolved_name,
@@ -47,6 +49,8 @@ from wiring_support import (
     varies_with_base,
     walk,
 )
+
+PRESENT = present_suites()
 
 
 class Reader(unittest.TestCase):
@@ -80,9 +84,14 @@ class Wiring(unittest.TestCase):
         self.assertEqual(self.doc["permissions"], {"contents": "read"})
 
     def test_the_jobs_are_closed_to_the_suites_the_always_jobs_the_plan_and_the_gate(self):
-        self.assertEqual(set(self.jobs), set(SUITES) | set(ALWAYS) | {"plan", "gate"})
+        self.assertEqual(set(self.jobs), set(PRESENT) | set(ALWAYS) | {"plan", "gate"})
         self.assertEqual(set(self.jobs), set(NAMES))
-        self.assertEqual(set(FIRST + SECOND + THIRD), set(SUITES) | set(ALWAYS))
+        self.assertEqual(set(FIRST + SECOND + THIRD), set(PRESENT) | set(ALWAYS))
+
+    def test_a_suite_without_a_job_is_an_optional_one_and_the_list_is_closed(self):
+        """Between the pull request that teaches the base a job and the one that adds it."""
+        self.assertLessEqual(set(SUITES) - set(PRESENT), set(OPTIONAL))
+        self.assertEqual(OPTIONAL, ["action-pins"], "the third pull request takes the name off the map and this list")
 
     def test_each_job_has_its_own_name(self):
         for job, name in NAMES.items():
@@ -98,7 +107,7 @@ class Wiring(unittest.TestCase):
 
     def test_each_suite_condition_is_this_one_exactly(self):
         """`!cancelled()`, its own word of the plan as `!= 'false'`, and the earlier jobs not failed, one by one."""
-        for suite in SUITES:
+        for suite in PRESENT:
             gates = [n for n in self.jobs[suite]["needs"] if n != "plan"]
             want = f"${{{{ !cancelled() && needs.plan.outputs.{suite} != 'false'" + "".join(f" && needs.{g}.result != 'failure'" for g in gates) + " }}"
             self.assertEqual(self.jobs[suite]["if"], want, suite)
@@ -142,7 +151,7 @@ class Wiring(unittest.TestCase):
             self.assertLessEqual(set(doc), {"name", "on", True, "permissions", "jobs", "env"}, called)
 
     def test_the_plan_hands_each_suite_its_own_word_and_no_other(self):
-        self.assertEqual(self.jobs["plan"]["outputs"], {s: f"${{{{ steps.plan.outputs.{s} }}}}" for s in SUITES})
+        self.assertEqual(self.jobs["plan"]["outputs"], {s: f"${{{{ steps.plan.outputs.{s} }}}}" for s in PRESENT})
 
     def test_the_gate_waits_for_every_job_reads_the_needs_whole_and_runs_always(self):
         gate = self.jobs["gate"]
