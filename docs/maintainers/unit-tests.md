@@ -47,12 +47,11 @@ scripts/test/randomized.sh        # seeds 1 to 10, prints any failing seed
 bun test --randomize --seed=9     # replay one
 ```
 
-The required CI check runs the default order only, because the workflow it calls
-is shared with other repositories. The `Randomized tests` workflow
-(`.github/workflows/randomized-tests.yml`) runs `scripts/test/randomized.sh 1`,
-seed 1, on pull requests into `develop` that touch `internal/**`. It is not a
-required check; a failing run prints the tail of the suite's output and the seed
-to replay.
+The `unit` job runs the default order only. The `randomized` job of `CI`
+(`.github/workflows/ci.yml`) runs `scripts/test/randomized.sh 1`, seed 1, on pull
+requests into `develop` that touch `internal/**`. `CI gate` requires it whenever
+the plan selects it; a failing run prints the tail of the suite's output and the
+seed to replay.
 
 ## Time
 
@@ -171,7 +170,7 @@ exports. A test that imports the constant it checks agrees with any change to it
 
 Run `bash scripts/folder-limit/folder-limit.sh` from the repository and
 `bash scripts/folder-limit/folder-limit.test.sh` for its shell suite (also run by
-the folder-limit and release-scripts workflows). The advisory check runs on PRs
+the folder-limit workflow). The advisory check runs on PRs
 into `develop`, counting tracked files directly in each folder, with a limit of
 20; `.github/workflows` and any `testdata` subtree are excluded. CI loads the
 checker from BASE, using the proposed copy only on first introduction.

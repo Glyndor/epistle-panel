@@ -1,59 +1,19 @@
 name: Container
 
-# Build the image and run the smoke checks: the version label matches
-# package.json, the server answers on its port, the login page is public, every
-# other route redirects to it without a session, the runtime user is 65532, the
-# server runs with a read-only root and no capability, and every base the
-# Containerfile pins is a multi-architecture index (the release builds arm64,
-# which no run here does, so a digest that names one architecture would only
-# fail after the release is published).
-# A change that touches none of the listed inputs cannot break them, so it does
-# not pay to run. The list includes this workflow: one whose `paths:` does not
-# list itself never runs on the pull request that edits it. The negated
-# patterns skip a change that only touches an `internal/` test file: the image
-# does not run the tests, and the required `bun` check lints, builds (which
-# type-checks them) and runs them. A path list with a negated pattern needs a
-# positive one before it.
+# Called by ci.yml when the plan says a change can move the answer (see
+# scripts/ci/plan/map.toml). Builds the image and runs the smoke checks: the
+# version label matches package.json, the server answers on its port, the login
+# page is public, every other route redirects to it without a session, the
+# runtime user is 65532, the server runs with a read-only root and no
+# capability, and every base the Containerfile pins is a multi-architecture
+# index (the release builds arm64, which no run here does, so a digest that
+# names one architecture would only fail after the release is published).
+# The image does not run the tests, so a change that only touches a test file
+# does not select it; the unit job lints, builds (which type-checks them) and
+# runs them.
 
 on:
-  push:
-    branches: [develop]
-    paths:
-      - ".github/workflows/container.yml"
-      - "Containerfile"
-      - ".containerignore"
-      - "scripts/consistency/check-base-indexes.sh"
-      - "internal/src/**"
-      - "internal/next.config.ts"
-      - "internal/tsconfig.json"
-      - "internal/postcss.config.mjs"
-      - "internal/package.json"
-      - "internal/bun.lock"
-      - "!internal/**/*.test.ts"
-      - "!internal/**/*.test.tsx"
-  pull_request:
-    # Into develop only: the promotion pull request to main carries a tree this
-    # check already answered for on develop, and it is not required on main.
-    branches: [develop]
-    paths:
-      - ".github/workflows/container.yml"
-      - "Containerfile"
-      - ".containerignore"
-      - "scripts/consistency/check-base-indexes.sh"
-      - "internal/src/**"
-      - "internal/next.config.ts"
-      - "internal/tsconfig.json"
-      - "internal/postcss.config.mjs"
-      - "internal/package.json"
-      - "internal/bun.lock"
-      - "!internal/**/*.test.ts"
-      - "!internal/**/*.test.tsx"
-
-# A newer push to a pull request supersedes the run in flight. Branch runs are
-# never cancelled: only a pull_request event is.
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  workflow_call:
 
 permissions:
   contents: read

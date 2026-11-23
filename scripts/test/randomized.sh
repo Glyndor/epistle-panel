@@ -3,8 +3,8 @@
 #
 # A suite that passes in the default order and fails in another depends on
 # shared state: a process-global mock, a store another file leaves filled. The
-# required CI check runs the default order only; the `Randomized tests`
-# workflow runs seed 1 on a pull request, and this runs more of them locally.
+# `unit` job of CI runs the default order only; the `randomized` job runs seed 1
+# on a pull request, and this runs more of them locally.
 #
 #   scripts/test/randomized.sh        # seeds 1 to 10
 #   scripts/test/randomized.sh 25     # seeds 1 to 25

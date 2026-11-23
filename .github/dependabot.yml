@@ -8,7 +8,7 @@ version: 2
 #
 # `target-branch: develop` stays. Dependabot SECURITY updates ignore it and open
 # against main, where main-guard refuses them; .github/workflows/
-# dependabot-security-watch.yml reports those instead of letting them sit.
+# dependabot-watch.yml reports those instead of letting them sit.
 #
 # Labels must exist in the repository (`gh label list`), or Dependabot drops
 # them. `cooldown` delays a new release for a few days before a version update;

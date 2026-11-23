@@ -2,13 +2,15 @@ name: DCO
 
 # The organisation's sign-off gate: every commit on a pull request carries a
 # Signed-off-by trailer, and no merge commit on it carries a change of its own.
-# The logic is scripts/ci/dco/check.sh; the pull_request trigger has to live in
-# the repository. It also runs on the promotion pull request to main, where the
-# squash commits of develop are the ones it reads.
+# The logic is scripts/ci/dco/check.sh, tested in the `ci scripts` job of
+# ci.yml. It also runs on the promotion pull request to main, where the squash
+# commits of develop are the ones it reads.
 #
-# A pull request that edits the script or this workflow is judged by its own
-# copy; the residual risk of that, a check the change can switch off, is covered
-# by the owner reading every change under .github/ and scripts/ci/.
+# The script that judges a pull request is the base commit's copy, so the pull
+# request cannot rewrite the rule that reads it; the change that introduces the
+# script is the one exception. This workflow file is still the pull request's
+# own, which is the residual risk of every check (standards/ci/required-checks/
+# gate-spoofing): the owner reads each change under .github/.
 
 on:
   pull_request:
@@ -37,14 +39,16 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Lint and test the check
-        run: |
-          set -euo pipefail
-          shellcheck -x scripts/ci/dco/*.sh
-          bash scripts/ci/dco/check.test.sh
-
       - name: Signed-off-by on every commit, no evil merge
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: bash scripts/ci/dco/check.sh
+        run: |
+          set -euo pipefail
+          script="$RUNNER_TEMP/dco-check.sh"
+          if git cat-file -e "${BASE_SHA}:scripts/ci/dco/check.sh" 2>/dev/null; then
+            git show "${BASE_SHA}:scripts/ci/dco/check.sh" >"$script"
+          else
+            cp scripts/ci/dco/check.sh "$script"
+          fi
+          bash "$script"

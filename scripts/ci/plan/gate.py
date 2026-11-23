@@ -1,0 +1,82 @@
+#!/usr/bin/env python3
+"""The one check that says whether the CI of a change is complete.
+
+  NEEDS="$json" gate.py --map map.toml
+
+NEEDS is `toJSON(needs)` of the gate job: the result of every job it waits for,
+and the outputs of `plan`. The gate passes when each suite did what `plan` said:
+
+  plan said true  -> the job succeeded
+  plan said false -> the job was skipped
+
+Anything else fails it: a suite that was skipped without being told to (a job
+before it failed), one that ran when nothing of its own changed, a cancelled or
+failed one, a suite of the map that is missing from `needs`, or a `plan` that
+did not succeed. GitHub reports a skipped job as a success, so a required check
+that leans on a job directly can be satisfied by a job that never ran; this one
+cannot.
+"""
+
+import json
+import os
+import sys
+import tomllib
+
+
+def verdicts(needs: dict, suites: "list[str]") -> "list[str]":
+    """The problems found, empty when the gate may pass."""
+    problems = []
+    plan = needs.get("plan")
+    if not isinstance(plan, dict) or plan.get("result") != "success":
+        got = plan.get("result") if isinstance(plan, dict) else "missing"
+        return [f"plan: {got}, not success; nothing says what had to run"]
+    outputs = plan.get("outputs") or {}
+    for suite in suites:
+        job = needs.get(suite)
+        if not isinstance(job, dict):
+            problems.append(f"{suite}: not among the jobs the gate waits for")
+            continue
+        result = job.get("result")
+        wanted = outputs.get(suite)
+        if wanted == "true":
+            if result != "success":
+                problems.append(f"{suite}: had to run and finished {result}")
+        elif wanted == "false":
+            if result != "skipped":
+                problems.append(f"{suite}: nothing of its own changed and it finished {result}")
+        else:
+            problems.append(f"{suite}: plan printed {wanted!r}, not true or false")
+    extra = sorted(set(needs) - set(suites) - {"plan"})
+    if extra:
+        problems.append(f"jobs the map does not know: {', '.join(extra)}")
+    return problems
+
+
+def main() -> int:
+    map_path = sys.argv[sys.argv.index("--map") + 1] if "--map" in sys.argv else ""
+    if not map_path:
+        print("usage: NEEDS=<json> gate.py --map map.toml", file=sys.stderr)
+        return 2
+    try:
+        needs = json.loads(os.environ["NEEDS"])
+    except (KeyError, ValueError):
+        print("::error::NEEDS is missing or is not JSON", file=sys.stderr)
+        return 1
+    with open(map_path, "rb") as handle:
+        suites = list(tomllib.load(handle)["suites"])
+
+    problems = verdicts(needs, suites)
+    outputs = (needs.get("plan") or {}).get("outputs") or {}
+    for suite in suites:
+        job = needs.get(suite) or {}
+        print(f"{suite:16} planned={outputs.get(suite, '?'):5} result={job.get('result', '-')}")
+    for problem in problems:
+        print(f"::error::{problem}")
+    if problems:
+        return 1
+    print("Every suite did what the plan said.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
