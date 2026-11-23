@@ -219,7 +219,14 @@ jobs:
         else
           cp scripts/ci/pins/check.py "$script"
         fi
-        "$RUNNER_TEMP/pins-venv/bin/python" -I "$script" --remote
+        # A pull request is asked about the pins it changes: the tag of an image moves,
+        # and a pull request is not to blame when it does. The Monday run of pins.yml
+        # looks at the ones nobody changed.
+        args=(--remote)
+        if [ "$EVENT" = pull_request ]; then
+          args=(--remote --base HEAD^1)
+        fi
+        "$RUNNER_TEMP/pins-venv/bin/python" -I "$script" "${args[@]}"
   unit:
     name: unit
     needs:

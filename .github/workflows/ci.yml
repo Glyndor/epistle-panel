@@ -273,7 +273,8 @@ jobs:
   # Every pin of an action and of an image is the one its release says. It asks the
   # repositories and the registry, so it needs the network, and it is required: the
   # contract of the workflows leaves the value of a pin out of its comparison, and
-  # this is what looks at it. On a pull request it runs the base commit's copy of
+  # this is what looks at it. An action is always asked about, because its tag does
+  # not move; an image only when its pin is not the one the base has. On a pull request it runs the base commit's copy of
   # the script and of the list of wheels it installs; the change that introduces
   # them is the one exception. The YAML reader is installed from wheels with hashes.
   action-pins:
@@ -314,7 +315,14 @@ jobs:
           else
             cp scripts/ci/pins/check.py "$script"
           fi
-          "$RUNNER_TEMP/pins-venv/bin/python" -I "$script" --remote
+          # A pull request is asked about the pins it changes: the tag of an image moves,
+          # and a pull request is not to blame when it does. The Monday run of pins.yml
+          # looks at the ones nobody changed.
+          args=(--remote)
+          if [ "$EVENT" = pull_request ]; then
+            args=(--remote --base HEAD^1)
+          fi
+          "$RUNNER_TEMP/pins-venv/bin/python" -I "$script" "${args[@]}"
 
   unit:
     name: unit

@@ -1,20 +1,25 @@
 name: Action pins
 
-# The weekly look at the pins. The check that stands in the way of a merge is the
-# `action pins` job of ci.yml, which runs whenever anything under .github/ changes;
-# this one covers what does not change: a tag that is moved, or an image whose tag
-# the registry points somewhere else, with no file touched. It runs
-# scripts/ci/pins/check.py with --remote, which asks each repository which commit
-# the tag of the version comment names and the registry which digest the tag of an
-# image has, and fails when the pin is not that one or when it cannot ask.
+# The Monday look at the pins. What stands in the way of a merge is the `action pins`
+# job of ci.yml, which asks about the pins a pull request changes. This one looks at
+# the pins nobody changed, because a tag moves with no file touched:
+#
+# - an action whose tag now names another commit fails the run, since the tag of an
+#   action is not to move;
+# - an image whose tag the registry now points to another digest blocks nothing. The
+#   run writes it to a report, and the `report` job opens an issue with the new
+#   digest, or updates the one that is open, so there is never two.
+#
+# scripts/ci/pins/check.py does the asking. The job that asks holds `contents: read`
+# and runs the code of the default branch; the one that writes the issue holds
+# `issues: write`, checks out nothing and reads the report as data.
 
 on:
   schedule:
     - cron: "29 6 * * 1"
   workflow_dispatch:
 
-permissions:
-  contents: read
+permissions: {}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -25,7 +30,9 @@ jobs:
     name: action pins (weekly)
     runs-on: ubuntu-latest
     # An estimate: about a dozen questions to GitHub and two to the registry.
-    timeout-minutes: 5
+    timeout-minutes: 10
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -37,5 +44,58 @@ jobs:
           python3 -m venv "$RUNNER_TEMP/pins-venv"
           "$RUNNER_TEMP/pins-venv/bin/pip" install --quiet --only-binary=:all: --require-hashes -r scripts/ci/plan/requirements.txt
 
-      - name: Every reference is fixed to the commit or the digest of its release
-        run: '"$RUNNER_TEMP/pins-venv/bin/python" -I scripts/ci/pins/check.py --remote'
+      - name: Every reference is the commit or the digest of its release
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/drift"
+          "$RUNNER_TEMP/pins-venv/bin/python" -I scripts/ci/pins/check.py --remote --weekly --report "$RUNNER_TEMP/drift/drift.json"
+
+      - name: Hand the report to the job that writes the issue
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pins-drift
+          path: ${{ runner.temp }}/drift/drift.json
+          retention-days: 1
+          if-no-files-found: ignore
+
+  report:
+    name: issue for the images that moved
+    needs: pins
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - name: Receive the report
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: pins-drift
+          path: ${{ runner.temp }}/drift
+
+      - name: Open the issue, or update the one that is open
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          file="$RUNNER_TEMP/drift/drift.json"
+          [ -f "$file" ] || { echo "no report: the check did not get as far as writing one"; exit 0; }
+          total="$(jq 'if type == "array" then length else error("not a list") end' "$file")"
+          [ "$total" -gt 0 ] || { echo "no image has moved"; exit 0; }
+          # Only entries of the exact shape are written; anything else fails the job.
+          rows="$(jq -r '.[]
+            | select((.repository | test("^[a-z0-9./-]+$")) and (.tag | test("^[A-Za-z0-9._-]+$"))
+                and (.pinned | test("^sha256:[0-9a-f]{64}$")) and (.current | test("^sha256:[0-9a-f]{64}$")))
+            | "- `\(.repository):\(.tag)`: pinned `\(.pinned)`, the registry gives `\(.current)` now"' "$file")"
+          [ "$(printf '%s\n' "$rows" | grep -c .)" -eq "$total" ] || { echo "::error::an entry of the report is not of the shape expected"; exit 1; }
+          title="Pinned images have moved"
+          body="$(printf 'The registry gives another digest for the tag of these images, and I pin them by digest in the workflows (ci-debian.yml and release.yml hold the same one):\n\n%s\n\nI change the digest in every workflow that names the image, in one pull request. Until then nothing is blocked: the pull requests ask about the pins they change.\n\nThis issue is updated each Monday while the digests differ.' "$rows")"
+          number="$(gh issue list --repo "$REPO" --state open --search "\"$title\" in:title" --json number,title --jq "[.[] | select(.title == \"$title\")][0].number // empty")"
+          if [ -n "$number" ]; then
+            gh issue edit "$number" --repo "$REPO" --body "$body"
+            echo "updated the issue #$number"
+          else
+            gh issue create --repo "$REPO" --title "$title" --body "$body" --label type:deps --label prio:P3 --label effort:XS --label area:meta
+          fi

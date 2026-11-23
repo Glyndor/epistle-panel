@@ -10,6 +10,7 @@ The steps run in a throwaway repository with a script on each side, and must run
 the base's.
 """
 
+import json
 import os
 import re
 import subprocess
@@ -105,17 +106,79 @@ class TreeJudges(unittest.TestCase):
         """The one that stands in the way of a merge is `action pins` in ci.yml; this one is the clock."""
         doc = load(".github/workflows/pins.yml")
         self.assertEqual(triggers(doc), {"schedule": [{"cron": "29 6 * * 1"}], "workflow_dispatch": None})
+        self.assertEqual(doc["permissions"], {})
         job = doc["jobs"]["pins"]
+        self.assertEqual(job["permissions"], {"contents": "read"})
         self.assertEqual(set(job) & {"if", "needs", "continue-on-error"}, set())
-        self.assertEqual(
-            step_named(job, "Every reference is fixed to the commit or the digest of its release")["run"],
-            '"$RUNNER_TEMP/pins-venv/bin/python" -I scripts/ci/pins/check.py --remote',
-        )
+        step = step_named(job, "Every reference is the commit or the digest of its release")
+        self.assertIn("check.py --remote --weekly --report", step["run"])
         ci = load(".github/workflows/ci.yml")["jobs"]
         self.assertIn("action-pins", ci["gate"]["needs"])
         remote = step_named(ci["action-pins"], "Every reference is fixed to the commit or the digest of its release")["run"]
-        self.assertIn('"$RUNNER_TEMP/pins-venv/bin/python" -I "$script" --remote', remote, "the job asks the repositories and the registry")
+        self.assertIn('args=(--remote --base HEAD^1)', remote, "a pull request asks about what it changes")
+        self.assertIn('"$RUNNER_TEMP/pins-venv/bin/python" -I "$script" "${args[@]}"', remote)
         self.assertIn("git show HEAD^1:scripts/ci/plan/requirements.txt", step_named(ci["action-pins"], "The YAML reader of the check")["run"])
+
+    def test_the_job_that_writes_the_issue_has_issues_write_and_nothing_else_and_reads_a_report_as_data(self):
+        report = load(".github/workflows/pins.yml")["jobs"]["report"]
+        self.assertEqual(report["permissions"], {"issues": "write"})
+        self.assertEqual(report["needs"], "pins")
+        for step in report["steps"]:
+            self.assertFalse(str(step.get("uses", "")).startswith("actions/checkout@"), "it checks out no code")
+        self.assertEqual([s.get("uses", "").split("@")[0] for s in report["steps"]], ["actions/download-artifact", ""])
+
+    def drift(self, entries, existing=""):
+        """The issue step of the Monday run, against a stand-in `gh` and a report; returns status, calls."""
+        step = step_named(load(".github/workflows/pins.yml")["jobs"]["report"], "Open the issue, or update the one that is open")
+        with tempfile.TemporaryDirectory() as tmp:
+            os.makedirs(os.path.join(tmp, "drift"))
+            if entries is not None:
+                with open(os.path.join(tmp, "drift", "drift.json"), "w") as handle:
+                    handle.write(entries)
+            bindir = os.path.join(tmp, "bin")
+            os.makedirs(bindir)
+            gh = os.path.join(bindir, "gh")
+            with open(gh, "w") as handle:
+                handle.write(f'#!/bin/sh\necho "$@" >> {tmp}/calls\nif [ "$1 $2" = "issue list" ]; then echo "{existing}"; fi\n')
+            os.chmod(gh, 0o755)
+            done = subprocess.run(["bash", "-c", step["run"]], env=dict(os.environ, RUNNER_TEMP=tmp, REPO="o/r", GH_TOKEN="x", PATH=f"{bindir}:{os.environ['PATH']}"), capture_output=True, text=True)
+            calls = ""
+            if os.path.exists(os.path.join(tmp, "calls")):
+                with open(os.path.join(tmp, "calls")) as handle:
+                    calls = handle.read()
+            return done, calls
+
+    MOVED = json.dumps([{"repository": "docker.io/library/debian", "tag": "trixie", "pinned": "sha256:" + "a" * 64, "current": "sha256:" + "b" * 64}])
+
+    def test_an_issue_is_opened_for_an_image_that_moved(self):
+        done, calls = self.drift(self.MOVED)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertIn("issue create", calls)
+        self.assertNotIn("issue edit", calls)
+        self.assertIn("sha256:" + "b" * 64, calls)
+
+    def test_the_issue_that_is_open_is_updated_and_not_duplicated(self):
+        done, calls = self.drift(self.MOVED, existing="42")
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertIn("issue edit 42", calls)
+        self.assertNotIn("issue create", calls)
+
+    def test_no_issue_when_nothing_moved_or_there_is_no_report(self):
+        for entries in ("[]", None):
+            done, calls = self.drift(entries)
+            self.assertEqual(done.returncode, 0, done.stderr)
+            self.assertEqual(calls, "")
+
+    def test_an_entry_of_another_shape_is_refused_before_anything_is_written(self):
+        bad = json.loads(self.MOVED)
+        for field, value in (("repository", "x; rm -rf /"), ("tag", "a b"), ("pinned", "sha256:abc"), ("current", "`touch x`")):
+            entry = dict(bad[0], **{field: value})
+            done, calls = self.drift(json.dumps([entry]))
+            self.assertNotEqual(done.returncode, 0, field)
+            self.assertNotIn("issue create", calls, field)
+        done, calls = self.drift('{"not": "a list"}')
+        self.assertNotEqual(done.returncode, 0)
+        self.assertEqual(calls, "")
 
     def test_a_scheduled_workflow_brings_no_other_tree(self):
         """The run of a schedule holds the privileges of the default branch.

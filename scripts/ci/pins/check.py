@@ -3,8 +3,11 @@
 that is the release it says, every image is fixed to the digest of its tag, and
 nothing runs that is not from `actions/` or `github/`.
 
-    check.py            what the files say
-    check.py --remote   and ask the repositories and the registry whether it is true
+    check.py                           what the files say
+    check.py --remote                  and ask the repositories and the registry (everything)
+    check.py --remote --base REV       as a pull request: ask about the pins that change from REV
+    check.py --remote --weekly [--report FILE]
+                                       the Monday pass: nothing is held back for a moved image
 
 The files are read as YAML, with a loader that refuses a key written twice, and the
 references are the value of every mapping key `uses` wherever it is, however the key
@@ -26,8 +29,18 @@ not, has a tag and is of a repository in IMAGE_REPOS.
 With --remote, each commit is asked of its repository (`git ls-remote <repo>
 refs/tags/<release> refs/tags/<release>^{}`) and has to be the one the tag points to
 (the peeled one for an annotated tag), and each digest is asked of the registry for
-its tag. A repository or a registry that cannot be asked, or a tag that is not
-there, fails: a check that cannot look does not approve.
+its tag. Every question is tried three times. A repository or a registry that cannot
+be asked, or a tag that is not there, fails: a check that cannot look does not
+approve.
+
+The tag of an action does not move, so every action is asked about. The tag of an
+image does, and a pull request is not to blame when it does: with --base, an image
+whose tag and digest are the ones the base has was verified when it came in and is
+not asked about again, and a pin that changed has to carry the digest the registry
+gives now. An action that is not asked about for want of a network, and has not
+changed, is a notice and not a failure. With --weekly nothing blocks: an image the
+registry now gives another digest for is written to --report as data, for the job
+that opens or updates the issue, and a failure to ask about an image is a notice.
 
 It reads every tracked workflow and action: `.github/**/*.yml` and `.yaml`, and
 `action.yml` or `action.yaml` anywhere in the tree.
@@ -38,6 +51,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 import urllib.request
 
 import yaml
@@ -68,14 +82,13 @@ def _mapping(loader, node, deep=False):
 StrictLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _mapping)
 
 
+def is_workflow(name):
+    return bool((re.match(r"^\.github/.*\.ya?ml$", name) and name != ".github/dependabot.yml") or re.search(r"(^|/)action\.ya?ml$", name))
+
+
 def tracked_files():
     out = subprocess.run(["git", "ls-files", "-z"], check=True, capture_output=True).stdout
-    names = [p.decode("utf-8", "surrogateescape") for p in out.split(b"\0") if p]
-    return [
-        n
-        for n in names
-        if (re.match(r"^\.github/.*\.ya?ml$", n) and n != ".github/dependabot.yml") or re.search(r"(^|/)action\.ya?ml$", n)
-    ]
+    return [n for n in (p.decode("utf-8", "surrogateescape") for p in out.split(b"\0") if p) if is_workflow(n)]
 
 
 def walk(node):
@@ -139,20 +152,41 @@ def split_image(ref):
     return name, tag, "sha256:" + match.group(2)
 
 
+def with_retries(question, *args, attempts=3, delay=5):
+    """The answer of `question`, tried `attempts` times; the last failure is raised."""
+    for number in range(attempts):
+        try:
+            return question(*args)
+        except Exception:  # noqa: BLE001 - any failure to ask is tried again
+            if number == attempts - 1:
+                raise
+            time.sleep(delay)
+
+
 class Check:
-    def __init__(self, remote):
+    def __init__(self, remote=False, base=None, weekly=False):
         self.remote = remote
+        self.base = base  # a Check of the base commit, or None
+        self.weekly = weekly
         self.errors = []
+        self.notices = []
+        self.drift = []
         self.checked = 0
         self.pairs = {}  # action -> (commit, release, where)
         self.images = {}  # repository -> (tag, digest, where)
+        self.seen_pairs = set()  # (action, commit, release), wherever it is written
+        self.seen_images = set()  # (repository, tag, digest)
 
     def error(self, path, line, message):
         self.errors.append(f"::error file={path},line={line}::{message}")
 
-    def judge_file(self, path):
-        with open(path, encoding="utf-8") as handle:
-            text = handle.read()
+    def notice(self, path, line, message):
+        self.notices.append(f"::notice file={path},line={line}::{message}")
+
+    def judge_file(self, path, text=None):
+        if text is None:
+            with open(path, encoding="utf-8") as handle:
+                text = handle.read()
         lines = text.split("\n")
         try:
             yaml.load(text, Loader=StrictLoader)
@@ -183,6 +217,7 @@ class Check:
         if tag is None:
             self.error(path, line, f"the image {repository}@{digest[:19]} has no tag; write {repository}:<tag>@sha256:<digest>")
             return
+        self.seen_images.add((repository, tag, digest))
         if repository in self.images and self.images[repository][:2] != (tag, digest):
             old = self.images[repository]
             self.error(
@@ -229,6 +264,7 @@ class Check:
             self.error(path, line, f"{owner}/{name}@{commit[:7]} has no version comment like '# v1.2.3' (found '{release}')")
             return
         action = f"{owner}/{name}"
+        self.seen_pairs.add((action, commit, release))
         if action in self.pairs and self.pairs[action][:2] != (commit, release):
             old = self.pairs[action]
             self.error(
@@ -241,10 +277,15 @@ class Check:
     def ask(self):
         for action, (commit, release, where) in sorted(self.pairs.items()):
             path, _, line = where.rpartition(":")
+            changed = self.base is None or (action, commit, release) not in self.base.seen_pairs
             try:
-                answer = ls_remote(action, release)
-            except Exception as problem:  # noqa: BLE001 - any failure to ask is a failure
-                self.error(path, line, f"could not ask https://github.com/{action} for the tag {release}, so {commit[:7]} is not approved: {problem}")
+                answer = with_retries(ls_remote, action, release)
+            except Exception as problem:  # noqa: BLE001 - any failure to ask is a failure, unless nothing changed
+                message = f"could not ask https://github.com/{action} for the tag {release}: {problem}"
+                if changed:
+                    self.error(path, line, f"{message}, so {commit[:7]} is not approved")
+                else:
+                    self.notice(path, line, f"{message}; the pin is the one the base has, so nothing is held back")
                 continue
             peeled = plain = ""
             for row in answer.splitlines():
@@ -260,30 +301,86 @@ class Check:
                 self.error(path, line, f"{action} {release} is the commit {expected[:7]}, and the workflows pin {commit[:7]}")
         for repository, (tag, digest, where) in sorted(self.images.items()):
             path, _, line = where.rpartition(":")
+            if self.base is not None and (repository, tag, digest) in self.base.seen_images:
+                continue  # verified when it came in; the registry may have moved on since
             try:
-                got = registry_digest(repository, tag)
+                got = with_retries(registry_digest, repository, tag)
             except Exception as problem:  # noqa: BLE001
-                self.error(path, line, f"could not ask the registry for {repository}:{tag}, so {digest[:19]} is not approved: {problem}")
+                message = f"could not ask the registry for {repository}:{tag}: {problem}"
+                if self.weekly:
+                    self.notice(path, line, message)
+                else:
+                    self.error(path, line, f"{message}, so {digest[:19]} is not approved")
                 continue
-            if got != digest:
+            if got == digest:
+                continue
+            if self.weekly:
+                self.drift.append({"repository": repository, "tag": tag, "pinned": digest, "current": got})
+                self.notice(path, line, f"{repository}:{tag} is {got[:19]} at the registry now, and the workflows pin {digest[:19]}")
+            else:
                 self.error(path, line, f"{repository}:{tag} is {got[:19]} at the registry, and the workflows pin {digest[:19]}")
 
 
+def base_check(rev):
+    """The pins of the files at `rev`, or None when they cannot be read."""
+    try:
+        listing = subprocess.run(["git", "ls-tree", "-r", "-z", "--name-only", rev], check=True, capture_output=True).stdout
+        paths = [p.decode("utf-8", "surrogateescape") for p in listing.split(b"\0") if p]
+        base = Check()
+        for path in paths:
+            if is_workflow(path):
+                text = subprocess.run(["git", "show", f"{rev}:{path}"], check=True, capture_output=True).stdout.decode("utf-8")
+                base.judge_file(path, text)
+        return base
+    except (subprocess.CalledProcessError, UnicodeDecodeError):
+        return None
+
+
 def main(argv):
-    if argv not in ([], ["--remote"]):
-        print("usage: check.py [--remote]", file=sys.stderr)
+    args = list(argv)
+    remote = "--remote" in args
+    weekly = "--weekly" in args
+    base_rev = None
+    report = None
+    if "--base" in args:
+        index = args.index("--base")
+        base_rev = args[index + 1] if index + 1 < len(args) else None
+        del args[index : index + 2]
+    if "--report" in args:
+        index = args.index("--report")
+        report = args[index + 1] if index + 1 < len(args) else None
+        del args[index : index + 2]
+    args = [a for a in args if a not in ("--remote", "--weekly")]
+    bad = (
+        args
+        or ("--base" in argv and not base_rev)
+        or ("--report" in argv and not report)
+        or ((base_rev or weekly) and not remote)
+        or (base_rev and weekly)
+        or (report and not weekly)
+    )
+    if bad:
+        print("usage: check.py [--remote [--base REV | --weekly [--report FILE]]]", file=sys.stderr)
         return 2
     os.chdir(subprocess.run(["git", "rev-parse", "--show-toplevel"], check=True, capture_output=True, text=True).stdout.strip())
     files = tracked_files()
     if not files:
         print("::error::no workflow or action file found; the check read nothing")
         return 1
-    check = Check(remote=bool(argv))
+    base = None
+    if base_rev:
+        base = base_check(base_rev)
+        if base is None:
+            print(f"::notice::the pins of {base_rev} cannot be read, so every pin is asked about")
+    check = Check(remote=remote, base=base, weekly=weekly)
     for path in files:
         check.judge_file(path)
-    if check.remote:
+    if remote:
         check.ask()
-    for message in check.errors:
+    if report:
+        with open(report, "w", encoding="utf-8") as handle:
+            json.dump(check.drift, handle, indent=2)
+    for message in check.notices + check.errors:
         print(message)
     if check.errors:
         return 1

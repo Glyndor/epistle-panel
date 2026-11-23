@@ -13,6 +13,7 @@ so no test uses the network.
 import contextlib
 import importlib.util
 import io
+import json
 import os
 import subprocess
 import sys
@@ -36,16 +37,30 @@ OK = f"      - uses: actions/checkout@{SHA} # v7.0.1"
 DEBIAN = "docker.io/library/debian"
 
 
-def make_repo(tmp, files):
+def make_repo(tmp, files, base=None):
+    """A repository of `files`; with `base`, that is the commit before, and `files` the change on it."""
     repo = os.path.join(tmp, "r")
     os.makedirs(repo)
-    subprocess.run(["git", "-C", repo, "init", "-q", "-b", "main"], check=True)
-    for path, text in files.items():
-        full = os.path.join(repo, path)
-        os.makedirs(os.path.dirname(full), exist_ok=True)
-        with open(full, "w", encoding="utf-8") as handle:
-            handle.write(text)
-    subprocess.run(["git", "-C", repo, "add", "-A"], check=True)
+
+    def git(*args):
+        subprocess.run(["git", "-C", repo, "-c", "user.name=t", "-c", "user.email=t@example.invalid", "-c", "commit.gpgsign=false", *args], check=True, capture_output=True)
+
+    def write(tree):
+        for path, text in tree.items():
+            full = os.path.join(repo, path)
+            os.makedirs(os.path.dirname(full), exist_ok=True)
+            with open(full, "w", encoding="utf-8") as handle:
+                handle.write(text)
+
+    git("init", "-q", "-b", "main")
+    if base is not None:
+        write(base)
+        git("add", "-A")
+        git("commit", "-q", "-m", "base")
+    write(files)
+    git("add", "-A")
+    if base is not None:
+        git("commit", "-q", "--allow-empty", "-m", "change")
     return repo
 
 
@@ -61,8 +76,11 @@ def run(files, *args):
         return done.returncode, done.stdout + done.stderr
 
 
-def run_remote(files, answers=None, digests=None, fail_git=False, fail_registry=False):
-    """The same, in-process with the network replaced; returns status, output and the questions asked."""
+def run_remote(files, answers=None, digests=None, fail_git=False, fail_registry=False, base=None, args=("--remote",), report=False):
+    """The same, in-process with the network replaced; returns status, output and the questions asked.
+
+    With `base`, the files are the change on top of that commit. `report` adds the
+    report of the Monday pass to the answer."""
     asked = []
 
     def ls_remote(repo, release):
@@ -78,16 +96,21 @@ def run_remote(files, answers=None, digests=None, fail_git=False, fail_registry=
         return (digests or {}).get((repository, tag), "")
 
     out = io.StringIO()
+    drift = None
     with tempfile.TemporaryDirectory() as tmp:
-        repo = make_repo(tmp, files)
+        repo = make_repo(tmp, files, base)
         old = os.getcwd()
         os.chdir(repo)
+        arguments = list(args) + (["--report", os.path.join(tmp, "drift.json")] if report else [])
         try:
-            with mock(check, ls_remote=ls_remote, registry_digest=registry_digest), contextlib.redirect_stdout(out):
-                status = check.main(["--remote"])
+            with mock(check, ls_remote=ls_remote, registry_digest=registry_digest), mock(check.time, sleep=lambda _: None), contextlib.redirect_stdout(out):
+                status = check.main(arguments)
         finally:
             os.chdir(old)
-    return status, out.getvalue(), asked
+        if report:
+            with open(os.path.join(tmp, "drift.json"), encoding="utf-8") as handle:
+                drift = json.load(handle)
+    return (status, out.getvalue(), asked, drift) if report else (status, out.getvalue(), asked)
 
 
 @contextlib.contextmanager
@@ -310,6 +333,138 @@ class TheRepositoriesSay(unittest.TestCase):
             finally:
                 os.chdir(old)
         self.assertEqual(asked, [])
+
+
+class ThePullRequestAndTheMonday(unittest.TestCase):
+    """A pin that did not change is not asked about, so the registry moving blocks nobody."""
+
+    MOVED = f"sha256:{DIG2}"
+    TAG_OK = {("actions/checkout", "v7.0.1"): f"{SHA}\trefs/tags/v7.0.1\n"}
+
+    def image(self, digest, extra=OK):
+        return {".github/workflows/x.yml": wf(extra, f"      - run: echo\n        env:\n          I: {DEBIAN}:trixie@sha256:{digest}")}
+
+    PR = ("--remote", "--base", "HEAD^1")
+
+    def test_an_image_that_did_not_change_is_not_asked_about_and_the_pull_request_is_green(self):
+        files = self.image(DIG)
+        status, out, asked = run_remote({**files, ".github/workflows/y.yml": wf(OK)}, self.TAG_OK, {(DEBIAN, "trixie"): self.MOVED}, base=files, args=self.PR)
+        self.assertEqual(status, 0, out)
+        self.assertNotIn(("registry", DEBIAN, "trixie"), asked)
+
+    def test_the_monday_pass_reports_the_moved_image_and_blocks_nothing(self):
+        status, out, asked, drift = run_remote(self.image(DIG), self.TAG_OK, {(DEBIAN, "trixie"): self.MOVED}, args=("--remote", "--weekly"), report=True)
+        self.assertEqual(status, 0, out)
+        self.assertEqual(drift, [{"repository": DEBIAN, "tag": "trixie", "pinned": f"sha256:{DIG}", "current": self.MOVED}])
+        self.assertIn("registry now", out)
+
+    def test_the_monday_pass_reports_nothing_when_nothing_moved(self):
+        status, out, _, drift = run_remote(self.image(DIG), self.TAG_OK, {(DEBIAN, "trixie"): f"sha256:{DIG}"}, args=("--remote", "--weekly"), report=True)
+        self.assertEqual((status, drift), (0, []), out)
+
+    def test_the_same_moved_image_fails_when_everything_is_asked_without_a_base(self):
+        self.assertNotEqual(run_remote(self.image(DIG), self.TAG_OK, {(DEBIAN, "trixie"): self.MOVED})[0], 0)
+
+    def test_an_image_changed_to_the_digest_the_registry_gives_passes(self):
+        status, out, asked = run_remote(self.image(DIG2), self.TAG_OK, {(DEBIAN, "trixie"): self.MOVED}, base=self.image(DIG), args=self.PR)
+        self.assertEqual(status, 0, out)
+        self.assertIn(("registry", DEBIAN, "trixie"), asked)
+
+    def test_an_image_changed_to_a_digest_that_is_not_the_one_of_the_tag_fails(self):
+        status, out, _ = run_remote(self.image(DIG2), self.TAG_OK, {(DEBIAN, "trixie"): f"sha256:{'e' * 64}"}, base=self.image(DIG), args=self.PR)
+        self.assertNotEqual(status, 0)
+        self.assertIn("at the registry", out)
+
+    def test_an_image_changed_of_tag_is_a_change(self):
+        base = self.image(DIG)
+        changed = {".github/workflows/x.yml": wf(OK, f"      - run: echo\n        env:\n          I: {DEBIAN}:forky@sha256:{DIG}")}
+        status, out, asked = run_remote(changed, self.TAG_OK, {(DEBIAN, "forky"): f"sha256:{DIG2}"}, base=base, args=self.PR)
+        self.assertNotEqual(status, 0)
+        self.assertIn(("registry", DEBIAN, "forky"), asked)
+
+    def test_an_action_changed_to_a_commit_that_is_not_the_one_of_the_tag_fails(self):
+        base = {".github/workflows/x.yml": wf(OK)}
+        other = {".github/workflows/x.yml": wf(f"      - uses: actions/checkout@{SHA2} # v7.0.1")}
+        status, out, _ = run_remote(other, self.TAG_OK, base=base, args=self.PR)
+        self.assertNotEqual(status, 0)
+        self.assertIn("is the commit", out)
+
+    def test_an_action_changed_to_the_commit_of_its_new_tag_passes(self):
+        base = {".github/workflows/x.yml": wf(OK)}
+        bumped = {".github/workflows/x.yml": wf(f"      - uses: actions/checkout@{SHA2} # v7.0.2")}
+        status, out, _ = run_remote(bumped, {("actions/checkout", "v7.0.2"): f"{SHA2}\trefs/tags/v7.0.2\n"}, base=base, args=self.PR)
+        self.assertEqual(status, 0, out)
+
+    def test_an_action_that_did_not_change_is_still_asked_about_because_a_tag_does_not_move(self):
+        files = {".github/workflows/x.yml": wf(OK)}
+        wrong = {("actions/checkout", "v7.0.1"): f"{SHA2}\trefs/tags/v7.0.1\n"}
+        self.assertNotEqual(run_remote(files, wrong, base=files, args=self.PR)[0], 0)
+        status, _, asked = run_remote(files, self.TAG_OK, base=files, args=self.PR)
+        self.assertEqual(status, 0)
+        self.assertIn(("git", "actions/checkout", "v7.0.1"), asked)
+
+    def test_a_question_that_cannot_be_asked_about_an_unchanged_action_is_a_notice(self):
+        files = {".github/workflows/x.yml": wf(OK)}
+        status, out, asked = run_remote(files, fail_git=True, base=files, args=self.PR)
+        self.assertEqual(status, 0, out)
+        self.assertIn("::notice", out)
+        self.assertEqual(len(asked), 3, "it tried three times")
+
+    def test_a_question_that_cannot_be_asked_about_a_changed_action_fails(self):
+        base = {".github/workflows/x.yml": wf(OK)}
+        bumped = {".github/workflows/x.yml": wf(f"      - uses: actions/checkout@{SHA2} # v7.0.2")}
+        status, out, asked = run_remote(bumped, fail_git=True, base=base, args=self.PR)
+        self.assertNotEqual(status, 0)
+        self.assertEqual(len(asked), 3)
+
+    def test_a_question_that_cannot_be_asked_about_a_changed_image_fails(self):
+        status, out, _ = run_remote(self.image(DIG2), self.TAG_OK, fail_registry=True, base=self.image(DIG), args=self.PR)
+        self.assertNotEqual(status, 0)
+
+    def test_a_question_that_works_on_the_third_try_passes(self):
+        calls = []
+        real = check.ls_remote
+
+        def flaky(repo, release):
+            calls.append(1)
+            if len(calls) < 3:
+                raise RuntimeError("timeout")
+            return f"{SHA}\trefs/tags/v7.0.1\n"
+
+        files = {".github/workflows/x.yml": wf(OK)}
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = make_repo(tmp, files, files)
+            old = os.getcwd()
+            os.chdir(repo)
+            try:
+                with mock(check, ls_remote=flaky), mock(check.time, sleep=lambda _: None), contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(check.main(["--remote", "--base", "HEAD^1"]), 0)
+            finally:
+                os.chdir(old)
+        self.assertEqual(len(calls), 3)
+        self.assertIsNotNone(real)
+
+    def test_the_monday_pass_does_not_forgive_an_action(self):
+        files = {".github/workflows/x.yml": wf(OK)}
+        self.assertNotEqual(run_remote(files, fail_git=True, args=("--remote", "--weekly"))[0], 0)
+        self.assertNotEqual(run_remote(files, {("actions/checkout", "v7.0.1"): f"{SHA2}\trefs/tags/v7.0.1\n"}, args=("--remote", "--weekly"))[0], 0)
+
+    def test_the_monday_pass_does_not_fail_for_an_image_it_cannot_ask_about(self):
+        status, out, _, drift = run_remote(self.image(DIG), self.TAG_OK, fail_registry=True, args=("--remote", "--weekly"), report=True)
+        self.assertEqual((status, drift), (0, []), out)
+        self.assertIn("::notice", out)
+
+    def test_a_base_that_cannot_be_read_makes_every_pin_a_change(self):
+        files = self.image(DIG)
+        status, out, asked = run_remote(files, self.TAG_OK, {(DEBIAN, "trixie"): self.MOVED}, base=files, args=("--remote", "--base", "no-such-revision"))
+        self.assertNotEqual(status, 0)
+        self.assertIn("cannot be read", out)
+        self.assertIn(("registry", DEBIAN, "trixie"), asked)
+
+    def test_the_options_are_checked(self):
+        for args in (["--base", "HEAD^1"], ["--weekly"], ["--remote", "--base"], ["--remote", "--base", "HEAD^1", "--weekly"], ["--report", "x"], ["--remote", "--report", "x"], ["--remote", "--weekly", "--report"]):
+            with contextlib.redirect_stderr(io.StringIO()):
+                self.assertEqual(check.main(args), 2, args)
 
 
 if __name__ == "__main__":
