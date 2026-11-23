@@ -122,6 +122,16 @@ class Verdicts(unittest.TestCase):
     def test_a_job_that_runs_on_every_change_and_is_missing(self):
         self.assertTrue(gate.verdicts(needs(), SUITES, ["always"]))
 
+    def test_an_optional_job_that_runs_on_every_change_may_be_missing(self):
+        self.assertEqual(gate.verdicts(needs(), SUITES, ["always"], ["always"]), [])
+        self.assertTrue(gate.verdicts(needs(), SUITES, ["always"], ["lint"]), "only the one the map names as optional")
+
+    def test_an_optional_job_that_runs_on_every_change_is_judged_when_it_is_there(self):
+        for result, ok in (("success", True), ("failure", False), ("cancelled", False), ("skipped", False)):
+            n = needs()
+            n["always"] = {"result": result, "outputs": {}}
+            self.assertEqual(gate.verdicts(n, SUITES, ["always"], ["always"]) == [], ok, result)
+
     def test_a_cancelled_job_fails_the_gate_whatever_the_plan_said(self):
         self.assertTrue(self.check(needs(results={"lint": "cancelled"})))
         self.assertTrue(self.check(needs(wanted={"lint": "true"}, results={"lint": "cancelled"})))

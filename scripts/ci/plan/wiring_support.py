@@ -259,6 +259,12 @@ def present_suites():
     return [suite for suite in SUITES if suite in jobs]
 
 
+def present_always():
+    """The jobs of `always` that ci.yml has: all, but an optional one may have none."""
+    jobs = load(".github/workflows/ci.yml")["jobs"]
+    return [job for job in DATA["always"] if job in jobs]
+
+
 class Fixture:
     """A throwaway repository: a base commit and a change on top of it."""
 

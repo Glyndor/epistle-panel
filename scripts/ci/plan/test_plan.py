@@ -404,7 +404,7 @@ class Integrity(unittest.TestCase):
             ["**/*.md", "docs/**", "LICENSE", ".editorconfig", ".gitignore", "internal/.gitignore", "scripts/folder-limit/**"],
         )
         self.assertEqual(DATA["machinery"], ["scripts/ci/plan/**", "scripts/ci/bun/**", ".github/workflows/**", ".github/actions/**"])
-        self.assertEqual(DATA["always"], ["line-limit"])
+        self.assertEqual(DATA["always"], ["line-limit", "commit-checks"])
 
     def test_an_optional_suite_claims_nothing_the_others_do_not_judge(self):
         """A suite without a job judges nothing, so a path only it reads would be taken for judged.
@@ -415,7 +415,7 @@ class Integrity(unittest.TestCase):
         with open(CI, encoding="utf-8") as handle:
             ci_text = handle.read()
         # The suites with no job in ci.yml: the others judge, and are not asked about here.
-        optional = {n for n in DATA.get("optional", []) if not re.search(rf"\n  {n}:\n", ci_text)}
+        optional = {n for n in DATA.get("optional", []) if n in DATA["suites"] and not re.search(rf"\n  {n}:\n", ci_text)}
         others = {n: s for n, s in DATA["suites"].items() if n not in optional}
         hypothetical = [".github/actions/x/action.yml", ".github/other/file.txt", "scripts/ci/pins/new.py", ".github/workflows/new.yml"]
         for path in list(self.files) + hypothetical:

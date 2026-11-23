@@ -12,9 +12,10 @@ and the outputs of `plan`. The gate passes when each suite did what `plan` said:
 and each job the map lists under `always` (what judges the whole tree) succeeded,
 whatever the plan said: the plan does not decide those.
 
-A suite the map lists under `optional` is known and may be missing from `needs`:
+A suite or a job of `always` that the map lists under `optional` is known and may be
+missing from `needs`:
 the map is the base commit's, so a job that a pull request adds to the gate has to
-be taught to the base first, by a pull request that adds the suite to the map as
+be taught to the base first, by a pull request that adds it to the map as
 optional, and added to the workflow by the next. While it is missing nothing is
 asked of it; once it is in `needs` it is judged like any other. A third pull
 request takes the word `optional` off and the job is required from then on.
@@ -59,6 +60,8 @@ def verdicts(needs: dict, suites: "list[str]", always: "list[str]" = (), optiona
             problems.append(f"{suite}: plan printed {wanted!r}, not true or false")
     for job in always:
         got = needs.get(job)
+        if not isinstance(got, dict) and job in optional:
+            continue
         result = got.get("result") if isinstance(got, dict) else "missing"
         if result != "success":
             problems.append(f"{job}: runs on every change and finished {result}")
@@ -83,9 +86,9 @@ def main() -> int:
     suites = list(data["suites"])
     always = list(data.get("always", []))
     optional = list(data.get("optional", []))
-    unknown = [name for name in optional if name not in suites]
+    unknown = [name for name in optional if name not in suites and name not in always]
     if unknown:
-        print(f"::error::the map lists as optional what is not a suite: {', '.join(unknown)}", file=sys.stderr)
+        print(f"::error::the map lists as optional what is not a suite or a job of always: {', '.join(unknown)}", file=sys.stderr)
         return 1
 
     problems = verdicts(needs, suites, always, optional)
@@ -95,7 +98,8 @@ def main() -> int:
         absent = " (optional, not in the workflow yet)" if suite in optional and suite not in needs else ""
         print(f"{suite:16} planned={outputs.get(suite, '?'):5} result={job.get('result', '-')}{absent}")
     for job in always:
-        print(f"{job:16} always  result={(needs.get(job) or {}).get('result', '-')}")
+        absent = " (optional, not in the workflow yet)" if job in optional and job not in needs else ""
+        print(f"{job:16} always  result={(needs.get(job) or {}).get('result', '-')}{absent}")
     for problem in problems:
         print(f"::error::{problem}")
     if problems:

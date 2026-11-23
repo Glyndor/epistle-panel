@@ -15,19 +15,19 @@
 # the job, listing it in the `needs` of `gate`, and writing its cases in the
 # test; the test fails until all three agree.
 
-# Suites that the map knows and the workflow may not have a job for yet. The gate
-# runs the base commit's copy of this file, so a job that a pull request adds to the
-# gate has to be taught to the base first: one pull request adds the suite here as
-# optional, the next adds the job to ci.yml, and a third takes the word off this
-# list so that the job is required. See docs/maintainers/ci.md. Empty: every suite
-# of the map has its job and is required.
-optional = []
+# Suites, and jobs of `always`, that the map knows and the workflow may not have a
+# job for yet. The gate runs the base commit's copy of this file, so a job that a
+# pull request adds to the gate has to be taught to the base first: one pull request
+# adds it here as optional, the next adds the job to ci.yml, and a third takes the
+# word off this list so that the job is required. See docs/maintainers/ci.md.
+optional = ["commit-checks"]
 
-# What judges the whole tree runs on every change, whatever it touches, because
-# a change of prose alone can push a folder or a file past its limit. Those jobs
+# What judges the whole tree, or every commit of a pull request, runs on every change,
+# whatever it touches, because a change of prose alone can push a folder or a file past
+# its limit, or add a credential. Those jobs
 # are not suites: the plan does not decide them and `ci gate` requires each one to
 # succeed.
-always = ["line-limit"]
+always = ["line-limit", "commit-checks"]
 
 # A change to what decides what runs, or to anything that runs, runs every suite:
 # a workflow or an action is what a suite executes, and a change to the workflow
