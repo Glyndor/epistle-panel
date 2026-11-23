@@ -29,7 +29,7 @@ name: CI
 # `false`: a plan that fails leaves the word empty, so the suites run, and
 # `ci gate` fails on the plan itself, because GitHub counts a skipped check as
 # passed. The layers:
-#   1  plan, line-limit, actionlint, bun-version, ci-scripts, lint   about 5 to 40 s each
+#   1  plan, line-limit, actionlint, bun-version, ci-scripts, lint, action-pins   about 5 to 40 s each
 #   2  unit, randomized, debian, release-scripts                      about 40 to 90 s each
 #   3  e2e, container                                                 about 70 and 230 s
 #
@@ -72,6 +72,7 @@ jobs:
       bun-version: ${{ steps.plan.outputs.bun-version }}
       actionlint: ${{ steps.plan.outputs.actionlint }}
       ci-scripts: ${{ steps.plan.outputs.ci-scripts }}
+      action-pins: ${{ steps.plan.outputs.action-pins }}
     steps:
       # Two commits: on a pull request this is the merge commit, whose first
       # parent is the base branch as it is now.
@@ -239,6 +240,7 @@ jobs:
         run: |
           set -euo pipefail
           "$RUNNER_TEMP/venv/bin/python" -I -m unittest discover -s scripts/ci/plan -p 'test_*.py' -v
+          "$RUNNER_TEMP/venv/bin/python" -I -m unittest discover -s scripts/ci/pins -p 'test_*.py' -v
 
       - name: Tests of the Dependabot watch
         run: python3 -I -m unittest discover -s scripts/ci -p 'test_*.py' -v
@@ -268,10 +270,56 @@ jobs:
       - name: Lint
         run: bun run lint
 
+  # Every pin of an action and of an image is the one its release says. It asks the
+  # repositories and the registry, so it needs the network, and it is required: the
+  # contract of the workflows leaves the value of a pin out of its comparison, and
+  # this is what looks at it. On a pull request it runs the base commit's copy of
+  # the script and of the list of wheels it installs; the change that introduces
+  # them is the one exception. The YAML reader is installed from wheels with hashes.
+  action-pins:
+    name: action pins
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.action-pins != 'false' }}
+    runs-on: ubuntu-latest
+    # An estimate: about a dozen questions to GitHub and two to the registry.
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+
+      - name: The YAML reader of the check
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          requirements="$RUNNER_TEMP/pins-requirements.txt"
+          if [ "$EVENT" = pull_request ] && git cat-file -e HEAD^1:scripts/ci/plan/requirements.txt 2>/dev/null; then
+            git show HEAD^1:scripts/ci/plan/requirements.txt >"$requirements"
+          else
+            cp scripts/ci/plan/requirements.txt "$requirements"
+          fi
+          python3 -m venv "$RUNNER_TEMP/pins-venv"
+          "$RUNNER_TEMP/pins-venv/bin/pip" install --quiet --only-binary=:all: --require-hashes -r "$requirements"
+
+      - name: Every reference is fixed to the commit or the digest of its release
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          script="$RUNNER_TEMP/pins-check.py"
+          if [ "$EVENT" = pull_request ] && git cat-file -e HEAD^1:scripts/ci/pins/check.py 2>/dev/null; then
+            git show HEAD^1:scripts/ci/pins/check.py >"$script"
+          else
+            cp scripts/ci/pins/check.py "$script"
+          fi
+          "$RUNNER_TEMP/pins-venv/bin/python" -I "$script" --remote
+
   unit:
     name: unit
-    needs: [plan, line-limit, actionlint, bun-version, ci-scripts, lint]
-    if: ${{ !cancelled() && needs.plan.outputs.unit != 'false' && needs.line-limit.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' }}
+    needs: [plan, line-limit, actionlint, bun-version, ci-scripts, lint, action-pins]
+    if: ${{ !cancelled() && needs.plan.outputs.unit != 'false' && needs.line-limit.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' && needs.action-pins.result != 'failure' }}
     runs-on: ubuntu-latest
     # Measured 2026-11-15: 71 s with the lint (install 8, build 18, tests with
     # coverage 44).
@@ -302,8 +350,8 @@ jobs:
 
   randomized:
     name: randomized
-    needs: [plan, line-limit, actionlint, bun-version, ci-scripts, lint]
-    if: ${{ !cancelled() && needs.plan.outputs.randomized != 'false' && needs.line-limit.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' }}
+    needs: [plan, line-limit, actionlint, bun-version, ci-scripts, lint, action-pins]
+    if: ${{ !cancelled() && needs.plan.outputs.randomized != 'false' && needs.line-limit.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' && needs.action-pins.result != 'failure' }}
     runs-on: ubuntu-latest
     # Measured 2026-11-15: 42 s (the suite 35, the install 7).
     timeout-minutes: 10
@@ -329,26 +377,26 @@ jobs:
 
   debian:
     name: debian
-    needs: [plan, line-limit, actionlint, bun-version, ci-scripts, lint]
-    if: ${{ !cancelled() && needs.plan.outputs.debian != 'false' && needs.line-limit.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' }}
+    needs: [plan, line-limit, actionlint, bun-version, ci-scripts, lint, action-pins]
+    if: ${{ !cancelled() && needs.plan.outputs.debian != 'false' && needs.line-limit.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' && needs.action-pins.result != 'failure' }}
     uses: ./.github/workflows/ci-debian.yml
 
   release-scripts:
     name: release scripts
-    needs: [plan, line-limit, actionlint, bun-version, ci-scripts, lint]
-    if: ${{ !cancelled() && needs.plan.outputs.release-scripts != 'false' && needs.line-limit.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' }}
+    needs: [plan, line-limit, actionlint, bun-version, ci-scripts, lint, action-pins]
+    if: ${{ !cancelled() && needs.plan.outputs.release-scripts != 'false' && needs.line-limit.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' && needs.action-pins.result != 'failure' }}
     uses: ./.github/workflows/ci-release-scripts.yml
 
   e2e:
     name: e2e
-    needs: [plan, line-limit, actionlint, bun-version, ci-scripts, lint, unit, randomized, debian, release-scripts]
-    if: ${{ !cancelled() && needs.plan.outputs.e2e != 'false' && needs.line-limit.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' && needs.unit.result != 'failure' && needs.randomized.result != 'failure' && needs.debian.result != 'failure' && needs.release-scripts.result != 'failure' }}
+    needs: [plan, line-limit, actionlint, bun-version, ci-scripts, lint, action-pins, unit, randomized, debian, release-scripts]
+    if: ${{ !cancelled() && needs.plan.outputs.e2e != 'false' && needs.line-limit.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' && needs.action-pins.result != 'failure' && needs.unit.result != 'failure' && needs.randomized.result != 'failure' && needs.debian.result != 'failure' && needs.release-scripts.result != 'failure' }}
     uses: ./.github/workflows/ci-e2e.yml
 
   container:
     name: container
-    needs: [plan, line-limit, actionlint, bun-version, ci-scripts, lint, unit, randomized, debian, release-scripts]
-    if: ${{ !cancelled() && needs.plan.outputs.container != 'false' && needs.line-limit.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' && needs.unit.result != 'failure' && needs.randomized.result != 'failure' && needs.debian.result != 'failure' && needs.release-scripts.result != 'failure' }}
+    needs: [plan, line-limit, actionlint, bun-version, ci-scripts, lint, action-pins, unit, randomized, debian, release-scripts]
+    if: ${{ !cancelled() && needs.plan.outputs.container != 'false' && needs.line-limit.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' && needs.action-pins.result != 'failure' && needs.unit.result != 'failure' && needs.randomized.result != 'failure' && needs.debian.result != 'failure' && needs.release-scripts.result != 'failure' }}
     uses: ./.github/workflows/ci-container.yml
 
   gate:
@@ -369,6 +417,7 @@ jobs:
       - bun-version
       - ci-scripts
       - lint
+      - action-pins
       - unit
       - randomized
       - debian

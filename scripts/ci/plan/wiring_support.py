@@ -24,7 +24,7 @@ ALWAYS = list(DATA["always"])
 # Suites the map knows and ci.yml may have no job for yet (see gate.py).
 OPTIONAL = list(DATA.get("optional", []))
 
-FIRST = ["line-limit", "actionlint", "bun-version", "ci-scripts", "lint"]
+FIRST = ["line-limit", "actionlint", "bun-version", "ci-scripts", "lint", "action-pins"]
 SECOND = ["unit", "randomized", "debian", "release-scripts"]
 THIRD = ["e2e", "container"]
 
@@ -65,6 +65,7 @@ NAMES = {
     "bun-version": "bun version",
     "ci-scripts": "ci scripts",
     "lint": "lint",
+    "action-pins": "action pins",
     "unit": "unit",
     "randomized": "randomized",
     "debian": "debian",
@@ -81,6 +82,7 @@ RUNS = {
     "bun-version": "scripts/consistency/check-bun-version.sh",
     "ci-scripts": "unittest discover -s scripts/ci/plan",
     "lint": "bun run lint",
+    "action-pins": "pins-check.py",
     "unit": "scripts/test/coverage.sh",
     "randomized": "scripts/test/randomized.sh 1",
     "gate": "gate.py",

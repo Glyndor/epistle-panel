@@ -135,13 +135,12 @@ include = [
 [suites.actionlint]
 include = [".github/workflows/**"]
 
-# Every pin of an action and of an image is the one its release says. While it is
-# optional and has no job in ci.yml, it claims only what other suites judge as well:
-# a path that only it claimed would count as judged by a suite that does not run.
-# test_plan.py holds that. The pull request that adds the job widens this to what the
-# suite is for, everything under .github/ and every action file.
+# Every pin of an action and of an image is the one its release says. It asks the
+# repositories and the registry, so it runs whenever anything under .github/ changes
+# (a workflow is also machinery and runs everything), and whenever an action file
+# changes anywhere, or the check itself.
 [suites.action-pins]
-include = [".github/workflows/**", "scripts/ci/pins/**"]
+include = [".github/**", "**/action.yml", "**/action.yaml", "scripts/ci/pins/**"]
 
 # The tests of the scripts the other jobs run, and of the wiring of the CI: the
 # map against ci.yml, the workflows it calls and the gate. A change to any

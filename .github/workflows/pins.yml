@@ -1,26 +1,14 @@
 name: Action pins
 
-# Every `uses:` of a workflow or an action is fixed to a commit, and nothing runs
-# that is not from `actions/` or `github/` (scripts/ci/pins/check.sh). A tag can be
-# moved to other code by whoever holds the repository it names, and a commit
-# cannot. The comment of version beside the commit is held to the repository too:
-# `--remote` asks each repository which commit its tag names, and the pin has to be
-# that one, so a pin cannot be changed for another commit of the same repository (a
-# fork's included) with nothing failing. The contract of the workflows leaves the
-# value of a pin out of its comparison, and this is what looks at it.
-#
-# It runs on a pull request into develop that touches a workflow, an action or the
-# check itself, and every Monday, because a file nobody touched can be changed by a
-# merge that this filter did not see. It is advisory: a workflow filtered by path
-# leaves a required check pending, so it is not required.
+# The weekly look at the pins. The check that stands in the way of a merge is the
+# `action pins` job of ci.yml, which runs whenever anything under .github/ changes;
+# this one covers what does not change: a tag that is moved, or an image whose tag
+# the registry points somewhere else, with no file touched. It runs
+# scripts/ci/pins/check.py with --remote, which asks each repository which commit
+# the tag of the version comment names and the registry which digest the tag of an
+# image has, and fails when the pin is not that one or when it cannot ask.
 
 on:
-  pull_request:
-    branches: [develop]
-    paths:
-      - ".github/**"
-      - "**/action.yml"
-      - "**/action.yaml"
   schedule:
     - cron: "29 6 * * 1"
   workflow_dispatch:
@@ -29,38 +17,25 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   pins:
-    name: action pins
+    name: action pins (weekly)
     runs-on: ubuntu-latest
-    # An estimate: the check reads about 20 small files, so it is a matter of seconds.
+    # An estimate: about a dozen questions to GitHub and two to the registry.
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 2
           persist-credentials: false
 
-      - name: Lint and test the check
+      - name: The YAML reader of the check
         run: |
           set -euo pipefail
-          shellcheck -x scripts/ci/pins/*.sh
-          bash scripts/ci/pins/check.test.sh
+          python3 -m venv "$RUNNER_TEMP/pins-venv"
+          "$RUNNER_TEMP/pins-venv/bin/pip" install --quiet --only-binary=:all: --require-hashes -r scripts/ci/plan/requirements.txt
 
-      # On a pull request the rule is the base commit's copy of the script, so a
-      # change cannot loosen the check that reads it.
-      - name: Every reference is fixed to a commit or a digest
-        env:
-          EVENT: ${{ github.event_name }}
-        run: |
-          set -euo pipefail
-          script="$RUNNER_TEMP/pins-check.sh"
-          if [ "$EVENT" = pull_request ] && git cat-file -e HEAD^1:scripts/ci/pins/check.sh 2>/dev/null; then
-            git show HEAD^1:scripts/ci/pins/check.sh >"$script"
-          else
-            cp scripts/ci/pins/check.sh "$script"
-          fi
-          bash "$script" --remote
+      - name: Every reference is fixed to the commit or the digest of its release
+        run: '"$RUNNER_TEMP/pins-venv/bin/python" -I scripts/ci/pins/check.py --remote'

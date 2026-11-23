@@ -626,8 +626,8 @@ jobs:
       - name: Publish a manifest list to a local registry
         env:
           TAG: ${{ inputs.tag }}
-          # registry:3, a multi-architecture index, by digest.
-          REGISTRY: docker.io/library/registry@sha256:52b489ad8e6f40d1a676702e3ce398ec796ce38f08fbb786e1f324baa12d84b8
+          # registry:3, a multi-architecture index, by the digest the registry gives for that tag.
+          REGISTRY: docker.io/library/registry:3@sha256:82f6ff4a7f982960c8aa51617fea3aabc485df6e55cce80d22deb1de36f1bc3c
         run: bash scripts/release/publish/rehearse-manifest.sh "$REGISTRY" "$TAG"
 
   image-manifest:
