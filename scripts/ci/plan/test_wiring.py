@@ -74,7 +74,7 @@ NAMES = {
     "release-scripts": "release scripts",
     "e2e": "e2e",
     "container": "container",
-    "gate": "${{ github.event_name == 'pull_request' && 'ci gate' || format('ci gate ({0})', github.event_name) }}",
+    "gate": "${{ github.event_name != 'pull_request' && format('ci gate ({0})', github.event_name) || (github.base_ref == 'main' && 'ci gate (main)' || 'ci gate') }}",
 }
 # What each inline job runs, and nothing else runs it.
 RUNS = {
@@ -89,11 +89,13 @@ RUNS = {
     "gate": "gate.py",
 }
 # The checks the rulesets require, and the one event each is produced for.
+# The base is part of the answer for the gate, whose name varies with it.
 REQUIRED = {
-    "ci gate": ("ci.yml", "pull_request"),
-    "dco / Signed-off-by present on every commit": ("dco.yml", "pull_request"),
-    "folder limit": ("folder-limit.yml", "pull_request"),
-    "develop-only": ("main-guard.yml", "pull_request"),
+    "ci gate": ("ci.yml", "pull_request", "develop"),
+    "ci gate (main)": ("ci.yml", "pull_request", "main"),
+    "dco / Signed-off-by present on every commit": ("dco.yml", "pull_request", None),
+    "folder limit": ("folder-limit.yml", "pull_request", None),
+    "develop-only": ("main-guard.yml", "pull_request", None),
 }
 
 
@@ -161,11 +163,29 @@ def step_named(job, name):
     return found[0]
 
 
-def resolved_name(job, event):
+def resolved_name(job, event, base=None):
+    """The name a job emits for an event, and for a base when the event is a pull request."""
     name = job.get("name", "")
     if name == NAMES["gate"]:
-        return "ci gate" if event == "pull_request" else f"ci gate ({event})"
+        if event != "pull_request":
+            return f"ci gate ({event})"
+        return "ci gate (main)" if base == "main" else "ci gate"
     return name
+
+
+def names_of(job, event, base=None):
+    """Every name a job can emit: a name with a matrix is expanded over its legs."""
+    name = resolved_name(job, event, base)
+    match = re.fullmatch(r"(.*)\$\{\{ matrix\.([a-z-]+) \}\}(.*)", name)
+    if not match:
+        return [name]
+    legs = (job.get("strategy") or {}).get("matrix", {}).get("include")
+    assert isinstance(legs, list), f"a name with a matrix that cannot be expanded: {name}"
+    return [f"{match.group(1)}{leg[match.group(2)]}{match.group(3)}" for leg in legs]
+
+
+def varies_with_base(job):
+    return job.get("name", "") == NAMES["gate"]
 
 
 class Fixture:
@@ -325,24 +345,43 @@ class Wiring(unittest.TestCase):
 
 
 class RequiredNames(unittest.TestCase):
-    def test_no_required_check_is_produced_by_more_than_one_workflow_or_event(self):
+    def test_no_required_check_is_produced_by_more_than_one_workflow_event_or_base(self):
+        """Every job names itself for each trigger of its workflow, and for each base of a pull request.
+
+        A job with `if:` still counts: a job that is skipped is shown with its name,
+        and a skipped check counts as passed. A name with an expression is refused
+        unless it is the one that resolve_name knows.
+        """
         producers = {name: [] for name in REQUIRED}
         for path in sorted(FILES):
             doc = load(path)
             if "jobs" not in doc:
                 continue
-            events = [e for e in triggers(doc) if e != "workflow_call"]
+            events = triggers(doc)
             for body in doc["jobs"].values():
-                for event in events:
-                    for name in producers:
-                        if resolved_name(body, event) == name:
-                            producers[name].append((os.path.basename(path), event))
+                name = body.get("name", "")
+                if "${{" in name and name != NAMES["gate"]:
+                    self.assertRegex(name, r"^[^$]*\$\{\{ matrix\.[a-z-]+ \}\}[^$]*$", f"{path}: a name with an expression this test cannot resolve")
+                for event, config in events.items():
+                    if event == "workflow_call":
+                        continue
+                    bases = (config or {}).get("branches", [None]) if event == "pull_request" else [None]
+                    for base in bases:
+                        for name in names_of(body, event, base):
+                            if name in producers:
+                                key = base if (event == "pull_request" and varies_with_base(body)) else None
+                                if (os.path.basename(path), event, key) not in producers[name]:
+                                    producers[name].append((os.path.basename(path), event, key))
         for name, want in REQUIRED.items():
             self.assertEqual(producers[name], [want], name)
 
-    def test_the_push_gate_is_named_for_its_event(self):
+    def test_the_gate_is_named_for_its_event_and_its_base(self):
+        gate = load(".github/workflows/ci.yml")["jobs"]["gate"]
         for event in ("push", "schedule", "workflow_dispatch"):
-            self.assertEqual(resolved_name(load(".github/workflows/ci.yml")["jobs"]["gate"], event), f"ci gate ({event})")
+            self.assertEqual(resolved_name(gate, event), f"ci gate ({event})")
+        self.assertEqual(resolved_name(gate, "pull_request", "develop"), "ci gate")
+        self.assertEqual(resolved_name(gate, "pull_request", "main"), "ci gate (main)")
+        self.assertNotIn("edited", triggers(load(".github/workflows/ci.yml"))["pull_request"])
 
     def test_the_promotion_into_main_runs_every_suite(self):
         step = step_named(load(".github/workflows/ci.yml")["jobs"]["plan"], "Decide which suites the change needs")
@@ -398,6 +437,33 @@ class TreeJudges(unittest.TestCase):
         job = doc["jobs"]["pins"]
         self.assertEqual(set(job) & {"if", "needs", "continue-on-error"}, set())
         self.assertIn("scripts/ci/pins/check.test.sh", step_named(job, "Lint and test the check")["run"])
+
+    def test_a_job_that_checks_out_another_ref_restores_and_saves_no_cache(self):
+        """The weekly audit holds the default branch's privileges after it brings code from another branch.
+
+        A cache restored or saved after that is one another branch can poison, so
+        such a job installs clean: no cache action, no cache input of a setup
+        action, and credentials left out of the checkout.
+        """
+        found = []
+        for path in sorted(FILES):
+            for name, job in load(path).get("jobs", {}).items():
+                steps = job.get("steps", [])
+                checkouts = [s for s in steps if str(s.get("uses", "")).startswith("actions/checkout@") and "ref" in (s.get("with") or {})]
+                if not checkouts:
+                    continue
+                found.append((os.path.basename(path), name))
+                for step in checkouts:
+                    self.assertIs(step["with"].get("persist-credentials"), False, f"{path}:{name}")
+                for step in steps:
+                    uses, given = str(step.get("uses", "")), step.get("with") or {}
+                    self.assertFalse(uses.startswith("actions/cache"), f"{path}:{name} uses a cache action")
+                    for key, value in given.items():
+                        if key.startswith("cache") and key != "no-cache":
+                            self.assertFalse(value, f"{path}:{name} sets {key}")
+                    if uses.startswith("oven-sh/setup-bun@"):
+                        self.assertIs(given.get("no-cache"), True, f"{path}:{name} lets setup-bun cache")
+        self.assertIn(("audit.yml", "audit"), found, "the audit no longer checks out another ref, or the test cannot see it")
 
     def test_the_line_limit_is_on_the_whole_tree_and_outside_the_plan(self):
         self.assertEqual(ALWAYS, ["line-limit"])

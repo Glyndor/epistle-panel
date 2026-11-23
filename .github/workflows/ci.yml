@@ -13,6 +13,7 @@ name: CI
 #                 rest answered on the pull request about the same tree. Its gate
 #                 is named `ci gate (push)`, so a push can never satisfy the
 #                 `ci gate` that a pull request requires for the same commit.
+#                 A pull request into main is named `ci gate (main)`.
 #
 # `plan` reads scripts/ci/plan/map.toml and prints which suites the change can
 # move. A suite the plan leaves out is skipped, and `ci gate` accepts that only
@@ -352,10 +353,13 @@ jobs:
     uses: ./.github/workflows/ci-container.yml
 
   gate:
-    # The name carries the event when it is not a pull request, so the run of a
-    # push to develop cannot satisfy the `ci gate` that a pull request into main
-    # requires for the same commit.
-    name: ${{ github.event_name == 'pull_request' && 'ci gate' || format('ci gate ({0})', github.event_name) }}
+    # The name carries the event when it is not a pull request, and the base
+    # branch when it is main: `ci gate` for a pull request into develop, `ci gate
+    # (main)` for one into main, `ci gate (push)` for a push. The run of a push, or
+    # of the other base, cannot satisfy what a ruleset requires for a pull request,
+    # and a pull request whose base is changed gets another name, so it fails
+    # closed. Each ruleset requires its own.
+    name: ${{ github.event_name != 'pull_request' && format('ci gate ({0})', github.event_name) || (github.base_ref == 'main' && 'ci gate (main)' || 'ci gate') }}
     needs:
       - plan
       - line-limit

@@ -54,6 +54,10 @@ jobs:
           # Same Bun as the Containerfile and release.yml;
           # scripts/consistency/check-bun-version.sh keeps them equal.
           bun-version: 1.4.4
+          # This job checks out another branch than the one the event names, and
+          # the weekly run holds the privileges of the default branch. Nothing is
+          # restored from a cache or saved to one: the install is clean every time.
+          no-cache: true
 
       - name: Advisories in the lockfile
         working-directory: internal
