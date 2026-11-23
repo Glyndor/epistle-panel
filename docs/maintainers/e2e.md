@@ -261,7 +261,7 @@ the console open.
    Remove a queued message and point at the toast's cross: a tooltip names
    it, and Tab reaches it with the same tooltip.
 
-## Measured on 2026-11-12 (Node 24, Next 16.4.6)
+## Measured on 2026-11-12 (Node 24, Next 16.4.6; the image runs Node 26 since the base moved, and these numbers were not taken again)
 
 - Failed sign-in: 1.0 to 1.4 s.
 - Idle: about 120 MiB resident, no CPU. After 1200 requests in a manual run
