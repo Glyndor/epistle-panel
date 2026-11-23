@@ -114,6 +114,7 @@ class TreeJudges(unittest.TestCase):
         job = doc["jobs"]["pins"]
         self.assertEqual(set(job) & {"if", "needs", "continue-on-error"}, set())
         self.assertIn("scripts/ci/pins/check.test.sh", step_named(job, "Lint and test the check")["run"])
+        self.assertIn('bash "$script" --remote', step_named(job, "Every reference is fixed to a commit or a digest")["run"], "the job asks the repositories")
 
     def test_a_scheduled_workflow_brings_no_other_tree(self):
         """The run of a schedule holds the privileges of the default branch.

@@ -3,7 +3,11 @@ name: Action pins
 # Every `uses:` of a workflow or an action is fixed to a commit, and nothing runs
 # that is not from `actions/` or `github/` (scripts/ci/pins/check.sh). A tag can be
 # moved to other code by whoever holds the repository it names, and a commit
-# cannot.
+# cannot. The comment of version beside the commit is held to the repository too:
+# `--remote` asks each repository which commit its tag names, and the pin has to be
+# that one, so a pin cannot be changed for another commit of the same repository (a
+# fork's included) with nothing failing. The contract of the workflows leaves the
+# value of a pin out of its comparison, and this is what looks at it.
 #
 # It runs on a pull request into develop that touches a workflow, an action or the
 # check itself, and every Monday, because a file nobody touched can be changed by a
@@ -59,4 +63,4 @@ jobs:
           else
             cp scripts/ci/pins/check.sh "$script"
           fi
-          bash "$script"
+          bash "$script" --remote
