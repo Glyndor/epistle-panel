@@ -127,6 +127,8 @@ include = [
 	"**/*.sh",
 ]
 
-# The tests of the scripts the other jobs run.
+# The tests of the scripts the other jobs run, and of the wiring of the CI: the
+# map against ci.yml, the workflows it calls and the gate. A change to any
+# workflow, to a script of the CI or to the map itself can break that wiring.
 [suites.ci-scripts]
-include = ["scripts/ci/**"]
+include = ["scripts/ci/**", ".github/workflows/**"]

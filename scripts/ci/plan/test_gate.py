@@ -66,6 +66,10 @@ class Verdicts(unittest.TestCase):
     def test_a_suite_nobody_planned_that_failed(self):
         self.assertTrue(self.check(needs(results={"lint": "failure"})))
 
+    def test_a_cancelled_job_fails_the_gate_whatever_the_plan_said(self):
+        self.assertTrue(self.check(needs(results={"lint": "cancelled"})))
+        self.assertTrue(self.check(needs(wanted={"lint": "true"}, results={"lint": "cancelled"})))
+
     def test_a_plan_that_did_not_succeed_fails_whatever_else_says(self):
         for result in ("failure", "cancelled", "skipped"):
             self.assertTrue(self.check(needs(plan=result)), result)

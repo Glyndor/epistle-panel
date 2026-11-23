@@ -75,8 +75,9 @@ CASES = {
     "scripts/release/version/check-changelog.sh": {"debian", "release-scripts", "line-limit"},
     "scripts/release/sign/sign.py": {"release-scripts", "line-limit"},
     "scripts/release/lib/assertions.sh": {"release-scripts", "bun-version", "line-limit"},
-    ".github/workflows/dco.yml": {"actionlint", "bun-version"},
-    ".github/workflows/release.yml": {"actionlint", "bun-version"},
+    ".github/workflows/dco.yml": {"actionlint", "bun-version", "ci-scripts"},
+    ".github/workflows/release.yml": {"actionlint", "bun-version", "ci-scripts"},
+    ".github/workflows/ci-e2e.yml": {"actionlint", "bun-version", "ci-scripts"},
     "scripts/ci/dco/check.sh": {"ci-scripts", "line-limit"},
     "scripts/ci/freshness/check.test.sh": {"ci-scripts", "line-limit"},
     "scripts/ci/dependabot_security_watch.py": {"ci-scripts", "line-limit"},
@@ -306,10 +307,26 @@ class Workflow(unittest.TestCase):
     def test_every_suite_job_waits_for_the_plan_and_runs_on_its_word(self):
         for suite in SUITES:
             block = self.jobs[suite]
-            self.assertRegex(block, r"\n    needs:[^\n]*plan|\n    needs:\n(?:      - [^\n]+\n)*      - plan\b", suite)
-            self.assertIn(f"needs.plan.outputs.{suite} == 'true'", block, suite)
-            self.assertIn("!cancelled()", block, suite)
-            self.assertIn("!contains(needs.*.result, 'failure')", block, suite)
+            self.assertIn("plan", needs_of(block), suite)
+            cond = re.search(r"\n    if: \$\{\{ (.*) \}\}\n", block).group(1)
+            self.assertIn("!cancelled()", cond, suite)
+            self.assertIn("needs.plan.result == 'success'", cond, suite)
+            self.assertIn(f"needs.plan.outputs.{suite} == 'true'", cond, suite)
+
+    def test_the_order_names_the_real_gates_and_never_the_plan(self):
+        """`contains(needs.*.result, 'failure')` would take the plan in with the rest.
+
+        The condition that orders the layers lists the jobs one by one. The plan is
+        read for its word and its success only: a plan that fails skips every suite,
+        and `ci gate` turns that skip into a failure instead of a green.
+        """
+        for suite in SUITES:
+            block = self.jobs[suite]
+            cond = re.search(r"\n    if: \$\{\{ (.*) \}\}\n", block).group(1)
+            self.assertNotIn("needs.*", cond, suite)
+            self.assertNotIn("needs.plan.result != ", cond, suite)
+            named = set(re.findall(r"needs\.([a-z0-9-]+)\.result != 'failure'", cond))
+            self.assertEqual(named, needs_of(block) - {"plan"}, suite)
 
     def test_no_job_but_the_gate_runs_without_the_word_of_the_plan(self):
         for name, block in self.jobs.items():
@@ -346,6 +363,23 @@ class Workflow(unittest.TestCase):
             self.assertEqual(needs_of(self.jobs[suite]), {"plan"} | first, suite)
         for suite in third:
             self.assertEqual(needs_of(self.jobs[suite]), {"plan"} | first | second, suite)
+
+    def test_a_change_to_the_wiring_runs_the_tests_of_the_wiring(self):
+        """What watches the CI is watched by the CI: workflows, scripts and the map."""
+        for path in [
+            ".github/workflows/dco.yml",
+            ".github/workflows/ci-e2e.yml",
+            ".github/workflows/release.yml",
+            ".github/workflows/main-guard.yml",
+            "scripts/ci/dco/check.sh",
+            "scripts/ci/cancel/others.sh",
+            "scripts/ci/plan/map.toml",
+            "scripts/ci/plan/gate.py",
+            ".github/workflows/ci.yml",
+        ]:
+            verdict, unclaimed = run_plan([path])
+            self.assertTrue(verdict["ci-scripts"], path)
+            self.assertEqual(unclaimed, [], path)
 
     def test_the_workflows_a_job_calls_exist_and_are_callable_only(self):
         for name, block in self.jobs.items():
