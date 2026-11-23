@@ -87,6 +87,29 @@ class Verdicts(unittest.TestCase):
                 self.assertEqual(len(problems), 1, (planned, ran))
                 self.assertTrue(problems[0].startswith(f"{ran}:"), problems)
 
+    def test_an_optional_suite_may_be_missing_from_the_needs(self):
+        n = needs()
+        del n["e2e"]
+        self.assertEqual(gate.verdicts(n, SUITES, (), ["e2e"]), [])
+        self.assertTrue(gate.verdicts(n, SUITES, (), []), "a suite that is not optional still has to be there")
+        self.assertTrue(gate.verdicts(n, SUITES, (), ["lint"]), "only the one the map names as optional")
+
+    def test_an_optional_suite_that_is_there_is_judged_like_any_other(self):
+        for wanted, result, ok in (("true", "success", True), ("true", "failure", False), ("true", "skipped", False), ("false", "skipped", True), ("false", "success", False), ("true", "cancelled", False)):
+            n = needs(wanted={"e2e": wanted}, results={"e2e": result})
+            self.assertEqual(gate.verdicts(n, SUITES, (), ["e2e"]) == [], ok, (wanted, result))
+
+    def test_an_optional_suite_does_not_make_an_unknown_job_known(self):
+        n = needs()
+        del n["e2e"]
+        n["extra"] = {"result": "success", "outputs": {}}
+        self.assertTrue(gate.verdicts(n, SUITES, (), ["e2e"]))
+
+    def test_the_plan_still_has_to_succeed_with_an_optional_suite(self):
+        n = needs(plan="failure")
+        del n["e2e"]
+        self.assertTrue(gate.verdicts(n, SUITES, (), ["e2e"]))
+
     def test_a_job_that_runs_on_every_change_has_to_succeed(self):
         for result in ("failure", "cancelled", "skipped"):
             n = needs()
@@ -153,6 +176,31 @@ class Command(unittest.TestCase):
     def test_passes_when_nothing_is_planned_and_nothing_ran(self):
         done = self.run_gate(self.real({}, {}))
         self.assertEqual(done.returncode, 0, done.stdout)
+
+    def test_passes_with_the_optional_suite_missing_and_fails_with_it_broken(self):
+        with open(MAP, "rb") as handle:
+            import tomllib
+
+            data = tomllib.load(handle)
+        for absent_ok in data.get("optional", []):
+            n = json.loads(self.real({}, {}))
+            del n[absent_ok]
+            self.assertEqual(self.run_gate(json.dumps(n)).returncode, 0, absent_ok)
+            n[absent_ok] = {"result": "failure", "outputs": {}}
+            n["plan"]["outputs"][absent_ok] = "true"
+            self.assertEqual(self.run_gate(json.dumps(n)).returncode, 1, absent_ok)
+
+    def test_a_map_that_calls_optional_what_is_not_a_suite_is_refused(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            bad = os.path.join(tmp, "map.toml")
+            with open(bad, "w") as handle:
+                handle.write('optional = ["nowhere"]\n[suites.lint]\ninclude = ["a"]\n')
+            env = dict(os.environ, NEEDS=json.dumps({"plan": {"result": "success", "outputs": {"lint": "false"}}, "lint": {"result": "skipped"}}))
+            done = subprocess.run([sys.executable, "-I", os.path.join(HERE, "gate.py"), "--map", bad], env=env, capture_output=True, text=True)
+            self.assertEqual(done.returncode, 1)
+            self.assertIn("not a suite", done.stderr)
 
     def test_fails_when_the_job_that_runs_on_every_change_failed(self):
         done = self.run_gate(self.real({}, {"line-limit": "failure"}))

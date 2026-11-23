@@ -21,6 +21,8 @@ with open(os.path.join(HERE, "map.toml"), "rb") as handle:
     DATA = tomllib.load(handle)
 SUITES = list(DATA["suites"])
 ALWAYS = list(DATA["always"])
+# Suites the map knows and ci.yml may have no job for yet (see gate.py).
+OPTIONAL = list(DATA.get("optional", []))
 
 FIRST = ["line-limit", "actionlint", "bun-version", "ci-scripts", "lint"]
 SECOND = ["unit", "randomized", "debian", "release-scripts"]
@@ -173,6 +175,12 @@ def names_of(job, event, base=None):
 
 def varies_with_base(job):
     return job.get("name", "") == NAMES["gate"]
+
+
+def present_suites():
+    """The suites of the map that ci.yml has a job for: all, but an optional one may have none."""
+    jobs = load(".github/workflows/ci.yml")["jobs"]
+    return [suite for suite in SUITES if suite in jobs]
 
 
 class Fixture:
