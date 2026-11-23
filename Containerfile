@@ -11,7 +11,7 @@
 # the Bun release; scripts/consistency/check-bun-version.sh compares it with the
 # workflows, so a tag that moves without them is caught. The project builds
 # with Bun but `next build` runs under Node, so the builder carries both.
-FROM docker.io/oven/bun:1.4.4-debian@sha256:93d5032fe06d163427822dc1598f420363759bb18155c9cc90eb1be05a64a19e AS bun
+FROM docker.io/oven/bun:1.4.5-debian@sha256:3dddea58e1f8f2240eca906b023fedb944f9a8352515a35309fd0c879fe00aaa AS bun
 
 # 24-trixie-slim. Node comes from this image, Bun is copied in from the stage above.
 FROM docker.io/library/node@sha256:6418e1ff99a5db6608cd55a020036dde6b7d18df9a0b7e44209b4ef5891766fb AS builder
