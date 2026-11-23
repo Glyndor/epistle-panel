@@ -9,3 +9,17 @@
 3. **Make it required.** A third, minimal pull request takes the name off `optional` and out of the list the tests hold (`test_a_suite_without_a_job_is_an_optional_one_and_the_list_is_closed`). Until then a pull request could remove the job from the workflow and the gate would accept its absence.
 
 The same goes for a change of the map or of the gate that the base would read differently: it is judged by the base, so it takes effect for the pull requests after it, not for itself.
+
+## The contract of the workflows
+
+`scripts/ci/plan/test_contract.py` holds every workflow of `.github/workflows/` equal to a copy without comments in `scripts/ci/plan/reference/`.
+
+- **Run `python3 scripts/ci/plan/refresh_reference.py` when a workflow is changed by hand**, then read the diff of the copy next to the diff of the workflow: both show in the pull request.
+- **A bump of a pin does not need it.** The test leaves out the value of the commit of an action (`uses: owner/name@<40 digits>`) and of an image digest (`@sha256:<64 digits>`) on both sides, so a Dependabot pull request that moves a pin passes with the copy as it is. The name of the action, the repository and the tag of the image, the comment-free rest of the file and the fact that a pin is a full commit (`scripts/ci/pins/check.sh`) are still held.
+
+## The pins
+
+`scripts/ci/pins/check.py` reads every workflow and action as YAML and judges the value of every `uses` key.
+
+- **Asked about in a pull request:** every action (its tag does not move), and only the images whose tag or digest the pull request changes: the new digest has to be the one the registry gives for that tag now. An image the base already pinned was verified when it came in, so a registry that moved on blocks nobody. A question that cannot be answered after three tries fails the pull request only when the pin changed.
+- **The Monday run (`pins.yml`):** asks about everything. An action whose tag names another commit fails the run. An image the registry now gives another digest for opens an issue, "Pinned images have moved", or updates the one that is open; I then change the digest in `ci-debian.yml` and `release.yml` together, in one pull request.

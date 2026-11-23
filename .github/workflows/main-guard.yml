@@ -6,7 +6,9 @@ on:
 
 # Required on main, so it has no `paths:` filter and no job-level `if:`: a
 # skipped required check reports success. A newer push to the same pull request
-# supersedes the run in flight.
+# supersedes the run in flight. The source must be the branch `develop` of THIS
+# repository: a branch called develop in a fork has the same name and not the same
+# code.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -19,12 +21,18 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Require develop as source branch
+      - name: Require develop of this repository as source branch
         env:
           HEAD_REF: ${{ github.head_ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          REPO: ${{ github.repository }}
         run: |
           if [ "$HEAD_REF" != "develop" ]; then
             echo "::error::Pull requests into main must come from develop (got $HEAD_REF)."
             exit 1
           fi
-          echo "Source branch is develop."
+          if [ -z "$HEAD_REPO" ] || [ "$HEAD_REPO" != "$REPO" ]; then
+            echo "::error::The develop of a pull request into main must be the one of $REPO (got '$HEAD_REPO')."
+            exit 1
+          fi
+          echo "Source branch is develop of $REPO."

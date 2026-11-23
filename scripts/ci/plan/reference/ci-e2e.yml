@@ -1,0 +1,29 @@
+name: End-to-end
+true:
+  workflow_call: null
+permissions:
+  contents: read
+jobs:
+  e2e:
+    name: e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        persist-credentials: false
+    - name: Install Bun at the release the Containerfile names
+      working-directory: .
+      run: bash scripts/ci/bun/install.sh
+    - name: Install dependencies
+      working-directory: internal
+      run: bun install --frozen-lockfile
+    - name: Build the panel
+      working-directory: internal
+      run: bun run build
+    - name: Tests of the e2e scripts
+      run: bun test scripts/e2e
+    - name: End-to-end scenarios
+      run: bash scripts/e2e/run.sh
+    - name: Security headers
+      run: bash scripts/headers/verify.sh

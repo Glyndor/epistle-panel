@@ -177,9 +177,10 @@ jobs:
             exit 1
           fi
 
-  # The package is Architecture: all, so one runner builds the only .deb. The
-  # job holds `id-token` for the provenance attestation, which has to be made in
-  # the job that produced the file, so it runs nothing but the package build.
+  # The package is Architecture: all, so one runner builds the only .deb. The job
+  # runs code of the repository and of its build image, so it holds `contents: read`
+  # and nothing else: the attestation is made by `attest-deb` below, from the file
+  # this job hands over, and a rehearsal never receives a token that can attest.
   # The build itself runs in a container (scripts/debian/build.sh), the same one
   # the Debian package workflow tests.
   build-deb:
@@ -190,8 +191,6 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
-      id-token: write
-      attestations: write
     env:
       TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
     steps:
@@ -233,14 +232,6 @@ jobs:
           cp "$deb" .
           echo "Staged $(basename "$deb")"
 
-      - name: Attest build provenance
-        # An attestation goes to the public transparency log and cannot be
-        # withdrawn, so a rehearsal, whose package is never released, makes none.
-        if: ${{ !inputs.dry-run }}
-        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
-        with:
-          subject-path: epistle-panel_*_all.deb
-
       - name: Hand the package to the next jobs
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -248,6 +239,50 @@ jobs:
           path: epistle-panel_*_all.deb
           retention-days: 1
           if-no-files-found: error
+
+  # The attestation goes to the public transparency log and cannot be withdrawn, so
+  # a rehearsal, whose package is never released, makes none: this job does not run
+  # then. It holds the token that attests and nothing else: it checks out no code,
+  # receives the finished package into a folder of its own, and attests that one
+  # file after checking that it is the only thing there and a regular file.
+  attest-deb:
+    name: Attest the package
+    needs: [verify, build-deb]
+    if: ${{ !inputs.images-only && !inputs.dry-run }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    env:
+      TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+    steps:
+      - name: Receive the package
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-deb
+          path: ${{ runner.temp }}/attest
+
+      - name: Check that the package is the one file expected
+        run: |
+          set -euo pipefail
+          if ! [[ "$TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error::$TAG is not a release tag"
+            exit 1
+          fi
+          want="epistle-panel_${TAG#v}_all.deb"
+          found="$(find "$RUNNER_TEMP/attest" -mindepth 1 -printf '%P\n')"
+          if [ "$found" != "$want" ] || [ ! -f "$RUNNER_TEMP/attest/$want" ] || [ -L "$RUNNER_TEMP/attest/$want" ]; then
+            echo "::error::expected exactly the regular file $want; found:"
+            printf '%s\n' "$found" >&2
+            exit 1
+          fi
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: ${{ runner.temp }}/attest/epistle-panel_*_all.deb
 
   # The SBOM is made by a script of ours from bun.lock, so no package is
   # installed and no third-party tool runs. It still has its own job, with
@@ -372,7 +407,7 @@ jobs:
 
   publish:
     name: Publish release
-    needs: [verify, sign]
+    needs: [verify, sign, attest-deb]
     # A rehearsal stops before this job.
     if: ${{ !inputs.images-only && !inputs.dry-run }}
     runs-on: ubuntu-latest
@@ -424,7 +459,9 @@ jobs:
   # The image is published after the release, so a failed release never leaves
   # an image for a version that does not exist. A rehearsal builds it without
   # pushing, which is the part of the Containerfile that only a release exercises
-  # with the real version and revision arguments.
+  # with the real version and revision arguments. The job that builds runs the
+  # Containerfile and holds `contents: read` only; it hands the finished image to
+  # `image-push`, which is the one that can write to the registry.
   image-build:
     name: Build image (${{ matrix.arch }})
     needs: [verify, publish]
@@ -435,7 +472,6 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
-      packages: write
     env:
       TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
       REGISTRY_IMAGE: ghcr.io/glyndor/epistle-panel
@@ -486,8 +522,71 @@ jobs:
             exit 1
           fi
 
-      - name: Log in to ghcr.io
+      - name: Save the image
         if: ${{ !inputs.dry-run }}
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/image"
+          podman save --format oci-archive \
+            -o "$RUNNER_TEMP/image/image-${ARCH}.tar" \
+            "${REGISTRY_IMAGE}:${TAG#v}-${ARCH}"
+
+      - name: Hand the image to the push job
+        if: ${{ !inputs.dry-run }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-image-${{ matrix.arch }}
+          path: ${{ runner.temp }}/image/image-${{ matrix.arch }}.tar
+          retention-days: 1
+          if-no-files-found: error
+
+  # Pushes the images the build jobs handed over. It checks out no code and runs no
+  # script of the repository: it receives one file per architecture into a folder of
+  # its own, checks that it is the only thing there and a regular file, loads it and
+  # pushes it. A rehearsal never gets here, so it never holds `packages: write`.
+  image-push:
+    name: Push image (${{ matrix.arch }})
+    needs: [verify, image-build]
+    if: ${{ always() && !inputs.dry-run && needs.image-build.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+    env:
+      TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+      REGISTRY_IMAGE: ghcr.io/glyndor/epistle-panel
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64]
+    steps:
+      - name: Receive the image
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-image-${{ matrix.arch }}
+          path: ${{ runner.temp }}/image-in
+
+      - name: Check that the image is the one file expected
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          if ! [[ "$TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error::$TAG is not a release tag"
+            exit 1
+          fi
+          want="image-${ARCH}.tar"
+          found="$(find "$RUNNER_TEMP/image-in" -mindepth 1 -printf '%P\n')"
+          if [ "$found" != "$want" ] || [ ! -f "$RUNNER_TEMP/image-in/$want" ] || [ -L "$RUNNER_TEMP/image-in/$want" ]; then
+            echo "::error::expected exactly the regular file $want; found:"
+            printf '%s\n' "$found" >&2
+            exit 1
+          fi
+
+      - name: Log in to ghcr.io
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ACTOR: ${{ github.actor }}
@@ -498,11 +597,11 @@ jobs:
           echo "${GH_TOKEN}" | podman login ghcr.io -u "${ACTOR}" --password-stdin
 
       - name: Push the ${{ matrix.arch }} image
-        if: ${{ !inputs.dry-run }}
         env:
           ARCH: ${{ matrix.arch }}
         run: |
           set -euo pipefail
+          podman load -i "$RUNNER_TEMP/image-in/image-${ARCH}.tar"
           podman push "${REGISTRY_IMAGE}:${TAG#v}-${ARCH}"
 
   # A rehearsal skips `publish` and `image-manifest`, the two places the first
@@ -527,14 +626,14 @@ jobs:
       - name: Publish a manifest list to a local registry
         env:
           TAG: ${{ inputs.tag }}
-          # registry:3, a multi-architecture index, by digest.
-          REGISTRY: docker.io/library/registry@sha256:52b489ad8e6f40d1a676702e3ce398ec796ce38f08fbb786e1f324baa12d84b8
+          # registry:3, a multi-architecture index, by the digest the registry gives for that tag.
+          REGISTRY: docker.io/library/registry:3@sha256:82f6ff4a7f982960c8aa51617fea3aabc485df6e55cce80d22deb1de36f1bc3c
         run: bash scripts/release/publish/rehearse-manifest.sh "$REGISTRY" "$TAG"
 
   image-manifest:
     name: Publish multi-arch image manifest
-    needs: [verify, image-build]
-    if: ${{ always() && !inputs.dry-run && needs.image-build.result == 'success' }}
+    needs: [verify, image-push]
+    if: ${{ always() && !inputs.dry-run && needs.image-push.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

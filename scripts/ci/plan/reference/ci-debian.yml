@@ -1,0 +1,22 @@
+name: Debian package
+true:
+  workflow_call: null
+permissions:
+  contents: read
+env:
+  DEBIAN_IMAGE: docker.io/library/debian:trixie@sha256:9c6e381421d0f48d1b8133e573f33c185ee16cbf505eda9c4a8a4791b25ea8a6
+jobs:
+  debian:
+    name: Build, lint and smoke-test the package
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        persist-credentials: false
+    - name: debian/changelog matches internal/package.json
+      run: sh scripts/release/version/check-changelog.sh
+    - name: dpkg-buildpackage and lintian
+      run: BUILD_IMAGE="$DEBIAN_IMAGE" sh scripts/debian/build.sh "$RUNNER_TEMP/deb"
+    - name: Install, reinstall, remove and purge in a clean container
+      run: SMOKE_IMAGE="$DEBIAN_IMAGE" sh scripts/debian/smoke.sh "$RUNNER_TEMP"/deb/epistle-panel_*_all.deb

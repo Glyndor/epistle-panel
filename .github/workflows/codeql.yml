@@ -21,11 +21,11 @@ on:
 permissions:
   contents: read
 
-# A newer push to a pull request supersedes the run in flight. A push to a branch or a
-# scheduled run is never cancelled, so every merge keeps its own result.
+# A security analysis is never cancelled: a newer push starts its own group and the
+# older run finishes, so no commit is left without a result.
 concurrency:
-  group: codeql-${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: codeql-${{ github.workflow }}-${{ github.run_id }}
+  cancel-in-progress: false
 
 jobs:
   analyze:

@@ -15,15 +15,18 @@ name: Dependency audit
 # `bun audit` reads the lockfile and asks the advisory database, and needs
 # nothing installed.
 #
-# Advisory only, on purpose: it is not a required check. A new advisory is a third
-# party's disclosure timing and must never block an unrelated merge. The release
-# workflow keeps its own `bun audit` as the blocking gate. GitHub reads
-# `schedule:` from the default branch only, so the cron starts once this reaches
-# main; `workflow_dispatch` covers the gap.
+# A finding here stops a merge: `bun audit` is a required check of its own, named
+# `bun audit` for a pull request and `bun audit (<event>)` for any other event, so
+# that the run of a push cannot satisfy it for a pull request. It is not part of
+# the `ci gate`, because it has to run on every pull request whatever the plan
+# says, and it never shares a concurrency group that cancels: a newer push must not
+# stop a security result halfway. GitHub reads `schedule:` from the default branch
+# only, so the cron starts once this reaches main; `workflow_dispatch` covers the
+# gap.
 
 on:
   pull_request:
-    branches: [develop]
+    branches: [develop, main]
   push:
     branches: [develop, main]
   schedule:
@@ -35,11 +38,11 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: false
 
 jobs:
   audit:
-    name: bun audit
+    name: ${{ github.event_name == 'pull_request' && 'bun audit' || format('bun audit ({0})', github.event_name) }}
     runs-on: ubuntu-latest
     # Measured 2026-11-15: 7 s.
     timeout-minutes: 10

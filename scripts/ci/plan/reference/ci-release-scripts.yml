@@ -1,0 +1,52 @@
+name: Release scripts
+true:
+  workflow_call: null
+permissions:
+  contents: read
+jobs:
+  release-scripts:
+    name: Test and lint the release scripts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        persist-credentials: false
+    - name: Install Bun at the release the Containerfile names
+      working-directory: .
+      run: bash scripts/ci/bun/install.sh
+    - name: Lint the shell scripts
+      run: |
+        set -euo pipefail
+        shellcheck -x --source-path=SCRIPTDIR \
+          scripts/release/*/*.sh
+    - name: Compile the Python scripts
+      env:
+        PYTHONPYCACHEPREFIX: ${{ runner.temp }}/pycache
+      run: |
+        set -euo pipefail
+        find scripts/release -name '*.py' -print0 \
+          | xargs -0 python3 -I -m py_compile
+    - name: Make the signing environment
+      run: |
+        set -euo pipefail
+        # What sign-release.sh builds, from the same hash-pinned file: the
+        # signing tests need `cryptography` to check the signatures.
+        python3 -m venv "$RUNNER_TEMP/sign-venv"
+        "$RUNNER_TEMP/sign-venv/bin/pip" install --quiet --require-hashes \
+          -r scripts/release/sign/sign-requirements.txt
+    - name: Python tests
+      run: |
+        set -euo pipefail
+        for dir in scripts/release/publish scripts/release/sign scripts/release/version; do
+          "$RUNNER_TEMP/sign-venv/bin/python" -I -m unittest discover -s "$dir" -p 'test_*.py' -v
+        done
+    - name: Shell tests
+      run: |
+        set -euo pipefail
+        for test in scripts/release/*/test-*.sh; do
+          echo "== $test"
+          bash "$test"
+        done
+    - name: TypeScript tests
+      run: bun test scripts/release

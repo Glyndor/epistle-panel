@@ -45,10 +45,12 @@ CASES = {
     "LICENSE": set(),
     ".gitignore": set(),
     ".editorconfig": set(),
-    ".github/dependabot.yml": {"ci-scripts"},
-    ".github/folder-limit-exceptions.txt": {"ci-scripts"},
-    ".github/actions/x/action.yml": {"ci-scripts"},
-    ".github/anything/at/all.txt": {"ci-scripts"},
+    "tools/y/action.yml": {"action-pins"},
+    "tools/y/action.yaml": {"action-pins"},
+    ".github/dependabot.yml": {"ci-scripts", "action-pins"},
+    ".github/folder-limit-exceptions.txt": {"ci-scripts", "action-pins"},
+    ".github/actions/x/action.yml": set(SUITES),
+    ".github/anything/at/all.txt": {"ci-scripts", "action-pins"},
     "scripts/ci/pins/check.sh": {"ci-scripts", "action-pins"},
     "scripts/folder-limit/folder-limit.sh": set(),
     "internal/src/app/page.tsx": APP | SHIPPED,
@@ -78,9 +80,8 @@ CASES = {
     "scripts/release/version/check-changelog.sh": {"debian", "release-scripts"},
     "scripts/release/sign/sign.py": {"release-scripts"},
     "scripts/release/lib/assertions.sh": {"release-scripts", "bun-version"},
-    ".github/workflows/dco.yml": {"actionlint", "bun-version", "ci-scripts", "action-pins"},
-    ".github/workflows/release.yml": {"actionlint", "bun-version", "ci-scripts", "action-pins"},
-    ".github/workflows/ci-e2e.yml": {"actionlint", "bun-version", "ci-scripts", "action-pins"},
+    ".github/workflows/dco.yml": set(SUITES),
+    ".github/workflows/ci-e2e.yml": set(SUITES),
     "scripts/ci/dco/check.sh": {"ci-scripts"},
     "scripts/ci/freshness/check.test.sh": {"ci-scripts"},
     "scripts/ci/dependabot_security_watch.py": {"ci-scripts"},
@@ -91,6 +92,14 @@ MACHINERY = [
     "scripts/ci/bun/install.sh",
     "scripts/ci/bun/SHA256SUMS",
     ".github/workflows/ci.yml",
+    ".github/workflows/ci-e2e.yml",
+    ".github/workflows/ci-container.yml",
+    ".github/workflows/ci-debian.yml",
+    ".github/workflows/ci-release-scripts.yml",
+    ".github/workflows/dco.yml",
+    ".github/workflows/release.yml",
+    ".github/workflows/audit.yml",
+    ".github/actions/anything/action.yml",
     "scripts/ci/plan/plan.py",
     "scripts/ci/plan/map.toml",
     "scripts/ci/plan/gate.py",
@@ -104,10 +113,9 @@ NOTHING = set()
 # (patterns, suites) in order; the first that matches a file is its expectation.
 # A callable gets the set of all suites.
 EXPECTED = [
-    (["scripts/ci/plan/**", "scripts/ci/bun/**", ".github/workflows/ci.yml"], lambda everything: everything),
-    ([".github/workflows/*.yml"], {"actionlint", "bun-version", "ci-scripts", "action-pins"}),
+    (["scripts/ci/plan/**", "scripts/ci/bun/**", ".github/workflows/**", ".github/actions/**"], lambda everything: everything),
     ([".editorconfig", ".gitignore", "internal/.gitignore", "scripts/folder-limit/**"], NOTHING),
-    ([".github/dependabot.yml", ".github/folder-limit-exceptions.txt"], {"ci-scripts"}),
+    ([".github/dependabot.yml", ".github/folder-limit-exceptions.txt"], {"ci-scripts", "action-pins"}),
     (["scripts/ci/pins/**"], {"ci-scripts", "action-pins"}),
     (["scripts/ci/**"], {"ci-scripts"}),
     (["internal/package.json"], APP | SHIPPED | {"debian"}),
@@ -182,6 +190,88 @@ class Selection(unittest.TestCase):
     def test_a_rename_counts_both_paths(self):
         verdict, _ = run_plan(["internal/src/a.tsx", "docs/a.md"])
         self.assertTrue(verdict["e2e"])
+
+    def test_the_bun_line_of_the_containerfile_selects_the_suites_that_run_bun_and_no_other_line_does(self):
+        """The installer reads the release of Bun from that line, so it moves lint, unit, randomized and e2e."""
+
+        def chosen(lines):
+            verdict, unclaimed = plan.plan(DATA, "pull_request", ["Containerfile"], {"Containerfile": lines})
+            self.assertEqual(unclaimed, [])
+            return {s for s, on in verdict.items() if on}
+
+        node = ["FROM docker.io/library/node@sha256:" + "a" * 64 + " AS builder"]
+        bun = ["FROM docker.io/oven/bun:1.4.5-debian@sha256:" + "b" * 64 + " AS bun"]
+        base = {"container", "bun-version"}
+        self.assertEqual(chosen(node), base)
+        self.assertEqual(chosen(["# a comment about the Node base"]), base)
+        self.assertEqual(chosen(["FROM gcr.io/distroless/nodejs26-debian13@sha256:" + "c" * 64]), base)
+        self.assertEqual(chosen(bun), base | {"lint", "unit", "randomized", "e2e"})
+        self.assertEqual(chosen(node + bun), base | {"lint", "unit", "randomized", "e2e"})
+        self.assertEqual(chosen(["FROM docker.io/oven/bunny:1"]), base, "only the stage of Bun, whose name is not a prefix match of another image")
+        self.assertEqual(chosen(None), base | {"lint", "unit", "randomized", "e2e"}, "lines that cannot be read select the suites")
+        verdict, _ = plan.plan(DATA, "pull_request", ["Containerfile"], None)
+        self.assertTrue(all(verdict[s] for s in ("lint", "unit", "randomized", "e2e")), "no lines at all select them too")
+
+    def test_the_lines_come_from_the_merge_commit_and_the_command_asks_for_them(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            def git(*args):
+                subprocess.run(["git", "-C", tmp, *args], check=True, capture_output=True)
+
+            git("init", "-q", "-b", "main")
+            git("config", "user.email", "t@example.invalid")
+            git("config", "user.name", "t")
+            git("config", "commit.gpgsign", "false")
+            node, bun = "FROM docker.io/library/node@sha256:" + "a" * 64 + " AS builder\n", "FROM docker.io/oven/bun:1.4.4-debian@sha256:" + "b" * 64 + " AS bun\n"
+            for name, first, second, want_bun in (
+                ("node", (bun, node), (bun, node.replace("a", "c")), False),
+                ("bun", (bun, node), (bun.replace("1.4.4", "1.4.5"), node), True),
+            ):
+                with open(os.path.join(tmp, "Containerfile"), "w") as handle:
+                    handle.write("".join(first))
+                git("add", "-A")
+                git("commit", "-q", "-m", f"base {name}")
+                with open(os.path.join(tmp, "Containerfile"), "w") as handle:
+                    handle.write("".join(second))
+                git("add", "-A")
+                git("commit", "-q", "-m", f"change {name}")
+                done = subprocess.run([sys.executable, "-I", os.path.join(HERE, "plan.py"), "--map", MAP, "--event", "pull_request"], cwd=tmp, capture_output=True, text=True)
+                out = dict(line.split("=") for line in done.stdout.split())
+                self.assertEqual(done.returncode, 0, done.stderr)
+                self.assertEqual(out["container"], "true", name)
+                self.assertEqual(out["lint"], "true" if want_bun else "false", name)
+                self.assertEqual(out["e2e"], "true" if want_bun else "false", name)
+
+    def test_a_line_rule_names_one_file_a_pattern_that_compiles_and_suites_that_exist(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            for rule in (
+                'path = "*.md"\npattern = "x"\nsuites = ["lint"]',
+                'path = "Containerfile"\npattern = "("\nsuites = ["lint"]',
+                'path = "Containerfile"\npattern = "x"\nsuites = ["nope"]',
+                'path = "Containerfile"\npattern = "x"\nsuites = []',
+                'path = "Containerfile"\npattern = "x"\nsuites = ["lint"]\nextra = 1',
+            ):
+                bad = os.path.join(tmp, "map.toml")
+                with open(bad, "w") as handle:
+                    handle.write('[suites.lint]\ninclude = ["a"]\n[[line_rules]]\n' + rule + "\n")
+                with self.assertRaises((SystemExit, plan.BadPattern, re.error), msg=rule):
+                    plan.load_map(bad)
+
+    def test_a_change_only_to_a_called_workflow_runs_the_suite_it_calls(self):
+        """It used to select no suite: the checks that read its text passed, and the suite was skipped."""
+        for path, suite in (
+            (".github/workflows/ci-e2e.yml", "e2e"),
+            (".github/workflows/ci-container.yml", "container"),
+            (".github/workflows/ci-debian.yml", "debian"),
+            (".github/workflows/ci-release-scripts.yml", "release-scripts"),
+        ):
+            verdict, unclaimed = run_plan([path])
+            self.assertTrue(verdict[suite], path)
+            self.assertEqual(unclaimed, [])
+
+    def test_what_is_next_to_the_workflows_is_not_machinery_but_has_its_pins_looked_at(self):
+        for path in (".github/dependabot.yml", ".github/folder-limit-exceptions.txt"):
+            verdict, _ = run_plan([path])
+            self.assertEqual({s for s, on in verdict.items() if on}, {"ci-scripts", "action-pins"}, path)
 
     def test_the_machinery_runs_every_suite(self):
         for path in MACHINERY:
@@ -284,8 +374,12 @@ class Integrity(unittest.TestCase):
         patterns = list(DATA.get("machinery", [])) + list(DATA["ignore"]["paths"])
         for name, suite in DATA["suites"].items():
             patterns += suite["include"]
-        for pattern in patterns:
+        # The one pattern that may match nothing: the folder of local actions, which
+        # does not exist yet. A closed list, not a rule.
+        no_action_yet = (".github/actions/**", "**/action.yml", "**/action.yaml")
+        for pattern in [p for p in patterns if p not in no_action_yet]:
             self.assertTrue(any(plan.matches([pattern], f) for f in self.files), f"{pattern} matches no tracked file")
+        self.assertFalse([f for f in self.files if plan.matches(list(no_action_yet), f)], "an action exists: take its patterns off the list above")
 
     def test_the_suites_of_every_file_that_is_not_prose_are_the_expected_ones(self):
         """The map written a second time, by hand, for every tracked file.
@@ -309,7 +403,7 @@ class Integrity(unittest.TestCase):
             DATA["ignore"]["paths"],
             ["**/*.md", "docs/**", "LICENSE", ".editorconfig", ".gitignore", "internal/.gitignore", "scripts/folder-limit/**"],
         )
-        self.assertEqual(DATA["machinery"], ["scripts/ci/plan/**", "scripts/ci/bun/**", ".github/workflows/ci.yml"])
+        self.assertEqual(DATA["machinery"], ["scripts/ci/plan/**", "scripts/ci/bun/**", ".github/workflows/**", ".github/actions/**"])
         self.assertEqual(DATA["always"], ["line-limit"])
 
     def test_an_optional_suite_claims_nothing_the_others_do_not_judge(self):
@@ -318,7 +412,10 @@ class Integrity(unittest.TestCase):
         Every path an optional suite selects, tracked or not, is selected by another
         suite that is not optional, or is machinery, or is ignored on purpose.
         """
-        optional = set(DATA.get("optional", []))
+        with open(CI, encoding="utf-8") as handle:
+            ci_text = handle.read()
+        # The suites with no job in ci.yml: the others judge, and are not asked about here.
+        optional = {n for n in DATA.get("optional", []) if not re.search(rf"\n  {n}:\n", ci_text)}
         others = {n: s for n, s in DATA["suites"].items() if n not in optional}
         hypothetical = [".github/actions/x/action.yml", ".github/other/file.txt", "scripts/ci/pins/new.py", ".github/workflows/new.yml"]
         for path in list(self.files) + hypothetical:
@@ -331,10 +428,10 @@ class Integrity(unittest.TestCase):
                 self.assertTrue(judged, f"{path} is read only by an optional suite, which does not run")
 
     def test_a_path_under_github_that_nothing_else_names_still_runs_the_wiring_tests(self):
-        for path in (".github/actions/x/action.yml", ".github/anything/at/all.txt"):
+        for path in (".github/anything/at/all.txt", ".github/dependabot.yml"):
             verdict, unclaimed = run_plan([path])
             self.assertEqual(unclaimed, [], path)
-            self.assertEqual({s for s, on in verdict.items() if on}, {"ci-scripts"}, path)
+            self.assertTrue(verdict["ci-scripts"], path)
 
     def test_every_ignore_pattern_covers_a_file_nobody_else_reads(self):
         """An ignore that only repeats what a suite reads is a pattern to delete."""

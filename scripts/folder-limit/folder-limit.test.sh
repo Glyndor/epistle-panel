@@ -140,6 +140,31 @@ exception leaf 21
 expect 'ceiling can decrease' 0 'folder-limit: OK' env BASE="$base" bash "$script"
 expect 'unreadable base is an error' 128 '' env BASE=deadbeef bash "$script"
 
+# A folder the base does not list has the default of the base: a new exception
+# written in the same change does not approve the folder it was written for.
+new_repo fresh
+files leaf 5
+git commit -qm base
+base="$(git rev-parse HEAD)"
+files leaf 21
+exception leaf 21
+expect 'a new folder of 21 with a new exception of 21' 1 $'leaf\t21\t21\tover the ceiling of the base (20)' env BASE="$base" bash "$script"
+rm "$exceptions"
+expect 'the same folder with no exception' 1 'too many direct files' env BASE="$base" bash "$script"
+git rm -q -f -- 'leaf/file 21'
+expect 'a folder at the default passes' 0 'folder-limit: OK' env BASE="$base" bash "$script"
+
+new_repo listed
+files leaf 21
+exception leaf 22
+git commit -qm base
+base="$(git rev-parse HEAD)"
+files leaf 22
+expect 'a folder may grow to the ceiling the base lists' 0 'folder-limit: OK' env BASE="$base" bash "$script"
+files leaf 23
+exception leaf 23
+expect 'it may not grow past it by raising the ceiling' 1 'over the ceiling of the base (22)' env BASE="$base" bash "$script"
+
 # Extract and execute the real workflow loader, rather than copying its logic.
 awk '
 	/^          set -euo pipefail$/ { block=1 }
@@ -159,7 +184,7 @@ cp "$script" scripts/folder-limit/folder-limit.sh
 expect 'first introduction uses PR gate and rejects 21' 1 $'leaf\t21\t20' \
 	env BASE="$first_base" RUNNER_TEMP="$tmp/runner" bash "$tmp/loader.sh"
 exception leaf 21
-expect 'first introduction with written exception' 0 'folder-limit: OK' \
+expect 'first introduction: an exception written now does not approve the folder' 1 'over the ceiling of the base (20)' \
 	env BASE="$first_base" RUNNER_TEMP="$tmp/runner" bash "$tmp/loader.sh"
 git add scripts .github
 git commit -qm 'trusted base gate'

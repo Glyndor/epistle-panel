@@ -369,10 +369,12 @@ when the plan said nothing of its own had changed, and for a plan that did not
 succeed; the map and its tests are in `scripts/ci/plan`.
 
 The workflows that answer another question: `DCO` runs on every pull request into
-`main` or `develop`, `guard` on every pull request into `main`, `Folder limit` on
+`main` or `develop`, `guard` (the source must be the `develop` of this repository, not the branch of a fork that has the same name) on every pull request into `main`, `Folder limit` on
 every pull request into `develop`, and `Dependency audit` on every pull request
-into `develop`, on every push to `develop` or `main`, and weekly on both branches,
-because a new advisory appears without a file changing. `Dependabot watch` runs
+into `develop` or `main`, on every push to either, and weekly on both branches,
+because a new advisory appears without a file changing. A finding stops the merge:
+`bun audit` is a required check of its own, and neither it nor CodeQL nor the
+sign-off check is ever cancelled by a newer push. `Dependabot watch` runs
 daily and looks for a stuck security bump and for a Dependabot that went quiet.
 `CodeQL` analyses the workflows, the Next.js project and the Python scripts on
 every pull request into `main` or `develop`, on every push to either, and weekly.

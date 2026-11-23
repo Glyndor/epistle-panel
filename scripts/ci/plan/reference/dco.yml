@@ -1,0 +1,34 @@
+name: DCO
+true:
+  pull_request:
+    branches:
+    - main
+    - develop
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+jobs:
+  dco:
+    name: dco / Signed-off-by present on every commit
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        fetch-depth: 0
+        persist-credentials: false
+    - name: Signed-off-by on every commit, no evil merge
+      env:
+        BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      run: |
+        set -euo pipefail
+        script="$RUNNER_TEMP/dco-check.sh"
+        if git cat-file -e "${BASE_SHA}:scripts/ci/dco/check.sh" 2>/dev/null; then
+          git show "${BASE_SHA}:scripts/ci/dco/check.sh" >"$script"
+        else
+          cp scripts/ci/dco/check.sh "$script"
+        fi
+        bash "$script"

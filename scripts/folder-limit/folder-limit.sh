@@ -2,7 +2,9 @@
 # Count tracked files in their immediate folder, including dotfiles and tests.
 # Run from anywhere inside the repository. Use . for the root exception.
 # Exceptions: path<TAB>ceiling<TAB>reason; blank lines and # comments are allowed.
-# Set BASE to the PR base commit to reject increases to existing ceilings.
+# Set BASE to the PR base commit to reject increases to existing ceilings, and to
+# judge every count against the ceiling the base holds for that folder (20 when it
+# lists none).
 set -euo pipefail
 export LC_ALL=C
 
@@ -101,6 +103,15 @@ while IFS= read -r -d '' dir; do
 	fi
 	if [ -n "${BASE:-}" ] && [ -n "${parsed["$dir"]:-}" ] && [ "$cap" -gt "${parsed["$dir"]}" ]; then
 		issue="${issue:+$issue; }ceiling increased from ${parsed["$dir"]}; it may only decrease"
+	fi
+	# What the change proposes is also judged against the BASE: a folder the base
+	# does not list has the default there, so an exception written in the same
+	# change cannot approve the folder it was written for.
+	if [ -n "${BASE:-}" ]; then
+		base_cap="${parsed["$dir"]:-20}"
+		if [ "$count" -gt "$base_cap" ]; then
+			issue="${issue:+$issue; }over the ceiling of the base ($base_cap)"
+		fi
 	fi
 	if [ -n "$issue" ]; then
 		printf '%q\t%d\t%d\t%s\n' "$dir" "$count" "$cap" "$issue"

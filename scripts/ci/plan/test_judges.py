@@ -10,12 +10,16 @@ The steps run in a throwaway repository with a script on each side, and must run
 the base's.
 """
 
+import json
 import os
 import re
+import subprocess
 import tempfile
 import unittest
 
 from wiring_support import (
+    AUDIT_NAME,
+    GATE_NAME,
     ALWAYS,
     CALLED,
     FILES,
@@ -66,7 +70,7 @@ class TreeJudges(unittest.TestCase):
         self.assertEqual(
             triggers(doc),
             {
-                "pull_request": {"branches": ["develop"]},
+                "pull_request": {"branches": ["develop", "main"]},
                 "push": {"branches": ["develop", "main"]},
                 "schedule": [{"cron": "23 6 * * 1"}],
                 "workflow_dispatch": None,
@@ -74,20 +78,107 @@ class TreeJudges(unittest.TestCase):
         )
         job = doc["jobs"]["audit"]
         self.assertEqual(set(job), {"name", "runs-on", "timeout-minutes", "steps"})
+        self.assertEqual(job["name"], AUDIT_NAME)
 
-    def test_the_action_pins_check_runs_when_a_workflow_changes_and_every_week(self):
-        doc = load(".github/workflows/pins.yml")
-        self.assertEqual(
-            triggers(doc),
-            {
-                "pull_request": {"branches": ["develop"], "paths": [".github/**", "**/action.yml", "**/action.yaml"]},
-                "schedule": [{"cron": "29 6 * * 1"}],
-                "workflow_dispatch": None,
-            },
+    def test_a_security_result_is_never_cancelled_by_a_newer_push(self):
+        """The audit, CodeQL and the sign-off check keep running when a branch moves on."""
+        for name in ("audit.yml", "codeql.yml", "dco.yml"):
+            doc = load(f".github/workflows/{name}")
+            self.assertIs(doc["concurrency"]["cancel-in-progress"], False, name)
+        self.assertIs(load(".github/workflows/codeql.yml")["concurrency"]["cancel-in-progress"], False)
+
+    def test_the_main_guard_asks_for_the_develop_of_this_repository(self):
+        job = load(".github/workflows/main-guard.yml")["jobs"]["develop-only"]
+        step = step_named(job, "Require develop of this repository as source branch")
+        self.assertEqual(step["env"], {"HEAD_REF": "${{ github.head_ref }}", "HEAD_REPO": "${{ github.event.pull_request.head.repo.full_name }}", "REPO": "${{ github.repository }}"})
+        cases = (
+            ("develop", "Glyndor/epistle-panel", "Glyndor/epistle-panel", True),
+            ("develop", "someone/epistle-panel", "Glyndor/epistle-panel", False),
+            ("develop", "", "Glyndor/epistle-panel", False),
+            ("feature", "Glyndor/epistle-panel", "Glyndor/epistle-panel", False),
+            ("Develop", "Glyndor/epistle-panel", "Glyndor/epistle-panel", False),
         )
+        for head, repo, mine, ok in cases:
+            done = subprocess.run(["bash", "-c", step["run"]], env=dict(os.environ, HEAD_REF=head, HEAD_REPO=repo, REPO=mine), capture_output=True, text=True)
+            self.assertEqual(done.returncode == 0, ok, (head, repo, done.stdout))
+
+    def test_the_action_pins_check_is_a_job_of_the_gate_and_is_looked_at_again_every_week(self):
+        """The one that stands in the way of a merge is `action pins` in ci.yml; this one is the clock."""
+        doc = load(".github/workflows/pins.yml")
+        self.assertEqual(triggers(doc), {"schedule": [{"cron": "29 6 * * 1"}], "workflow_dispatch": None})
+        self.assertEqual(doc["permissions"], {})
         job = doc["jobs"]["pins"]
+        self.assertEqual(job["permissions"], {"contents": "read"})
         self.assertEqual(set(job) & {"if", "needs", "continue-on-error"}, set())
-        self.assertIn("scripts/ci/pins/check.test.sh", step_named(job, "Lint and test the check")["run"])
+        step = step_named(job, "Every reference is the commit or the digest of its release")
+        self.assertIn("check.py --remote --weekly --report", step["run"])
+        ci = load(".github/workflows/ci.yml")["jobs"]
+        self.assertIn("action-pins", ci["gate"]["needs"])
+        remote = step_named(ci["action-pins"], "Every reference is fixed to the commit or the digest of its release")["run"]
+        self.assertIn('args=(--remote --base HEAD^1)', remote, "a pull request asks about what it changes")
+        self.assertIn('"$RUNNER_TEMP/pins-venv/bin/python" -I "$script" "${args[@]}"', remote)
+        self.assertIn("git show HEAD^1:scripts/ci/plan/requirements.txt", step_named(ci["action-pins"], "The YAML reader of the check")["run"])
+
+    def test_the_job_that_writes_the_issue_has_issues_write_and_nothing_else_and_reads_a_report_as_data(self):
+        report = load(".github/workflows/pins.yml")["jobs"]["report"]
+        self.assertEqual(report["permissions"], {"issues": "write"})
+        self.assertEqual(report["needs"], "pins")
+        for step in report["steps"]:
+            self.assertFalse(str(step.get("uses", "")).startswith("actions/checkout@"), "it checks out no code")
+        self.assertEqual([s.get("uses", "").split("@")[0] for s in report["steps"]], ["actions/download-artifact", ""])
+
+    def drift(self, entries, existing=""):
+        """The issue step of the Monday run, against a stand-in `gh` and a report; returns status, calls."""
+        step = step_named(load(".github/workflows/pins.yml")["jobs"]["report"], "Open the issue, or update the one that is open")
+        with tempfile.TemporaryDirectory() as tmp:
+            os.makedirs(os.path.join(tmp, "drift"))
+            if entries is not None:
+                with open(os.path.join(tmp, "drift", "drift.json"), "w") as handle:
+                    handle.write(entries)
+            bindir = os.path.join(tmp, "bin")
+            os.makedirs(bindir)
+            gh = os.path.join(bindir, "gh")
+            with open(gh, "w") as handle:
+                handle.write(f'#!/bin/sh\necho "$@" >> {tmp}/calls\nif [ "$1 $2" = "issue list" ]; then echo "{existing}"; fi\n')
+            os.chmod(gh, 0o755)
+            done = subprocess.run(["bash", "-c", step["run"]], env=dict(os.environ, RUNNER_TEMP=tmp, REPO="o/r", GH_TOKEN="x", PATH=f"{bindir}:{os.environ['PATH']}"), capture_output=True, text=True)
+            calls = ""
+            if os.path.exists(os.path.join(tmp, "calls")):
+                with open(os.path.join(tmp, "calls")) as handle:
+                    calls = handle.read()
+            return done, calls
+
+    MOVED = json.dumps([{"repository": "docker.io/library/debian", "tag": "trixie", "pinned": "sha256:" + "a" * 64, "current": "sha256:" + "b" * 64}])
+
+    def test_an_issue_is_opened_for_an_image_that_moved(self):
+        done, calls = self.drift(self.MOVED)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertIn("issue create", calls)
+        self.assertNotIn("issue edit", calls)
+        self.assertIn("sha256:" + "b" * 64, calls)
+
+    def test_the_issue_that_is_open_is_updated_and_not_duplicated(self):
+        done, calls = self.drift(self.MOVED, existing="42")
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertIn("issue edit 42", calls)
+        self.assertNotIn("issue create", calls)
+
+    def test_no_issue_when_nothing_moved_or_there_is_no_report(self):
+        for entries in ("[]", None):
+            done, calls = self.drift(entries)
+            self.assertEqual(done.returncode, 0, done.stderr)
+            self.assertEqual(calls, "")
+
+    def test_an_entry_of_another_shape_is_refused_before_anything_is_written(self):
+        bad = json.loads(self.MOVED)
+        for field, value in (("repository", "x; rm -rf /"), ("tag", "a b"), ("pinned", "sha256:abc"), ("current", "`touch x`")):
+            entry = dict(bad[0], **{field: value})
+            done, calls = self.drift(json.dumps([entry]))
+            self.assertNotEqual(done.returncode, 0, field)
+            self.assertNotIn("issue create", calls, field)
+        done, calls = self.drift('{"not": "a list"}')
+        self.assertNotEqual(done.returncode, 0)
+        self.assertEqual(calls, "")
 
     def test_a_scheduled_workflow_brings_no_other_tree(self):
         """The run of a schedule holds the privileges of the default branch.
@@ -213,6 +304,56 @@ class TreeJudges(unittest.TestCase):
                     self.assertIsNone(bad.search(handle.read()), path)
 
 
+class Release(unittest.TestCase):
+    """Who holds the authority to attest, push and publish in release.yml."""
+
+    READ = {"contents": "read"}
+    PERMISSIONS = {
+        "verify": READ,
+        "build-deb": READ,
+        "attest-deb": {"contents": "read", "id-token": "write", "attestations": "write"},
+        "sbom": READ,
+        "sign": READ,
+        "publish": {"contents": "write"},
+        "image-build": READ,
+        "image-push": {"contents": "read", "packages": "write"},
+        "rehearse-manifest": READ,
+        "image-manifest": {"contents": "read", "packages": "write", "id-token": "write", "attestations": "write"},
+    }
+
+    @classmethod
+    def setUpClass(cls):
+        cls.doc = load(".github/workflows/release.yml")
+        cls.jobs = cls.doc["jobs"]
+
+    def test_nobody_holds_authority_by_default_and_every_job_names_its_own(self):
+        self.assertEqual(self.doc["permissions"], {})
+        self.assertEqual({name: job.get("permissions") for name, job in self.jobs.items()}, self.PERMISSIONS)
+
+    def test_what_builds_or_installs_has_contents_read_and_nothing_else(self):
+        for name in ("verify", "build-deb", "sbom", "sign", "image-build", "rehearse-manifest"):
+            self.assertEqual(self.jobs[name]["permissions"], self.READ, name)
+
+    def test_a_rehearsal_never_reaches_a_job_with_authority_to_publish(self):
+        for name, job in self.jobs.items():
+            if job["permissions"] != self.READ:
+                self.assertIn("!inputs.dry-run", job["if"], f"{name} can run in a rehearsal")
+
+    def test_the_jobs_that_attest_and_push_check_out_no_code_and_run_no_script_of_the_repository(self):
+        for name in ("attest-deb", "image-push"):
+            for step in self.jobs[name]["steps"]:
+                self.assertFalse(str(step.get("uses", "")).startswith("actions/checkout@"), f"{name} checks out code")
+                self.assertNotRegex(str(step.get("run", "")), r"scripts/|python|\bbun\b", f"{name}: {step.get('name')}")
+
+    def test_what_arrives_is_the_one_file_expected_and_the_package_is_attested_from_there(self):
+        step = step_named(self.jobs["attest-deb"], "Check that the package is the one file expected")
+        self.assertIn('want="epistle-panel_${TAG#v}_all.deb"', step["run"])
+        self.assertIn('[ "$found" != "$want" ]', step["run"])
+        self.assertEqual(step_named(self.jobs["attest-deb"], "Attest build provenance")["with"], {"subject-path": "${{ runner.temp }}/attest/epistle-panel_*_all.deb"})
+        self.assertIn("attest-deb", self.jobs["publish"]["needs"])
+        self.assertIn("image-push", self.jobs["image-manifest"]["needs"])
+
+
 class BaseCopies(unittest.TestCase):
     """The steps that judge a pull request run the script of the base commit."""
 
@@ -283,13 +424,25 @@ class BaseCopies(unittest.TestCase):
                 self.assertEqual(handle.read().strip(), "base")
 
     def test_the_action_pins_check_runs_the_base_copy_never_the_pull_requests(self):
-        job = load(".github/workflows/pins.yml")["jobs"]["pins"]
+        job = load(".github/workflows/ci.yml")["jobs"]["action-pins"]
+        step = step_named(job, "Every reference is fixed to the commit or the digest of its release")
         with tempfile.TemporaryDirectory() as tmp:
-            fixture = Fixture(tmp, {"scripts/ci/pins/check.sh": f"echo base > {tmp}/who\n"}, {"scripts/ci/pins/check.sh": f"echo pr > {tmp}/who\n"})
-            done = fixture.run(step_named(job, "Every reference is fixed to a commit or a digest")["run"], EVENT="pull_request", RUNNER_TEMP=tmp)
+            fixture = Fixture(tmp, {"scripts/ci/pins/check.py": "base\n"}, {"scripts/ci/pins/check.py": "pr\n"})
+            python = os.path.join(tmp, "pins-venv", "bin", "python")
+            os.makedirs(os.path.dirname(python))
+            with open(python, "w") as handle:
+                handle.write(f'#!/bin/sh\ncat "$2" > {tmp}/who\n')
+            os.chmod(python, 0o755)
+            done = fixture.run(step["run"], EVENT="pull_request", RUNNER_TEMP=tmp)
             self.assertEqual(done.returncode, 0, done.stderr)
             with open(os.path.join(tmp, "who")) as handle:
                 self.assertEqual(handle.read().strip(), "base")
+            # the change that introduces the script has no base copy to run
+            first = Fixture(os.path.join(tmp, "first"), None, {"scripts/ci/pins/check.py": "pr\n"}) if os.makedirs(os.path.join(tmp, "first")) is None else None
+            done = first.run(step["run"], EVENT="pull_request", RUNNER_TEMP=tmp)
+            self.assertEqual(done.returncode, 0, done.stderr)
+            with open(os.path.join(tmp, "who")) as handle:
+                self.assertEqual(handle.read().strip(), "pr")
 
     def test_the_sign_off_check_runs_the_base_copy_never_the_pull_requests(self):
         job = load(".github/workflows/dco.yml")["jobs"]["dco"]

@@ -4,7 +4,7 @@
 # Usage: rehearse-manifest.sh <registry-image> <version>
 #
 # <registry-image> is the registry image, pinned by digest, for example
-# docker.io/library/registry@sha256:... It runs as the local registry. Two
+# docker.io/library/registry:3@sha256:... It runs as the local registry. Two
 # small linux/amd64 and linux/arm64 images are pushed to it as <version>-amd64
 # and <version>-arm64, standing in for the two images the release builds.
 # publish-manifest.sh then runs unchanged against localhost, so `podman
