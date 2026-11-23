@@ -12,7 +12,7 @@ import { BUILT_IN_PROVIDERS, type PublicCaptcha } from "../providers";
 export const CAPTCHA_VARIABLES = {
 	provider: "EPISTLE_PANEL_CAPTCHA_PROVIDER",
 	siteKey: "EPISTLE_PANEL_CAPTCHA_SITE_KEY",
-	secretKey: "EPISTLE_PANEL_CAPTCHA_SECRET_KEY",
+	secretKey: "EPISTLE_PANEL_CAPTCHA_SECRET_KEY", // secret-scan:allow a name, not a value
 	scriptUrl: "EPISTLE_PANEL_CAPTCHA_SCRIPT_URL",
 	verifyUrl: "EPISTLE_PANEL_CAPTCHA_VERIFY_URL",
 	responseField: "EPISTLE_PANEL_CAPTCHA_RESPONSE_FIELD",

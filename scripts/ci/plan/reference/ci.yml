@@ -86,6 +86,49 @@ jobs:
           cp scripts/ci/line-limit/check.sh "$script"
         fi
         bash "$script"
+  commit-checks:
+    name: commit checks
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        fetch-depth: 0
+        persist-credentials: false
+    - name: Credentials and personal addresses in the commits of the pull request
+      if: github.event_name == 'pull_request'
+      env:
+        BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      run: |
+        set -uo pipefail
+        bad=0
+        tmp="$(mktemp -d)"
+
+        # Copy a file of the base commit to $2. Returns 1 when the base has no such file, and
+        # stops the step for any other failure: not being able to read is not being absent.
+        from_base() {
+          local listing
+          listing="$(git ls-tree "$BASE_SHA" -- "$1")" || { echo "::error::cannot list $1 in the base commit"; exit 1; }
+          [ -n "$listing" ] || return 1
+          git show "$BASE_SHA:$1" > "$2" || { echo "::error::cannot read $1 in the base commit"; exit 1; }
+        }
+
+        git cat-file -e "$BASE_SHA^{commit}" || { echo "::error::the base commit is not in the checkout"; exit 1; }
+        for tool in check-secrets check-commit-identity; do
+          if from_base "scripts/ci/hygiene/$tool.sh" "$tmp/$tool.sh"; then
+            echo "== $tool, judged with the script of the base commit"
+          else
+            echo "::notice::the base commit has no $tool yet; this change introduces it"
+            cp "scripts/ci/hygiene/$tool.sh" "$tmp/$tool.sh"
+          fi
+        done
+        for tool in check-secrets check-commit-identity; do
+          echo "== $tool"
+          bash "$tmp/$tool.sh" "$BASE_SHA" "$HEAD_SHA" || bad=1
+        done
+        exit "$bad"
   actionlint:
     name: actionlint
     needs:
@@ -142,11 +185,11 @@ jobs:
     - name: Lint the scripts
       run: |
         set -euo pipefail
-        shellcheck -x scripts/ci/*/*.sh
+        shellcheck -x scripts/ci/*/*.sh scripts/ci/*/tests/*.sh
     - name: Tests of the shell checks
       run: |
         set -euo pipefail
-        for test in scripts/ci/*/*.test.sh; do
+        for test in scripts/ci/*/*.test.sh scripts/ci/*/tests/*.test.sh; do
           echo "== $test"
           bash "$test"
         done
@@ -232,12 +275,13 @@ jobs:
     needs:
     - plan
     - line-limit
+    - commit-checks
     - actionlint
     - bun-version
     - ci-scripts
     - lint
     - action-pins
-    if: ${{ !cancelled() && needs.plan.outputs.unit != 'false' && needs.line-limit.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' && needs.action-pins.result != 'failure' }}
+    if: ${{ !cancelled() && needs.plan.outputs.unit != 'false' && needs.line-limit.result != 'failure' && needs.commit-checks.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' && needs.action-pins.result != 'failure' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
@@ -262,12 +306,13 @@ jobs:
     needs:
     - plan
     - line-limit
+    - commit-checks
     - actionlint
     - bun-version
     - ci-scripts
     - lint
     - action-pins
-    if: ${{ !cancelled() && needs.plan.outputs.randomized != 'false' && needs.line-limit.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' && needs.action-pins.result != 'failure' }}
+    if: ${{ !cancelled() && needs.plan.outputs.randomized != 'false' && needs.line-limit.result != 'failure' && needs.commit-checks.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' && needs.action-pins.result != 'failure' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -287,30 +332,33 @@ jobs:
     needs:
     - plan
     - line-limit
+    - commit-checks
     - actionlint
     - bun-version
     - ci-scripts
     - lint
     - action-pins
-    if: ${{ !cancelled() && needs.plan.outputs.debian != 'false' && needs.line-limit.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' && needs.action-pins.result != 'failure' }}
+    if: ${{ !cancelled() && needs.plan.outputs.debian != 'false' && needs.line-limit.result != 'failure' && needs.commit-checks.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' && needs.action-pins.result != 'failure' }}
     uses: ./.github/workflows/ci-debian.yml
   release-scripts:
     name: release scripts
     needs:
     - plan
     - line-limit
+    - commit-checks
     - actionlint
     - bun-version
     - ci-scripts
     - lint
     - action-pins
-    if: ${{ !cancelled() && needs.plan.outputs.release-scripts != 'false' && needs.line-limit.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' && needs.action-pins.result != 'failure' }}
+    if: ${{ !cancelled() && needs.plan.outputs.release-scripts != 'false' && needs.line-limit.result != 'failure' && needs.commit-checks.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' && needs.action-pins.result != 'failure' }}
     uses: ./.github/workflows/ci-release-scripts.yml
   e2e:
     name: e2e
     needs:
     - plan
     - line-limit
+    - commit-checks
     - actionlint
     - bun-version
     - ci-scripts
@@ -320,13 +368,14 @@ jobs:
     - randomized
     - debian
     - release-scripts
-    if: ${{ !cancelled() && needs.plan.outputs.e2e != 'false' && needs.line-limit.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' && needs.action-pins.result != 'failure' && needs.unit.result != 'failure' && needs.randomized.result != 'failure' && needs.debian.result != 'failure' && needs.release-scripts.result != 'failure' }}
+    if: ${{ !cancelled() && needs.plan.outputs.e2e != 'false' && needs.line-limit.result != 'failure' && needs.commit-checks.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' && needs.action-pins.result != 'failure' && needs.unit.result != 'failure' && needs.randomized.result != 'failure' && needs.debian.result != 'failure' && needs.release-scripts.result != 'failure' }}
     uses: ./.github/workflows/ci-e2e.yml
   container:
     name: container
     needs:
     - plan
     - line-limit
+    - commit-checks
     - actionlint
     - bun-version
     - ci-scripts
@@ -336,13 +385,14 @@ jobs:
     - randomized
     - debian
     - release-scripts
-    if: ${{ !cancelled() && needs.plan.outputs.container != 'false' && needs.line-limit.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' && needs.action-pins.result != 'failure' && needs.unit.result != 'failure' && needs.randomized.result != 'failure' && needs.debian.result != 'failure' && needs.release-scripts.result != 'failure' }}
+    if: ${{ !cancelled() && needs.plan.outputs.container != 'false' && needs.line-limit.result != 'failure' && needs.commit-checks.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' && needs.action-pins.result != 'failure' && needs.unit.result != 'failure' && needs.randomized.result != 'failure' && needs.debian.result != 'failure' && needs.release-scripts.result != 'failure' }}
     uses: ./.github/workflows/ci-container.yml
   gate:
     name: ${{ github.event_name != 'pull_request' && format('ci gate ({0})', github.event_name) || (github.base_ref == 'develop' && 'ci gate' || (github.base_ref == 'main' && 'ci gate (main)' || 'ci gate (other)')) }}
     needs:
     - plan
     - line-limit
+    - commit-checks
     - actionlint
     - bun-version
     - ci-scripts

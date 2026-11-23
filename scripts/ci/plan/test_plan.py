@@ -114,7 +114,7 @@ NOTHING = set()
 # A callable gets the set of all suites.
 EXPECTED = [
     (["scripts/ci/plan/**", "scripts/ci/bun/**", ".github/workflows/**", ".github/actions/**"], lambda everything: everything),
-    ([".editorconfig", ".gitignore", "internal/.gitignore", "scripts/folder-limit/**"], NOTHING),
+    ([".editorconfig", ".gitignore", "internal/.gitignore", ".secret-scan-allow", "scripts/folder-limit/**"], NOTHING),
     ([".github/dependabot.yml", ".github/folder-limit-exceptions.txt"], {"ci-scripts", "action-pins"}),
     (["scripts/ci/pins/**"], {"ci-scripts", "action-pins"}),
     (["scripts/ci/**"], {"ci-scripts"}),
@@ -401,7 +401,7 @@ class Integrity(unittest.TestCase):
     def test_the_side_with_no_suite_is_this_list_and_no_other(self):
         self.assertEqual(
             DATA["ignore"]["paths"],
-            ["**/*.md", "docs/**", "LICENSE", ".editorconfig", ".gitignore", "internal/.gitignore", "scripts/folder-limit/**"],
+            ["**/*.md", "docs/**", "LICENSE", ".editorconfig", ".gitignore", "internal/.gitignore", ".secret-scan-allow", "scripts/folder-limit/**"],
         )
         self.assertEqual(DATA["machinery"], ["scripts/ci/plan/**", "scripts/ci/bun/**", ".github/workflows/**", ".github/actions/**"])
         self.assertEqual(DATA["always"], ["line-limit", "commit-checks"])
