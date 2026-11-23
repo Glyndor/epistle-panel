@@ -69,4 +69,35 @@ expect_status "final: an empty signature is refused" 1 bash "$script" "$d" "$tag
 expect_status "an unknown stage is refused" 2 bash "$script" "$(fresh built)" "$tag" published
 expect_status "missing arguments are refused" 1 bash "$script"
 
+# One artifact in a folder of its own: each folder holds its files and nothing else, so an
+# artifact that arrives with the payload of another one is refused before the folders are
+# put together.
+alone() { # <stage> -> a folder with the files of that artifact
+	local stage=$1 dir
+	dir=$(mktemp -d "$tmp/alone.XXXXXX")
+	case "$stage" in
+		deb) printf 'deb\n' > "$dir/$deb" ;;
+		sbom) printf '{}\n' > "$dir/$sbom" ;;
+		signatures)
+			printf 'sums\n' > "$dir/SHA256SUMS"
+			for f in "$deb" "$sbom" SHA256SUMS; do printf 'sig\n' > "$dir/$f.sig"; done ;;
+	esac
+	echo "$dir"
+}
+for stage in deb sbom signatures; do
+	expect_status "$stage: the folder of the artifact passes" 0 bash "$script" "$(alone "$stage")" "$tag" "$stage"
+	d=$(alone "$stage"); printf 'x' > "$d/extra.txt"
+	expect_status "$stage: an extra file is refused" 1 bash "$script" "$d" "$tag" "$stage"
+done
+# Attack: a signatures artifact that carries the payload too, to overwrite the package when
+# the folders are put together.
+d=$(alone signatures); printf 'other deb\n' > "$d/$deb"
+expect_status "signatures: a package inside the signatures is refused" 1 bash "$script" "$d" "$tag" signatures
+d=$(alone deb); printf 'sums\n' > "$d/SHA256SUMS"
+expect_status "deb: checksums inside the package artifact are refused" 1 bash "$script" "$d" "$tag" deb
+d=$(alone signatures); rm "$d/$sbom.sig"
+expect_status "signatures: a missing signature is refused" 1 bash "$script" "$d" "$tag" signatures
+d=$(alone signatures); : > "$d/$deb.sig"
+expect_status "signatures: an empty signature is refused" 1 bash "$script" "$d" "$tag" signatures
+
 finish

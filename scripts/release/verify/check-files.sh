@@ -8,6 +8,12 @@
 #   signed   the same plus SHA256SUMS
 #   final    the same plus one .sig per file, which is what is published
 #
+# and three that name what one artifact holds on its own, so that each is checked in a
+# folder of its own before the folders are put together:
+#   deb         the .deb and nothing else
+#   sbom        the SBOM and nothing else
+#   signatures  SHA256SUMS and the three .sig, and nothing else
+#
 # The names are a contract with the apt archive, which downloads
 # epistle-panel_<version>_all.deb and its .sig by name, so a file that is not
 # on this list is refused before a key is near it or a release is made.
@@ -28,6 +34,12 @@ payload=("epistle-panel_${version}_all.deb" "epistle-panel-${tag}.cdx.json")
 expected=("${payload[@]}")
 case "$stage" in
 	built) ;;
+	deb) expected=("${payload[0]}") ;;
+	sbom) expected=("${payload[1]}") ;;
+	signatures)
+		expected=(SHA256SUMS)
+		for f in "${payload[@]}" SHA256SUMS; do expected+=("$f.sig"); done
+		;;
 	signed) expected+=(SHA256SUMS) ;;
 	final)
 		expected+=(SHA256SUMS)
@@ -48,7 +60,7 @@ for f in "${expected[@]}"; do
 	[ -s "$f" ] || { echo "::error::$f is empty" >&2; exit 1; }
 done
 
-if [ "$stage" != built ]; then
+if [ "$stage" = signed ] || [ "$stage" = final ]; then
 	# SHA256SUMS names exactly the payload, no more and no fewer, and the
 	# hashes match the bytes in this directory.
 	listed=$(sed -E 's/^[0-9a-f]{64}[ *]+//' SHA256SUMS | sort)

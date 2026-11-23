@@ -47,11 +47,9 @@ jobs:
       - name: Make the signing environment
         run: |
           set -euo pipefail
-          # What sign-release.sh builds, from the same hash-pinned file: the
+          # The script the release runs, from the same hash-pinned file: the
           # signing tests need `cryptography` to check the signatures.
-          python3 -m venv "$RUNNER_TEMP/sign-venv"
-          "$RUNNER_TEMP/sign-venv/bin/pip" install --quiet --require-hashes \
-            -r scripts/release/sign/sign-requirements.txt
+          bash scripts/release/sign/prepare-signer.sh "$RUNNER_TEMP/sign-venv"
 
       - name: Python tests
         run: |

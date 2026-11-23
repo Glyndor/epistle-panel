@@ -26,10 +26,16 @@ import copy
 
 from wiring_support import FILES, REFERENCE, ROOT, dump_reference, load, walk, without_pin_values
 
-JOB_KEYS = {"name", "needs", "if", "uses", "runs-on", "timeout-minutes", "steps", "outputs", "defaults", "env", "permissions", "strategy", "concurrency"}
+JOB_KEYS = {"name", "needs", "if", "uses", "runs-on", "timeout-minutes", "steps", "outputs", "defaults", "env", "permissions", "strategy", "concurrency", "environment"}
 STEP_KEYS = {"name", "id", "uses", "with", "run", "env", "working-directory", "if"}
-# The one checkout of another ref: the release gate, with a literal.
-CHECKOUT_REF = {(".github/workflows/release.yml", "verify"): "main"}
+# The checkouts of another ref: the release gate, with a literal, and every other job of
+# the release, with the commit the gate verified.
+RELEASE = ".github/workflows/release.yml"
+VERIFIED_COMMIT = "${{ needs.verify.outputs.commit }}"
+CHECKOUT_REF = {(RELEASE, "verify"): "main"}
+CHECKOUT_REF.update({(RELEASE, job): VERIFIED_COMMIT for job in (
+    "build-deb", "sbom", "sign", "rehearse-sign", "release-check", "publish", "image-build",
+    "rehearse-manifest", "image-manifest", "promote-images")})
 
 
 class Contract(unittest.TestCase):
@@ -104,7 +110,7 @@ class Contract(unittest.TestCase):
                 run_defaults = ((scope.get("defaults") or {}).get("run") or {}) if isinstance(scope, dict) else {}
                 self.assertLessEqual(set(run_defaults), {"working-directory"}, path)
 
-    def test_a_checkout_names_no_ref_but_the_release_gate_s_literal(self):
+    def test_a_checkout_names_no_ref_but_the_ones_of_the_release(self):
         for path in sorted(FILES):
             for name, job in load(path).get("jobs", {}).items():
                 for step in job.get("steps", []):

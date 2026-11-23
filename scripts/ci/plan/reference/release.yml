@@ -109,9 +109,22 @@ jobs:
       run: |
         set -euo pipefail
         # Releases are immutable: refuse to re-publish an existing one. The
-        # workflow_dispatch path may only re-run a tag whose release failed.
-        if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-          echo "::error::a release for $TAG already exists; releases are immutable, cut a new patch instead"
+        # workflow_dispatch path may only re-run a tag whose release failed. Only
+        # the answer "no such release" is read as absence: a failure to ask
+        # (no permission, no network) stops the release, it does not clear it.
+        # A draft is what a run that failed before publishing leaves behind and
+        # is not a release yet.
+        status=0
+        state="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq '.isDraft' 2>"$RUNNER_TEMP/view.err")" || status=$?
+        if [ "$status" -eq 0 ]; then
+          if [ "$state" != true ]; then
+            echo "::error::a release for $TAG already exists; releases are immutable, cut a new patch instead"
+            exit 1
+          fi
+          echo "::notice::a draft of $TAG is left over from a run that did not publish; the publish job replaces it"
+        elif ! grep -qi 'release not found' "$RUNNER_TEMP/view.err"; then
+          cat "$RUNNER_TEMP/view.err" >&2
+          echo "::error::could not tell whether a release for $TAG exists"
           exit 1
         fi
     - name: The release images-only completes is published
@@ -123,12 +136,21 @@ jobs:
         # The mirror of the gate above: an images-only dispatch must point at
         # a published release for the tag this job just verified, or it would
         # push images for a version no release carries.
-        published="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" \
-          --json tagName --jq '.tagName' 2>/dev/null || true)"
-        if [ "$published" != "$TAG" ]; then
+        # It also has to be the release this repository made: not a draft, and
+        # carrying the package. Whether the image of that version exists already is
+        # decided where the tags are made, which refuses a version that names
+        # another image.
+        view="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" \
+          --json tagName,isDraft,assets --jq '[.tagName, (.isDraft | tostring), ([.assets[].name] | join(" "))] | @tsv')"
+        IFS=$'\t' read -r published draft assets <<< "$view"
+        if [ "$published" != "$TAG" ] || [ "$draft" != false ]; then
           echo "::error::no release is published for $TAG; images-only completes the images of a published release, it does not publish one"
           exit 1
         fi
+        case " $assets " in
+          *" epistle-panel_${TAG#v}_all.deb "*) ;;
+          *) echo "::error::the release of $TAG does not carry the package; it is not a release this workflow made"; exit 1 ;;
+        esac
   build-deb:
     name: Build Debian package
     needs: verify
@@ -142,6 +164,7 @@ jobs:
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       with:
+        ref: ${{ needs.verify.outputs.commit }}
         persist-credentials: false
     - name: Build the package and lint it, as the Debian package workflow does
       env:
@@ -192,6 +215,8 @@ jobs:
       contents: read
       id-token: write
       attestations: write
+    outputs:
+      sha256: ${{ steps.sum.outputs.sha256 }}
     env:
       TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
     steps:
@@ -214,6 +239,13 @@ jobs:
           printf '%s\n' "$found" >&2
           exit 1
         fi
+    - name: Read the digest of the package
+      id: sum
+      run: |
+        set -euo pipefail
+        sum="$(sha256sum "$RUNNER_TEMP/attest/epistle-panel_${TAG#v}_all.deb" | cut -d' ' -f1)"
+        [[ "$sum" =~ ^[0-9a-f]{64}$ ]]
+        echo "sha256=$sum" >> "$GITHUB_OUTPUT"
     - name: Attest build provenance
       uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8
       with:
@@ -231,6 +263,7 @@ jobs:
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       with:
+        ref: ${{ needs.verify.outputs.commit }}
         persist-credentials: false
     - name: Install Bun at the release the Containerfile names
       working-directory: .
@@ -253,7 +286,73 @@ jobs:
     - verify
     - build-deb
     - sbom
-    if: ${{ !inputs.images-only }}
+    if: ${{ !inputs.images-only && !inputs.dry-run }}
+    environment: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+      COMMIT: ${{ needs.verify.outputs.commit }}
+    steps:
+    - name: Only a run on a release tag signs
+      run: |
+        set -euo pipefail
+        case "$GITHUB_EVENT_NAME:$GITHUB_REF" in
+          push:refs/tags/v* | workflow_dispatch:refs/tags/v*) ;;
+          *)
+            echo "::error::the signing key is for a run on a release tag; this is a $GITHUB_EVENT_NAME on $GITHUB_REF"
+            exit 1
+            ;;
+        esac
+        test "$GITHUB_SHA" = "$COMMIT"
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        ref: ${{ needs.verify.outputs.commit }}
+        persist-credentials: false
+    - name: Receive the package
+      uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+      with:
+        name: release-deb
+        path: ${{ runner.temp }}/in/deb
+    - name: Receive the SBOM
+      uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+      with:
+        name: release-sbom
+        path: ${{ runner.temp }}/in/sbom
+    - name: Check what arrived
+      run: |
+        set -euo pipefail
+        bash scripts/release/verify/check-files.sh "$RUNNER_TEMP/in/deb" "$TAG" deb
+        bash scripts/release/verify/check-files.sh "$RUNNER_TEMP/in/sbom" "$TAG" sbom
+        mkdir "$RUNNER_TEMP/dist"
+        cp -- "$RUNNER_TEMP"/in/deb/* "$RUNNER_TEMP"/in/sbom/* "$RUNNER_TEMP/dist/"
+        bash scripts/release/verify/check-files.sh "$RUNNER_TEMP/dist" "$TAG" built
+    - name: Prepare the signer, with no secret in the step
+      run: bash scripts/release/sign/prepare-signer.sh "$RUNNER_TEMP/signer"
+    - name: Sign the files with the org Ed25519 key
+      env:
+        GLYNDOR_RELEASE_ED25519_KEY: ${{ secrets.GLYNDOR_RELEASE_ED25519_KEY }}
+      run: bash scripts/release/sign/sign-release.sh "$RUNNER_TEMP/dist" "$TAG" "$RUNNER_TEMP/signer" scripts/release/sign/release-verify-key.b64
+    - name: Check what is going to be handed over
+      run: bash scripts/release/verify/check-files.sh "$RUNNER_TEMP/dist" "$TAG" final
+    - name: Hand the checksums and signatures to the next job
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+      with:
+        name: release-signatures
+        path: |
+          ${{ runner.temp }}/dist/SHA256SUMS
+          ${{ runner.temp }}/dist/*.sig
+        retention-days: 1
+        if-no-files-found: error
+  rehearse-sign:
+    name: Rehearse the signing
+    needs:
+    - verify
+    - build-deb
+    - sbom
+    if: ${{ inputs.dry-run }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -263,95 +362,162 @@ jobs:
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       with:
+        ref: ${{ needs.verify.outputs.commit }}
         persist-credentials: false
     - name: Receive the package
       uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
       with:
         name: release-deb
-        path: dist
+        path: ${{ runner.temp }}/in/deb
     - name: Receive the SBOM
       uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
       with:
         name: release-sbom
-        path: dist
+        path: ${{ runner.temp }}/in/sbom
     - name: Check what arrived
-      run: bash scripts/release/verify/check-files.sh dist "$TAG" built
-    - name: Make a throwaway key for the rehearsal
-      if: ${{ inputs.dry-run }}
       run: |
-        key=$(python3 -c 'import base64, os; print(base64.b64encode(os.urandom(32)).decode())')
+        set -euo pipefail
+        bash scripts/release/verify/check-files.sh "$RUNNER_TEMP/in/deb" "$TAG" deb
+        bash scripts/release/verify/check-files.sh "$RUNNER_TEMP/in/sbom" "$TAG" sbom
+        mkdir "$RUNNER_TEMP/dist"
+        cp -- "$RUNNER_TEMP"/in/deb/* "$RUNNER_TEMP"/in/sbom/* "$RUNNER_TEMP/dist/"
+        bash scripts/release/verify/check-files.sh "$RUNNER_TEMP/dist" "$TAG" built
+    - name: Prepare the signer
+      run: bash scripts/release/sign/prepare-signer.sh "$RUNNER_TEMP/signer"
+    - name: Make a throwaway key and its public half
+      run: |
+        set -euo pipefail
+        key=$(python3 -I -c 'import base64, os; print(base64.b64encode(os.urandom(32)).decode())')
         echo "::add-mask::$key"
         echo "REHEARSAL_KEY=$key" >> "$GITHUB_ENV"
-    - name: Sign the files with the org Ed25519 key
-      if: ${{ !inputs.dry-run }}
-      env:
-        GLYNDOR_RELEASE_ED25519_KEY: ${{ secrets.GLYNDOR_RELEASE_ED25519_KEY }}
-      run: bash scripts/release/sign/sign-release.sh dist "$TAG"
-    - name: Sign the files with the throwaway key (rehearsal)
-      if: ${{ inputs.dry-run }}
+        GLYNDOR_RELEASE_ED25519_KEY="$key" "$RUNNER_TEMP/signer/bin/python" -I scripts/release/sign/sign_file.py --public > "$RUNNER_TEMP/rehearsal-key.b64"
+    - name: Sign the files with the throwaway key and verify every signature
       env:
         GLYNDOR_RELEASE_ED25519_KEY: ${{ env.REHEARSAL_KEY }}
-      run: bash scripts/release/sign/sign-release.sh dist "$TAG"
-    - name: Check what is going to be published
-      run: bash scripts/release/verify/check-files.sh dist "$TAG" final
-    - name: Hand the checksums and signatures to the next job
-      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+      run: bash scripts/release/sign/sign-release.sh "$RUNNER_TEMP/dist" "$TAG" "$RUNNER_TEMP/signer" "$RUNNER_TEMP/rehearsal-key.b64"
+    - name: Check what would be published
+      run: bash scripts/release/verify/check-files.sh "$RUNNER_TEMP/dist" "$TAG" final
+  release-check:
+    name: Check the release files
+    needs:
+    - verify
+    - sign
+    - attest-deb
+    if: ${{ !cancelled() && !inputs.images-only && !inputs.dry-run && needs.sign.result == 'success' && needs.attest-deb.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+      ATTESTED_SHA256: ${{ needs.attest-deb.outputs.sha256 }}
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        ref: ${{ needs.verify.outputs.commit }}
+        persist-credentials: false
+    - name: Receive the package
+      uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+      with:
+        name: release-deb
+        path: ${{ runner.temp }}/in/deb
+    - name: Receive the SBOM
+      uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+      with:
+        name: release-sbom
+        path: ${{ runner.temp }}/in/sbom
+    - name: Receive the checksums and signatures
+      uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
       with:
         name: release-signatures
-        path: |
-          dist/SHA256SUMS
-          dist/*.sig
+        path: ${{ runner.temp }}/in/signatures
+    - name: Each artifact is exactly its files, and together they are the release
+      run: |
+        set -euo pipefail
+        bash scripts/release/verify/check-files.sh "$RUNNER_TEMP/in/deb" "$TAG" deb
+        bash scripts/release/verify/check-files.sh "$RUNNER_TEMP/in/sbom" "$TAG" sbom
+        bash scripts/release/verify/check-files.sh "$RUNNER_TEMP/in/signatures" "$TAG" signatures
+        mkdir "$RUNNER_TEMP/release"
+        cp -- "$RUNNER_TEMP"/in/deb/* "$RUNNER_TEMP"/in/sbom/* "$RUNNER_TEMP"/in/signatures/* "$RUNNER_TEMP/release/"
+        bash scripts/release/verify/check-files.sh "$RUNNER_TEMP/release" "$TAG" final
+    - name: The package is the one that was attested
+      run: |
+        set -euo pipefail
+        [[ "$ATTESTED_SHA256" =~ ^[0-9a-f]{64}$ ]]
+        sum="$(sha256sum "$RUNNER_TEMP/release/epistle-panel_${TAG#v}_all.deb" | cut -d' ' -f1)"
+        if [ "$sum" != "$ATTESTED_SHA256" ]; then
+          echo "::error::the package to publish is $sum, the one that was attested is $ATTESTED_SHA256"
+          exit 1
+        fi
+    - name: Prepare the verifier
+      run: bash scripts/release/sign/prepare-signer.sh "$RUNNER_TEMP/signer"
+    - name: Every signature verifies under the pinned key
+      run: |
+        set -euo pipefail
+        "$RUNNER_TEMP/signer/bin/python" -I scripts/release/sign/verify_signatures.py "$RUNNER_TEMP/release" "$TAG" scripts/release/sign/release-verify-key.b64
+    - name: Hand the release files to the publishing job
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+      with:
+        name: release-files
+        path: ${{ runner.temp }}/release/*
         retention-days: 1
         if-no-files-found: error
   publish:
     name: Publish release
     needs:
     - verify
-    - sign
-    - attest-deb
-    if: ${{ !inputs.images-only && !inputs.dry-run }}
+    - release-check
+    - image-manifest
+    if: ${{ !cancelled() && !inputs.images-only && !inputs.dry-run && needs.release-check.result == 'success' && needs.image-manifest.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
       contents: write
     env:
       TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+      COMMIT: ${{ needs.verify.outputs.commit }}
+      GH_TOKEN: ${{ github.token }}
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       with:
+        ref: ${{ needs.verify.outputs.commit }}
         persist-credentials: false
-    - name: Receive the package
+    - name: Receive the release files
       uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
       with:
-        name: release-deb
-        path: dist
-    - name: Receive the SBOM
-      uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
-      with:
-        name: release-sbom
-        path: dist
-    - name: Receive the checksums and signatures
-      uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
-      with:
-        name: release-signatures
-        path: dist
+        name: release-files
+        path: ${{ runner.temp }}/release
     - name: Check what is going to be published
-      run: bash scripts/release/verify/check-files.sh dist "$TAG" final
-    - name: Create release
-      env:
-        GH_TOKEN: ${{ github.token }}
+      run: bash scripts/release/verify/check-files.sh "$RUNNER_TEMP/release" "$TAG" final
+    - name: The tag is still the commit that was built
+      run: bash scripts/release/publish/check-tag.sh "$TAG" "$COMMIT" "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
+    - name: Create the release as a draft
       run: |
+        set -euo pipefail
+        status=0
+        state="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq '.isDraft' 2>"$RUNNER_TEMP/view.err")" || status=$?
+        if [ "$status" -eq 0 ]; then
+          [ "$state" = true ] || { echo "::error::a release for $TAG exists and is not a draft"; exit 1; }
+          gh release delete "$TAG" --repo "$GITHUB_REPOSITORY" --yes
+        elif ! grep -qi 'release not found' "$RUNNER_TEMP/view.err"; then
+          cat "$RUNNER_TEMP/view.err" >&2
+          echo "::error::could not tell whether a release for $TAG exists"
+          exit 1
+        fi
         gh release create "$TAG" \
           --repo "$GITHUB_REPOSITORY" \
+          --draft \
           --generate-notes \
           --verify-tag \
-          dist/*
+          "$RUNNER_TEMP"/release/*
+    - name: The tag is still the commit that was built, now with the files attached
+      run: bash scripts/release/publish/check-tag.sh "$TAG" "$COMMIT" "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
+    - name: Publish the draft
+      run: gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false
   image-build:
     name: Build image (${{ matrix.arch }})
-    needs:
-    - verify
-    - publish
-    if: ${{ always() && needs.verify.result == 'success' && (needs.publish.result == 'success' || inputs.images-only || inputs.dry-run) }}
+    needs: verify
+    if: ${{ !cancelled() && needs.verify.result == 'success' }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 20
     permissions:
@@ -370,6 +536,7 @@ jobs:
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       with:
+        ref: ${{ needs.verify.outputs.commit }}
         persist-credentials: false
     - name: Build the image for ${{ matrix.arch }}
       env:
@@ -377,9 +544,8 @@ jobs:
       run: |
         set -euo pipefail
         version="${TAG#v}"
-        # REVISION is the commit the checkout above produced, not
-        # github.sha: on a dispatch, github.sha is the commit the workflow
-        # was launched from, not the one the tag names.
+        # REVISION is the commit the checkout above produced, which `verify`
+        # resolved from the tag once.
         podman build \
           --platform "linux/${ARCH}" \
           --build-arg "VERSION=${version}" \
@@ -426,7 +592,7 @@ jobs:
     needs:
     - verify
     - image-build
-    if: ${{ always() && !inputs.dry-run && needs.image-build.result == 'success' }}
+    if: ${{ !cancelled() && !inputs.dry-run && needs.image-build.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -435,6 +601,7 @@ jobs:
     env:
       TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
       REGISTRY_IMAGE: ghcr.io/glyndor/epistle-panel
+      STAGE: ci-${{ github.run_id }}-${{ github.run_attempt }}
     strategy:
       fail-fast: false
       matrix:
@@ -472,13 +639,26 @@ jobs:
         # `--password-stdin` keeps the token off the command line and out of
         # the runner log.
         echo "${GH_TOKEN}" | podman login ghcr.io -u "${ACTOR}" --password-stdin
-    - name: Push the ${{ matrix.arch }} image
+    - name: Push the ${{ matrix.arch }} image under the staging tag
       env:
         ARCH: ${{ matrix.arch }}
       run: |
         set -euo pipefail
+        # The tag of the version is not pushed here: the image is named by the
+        # digest the push reports, and the public tags are made after the release.
         podman load -i "$RUNNER_TEMP/image-in/image-${ARCH}.tar"
-        podman push "${REGISTRY_IMAGE}:${TAG#v}-${ARCH}"
+        podman tag "${REGISTRY_IMAGE}:${TAG#v}-${ARCH}" "${REGISTRY_IMAGE}:${STAGE}-${ARCH}"
+        mkdir "$RUNNER_TEMP/digest-out"
+        podman push --digestfile "$RUNNER_TEMP/digest-out/digest" "${REGISTRY_IMAGE}:${STAGE}-${ARCH}"
+        digest="$(cat "$RUNNER_TEMP/digest-out/digest")"
+        [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+    - name: Hand the digest to the manifest job
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+      with:
+        name: release-image-digest-${{ matrix.arch }}
+        path: ${{ runner.temp }}/digest-out/digest
+        retention-days: 1
+        if-no-files-found: error
   rehearse-manifest:
     name: Rehearse the manifest publication
     needs: verify
@@ -490,6 +670,7 @@ jobs:
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       with:
+        ref: ${{ needs.verify.outputs.commit }}
         persist-credentials: false
     - name: Publish a manifest list to a local registry
       env:
@@ -497,11 +678,11 @@ jobs:
         REGISTRY: docker.io/library/registry:3@sha256:82f6ff4a7f982960c8aa51617fea3aabc485df6e55cce80d22deb1de36f1bc3c
       run: bash scripts/release/publish/rehearse-manifest.sh "$REGISTRY" "$TAG"
   image-manifest:
-    name: Publish multi-arch image manifest
+    name: Stage and attest the multi-arch image
     needs:
     - verify
     - image-push
-    if: ${{ always() && !inputs.dry-run && needs.image-push.result == 'success' }}
+    if: ${{ !cancelled() && !inputs.dry-run && needs.image-push.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -509,9 +690,11 @@ jobs:
       packages: write
       id-token: write
       attestations: write
+    outputs:
+      digest: ${{ steps.manifest.outputs.digest }}
     env:
-      TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
       REGISTRY_IMAGE: ghcr.io/glyndor/epistle-panel
+      STAGE: ci-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
     - name: Log in to ghcr.io
       env:
@@ -532,13 +715,76 @@ jobs:
           --compat-auth-file "$HOME/.docker/config.json"
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       with:
+        ref: ${{ needs.verify.outputs.commit }}
         persist-credentials: false
-    - name: Build and push the multi-arch manifest list
+    - name: Receive the digest of the amd64 image
+      uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+      with:
+        name: release-image-digest-amd64
+        path: ${{ runner.temp }}/digest-amd64
+    - name: Receive the digest of the arm64 image
+      uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+      with:
+        name: release-image-digest-arm64
+        path: ${{ runner.temp }}/digest-arm64
+    - name: Join the two images by digest under the staging tag
       id: manifest
-      run: bash scripts/release/publish/publish-manifest.sh "$REGISTRY_IMAGE" "$TAG"
+      run: |
+        set -euo pipefail
+        for arch in amd64 arm64; do
+          dir="$RUNNER_TEMP/digest-$arch"
+          found="$(find "$dir" -mindepth 1 -printf '%P\n')"
+          if [ "$found" != digest ] || [ ! -f "$dir/digest" ] || [ -L "$dir/digest" ]; then
+            echo "::error::the digest of $arch is not exactly one regular file"
+            exit 1
+          fi
+        done
+        bash scripts/release/publish/publish-manifest.sh "$REGISTRY_IMAGE" "$STAGE" \
+          "$(cat "$RUNNER_TEMP/digest-amd64/digest")" "$(cat "$RUNNER_TEMP/digest-arm64/digest")"
     - name: Attest the multi-arch image
       uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8
       with:
         subject-name: ${{ env.REGISTRY_IMAGE }}
         subject-digest: ${{ steps.manifest.outputs.digest }}
         push-to-registry: true
+  promote-images:
+    name: Publish the image tags
+    needs:
+    - verify
+    - image-manifest
+    - publish
+    if: ${{ !cancelled() && !inputs.dry-run && needs.image-manifest.result == 'success' && (needs.publish.result == 'success' || inputs.images-only) }}
+    concurrency:
+      group: release-image-tags
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+    env:
+      TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+      REGISTRY_IMAGE: ghcr.io/glyndor/epistle-panel
+      DIGEST: ${{ needs.image-manifest.outputs.digest }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+    - name: Log in to ghcr.io
+      env:
+        REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        ACTOR: ${{ github.actor }}
+      run: |
+        set -euo pipefail
+        echo "${REGISTRY_TOKEN}" | podman login ghcr.io -u "${ACTOR}" --password-stdin
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        ref: ${{ needs.verify.outputs.commit }}
+        persist-credentials: false
+    - name: List the published versions
+      run: |
+        set -euo pipefail
+        gh release list --repo "$GITHUB_REPOSITORY" --limit 1000 --json tagName,isDraft \
+          --jq '.[] | select(.isDraft | not) | .tagName' > "$RUNNER_TEMP/published"
+        # A version that is not published has no tags to take.
+        grep -qxF "$TAG" "$RUNNER_TEMP/published" || { echo "::error::$TAG is not a published release"; exit 1; }
+    - name: Point the tags at the staged list
+      run: bash scripts/release/publish/promote-tags.sh "$REGISTRY_IMAGE" "$DIGEST" "$TAG" "$RUNNER_TEMP/published"
