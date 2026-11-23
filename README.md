@@ -358,7 +358,7 @@ suites the changed files can move: `lint`, `unit` (build and tests with the
 coverage threshold), `randomized` (the unit suite in random order with a fixed
 seed), `e2e`, `container`, `debian` (the package inputs), `release-scripts`
 (the tag check, image tags, signing and publishing scripts), `actionlint`,
-`bun-version` (one Bun release across the workflows and the Containerfile) and
+`bun-version` (the Bun release is the Containerfile's, installed after a hash check) and
 `ci-scripts` (the tests of the scripts the checks run, and of the wiring of the CI
 itself). A pull request of prose alone runs none of them. The `line limit` job
 judges the whole tree, so it runs on every change. The suites run in three layers,

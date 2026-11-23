@@ -65,7 +65,7 @@ CASES = {
     "scripts/e2e/run.sh": {"e2e"},
     "scripts/e2e/scenarios/auth/login.ts": {"e2e"},
     "scripts/headers/verify.sh": {"e2e"},
-    "Containerfile": {"container", "bun-version"},
+    "Containerfile": APP | {"container", "bun-version", "e2e"},
     ".containerignore": {"container"},
     "scripts/consistency/check-base-indexes.sh": {"container", "bun-version"},
     "scripts/consistency/check-bun-version.sh": {"bun-version"},
@@ -85,6 +85,8 @@ CASES = {
 
 # A change to the machinery runs everything.
 MACHINERY = [
+    "scripts/ci/bun/install.sh",
+    "scripts/ci/bun/SHA256SUMS",
     ".github/workflows/ci.yml",
     "scripts/ci/plan/plan.py",
     "scripts/ci/plan/map.toml",
@@ -99,7 +101,7 @@ NOTHING = set()
 # (patterns, suites) in order; the first that matches a file is its expectation.
 # A callable gets the set of all suites.
 EXPECTED = [
-    (["scripts/ci/plan/**", ".github/workflows/ci.yml"], lambda everything: everything),
+    (["scripts/ci/plan/**", "scripts/ci/bun/**", ".github/workflows/ci.yml"], lambda everything: everything),
     ([".github/workflows/*.yml"], {"actionlint", "bun-version", "ci-scripts"}),
     ([".github/dependabot.yml", ".github/folder-limit-exceptions.txt", ".editorconfig", ".gitignore", "internal/.gitignore", "scripts/folder-limit/**"], NOTHING),
     (["scripts/ci/**"], {"ci-scripts"}),
@@ -109,7 +111,7 @@ EXPECTED = [
     (["internal/biome.json", "internal/components.json"], {"lint"}),
     (["internal/src/**/*.test.ts", "internal/src/**/*.test.tsx", "internal/src/test/**", "internal/src/**/test-support/**"], APP),
     (["internal/src/**"], APP | SHIPPED),
-    (["Containerfile"], {"container", "bun-version"}),
+    (["Containerfile"], APP | {"container", "bun-version", "e2e"}),
     ([".containerignore"], {"container"}),
     (["debian/**", "scripts/debian/**"], {"debian"}),
     (["scripts/release/version/check-changelog.sh"], {"debian", "release-scripts"}),
@@ -302,7 +304,7 @@ class Integrity(unittest.TestCase):
             DATA["ignore"]["paths"],
             ["**/*.md", "docs/**", "LICENSE", ".editorconfig", ".gitignore", "internal/.gitignore", ".github/dependabot.yml", ".github/folder-limit-exceptions.txt", "scripts/folder-limit/**"],
         )
-        self.assertEqual(DATA["machinery"], ["scripts/ci/plan/**", ".github/workflows/ci.yml"])
+        self.assertEqual(DATA["machinery"], ["scripts/ci/plan/**", "scripts/ci/bun/**", ".github/workflows/ci.yml"])
         self.assertEqual(DATA["always"], ["line-limit"])
 
     def test_every_ignore_pattern_covers_a_file_nobody_else_reads(self):

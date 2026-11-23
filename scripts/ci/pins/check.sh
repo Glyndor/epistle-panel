@@ -8,7 +8,8 @@
 #   - local (`./...`), or
 #   - `actions/<name>[/<path>]@<40 hex digits>` or `github/<name>[/<path>]@<40 hex digits>`, or
 #   - `docker://<image>@sha256:<64 hex digits>`, or
-#   - one of the third-party references in ALLOWED_THIRD_PARTY below.
+#   - one of the third-party references in ALLOWED_THIRD_PARTY below, which is
+#     empty: nothing outside actions/ and github/ runs here.
 # A tag, a short or abbreviated SHA, a branch, a missing `@`, an owner that is not
 # on the list and an image without a digest each fail, and so does a `uses:` the
 # reader cannot take apart (written inside a flow mapping, for instance): a line
@@ -19,9 +20,8 @@
 set -euo pipefail
 export LC_ALL=C
 
-# Third-party references that are still allowed, by exact owner/name. Each one is
-# a debt with the pull request that removes it.
-ALLOWED_THIRD_PARTY=("oven-sh/setup-bun")
+# Third-party references that are allowed, by exact owner/name. There are none.
+ALLOWED_THIRD_PARTY=()
 
 cd "$(git rev-parse --show-toplevel)"
 
@@ -75,7 +75,7 @@ while IFS= read -r -d '' file; do
 		actions | github) ;;
 		*)
 			allowed=0
-			for ok in "${ALLOWED_THIRD_PARTY[@]}"; do
+			for ok in ${ALLOWED_THIRD_PARTY[@]+"${ALLOWED_THIRD_PARTY[@]}"}; do
 				[ "$ref" != "$ok@$version" ] && [ "$owner/$name" != "$ok" ] || allowed=1
 			done
 			if [ "$allowed" -ne 1 ]; then

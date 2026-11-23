@@ -2,7 +2,7 @@
 # Tests of scripts/ci/pins/check.sh in throwaway repositories. A commit-pinned
 # action of actions/ or github/, a local one, an allowed third party and an image
 # with a digest pass. A tag, a short SHA, a branch, a missing @, a 39 and a 41 digit
-# SHA, a third party that is not allowed (a pinned one too), an image without a
+# SHA, a third party (a pinned one too), an image without a
 # digest, a `uses:` the reader cannot take apart and an empty tree each fail, in a
 # workflow and in an action, with either suffix.
 set -euo pipefail
@@ -41,7 +41,7 @@ case_ pass "actions pinned to a commit, with a version comment" $wf "      - use
 case_ pass "github pinned to a commit, with a path" $wf "      - uses: github/codeql-action/init@$sha"
 case_ pass "a local workflow" $wf "    uses: ./.github/workflows/ci-e2e.yml"
 case_ pass "an image with a digest" $wf "      - uses: docker://alpine@sha256:$dig"
-case_ pass "the allowed third party, pinned" $wf "      - uses: oven-sh/setup-bun@$sha"
+case_ fail "the action that used to be allowed, pinned" $wf "      - uses: oven-sh/setup-bun@$sha"
 case_ fail "a tag: actions/checkout@v7" $wf "      - uses: actions/checkout@v7"
 case_ fail "a tag with a patch: actions/checkout@v7.0.1" $wf "      - uses: actions/checkout@v7.0.1"
 case_ fail "a branch" $wf "      - uses: actions/checkout@main"
@@ -51,7 +51,6 @@ case_ fail "a 41 digit SHA" $wf "      - uses: actions/checkout@${sha}a"
 case_ fail "no @ at all" $wf "      - uses: actions/checkout"
 case_ fail "a third party that is not allowed, pinned" $wf "      - uses: someone/tool@$sha"
 case_ fail "a reusable workflow of the organisation" $wf "    uses: Glyndor/.github/.github/workflows/dco.yml@$sha"
-case_ fail "a third party that only starts like an allowed one" $wf "      - uses: oven-sh/setup-bunny@$sha"
 case_ fail "an image without a digest" $wf "      - uses: docker://alpine:3"
 case_ fail "an image with a tag and a short digest" $wf "      - uses: docker://alpine@sha256:abc"
 case_ fail "a uses: inside a flow mapping, which the reader cannot take apart" $wf "      - { uses: actions/checkout@v7 }"

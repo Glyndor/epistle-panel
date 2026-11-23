@@ -126,9 +126,9 @@ class TreeJudges(unittest.TestCase):
         self.assertEqual(run.count("bun audit"), 2)
         checkout = job["steps"][0]
         self.assertEqual(checkout["with"], {"fetch-depth": 0, "persist-credentials": False})
-        setup = job["steps"][1]
-        self.assertTrue(setup["uses"].startswith("oven-sh/setup-bun@"))
-        self.assertEqual(setup["with"], {"bun-version": "1.4.4", "no-cache": True}, "no cache in this job")
+        install = job["steps"][1]
+        self.assertEqual(install["run"], "bash scripts/ci/bun/install.sh", "Bun comes from the installer of the event's own tree, with no cache")
+        self.assertNotIn("uses", install)
         self.assertEqual(len(job["steps"]), 3)
 
     def test_the_audit_step_audits_each_branch_in_an_empty_folder_outside_the_workspace(self):

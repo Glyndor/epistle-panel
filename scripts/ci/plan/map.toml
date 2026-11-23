@@ -25,6 +25,7 @@ always = ["line-limit"]
 # suite: it is the one change that can switch the others off.
 machinery = [
 	"scripts/ci/plan/**",
+	"scripts/ci/bun/**",
 	".github/workflows/ci.yml",
 ]
 
@@ -47,24 +48,27 @@ paths = [
 
 # Biome reads every file of the project, its own settings and the shadcn ones
 # included.
+# The Containerfile is an input of every job that runs Bun: its stage names the
+# release that scripts/ci/bun/install.sh installs.
 [suites.lint]
 push = true
-include = ["internal/**"]
+include = ["internal/**", "Containerfile"]
 exclude = ["internal/.gitignore"]
 
 # The build and the tests read the project; the settings of Biome and of the
 # shadcn command line are not among their inputs.
 [suites.unit]
 push = true
-include = ["internal/**", "scripts/test/**"]
+include = ["internal/**", "scripts/test/**", "Containerfile"]
 exclude = ["internal/.gitignore", "internal/biome.json", "internal/components.json"]
 
 [suites.randomized]
-include = ["internal/**", "scripts/test/**"]
+include = ["internal/**", "scripts/test/**", "Containerfile"]
 exclude = ["internal/.gitignore", "internal/biome.json", "internal/components.json"]
 
 [suites.e2e]
 include = [
+	"Containerfile",
 	"internal/src/**",
 	"internal/next.config.ts",
 	"internal/postcss.config.mjs",
