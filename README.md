@@ -362,7 +362,8 @@ seed), `e2e`, `container`, `debian` (the package inputs), `release-scripts`
 `line-limit` and `ci-scripts` (the tests of the scripts the checks run). A pull
 request of prose alone runs none of them. The suites run in three layers, the
 cheap ones first, and a suite waits for every layer before it, so a failure stops
-the dearer ones from starting. A push to `main` or `develop` runs `lint` and
+the dearer ones from starting, and a failure in the first layer cancels the other
+runs of the commit (CodeQL, the sign-off check). A push to `main` or `develop` runs `lint` and
 `unit`. The gate fails for a suite that had to run and did not, and for one that
 ran when the plan said nothing of its own had changed; the map and its test are in
 `scripts/ci/plan`.

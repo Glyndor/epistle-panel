@@ -23,6 +23,7 @@ name: CI
 # The plan is read for its word and its success: if it fails, every suite is
 # skipped and `ci gate` fails, because GitHub counts a skipped check as passed:
 #   1  plan, line-limit, actionlint, bun-version, ci-scripts, lint   about 5 to 40 s each
+#      (cut: if one of them fails, cancel the other runs of the commit)
 #   2  unit, randomized, debian, release-scripts                      about 40 to 90 s each
 #   3  e2e, container                                                 about 70 and 230 s
 #
@@ -247,6 +248,51 @@ jobs:
 
       - name: Lint
         run: bun run lint
+
+  # When a cheap check fails, what else runs for the same commit answers a
+  # question about a change that will be pushed again: CodeQL is the dear one,
+  # about 90 s. This cancels the other runs of the pull request commit, but not
+  # this one, whose `ci gate` has to report the failure. The layers below stop on
+  # their own, since a job waits for every layer before it.
+  #
+  # It is the only job that holds `actions: write`, so it runs nothing the pull
+  # request wrote: the script is the base commit's copy, and a base without it
+  # cancels nothing. The script cancels only runs of the `pull_request` event, of
+  # the same branch and commit, from a list of workflows it names; a push, a merge
+  # queue run, a scheduled run and a release are never among them. A pull request
+  # of Dependabot has a token that cannot cancel, and that is a notice.
+  cut:
+    name: cancel the other runs
+    needs: [plan, line-limit, actionlint, bun-version, ci-scripts, lint]
+    if: ${{ failure() && github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    # Measured 2026-11-22: about 5 s.
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+
+      - name: Cancel the other runs of this pull request commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          SELF: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          if ! git cat-file -e "${BASE_SHA}:scripts/ci/cancel/others.sh" 2>/dev/null; then
+            echo "::notice::the base commit has no scripts/ci/cancel/others.sh; nothing was cancelled"
+            exit 0
+          fi
+          git show "${BASE_SHA}:scripts/ci/cancel/others.sh" >"$RUNNER_TEMP/others.sh"
+          bash "$RUNNER_TEMP/others.sh"
 
   unit:
     name: unit
