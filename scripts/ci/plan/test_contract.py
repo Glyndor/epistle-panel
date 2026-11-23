@@ -22,7 +22,9 @@ import difflib
 import os
 import unittest
 
-from wiring_support import FILES, REFERENCE, ROOT, dump_reference, load, walk
+import copy
+
+from wiring_support import FILES, REFERENCE, ROOT, dump_reference, load, walk, without_pin_values
 
 JOB_KEYS = {"name", "needs", "if", "uses", "runs-on", "timeout-minutes", "steps", "outputs", "defaults", "env", "permissions", "strategy", "concurrency"}
 STEP_KEYS = {"name", "id", "uses", "with", "run", "env", "working-directory", "if"}
@@ -36,12 +38,52 @@ class Contract(unittest.TestCase):
 
     def test_every_workflow_equals_its_reference_copy(self):
         for path in sorted(FILES):
-            ours = load(path)
+            ours = without_pin_values(load(path))
             with open(os.path.join(REFERENCE, os.path.basename(path)), encoding="utf-8") as handle:
-                theirs = load(os.path.relpath(handle.name, ROOT))
+                theirs = without_pin_values(load(os.path.relpath(handle.name, ROOT)))
             if ours != theirs:
                 diff = "\n".join(difflib.unified_diff(dump_reference(theirs).splitlines(), dump_reference(ours).splitlines(), "reference", path, lineterm="", n=2))
                 self.fail(f"{path} differs from its reference copy (scripts/ci/plan/refresh_reference.py writes it):\n{diff[:3000]}")
+
+    def test_a_bump_of_a_pin_does_not_need_the_reference_to_be_written_again(self):
+        """What Dependabot does: a new commit for an action, a new digest for an image."""
+        doc = load(".github/workflows/ci.yml")
+        bumped = copy.deepcopy(doc)
+        step = bumped["jobs"]["plan"]["steps"][0]
+        self.assertRegex(step["uses"], r"^actions/checkout@[0-9a-f]{40}$")
+        step["uses"] = "actions/checkout@" + "f" * 40
+        self.assertEqual(without_pin_values(bumped), without_pin_values(doc))
+        image = load(".github/workflows/ci-debian.yml")
+        moved = copy.deepcopy(image)
+        moved["env"]["DEBIAN_IMAGE"] = moved["env"]["DEBIAN_IMAGE"].split("@sha256:")[0] + "@sha256:" + "e" * 64
+        self.assertNotEqual(moved, image)
+        self.assertEqual(without_pin_values(moved), without_pin_values(image))
+
+    def test_what_is_not_the_value_of_a_pin_still_has_to_be_equal(self):
+        doc = load(".github/workflows/ci.yml")
+        image = load(".github/workflows/ci-debian.yml")
+
+        def changed(base, edit):
+            other = copy.deepcopy(base)
+            edit(other)
+            return without_pin_values(other) != without_pin_values(base)
+
+        def first(d):
+            return d["jobs"]["plan"]["steps"][0]
+
+        self.assertTrue(changed(doc, lambda d: first(d).update(uses="actions/other@" + "a" * 40)), "the name of the action")
+        self.assertTrue(changed(doc, lambda d: first(d).update(uses="someone/checkout@" + "a" * 40)), "the owner of the action")
+        self.assertTrue(changed(doc, lambda d: first(d).update(uses="actions/checkout")), "the pin taken away")
+        self.assertTrue(changed(doc, lambda d: first(d).update(uses="actions/checkout@v7")), "a tag for a commit")
+        self.assertTrue(changed(doc, lambda d: first(d).update(uses="actions/checkout@" + "a" * 39)), "a short commit")
+        self.assertTrue(changed(doc, lambda d: first(d).update(uses="actions/checkout@" + "a" * 41)), "a long commit")
+        self.assertTrue(changed(doc, lambda d: first(d).update(uses="actions/checkout@" + "A" * 40)), "an upper case commit")
+        self.assertTrue(changed(doc, lambda d: first(d).update(uses="./actions/checkout")), "a local action")
+        self.assertTrue(changed(image, lambda d: d["env"].update(DEBIAN_IMAGE="docker.io/library/ubuntu:trixie@sha256:" + "e" * 64)), "the repository of the image")
+        self.assertTrue(changed(image, lambda d: d["env"].update(DEBIAN_IMAGE="docker.io/library/debian:forky@sha256:" + "e" * 64)), "the tag of the image")
+        self.assertTrue(changed(image, lambda d: d["env"].update(DEBIAN_IMAGE="docker.io/library/debian:trixie")), "the digest taken away")
+        self.assertTrue(changed(image, lambda d: d["env"].update(DEBIAN_IMAGE="docker.io/library/debian:trixie@sha256:" + "e" * 63)), "a short digest")
+        self.assertTrue(changed(doc, lambda d: d["jobs"]["unit"]["steps"][-1].update(run="echo 'scripts/test/coverage.sh'")), "a command")
 
     def test_no_job_or_step_has_a_property_the_contract_does_not_know(self):
         for path in sorted(FILES):

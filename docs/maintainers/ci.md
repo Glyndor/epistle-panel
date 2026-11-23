@@ -9,3 +9,10 @@
 3. **Make it required.** A third, minimal pull request takes the name off `optional` and out of the list the tests hold (`test_a_suite_without_a_job_is_an_optional_one_and_the_list_is_closed`). Until then a pull request could remove the job from the workflow and the gate would accept its absence.
 
 The same goes for a change of the map or of the gate that the base would read differently: it is judged by the base, so it takes effect for the pull requests after it, not for itself.
+
+## The contract of the workflows
+
+`scripts/ci/plan/test_contract.py` holds every workflow of `.github/workflows/` equal to a copy without comments in `scripts/ci/plan/reference/`.
+
+- **Run `python3 scripts/ci/plan/refresh_reference.py` when a workflow is changed by hand**, then read the diff of the copy next to the diff of the workflow: both show in the pull request.
+- **A bump of a pin does not need it.** The test leaves out the value of the commit of an action (`uses: owner/name@<40 digits>`) and of an image digest (`@sha256:<64 digits>`) on both sides, so a Dependabot pull request that moves a pin passes with the copy as it is. The name of the action, the repository and the tag of the image, the comment-free rest of the file and the fact that a pin is a full commit (`scripts/ci/pins/check.sh`) are still held.

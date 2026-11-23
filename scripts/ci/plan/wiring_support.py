@@ -130,6 +130,31 @@ def dump_reference(doc):
 
 REFERENCE = os.path.join(HERE, "reference")
 
+# What Dependabot edits in a workflow is the value of a pin and nothing else: the
+# commit of an action (its comment of version is a comment, and the loader drops
+# it) and the digest of an image. Both sides of the comparison with the reference
+# copy have these values taken out, so a bump of a pin does not need the copy to be
+# written again; the name of the action, the repository of the image and everything
+# else still have to be equal.
+_ACTION_PIN = re.compile(r"^([A-Za-z0-9._-]+/[A-Za-z0-9._-]+(?:/[A-Za-z0-9._/-]+)?)@[0-9a-f]{40}$")
+_DIGEST = re.compile(r"@sha256:[0-9a-f]{64}")
+
+
+def without_pin_values(node):
+    """The document with the commit of each `uses:` and each image digest replaced by <PIN>."""
+    if isinstance(node, dict):
+        out = {}
+        for key, value in node.items():
+            if key == "uses" and isinstance(value, str):
+                value = _ACTION_PIN.sub(r"\1@<PIN>", value)
+            out[key] = without_pin_values(value)
+        return out
+    if isinstance(node, list):
+        return [without_pin_values(item) for item in node]
+    if isinstance(node, str):
+        return _DIGEST.sub("@sha256:<PIN>", node)
+    return node
+
 
 def tracked():
     out = subprocess.run(["git", "ls-files", "-z"], cwd=ROOT, check=True, capture_output=True).stdout
