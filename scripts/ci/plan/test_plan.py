@@ -192,7 +192,7 @@ class Selection(unittest.TestCase):
         self.assertEqual({s for s, on in verdict.items() if on}, {"lint", "unit"})
 
     def test_any_other_event_runs_every_suite(self):
-        for event in ("workflow_dispatch", "schedule", "merge_group", ""):
+        for event in ("workflow_dispatch", "schedule", "merge_group", "promotion", ""):
             verdict, _ = run_plan(["README.md"], event)
             self.assertTrue(all(verdict.values()), event)
 

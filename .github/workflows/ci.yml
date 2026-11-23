@@ -4,11 +4,15 @@ name: CI
 # check whether they are complete.
 #
 # Events and why:
-#   pull_request  into develop. The promotion pull request to main carries a tree
-#                 that already passed here, and main requires only `develop-only`.
+#   pull_request  into develop, and into main. A pull request into main is the
+#                 promotion of develop and runs every suite, with no plan: the
+#                 gate that stands for it must not rest on what an earlier run
+#                 looked at.
 #   push          to develop and to main: the state of the branch after a merge.
 #                 Only the suites the map marks `push` run (lint and unit); the
-#                 rest answered on the pull request about the same tree.
+#                 rest answered on the pull request about the same tree. Its gate
+#                 is named `ci gate (push)`, so a push can never satisfy the
+#                 `ci gate` that a pull request requires for the same commit.
 #
 # `plan` reads scripts/ci/plan/map.toml and prints which suites the change can
 # move. A suite the plan leaves out is skipped, and `ci gate` accepts that only
@@ -39,7 +43,7 @@ on:
   push:
     branches: [main, develop]
   pull_request:
-    branches: [develop]
+    branches: [develop, main]
 
 permissions:
   contents: read
@@ -79,6 +83,7 @@ jobs:
         id: plan
         env:
           EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
         run: |
           set -euo pipefail
           dir="$RUNNER_TEMP/plan"
@@ -90,8 +95,11 @@ jobs:
           else
             cp scripts/ci/plan/plan.py scripts/ci/plan/map.toml "$dir/"
           fi
+          # A pull request into main promotes develop: every suite runs, with no plan.
+          plan_event="$EVENT"
+          if [ "$EVENT" = pull_request ] && [ "$BASE_REF" = main ]; then plan_event=promotion; fi
           status=0
-          python3 -I "$dir/plan.py" --map "$dir/map.toml" --event "$EVENT" >"$dir/out" || status=$?
+          python3 -I "$dir/plan.py" --map "$dir/map.toml" --event "$plan_event" >"$dir/out" || status=$?
           cat "$dir/out"
           # Only lines of the shape `suite=true|false` reach the outputs.
           if grep -Evq '^[a-z0-9-]+=(true|false)$' "$dir/out"; then
@@ -217,8 +225,18 @@ jobs:
             bash "$test"
           done
 
-      - name: Tests of the plan, the gate and the map
-        run: python3 -I -m unittest discover -s scripts/ci/plan -p 'test_*.py' -v
+      # The wiring tests read the workflows with a real YAML parser, installed from
+      # wheels whose hashes are in the requirements file.
+      - name: The YAML reader of the wiring tests
+        run: |
+          set -euo pipefail
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --quiet --only-binary=:all: --require-hashes -r scripts/ci/plan/requirements.txt
+
+      - name: Tests of the plan, the gate, the map and the wiring
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/venv/bin/python" -I -m unittest discover -s scripts/ci/plan -p 'test_*.py' -v
 
       - name: Tests of the Dependabot watch
         run: python3 -I -m unittest discover -s scripts/ci -p 'test_*.py' -v
@@ -334,7 +352,10 @@ jobs:
     uses: ./.github/workflows/ci-container.yml
 
   gate:
-    name: ci gate
+    # The name carries the event when it is not a pull request, so the run of a
+    # push to develop cannot satisfy the `ci gate` that a pull request into main
+    # requires for the same commit.
+    name: ${{ github.event_name == 'pull_request' && 'ci gate' || format('ci gate ({0})', github.event_name) }}
     needs:
       - plan
       - line-limit
