@@ -271,7 +271,7 @@ class Selection(unittest.TestCase):
     def test_what_is_next_to_the_workflows_is_not_machinery_but_has_its_pins_looked_at(self):
         for path in (".github/dependabot.yml", ".github/folder-limit-exceptions.txt"):
             verdict, _ = run_plan([path])
-            self.assertEqual({s for s, on in verdict.items() if on}, {"action-pins"}, path)
+            self.assertEqual({s for s, on in verdict.items() if on}, {"ci-scripts", "action-pins"}, path)
 
     def test_the_machinery_runs_every_suite(self):
         for path in MACHINERY:
