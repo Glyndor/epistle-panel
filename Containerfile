@@ -13,8 +13,8 @@
 # with Bun but `next build` runs under Node, so the builder carries both.
 FROM docker.io/oven/bun:1.4.5-debian@sha256:3dddea58e1f8f2240eca906b023fedb944f9a8352515a35309fd0c879fe00aaa AS bun
 
-# 24-trixie-slim. Node comes from this image, Bun is copied in from the stage above.
-FROM docker.io/library/node@sha256:6418e1ff99a5db6608cd55a020036dde6b7d18df9a0b7e44209b4ef5891766fb AS builder
+# 26-trixie-slim. Node comes from this image, Bun is copied in from the stage above.
+FROM docker.io/library/node@sha256:e6bedef217677b276c591795e169840edd9096dbf13f29df8ef8d1856b8820bc AS builder
 COPY --from=bun /usr/local/bin/bun /usr/local/bin/bun
 
 WORKDIR /build
@@ -39,10 +39,10 @@ RUN bun run build
 
 # The standalone output is self-contained: server.js plus the traced subset of
 # node_modules it needs. `.next/static` is not part of it and is copied beside.
-# nodejs24-debian13:nonroot, uid:gid 65532:65532, no shell. To inspect the tag:
-#   podman manifest inspect gcr.io/distroless/nodejs24-debian13:nonroot
+# nodejs26-debian13:latest, no shell; the user is set below, to 65532:65532. To inspect the tag:
+#   podman manifest inspect gcr.io/distroless/nodejs26-debian13:latest
 # Bump the digest deliberately.
-FROM gcr.io/distroless/nodejs24-debian13@sha256:d1c8c1be703f1dca243457ac656e7eee7c571a7136a6e681d17c4294e6fe7a6d
+FROM gcr.io/distroless/nodejs26-debian13@sha256:b462e87a3db156aea160dd8a5306b85d02c3061ca0e3194fe0af81282a830ab0
 
 # OCI labels. `--label=...` on the `podman build` command line overrides them,
 # so a release job can stamp the actual git revision without editing this file.
