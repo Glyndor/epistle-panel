@@ -50,6 +50,14 @@ CALLED = {
     "e2e": "ci-e2e.yml",
     "container": "ci-container.yml",
 }
+# The two names that are an expression. Anything else with `${{` in a name is
+# refused by the name test, so no other expression can emit a required name.
+GATE_NAME = (
+    "${{ github.event_name != 'pull_request' && format('ci gate ({0})', github.event_name) || "
+    "(github.base_ref == 'develop' && 'ci gate' || (github.base_ref == 'main' && 'ci gate (main)' || 'ci gate (other)')) }}"
+)
+AUDIT_NAME = "${{ github.event_name == 'pull_request' && 'bun audit' || format('bun audit ({0})', github.event_name) }}"
+
 NAMES = {
     "plan": "plan",
     "line-limit": "line limit",
@@ -63,7 +71,7 @@ NAMES = {
     "release-scripts": "release scripts",
     "e2e": "e2e",
     "container": "container",
-    "gate": "${{ github.event_name != 'pull_request' && format('ci gate ({0})', github.event_name) || (github.base_ref == 'main' && 'ci gate (main)' || 'ci gate') }}",
+    "gate": GATE_NAME,
 }
 # What each inline job runs, and nothing else runs it.
 RUNS = {
@@ -84,6 +92,7 @@ REQUIRED = {
     "ci gate (main)": ("ci.yml", "pull_request", "main"),
     "dco / Signed-off-by present on every commit": ("dco.yml", "pull_request", None),
     "folder limit": ("folder-limit.yml", "pull_request", None),
+    "bun audit": ("audit.yml", "pull_request", None),
     "develop-only": ("main-guard.yml", "pull_request", None),
 }
 
@@ -103,6 +112,23 @@ def _mapping(loader, node, deep=False):
 
 
 StrictLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _mapping)
+
+
+def dump_reference(doc):
+    """A workflow without its comments, as the reference copies hold it."""
+
+    class Dumper(yaml.SafeDumper):
+        pass
+
+    def text(dumper, data):
+        style = "|" if "\n" in data and data == data.rstrip() + ("\n" if data.endswith("\n") else "") and not any(l != l.rstrip() for l in data.split("\n")) else None
+        return dumper.represent_scalar("tag:yaml.org,2002:str", data, style=style)
+
+    Dumper.add_representer(str, text)
+    return yaml.dump(doc, Dumper=Dumper, sort_keys=False, width=1000, allow_unicode=True)
+
+
+REFERENCE = os.path.join(HERE, "reference")
 
 
 def tracked():
@@ -152,29 +178,52 @@ def step_named(job, name):
     return found[0]
 
 
+def same(a, b):
+    """`==` of an Actions expression: it does not tell `Develop` from `develop`."""
+    return str(a).casefold() == str(b).casefold()
+
+
 def resolved_name(job, event, base=None):
     """The name a job emits for an event, and for a base when the event is a pull request."""
     name = job.get("name", "")
-    if name == NAMES["gate"]:
-        if event != "pull_request":
+    if name == GATE_NAME:
+        if not same(event, "pull_request"):
             return f"ci gate ({event})"
-        return "ci gate (main)" if base == "main" else "ci gate"
+        if same(base, "develop"):
+            return "ci gate"
+        return "ci gate (main)" if same(base, "main") else "ci gate (other)"
+    if name == AUDIT_NAME:
+        return "bun audit" if same(event, "pull_request") else f"bun audit ({event})"
     return name
 
 
-def names_of(job, event, base=None):
-    """Every name a job can emit: a name with a matrix is expanded over its legs."""
+def names_of(job, event, base=None, load_called=None):
+    """Every name a job can emit. A matrix name is expanded over its legs, and the
+    job that calls a local reusable workflow also emits `<its name> / <inner name>`
+    for each job inside it."""
     name = resolved_name(job, event, base)
     match = re.fullmatch(r"(.*)\$\{\{ matrix\.([a-z-]+) \}\}(.*)", name)
-    if not match:
-        return [name]
-    legs = (job.get("strategy") or {}).get("matrix", {}).get("include")
-    assert isinstance(legs, list), f"a name with a matrix that cannot be expanded: {name}"
-    return [f"{match.group(1)}{leg[match.group(2)]}{match.group(3)}" for leg in legs]
+    if match:
+        matrix = (job.get("strategy") or {}).get("matrix", {})
+        key = match.group(2)
+        if isinstance(matrix.get("include"), list):
+            values = [leg[key] for leg in matrix["include"]]
+        else:
+            values = matrix.get(key)
+        assert isinstance(values, list), f"a name with a matrix that cannot be expanded: {name}"
+        names = [f"{match.group(1)}{value}{match.group(3)}" for value in values]
+    else:
+        assert "${{" not in name, f"a name with an expression nobody resolves: {name}"
+        names = [name]
+    uses = str(job.get("uses", ""))
+    if uses.startswith("./") and load_called is not None:
+        for inner in load_called(uses[2:])["jobs"].values():
+            names += [f"{outer} / {n}" for outer in names[:1] for n in names_of(inner, event, base, load_called)]
+    return names
 
 
 def varies_with_base(job):
-    return job.get("name", "") == NAMES["gate"]
+    return job.get("name", "") == GATE_NAME
 
 
 def present_suites():

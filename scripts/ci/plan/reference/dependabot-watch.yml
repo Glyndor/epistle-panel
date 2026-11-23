@@ -1,0 +1,43 @@
+name: Dependabot watch
+true:
+  schedule:
+  - cron: 37 5 * * *
+  workflow_dispatch: null
+permissions:
+  contents: read
+  pull-requests: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  security-watch:
+    name: dependabot security watch
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        persist-credentials: false
+    - name: Report Dependabot pull requests stuck against main
+      env:
+        GH_TOKEN: ${{ github.token }}
+        REPO: ${{ github.repository }}
+      run: |
+        set -euo pipefail
+        gh pr list --repo "$REPO" --base main --state open --limit 100 \
+          --json number,title,author,headRefName,createdAt \
+          | python3 scripts/ci/dependabot_security_watch.py
+  freshness:
+    name: dependabot freshness
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        persist-credentials: false
+    - name: The newest Dependabot pull request is under 15 days old
+      env:
+        GH_TOKEN: ${{ github.token }}
+        REPO: ${{ github.repository }}
+        MAX_AGE_DAYS: '15'
+      run: bash scripts/ci/freshness/check.sh

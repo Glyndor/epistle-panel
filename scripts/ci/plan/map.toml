@@ -28,12 +28,15 @@ optional = ["action-pins"]
 # succeed.
 always = ["line-limit"]
 
-# A change to what decides what runs, or to the workflow that runs it, runs every
-# suite: it is the one change that can switch the others off.
+# A change to what decides what runs, or to anything that runs, runs every suite:
+# a workflow or an action is what a suite executes, and a change to the workflow
+# that `e2e` calls has to run `e2e`, not only the checks that read its text.
+# `.github/actions/` does not exist yet; the pattern is here for the day it does.
 machinery = [
 	"scripts/ci/plan/**",
 	"scripts/ci/bun/**",
-	".github/workflows/ci.yml",
+	".github/workflows/**",
+	".github/actions/**",
 ]
 
 # Paths that no suite needs, each group with the reason.
@@ -53,27 +56,28 @@ paths = [
 
 # Biome reads every file of the project, its own settings and the shadcn ones
 # included.
-# The Containerfile is an input of every job that runs Bun: its stage names the
-# release that scripts/ci/bun/install.sh installs.
+# The Containerfile is also an input of every job that runs Bun, but only through one
+# line: its stage names the release that scripts/ci/bun/install.sh installs. That is
+# the [[line_rules]] entry at the end of this file, so a new digest of the Node base
+# does not run what a new Bun does.
 [suites.lint]
 push = true
-include = ["internal/**", "Containerfile"]
+include = ["internal/**"]
 exclude = ["internal/.gitignore"]
 
 # The build and the tests read the project; the settings of Biome and of the
 # shadcn command line are not among their inputs.
 [suites.unit]
 push = true
-include = ["internal/**", "scripts/test/**", "Containerfile"]
+include = ["internal/**", "scripts/test/**"]
 exclude = ["internal/.gitignore", "internal/biome.json", "internal/components.json"]
 
 [suites.randomized]
-include = ["internal/**", "scripts/test/**", "Containerfile"]
+include = ["internal/**", "scripts/test/**"]
 exclude = ["internal/.gitignore", "internal/biome.json", "internal/components.json"]
 
 [suites.e2e]
 include = [
-	"Containerfile",
 	"internal/src/**",
 	"internal/next.config.ts",
 	"internal/postcss.config.mjs",
@@ -144,3 +148,12 @@ include = [".github/workflows/**", "scripts/ci/pins/**"]
 # workflow, to a script of the CI or to the map itself can break that wiring.
 [suites.ci-scripts]
 include = ["scripts/ci/**", ".github/**"]
+
+# A change to a file selects these suites only when one of its changed lines matches
+# the pattern (a line added or removed). The release of Bun is the tag of this stage;
+# the installer reads it, so lint, unit, randomized and e2e run when it moves. When
+# the lines cannot be read, the suites run.
+[[line_rules]]
+path = "Containerfile"
+pattern = '^FROM docker\.io/oven/bun:'
+suites = ["lint", "unit", "randomized", "e2e"]

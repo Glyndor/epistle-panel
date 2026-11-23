@@ -21,11 +21,13 @@ The tag push starts the workflow. Nothing else starts a release.
 | Job | What it does |
 | --- | --- |
 | `verify` | Resolves the tag to one commit, checks it is reachable from `main`, checks tag, `package.json` and `debian/changelog` agree, runs `bun audit`, and refuses a tag that already has a release |
-| `build-deb` | Builds the package with `scripts/debian/build.sh`, the clean container build the Debian package workflow runs, which also runs `lintian --fail-on error,warning` on the file produced; checks its `Package`, `Version` and `Architecture` fields, and attests its provenance |
+| `build-deb` | Builds the package with `scripts/debian/build.sh`, the clean container build the Debian package workflow runs, which also runs `lintian --fail-on error,warning` on the file produced; checks its `Package`, `Version` and `Architecture` fields. It holds `contents: read` and nothing else |
+| `attest-deb` | Receives the package into a folder of its own, checks it is the one regular file expected, and attests its provenance. A rehearsal skips it |
 | `sbom` | Writes a CycloneDX SBOM of the runtime dependencies from `internal/bun.lock` |
 | `sign` | Writes `SHA256SUMS` and signs the package, the SBOM and `SHA256SUMS` with the org Ed25519 key |
 | `publish` | Creates the GitHub Release with generated notes and the files above |
-| `image-build` | Builds the image on amd64 and arm64 runners and pushes `<version>-amd64` and `<version>-arm64`, which are build intermediates: only the manifest list is attested and meant to be pulled, and they are not deleted because the registry would remove the images the list points at |
+| `image-build` | Builds the image on amd64 and arm64 runners, with `contents: read` and nothing else, and hands each one over as a file |
+| `image-push` | Loads each file and pushes `<version>-amd64` and `<version>-arm64`, which are build intermediates: only the manifest list is attested and meant to be pulled, and they are not deleted because the registry would remove the images the list points at |
 | `image-manifest` | Joins them into one manifest list, tags it `<version>`, `<major>.<minor>` and `<major>`, and attests it |
 
 The release assets are `epistle-panel_<version>_all.deb`, `epistle-panel-v<version>.cdx.json`, `SHA256SUMS`, and one `.sig` for each of those three files. The image is pushed after the release is created, so a failed release leaves no image behind.

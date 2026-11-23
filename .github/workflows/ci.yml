@@ -353,12 +353,15 @@ jobs:
 
   gate:
     # The name carries the event when it is not a pull request, and the base
-    # branch when it is main: `ci gate` for a pull request into develop, `ci gate
-    # (main)` for one into main, `ci gate (push)` for a push. The run of a push, or
-    # of the other base, cannot satisfy what a ruleset requires for a pull request,
-    # and a pull request whose base is changed gets another name, so it fails
-    # closed. Each ruleset requires its own.
-    name: ${{ github.event_name != 'pull_request' && format('ci gate ({0})', github.event_name) || (github.base_ref == 'main' && 'ci gate (main)' || 'ci gate') }}
+    # branch when it is: `ci gate` for a pull request into develop, `ci gate (main)`
+    # for one into main, `ci gate (push)` for a push, and `ci gate (other)` for any
+    # other base, which no ruleset requires. The run of a push, or of the other base,
+    # cannot satisfy what a ruleset requires for a pull request, and a pull request
+    # whose base is changed gets another name, so it fails closed. Each ruleset
+    # requires its own. `==` in an expression does not tell `Develop` from `develop`,
+    # so the trigger limits the bases to the two exact names (that filter does tell
+    # them apart) and the step below refuses anything else before it approves.
+    name: ${{ github.event_name != 'pull_request' && format('ci gate ({0})', github.event_name) || (github.base_ref == 'develop' && 'ci gate' || (github.base_ref == 'main' && 'ci gate (main)' || 'ci gate (other)')) }}
     needs:
       - plan
       - line-limit
@@ -387,9 +390,14 @@ jobs:
       - name: Every suite did what the plan said
         env:
           EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
           NEEDS: ${{ toJSON(needs) }}
         run: |
           set -euo pipefail
+          if [ "$EVENT" = pull_request ] && [ "$BASE_REF" != develop ] && [ "$BASE_REF" != main ]; then
+            echo "::error::a pull request into '$BASE_REF' is not one this gate approves; only develop and main are"
+            exit 1
+          fi
           dir="$RUNNER_TEMP/gate"
           mkdir -p "$dir"
           if [ "$EVENT" = pull_request ] && git cat-file -e HEAD^1:scripts/ci/plan/gate.py 2>/dev/null; then

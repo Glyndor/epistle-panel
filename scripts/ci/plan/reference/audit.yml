@@ -1,0 +1,55 @@
+name: Dependency audit
+true:
+  pull_request:
+    branches:
+    - develop
+    - main
+  push:
+    branches:
+    - develop
+    - main
+  schedule:
+  - cron: 23 6 * * 1
+  workflow_dispatch: null
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+jobs:
+  audit:
+    name: ${{ github.event_name == 'pull_request' && 'bun audit' || format('bun audit ({0})', github.event_name) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        fetch-depth: 0
+        persist-credentials: false
+    - name: Install Bun at the release the Containerfile names
+      run: bash scripts/ci/bun/install.sh
+    - name: Advisories in the lockfiles
+      env:
+        EVENT: ${{ github.event_name }}
+        BRANCHES: develop main
+      run: |
+        set -euo pipefail
+        if [ "$EVENT" != schedule ]; then
+          cd internal
+          bun audit
+          exit 0
+        fi
+        failed=0
+        for branch in $BRANCHES; do
+          dir="$(mktemp -d "$RUNNER_TEMP/audited.XXXXXX")"
+          for file in package.json bun.lock; do
+            git show "origin/${branch}:internal/${file}" >"$dir/$file"
+            if [ ! -s "$dir/$file" ]; then
+              echo "::error::internal/${file} of ${branch} is empty"
+              exit 1
+            fi
+          done
+          echo "== ${branch}"
+          (cd "$dir" && bun audit) || failed=1
+        done
+        exit "$failed"

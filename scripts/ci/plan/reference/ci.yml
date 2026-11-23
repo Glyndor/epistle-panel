@@ -1,0 +1,331 @@
+name: CI
+true:
+  push:
+    branches:
+    - main
+    - develop
+  pull_request:
+    branches:
+    - develop
+    - main
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  plan:
+    name: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      lint: ${{ steps.plan.outputs.lint }}
+      unit: ${{ steps.plan.outputs.unit }}
+      randomized: ${{ steps.plan.outputs.randomized }}
+      e2e: ${{ steps.plan.outputs.e2e }}
+      container: ${{ steps.plan.outputs.container }}
+      debian: ${{ steps.plan.outputs.debian }}
+      release-scripts: ${{ steps.plan.outputs.release-scripts }}
+      bun-version: ${{ steps.plan.outputs.bun-version }}
+      actionlint: ${{ steps.plan.outputs.actionlint }}
+      ci-scripts: ${{ steps.plan.outputs.ci-scripts }}
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        fetch-depth: 2
+        persist-credentials: false
+    - name: Decide which suites the change needs
+      id: plan
+      env:
+        EVENT: ${{ github.event_name }}
+        BASE_REF: ${{ github.event.pull_request.base.ref }}
+      run: |
+        set -euo pipefail
+        dir="$RUNNER_TEMP/plan"
+        mkdir -p "$dir"
+        # On a pull request the rule is the base commit's, not the change's.
+        if [ "$EVENT" = pull_request ] && git cat-file -e HEAD^1:scripts/ci/plan/plan.py 2>/dev/null; then
+          git show HEAD^1:scripts/ci/plan/plan.py >"$dir/plan.py"
+          git show HEAD^1:scripts/ci/plan/map.toml >"$dir/map.toml"
+        else
+          cp scripts/ci/plan/plan.py scripts/ci/plan/map.toml "$dir/"
+        fi
+        # A pull request into main promotes develop: every suite runs, with no plan.
+        plan_event="$EVENT"
+        if [ "$EVENT" = pull_request ] && [ "$BASE_REF" = main ]; then plan_event=promotion; fi
+        status=0
+        python3 -I "$dir/plan.py" --map "$dir/map.toml" --event "$plan_event" >"$dir/out" || status=$?
+        cat "$dir/out"
+        # Only lines of the shape `suite=true|false` reach the outputs.
+        if grep -Evq '^[a-z0-9-]+=(true|false)$' "$dir/out"; then
+          echo "::error::the plan printed something other than suite=true|false"
+          exit 1
+        fi
+        cat "$dir/out" >>"$GITHUB_OUTPUT"
+        exit "$status"
+  line-limit:
+    name: line limit
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        fetch-depth: 2
+        persist-credentials: false
+    - name: Hard limit of 500 code lines per file
+      env:
+        EVENT: ${{ github.event_name }}
+      run: |
+        set -euo pipefail
+        script="$RUNNER_TEMP/line-limit-check.sh"
+        if [ "$EVENT" = pull_request ] && git cat-file -e HEAD^1:scripts/ci/line-limit/check.sh 2>/dev/null; then
+          git show HEAD^1:scripts/ci/line-limit/check.sh >"$script"
+        else
+          cp scripts/ci/line-limit/check.sh "$script"
+        fi
+        bash "$script"
+  actionlint:
+    name: actionlint
+    needs:
+    - plan
+    if: ${{ !cancelled() && needs.plan.outputs.actionlint != 'false' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      ACTIONLINT_VERSION: 1.7.12
+      ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        persist-credentials: false
+    - name: Install actionlint at a verified hash
+      run: |
+        set -euo pipefail
+        archive="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+        curl --fail --silent --show-error --location --retry 3 \
+          --output "$RUNNER_TEMP/$archive" \
+          "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/${archive}"
+        echo "${ACTIONLINT_SHA256}  $RUNNER_TEMP/$archive" | sha256sum --check --strict
+        tar --extract --gzip --file "$RUNNER_TEMP/$archive" --directory "$RUNNER_TEMP" actionlint
+    - name: Lint the workflows
+      run: '"$RUNNER_TEMP/actionlint" -color'
+  bun-version:
+    name: bun version
+    needs:
+    - plan
+    if: ${{ !cancelled() && needs.plan.outputs.bun-version != 'false' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        persist-credentials: false
+    - name: Lint the consistency scripts
+      run: shellcheck -x --source-path=SCRIPTDIR scripts/consistency/*.sh
+    - name: Tests of the Bun version check
+      run: bash scripts/consistency/test-check-bun-version.sh
+    - name: One Bun release everywhere
+      run: sh scripts/consistency/check-bun-version.sh
+  ci-scripts:
+    name: ci scripts
+    needs:
+    - plan
+    if: ${{ !cancelled() && needs.plan.outputs.ci-scripts != 'false' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        persist-credentials: false
+    - name: Lint the scripts
+      run: |
+        set -euo pipefail
+        shellcheck -x scripts/ci/*/*.sh
+    - name: Tests of the shell checks
+      run: |
+        set -euo pipefail
+        for test in scripts/ci/*/*.test.sh; do
+          echo "== $test"
+          bash "$test"
+        done
+    - name: The YAML reader of the wiring tests
+      run: |
+        set -euo pipefail
+        python3 -m venv "$RUNNER_TEMP/venv"
+        "$RUNNER_TEMP/venv/bin/pip" install --quiet --only-binary=:all: --require-hashes -r scripts/ci/plan/requirements.txt
+    - name: Tests of the plan, the gate, the map and the wiring
+      run: |
+        set -euo pipefail
+        "$RUNNER_TEMP/venv/bin/python" -I -m unittest discover -s scripts/ci/plan -p 'test_*.py' -v
+    - name: Tests of the Dependabot watch
+      run: python3 -I -m unittest discover -s scripts/ci -p 'test_*.py' -v
+  lint:
+    name: lint
+    needs:
+    - plan
+    if: ${{ !cancelled() && needs.plan.outputs.lint != 'false' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: internal
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        persist-credentials: false
+    - name: Install Bun at the release the Containerfile names
+      working-directory: .
+      run: bash scripts/ci/bun/install.sh
+    - name: Install
+      run: bun install --frozen-lockfile
+    - name: Lint
+      run: bun run lint
+  unit:
+    name: unit
+    needs:
+    - plan
+    - line-limit
+    - actionlint
+    - bun-version
+    - ci-scripts
+    - lint
+    if: ${{ !cancelled() && needs.plan.outputs.unit != 'false' && needs.line-limit.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: internal
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        persist-credentials: false
+    - name: Install Bun at the release the Containerfile names
+      working-directory: .
+      run: bash scripts/ci/bun/install.sh
+    - name: Install
+      run: bun install --frozen-lockfile
+    - name: Build
+      run: bun run build
+    - name: Test with the coverage gate
+      working-directory: .
+      run: bash scripts/test/coverage.sh
+  randomized:
+    name: randomized
+    needs:
+    - plan
+    - line-limit
+    - actionlint
+    - bun-version
+    - ci-scripts
+    - lint
+    if: ${{ !cancelled() && needs.plan.outputs.randomized != 'false' && needs.line-limit.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        persist-credentials: false
+    - name: Install Bun at the release the Containerfile names
+      working-directory: .
+      run: bash scripts/ci/bun/install.sh
+    - name: Install dependencies
+      working-directory: internal
+      run: bun install --frozen-lockfile
+    - name: Unit tests in random order, seed 1
+      run: bash scripts/test/randomized.sh 1
+  debian:
+    name: debian
+    needs:
+    - plan
+    - line-limit
+    - actionlint
+    - bun-version
+    - ci-scripts
+    - lint
+    if: ${{ !cancelled() && needs.plan.outputs.debian != 'false' && needs.line-limit.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' }}
+    uses: ./.github/workflows/ci-debian.yml
+  release-scripts:
+    name: release scripts
+    needs:
+    - plan
+    - line-limit
+    - actionlint
+    - bun-version
+    - ci-scripts
+    - lint
+    if: ${{ !cancelled() && needs.plan.outputs.release-scripts != 'false' && needs.line-limit.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' }}
+    uses: ./.github/workflows/ci-release-scripts.yml
+  e2e:
+    name: e2e
+    needs:
+    - plan
+    - line-limit
+    - actionlint
+    - bun-version
+    - ci-scripts
+    - lint
+    - unit
+    - randomized
+    - debian
+    - release-scripts
+    if: ${{ !cancelled() && needs.plan.outputs.e2e != 'false' && needs.line-limit.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' && needs.unit.result != 'failure' && needs.randomized.result != 'failure' && needs.debian.result != 'failure' && needs.release-scripts.result != 'failure' }}
+    uses: ./.github/workflows/ci-e2e.yml
+  container:
+    name: container
+    needs:
+    - plan
+    - line-limit
+    - actionlint
+    - bun-version
+    - ci-scripts
+    - lint
+    - unit
+    - randomized
+    - debian
+    - release-scripts
+    if: ${{ !cancelled() && needs.plan.outputs.container != 'false' && needs.line-limit.result != 'failure' && needs.actionlint.result != 'failure' && needs.bun-version.result != 'failure' && needs.ci-scripts.result != 'failure' && needs.lint.result != 'failure' && needs.unit.result != 'failure' && needs.randomized.result != 'failure' && needs.debian.result != 'failure' && needs.release-scripts.result != 'failure' }}
+    uses: ./.github/workflows/ci-container.yml
+  gate:
+    name: ${{ github.event_name != 'pull_request' && format('ci gate ({0})', github.event_name) || (github.base_ref == 'develop' && 'ci gate' || (github.base_ref == 'main' && 'ci gate (main)' || 'ci gate (other)')) }}
+    needs:
+    - plan
+    - line-limit
+    - actionlint
+    - bun-version
+    - ci-scripts
+    - lint
+    - unit
+    - randomized
+    - debian
+    - release-scripts
+    - e2e
+    - container
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        fetch-depth: 2
+        persist-credentials: false
+    - name: Every suite did what the plan said
+      env:
+        EVENT: ${{ github.event_name }}
+        BASE_REF: ${{ github.event.pull_request.base.ref }}
+        NEEDS: ${{ toJSON(needs) }}
+      run: |
+        set -euo pipefail
+        if [ "$EVENT" = pull_request ] && [ "$BASE_REF" != develop ] && [ "$BASE_REF" != main ]; then
+          echo "::error::a pull request into '$BASE_REF' is not one this gate approves; only develop and main are"
+          exit 1
+        fi
+        dir="$RUNNER_TEMP/gate"
+        mkdir -p "$dir"
+        if [ "$EVENT" = pull_request ] && git cat-file -e HEAD^1:scripts/ci/plan/gate.py 2>/dev/null; then
+          git show HEAD^1:scripts/ci/plan/gate.py >"$dir/gate.py"
+          git show HEAD^1:scripts/ci/plan/map.toml >"$dir/map.toml"
+        else
+          cp scripts/ci/plan/gate.py scripts/ci/plan/map.toml "$dir/"
+        fi
+        python3 -I "$dir/gate.py" --map "$dir/map.toml"

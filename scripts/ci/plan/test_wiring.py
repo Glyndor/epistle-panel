@@ -16,11 +16,14 @@ exempts a job by name: the set of jobs is closed.
 
 import os
 import re
+import tempfile
 import unittest
 
 import yaml
 
 from wiring_support import (
+    AUDIT_NAME,
+    GATE_NAME,
     ALWAYS,
     CALLED,
     FILES,
@@ -158,7 +161,7 @@ class Wiring(unittest.TestCase):
         self.assertEqual(sorted(gate["needs"]), sorted(set(self.jobs) - {"gate"}))
         self.assertEqual(gate["if"], "${{ always() }}")
         step = step_named(gate, "Every suite did what the plan said")
-        self.assertEqual(step["env"], {"EVENT": "${{ github.event_name }}", "NEEDS": "${{ toJSON(needs) }}"})
+        self.assertEqual(step["env"], {"EVENT": "${{ github.event_name }}", "BASE_REF": "${{ github.event.pull_request.base.ref }}", "NEEDS": "${{ toJSON(needs) }}"})
         self.assertNotIn("needs.", step["run"])
 
     def test_nothing_can_write_to_actions_and_no_tool_is_restored_from_a_cache(self):
@@ -187,9 +190,12 @@ class RequiredNames(unittest.TestCase):
         """Every job names itself for each trigger of its workflow, and for each base of a pull request.
 
         A job with `if:` still counts: a job that is skipped is shown with its name,
-        and a skipped check counts as passed. A name with an expression is refused
-        unless it is the one that resolve_name knows.
+        and a skipped check counts as passed. The comparison does not tell upper
+        from lower case, as GitHub does not, and the jobs inside the reusable
+        workflows are read too, with the name of the job that calls them in front. A
+        name with an expression is refused unless it is one of the two known.
         """
+        required = {name.casefold(): name for name in REQUIRED}
         producers = {name: [] for name in REQUIRED}
         for path in sorted(FILES):
             doc = load(path)
@@ -197,21 +203,37 @@ class RequiredNames(unittest.TestCase):
                 continue
             events = triggers(doc)
             for body in doc["jobs"].values():
-                name = body.get("name", "")
-                if "${{" in name and name != NAMES["gate"]:
-                    self.assertRegex(name, r"^[^$]*\$\{\{ matrix\.[a-z-]+ \}\}[^$]*$", f"{path}: a name with an expression this test cannot resolve")
                 for event, config in events.items():
                     if event == "workflow_call":
                         continue
                     bases = (config or {}).get("branches", [None]) if event == "pull_request" else [None]
                     for base in bases:
-                        for name in names_of(body, event, base):
-                            if name in producers:
+                        for name in names_of(body, event, base, load):
+                            if name.casefold() in required:
+                                exact = required[name.casefold()]
+                                self.assertEqual(name, exact, f"{path}: {name!r} differs from {exact!r} only in case")
                                 key = base if (event == "pull_request" and varies_with_base(body)) else None
-                                if (os.path.basename(path), event, key) not in producers[name]:
-                                    producers[name].append((os.path.basename(path), event, key))
+                                if (os.path.basename(path), event, key) not in producers[exact]:
+                                    producers[exact].append((os.path.basename(path), event, key))
         for name, want in REQUIRED.items():
             self.assertEqual(producers[name], [want], name)
+
+    def test_a_name_with_an_expression_is_one_of_the_known_two(self):
+        for path in sorted(FILES):
+            for body in load(path).get("jobs", {}).values():
+                name = body.get("name", "")
+                if "${{" in name and name not in (GATE_NAME, AUDIT_NAME):
+                    self.assertRegex(name, r"^[^$]*\$\{\{ matrix\.[a-z-]+ \}\}[^$]*$", f"{path}: {name}")
+
+    def test_the_names_of_the_called_workflows_are_read_with_the_name_of_their_caller(self):
+        jobs = load(".github/workflows/ci.yml")["jobs"]
+        self.assertEqual(names_of(jobs["e2e"], "pull_request", "develop", load), ["e2e", "e2e / e2e"])
+        self.assertEqual(names_of(jobs["container"], "pull_request", "develop", load), ["container", "container / Build and smoke-test image"])
+
+    def test_a_name_that_differs_only_in_case_is_a_collision(self):
+        job = {"name": "CI Gate"}
+        self.assertEqual(names_of(job, "pull_request", "develop", load)[0].casefold(), "ci gate")
+        self.assertNotEqual(names_of(job, "pull_request", "develop", load)[0], "ci gate")
 
     def test_the_gate_is_named_for_its_event_and_its_base(self):
         gate = load(".github/workflows/ci.yml")["jobs"]["gate"]
@@ -219,7 +241,25 @@ class RequiredNames(unittest.TestCase):
             self.assertEqual(resolved_name(gate, event), f"ci gate ({event})")
         self.assertEqual(resolved_name(gate, "pull_request", "develop"), "ci gate")
         self.assertEqual(resolved_name(gate, "pull_request", "main"), "ci gate (main)")
+        self.assertEqual(resolved_name(gate, "pull_request", "feature"), "ci gate (other)")
         self.assertNotIn("edited", triggers(load(".github/workflows/ci.yml"))["pull_request"])
+
+    def test_an_expression_does_not_tell_develop_from_Develop_so_the_trigger_and_the_step_do(self):
+        gate = load(".github/workflows/ci.yml")["jobs"]["gate"]
+        for base in ("Develop", "DEVELOP", "MAIN", "Main"):
+            # the model of `==` takes the variant for the real branch...
+            self.assertIn(resolved_name(gate, "pull_request", base), ("ci gate", "ci gate (main)"), base)
+            # ...which is why the trigger, whose filter does tell them apart, never lets it in
+            for path in ("ci.yml", "audit.yml"):
+                self.assertNotIn(base, triggers(load(f".github/workflows/{path}"))["pull_request"]["branches"], path)
+        self.assertEqual(triggers(load(".github/workflows/ci.yml"))["pull_request"]["branches"], ["develop", "main"])
+        step = step_named(gate, "Every suite did what the plan said")
+        self.assertEqual(step["env"], {"EVENT": "${{ github.event_name }}", "BASE_REF": "${{ github.event.pull_request.base.ref }}", "NEEDS": "${{ toJSON(needs) }}"})
+        for base, ok in (("develop", True), ("main", True), ("Develop", False), ("MAIN", False), ("feature", False), ("", False)):
+            with tempfile.TemporaryDirectory() as tmp:
+                fixture = Fixture(tmp, {"scripts/ci/plan/gate.py": "pass\n", "scripts/ci/plan/map.toml": "#\n"}, {"x": "1"})
+                done = fixture.run(step["run"], EVENT="pull_request", BASE_REF=base, RUNNER_TEMP=tmp, NEEDS="{}")
+                self.assertEqual(done.returncode == 0, ok, f"{base!r}: {done.stderr}")
 
     def test_the_promotion_into_main_runs_every_suite(self):
         step = step_named(load(".github/workflows/ci.yml")["jobs"]["plan"], "Decide which suites the change needs")

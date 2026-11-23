@@ -12,7 +12,10 @@ stdout, which is what `$GITHUB_OUTPUT` takes. Messages go to stderr.
                 its `exclude`. The diff is the one of the merge commit that
                 `actions/checkout` builds: first parent (the base) against the
                 commit, so it is what the pull request adds to the base as it is
-                now. A change to this machinery runs every suite. A diff that
+                now. A change to this machinery runs every suite.
+                A change to some lines of a file selects a suite only when one of
+                those lines matches the pattern of its [[line_rules]] entry: the
+                Containerfile selects what runs Bun through its Bun stage alone. A diff that
                 cannot be read, or is empty, runs every suite too: a wrong skip
                 lets a change merge unlooked-at, a wrong run costs minutes.
   push          Only the suites marked `push = true`: what describes the state
@@ -89,6 +92,16 @@ def load_map(path: str) -> dict:
             raise SystemExit(f"{path}: suite name {name!r} must be lower case letters, digits and '-'")
         if not suite.get("include"):
             raise SystemExit(f"{path}: suite {name!r} has no include patterns")
+    for rule in data.get("line_rules", []):
+        if set(rule) != {"path", "pattern", "suites"} or not rule["suites"]:
+            raise SystemExit(f"{path}: a [[line_rules]] entry has path, pattern and suites, and nothing else")
+        check(rule["path"])
+        if "*" in rule["path"] or "?" in rule["path"]:
+            raise SystemExit(f"{path}: the path of a line rule is one file, not a pattern: {rule['path']!r}")
+        re.compile(rule["pattern"])
+        for name in rule["suites"]:
+            if name not in suites:
+                raise SystemExit(f"{path}: a line rule names the suite {name!r}, which does not exist")
     return data
 
 
@@ -106,12 +119,54 @@ def changed_files() -> "list[str] | None":
     return files or None
 
 
+def changed_lines(paths: "list[str]") -> "dict[str, list[str] | None]":
+    """For each path, the text of the lines the merge commit adds or removes there.
+
+    None for a path whose diff cannot be read: the caller then takes every line to
+    have changed."""
+    out: "dict[str, list[str] | None]" = {}
+    for path in paths:
+        try:
+            diff = subprocess.run(
+                ["git", "diff", "--no-ext-diff", "--no-textconv", "--no-renames", "-U0", "HEAD^1", "HEAD", "--", path],
+                check=True,
+                capture_output=True,
+            ).stdout.decode("utf-8", "surrogateescape")
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            out[path] = None
+            continue
+        out[path] = [
+            line[1:] for line in diff.splitlines() if line[:1] in "+-" and not line.startswith(("+++", "---"))
+        ]
+    return out
+
+
+def line_rule_suites(data: dict, files: "list[str]", lines: "dict[str, list[str] | None] | None") -> "set[str]":
+    """The suites that a change to certain lines of a file selects, and no other change to it.
+
+    A path with a rule whose lines are unknown selects its suites: a wrong skip
+    lets a change merge unlooked-at, a wrong run costs minutes."""
+    chosen: "set[str]" = set()
+    for rule in data.get("line_rules", []):
+        if rule["path"] not in files:
+            continue
+        seen = None if lines is None else lines.get(rule["path"])
+        if seen is None or any(re.search(rule["pattern"], line) for line in seen):
+            chosen.update(rule["suites"])
+    return chosen
+
+
 def selects(suite: dict, path: str) -> bool:
     return matches(suite["include"], path) and not matches(suite.get("exclude", []), path)
 
 
-def plan(data: dict, event: str, files: "list[str] | None") -> "tuple[dict[str, bool], list[str]]":
-    """The verdict of every suite and the paths nobody claims."""
+def plan(
+    data: dict, event: str, files: "list[str] | None", lines: "dict[str, list[str] | None] | None" = None
+) -> "tuple[dict[str, bool], list[str]]":
+    """The verdict of every suite and the paths nobody claims.
+
+    `lines` holds, for the files that have a line rule, the text of the lines the
+    change touches; None means they are not known."""
     suites = data["suites"]
     everything = {name: True for name in suites}
     if event == "push":
@@ -138,6 +193,8 @@ def plan(data: dict, event: str, files: "list[str] | None") -> "tuple[dict[str, 
                 claimed = True
         if not claimed and not matches(ignore, path):
             unclaimed.append(path)
+    for name in line_rule_suites(data, files, lines):
+        verdict[name] = True
     if unclaimed:
         return everything, unclaimed
     return verdict, []
@@ -156,8 +213,11 @@ def main() -> int:
             files = [line.rstrip("\n") for line in handle if line.strip()] or None
     else:
         files = changed_files() if args.event == "pull_request" else None
+    lines = None
+    if files is not None and not args.files_from:
+        lines = changed_lines([r["path"] for r in data.get("line_rules", []) if r["path"] in files])
 
-    verdict, unclaimed = plan(data, args.event, files)
+    verdict, unclaimed = plan(data, args.event, files, lines)
     for name in data["suites"]:
         print(f"{name}={'true' if verdict[name] else 'false'}")
     if unclaimed:

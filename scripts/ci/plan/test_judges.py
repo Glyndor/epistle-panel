@@ -12,10 +12,13 @@ the base's.
 
 import os
 import re
+import subprocess
 import tempfile
 import unittest
 
 from wiring_support import (
+    AUDIT_NAME,
+    GATE_NAME,
     ALWAYS,
     CALLED,
     FILES,
@@ -66,7 +69,7 @@ class TreeJudges(unittest.TestCase):
         self.assertEqual(
             triggers(doc),
             {
-                "pull_request": {"branches": ["develop"]},
+                "pull_request": {"branches": ["develop", "main"]},
                 "push": {"branches": ["develop", "main"]},
                 "schedule": [{"cron": "23 6 * * 1"}],
                 "workflow_dispatch": None,
@@ -74,6 +77,29 @@ class TreeJudges(unittest.TestCase):
         )
         job = doc["jobs"]["audit"]
         self.assertEqual(set(job), {"name", "runs-on", "timeout-minutes", "steps"})
+        self.assertEqual(job["name"], AUDIT_NAME)
+
+    def test_a_security_result_is_never_cancelled_by_a_newer_push(self):
+        """The audit, CodeQL and the sign-off check keep running when a branch moves on."""
+        for name in ("audit.yml", "codeql.yml", "dco.yml"):
+            doc = load(f".github/workflows/{name}")
+            self.assertIs(doc["concurrency"]["cancel-in-progress"], False, name)
+        self.assertIs(load(".github/workflows/codeql.yml")["concurrency"]["cancel-in-progress"], False)
+
+    def test_the_main_guard_asks_for_the_develop_of_this_repository(self):
+        job = load(".github/workflows/main-guard.yml")["jobs"]["develop-only"]
+        step = step_named(job, "Require develop of this repository as source branch")
+        self.assertEqual(step["env"], {"HEAD_REF": "${{ github.head_ref }}", "HEAD_REPO": "${{ github.event.pull_request.head.repo.full_name }}", "REPO": "${{ github.repository }}"})
+        cases = (
+            ("develop", "Glyndor/epistle-panel", "Glyndor/epistle-panel", True),
+            ("develop", "someone/epistle-panel", "Glyndor/epistle-panel", False),
+            ("develop", "", "Glyndor/epistle-panel", False),
+            ("feature", "Glyndor/epistle-panel", "Glyndor/epistle-panel", False),
+            ("Develop", "Glyndor/epistle-panel", "Glyndor/epistle-panel", False),
+        )
+        for head, repo, mine, ok in cases:
+            done = subprocess.run(["bash", "-c", step["run"]], env=dict(os.environ, HEAD_REF=head, HEAD_REPO=repo, REPO=mine), capture_output=True, text=True)
+            self.assertEqual(done.returncode == 0, ok, (head, repo, done.stdout))
 
     def test_the_action_pins_check_runs_when_a_workflow_changes_and_every_week(self):
         doc = load(".github/workflows/pins.yml")
@@ -211,6 +237,56 @@ class TreeJudges(unittest.TestCase):
             if path.startswith(".github/") or path.startswith("scripts/ci/"):
                 with open(os.path.join(ROOT, path), encoding="utf-8") as handle:
                     self.assertIsNone(bad.search(handle.read()), path)
+
+
+class Release(unittest.TestCase):
+    """Who holds the authority to attest, push and publish in release.yml."""
+
+    READ = {"contents": "read"}
+    PERMISSIONS = {
+        "verify": READ,
+        "build-deb": READ,
+        "attest-deb": {"contents": "read", "id-token": "write", "attestations": "write"},
+        "sbom": READ,
+        "sign": READ,
+        "publish": {"contents": "write"},
+        "image-build": READ,
+        "image-push": {"contents": "read", "packages": "write"},
+        "rehearse-manifest": READ,
+        "image-manifest": {"contents": "read", "packages": "write", "id-token": "write", "attestations": "write"},
+    }
+
+    @classmethod
+    def setUpClass(cls):
+        cls.doc = load(".github/workflows/release.yml")
+        cls.jobs = cls.doc["jobs"]
+
+    def test_nobody_holds_authority_by_default_and_every_job_names_its_own(self):
+        self.assertEqual(self.doc["permissions"], {})
+        self.assertEqual({name: job.get("permissions") for name, job in self.jobs.items()}, self.PERMISSIONS)
+
+    def test_what_builds_or_installs_has_contents_read_and_nothing_else(self):
+        for name in ("verify", "build-deb", "sbom", "sign", "image-build", "rehearse-manifest"):
+            self.assertEqual(self.jobs[name]["permissions"], self.READ, name)
+
+    def test_a_rehearsal_never_reaches_a_job_with_authority_to_publish(self):
+        for name, job in self.jobs.items():
+            if job["permissions"] != self.READ:
+                self.assertIn("!inputs.dry-run", job["if"], f"{name} can run in a rehearsal")
+
+    def test_the_jobs_that_attest_and_push_check_out_no_code_and_run_no_script_of_the_repository(self):
+        for name in ("attest-deb", "image-push"):
+            for step in self.jobs[name]["steps"]:
+                self.assertFalse(str(step.get("uses", "")).startswith("actions/checkout@"), f"{name} checks out code")
+                self.assertNotRegex(str(step.get("run", "")), r"scripts/|python|\bbun\b", f"{name}: {step.get('name')}")
+
+    def test_what_arrives_is_the_one_file_expected_and_the_package_is_attested_from_there(self):
+        step = step_named(self.jobs["attest-deb"], "Check that the package is the one file expected")
+        self.assertIn('want="epistle-panel_${TAG#v}_all.deb"', step["run"])
+        self.assertIn('[ "$found" != "$want" ]', step["run"])
+        self.assertEqual(step_named(self.jobs["attest-deb"], "Attest build provenance")["with"], {"subject-path": "${{ runner.temp }}/attest/epistle-panel_*_all.deb"})
+        self.assertIn("attest-deb", self.jobs["publish"]["needs"])
+        self.assertIn("image-push", self.jobs["image-manifest"]["needs"])
 
 
 class BaseCopies(unittest.TestCase):

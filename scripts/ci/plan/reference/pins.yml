@@ -1,0 +1,44 @@
+name: Action pins
+true:
+  pull_request:
+    branches:
+    - develop
+    paths:
+    - .github/**
+    - '**/action.yml'
+    - '**/action.yaml'
+  schedule:
+  - cron: 29 6 * * 1
+  workflow_dispatch: null
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  pins:
+    name: action pins
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        fetch-depth: 2
+        persist-credentials: false
+    - name: Lint and test the check
+      run: |
+        set -euo pipefail
+        shellcheck -x scripts/ci/pins/*.sh
+        bash scripts/ci/pins/check.test.sh
+    - name: Every reference is fixed to a commit or a digest
+      env:
+        EVENT: ${{ github.event_name }}
+      run: |
+        set -euo pipefail
+        script="$RUNNER_TEMP/pins-check.sh"
+        if [ "$EVENT" = pull_request ] && git cat-file -e HEAD^1:scripts/ci/pins/check.sh 2>/dev/null; then
+          git show HEAD^1:scripts/ci/pins/check.sh >"$script"
+        else
+          cp scripts/ci/pins/check.sh "$script"
+        fi
+        bash "$script"
