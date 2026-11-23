@@ -19,8 +19,9 @@
 # runs the base commit's copy of this file, so a job that a pull request adds to the
 # gate has to be taught to the base first: one pull request adds the suite here as
 # optional, the next adds the job to ci.yml, and a third takes the word off this
-# list so that the job is required. See docs/maintainers/ci.md.
-optional = ["action-pins"]
+# list so that the job is required. See docs/maintainers/ci.md. Empty: every suite
+# of the map has its job and is required.
+optional = []
 
 # What judges the whole tree runs on every change, whatever it touches, because
 # a change of prose alone can push a folder or a file past its limit. Those jobs
