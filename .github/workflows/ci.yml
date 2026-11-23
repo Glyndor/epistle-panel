@@ -1,12 +1,39 @@
 name: CI
 
+# The one workflow that runs the checks of a change, in layers, and says in one
+# check whether they are complete.
+#
+# Events and why:
+#   pull_request  into develop. The promotion pull request to main carries a tree
+#                 that already passed here, and main requires only `develop-only`.
+#   push          to develop and to main: the state of the branch after a merge.
+#                 Only the suites the map marks `push` run (lint and unit); the
+#                 rest answered on the pull request about the same tree.
+#
+# `plan` reads scripts/ci/plan/map.toml and prints which suites the change can
+# move. A suite the plan leaves out is skipped, and `ci gate` accepts that only
+# because the plan said so. The gate is the check to require: it reports on every
+# pull request, whatever ran, and fails for a suite that had to run and did not,
+# including one skipped because a job before it failed (GitHub reports a skipped
+# job as a success, so requiring the jobs one by one would let that through).
+#
+# Layers, cheap first. A job waits for every job of the layers before it, so a
+# failure in one stops the dearer ones from starting:
+#   1  plan, line-limit, actionlint, bun-version, ci-scripts, lint   about 5 to 40 s each
+#   2  unit, randomized, debian, release-scripts                      about 40 to 90 s each
+#   3  e2e, container                                                 about 70 and 230 s
+#
+# Adding a suite means a job here, an entry in `needs` of `gate`, a table in the
+# map and its cases in scripts/ci/plan/test_plan.py, which fails until they agree.
+# `plan` and `gate` run the copy of their script that the base commit holds, so a
+# pull request cannot rewrite the rule that judges it; the pull request that
+# introduces them is the one exception. A change to the map or to the suites is
+# therefore judged by the map as it was, and adding a suite takes two pull requests.
+
 on:
   push:
     branches: [main, develop]
   pull_request:
-    # Into develop only: the promotion pull request to main carries a tree this
-    # check already answered for on develop, and it is not required on main
-    # (the ruleset there requires `develop-only`). The push to main still runs it.
     branches: [develop]
 
 permissions:
@@ -19,13 +46,185 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  bun:
-    # The name is what the ruleset of develop requires. It was the check of the
-    # shared workflow this job replaces, and it stays so no ruleset has to change.
-    name: bun / Lint, build & test
+  plan:
+    name: plan
     runs-on: ubuntu-latest
-    # Measured 2026-11-15: 71 s (install 8, build 18, tests with coverage 44).
-    timeout-minutes: 15
+    # Measured 2026-11-22: about 10 s (checkout 3, python 1).
+    timeout-minutes: 5
+    outputs:
+      lint: ${{ steps.plan.outputs.lint }}
+      unit: ${{ steps.plan.outputs.unit }}
+      randomized: ${{ steps.plan.outputs.randomized }}
+      e2e: ${{ steps.plan.outputs.e2e }}
+      container: ${{ steps.plan.outputs.container }}
+      debian: ${{ steps.plan.outputs.debian }}
+      release-scripts: ${{ steps.plan.outputs.release-scripts }}
+      bun-version: ${{ steps.plan.outputs.bun-version }}
+      actionlint: ${{ steps.plan.outputs.actionlint }}
+      line-limit: ${{ steps.plan.outputs.line-limit }}
+      ci-scripts: ${{ steps.plan.outputs.ci-scripts }}
+    steps:
+      # Two commits: on a pull request this is the merge commit, whose first
+      # parent is the base branch as it is now.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+
+      - name: Decide which suites the change needs
+        id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          dir="$RUNNER_TEMP/plan"
+          mkdir -p "$dir"
+          # On a pull request the rule is the base commit's, not the change's.
+          if [ "$EVENT" = pull_request ] && git cat-file -e HEAD^1:scripts/ci/plan/plan.py 2>/dev/null; then
+            git show HEAD^1:scripts/ci/plan/plan.py >"$dir/plan.py"
+            git show HEAD^1:scripts/ci/plan/map.toml >"$dir/map.toml"
+          else
+            cp scripts/ci/plan/plan.py scripts/ci/plan/map.toml "$dir/"
+          fi
+          status=0
+          python3 -I "$dir/plan.py" --map "$dir/map.toml" --event "$EVENT" >"$dir/out" || status=$?
+          cat "$dir/out"
+          # Only lines of the shape `suite=true|false` reach the outputs.
+          if grep -Evq '^[a-z0-9-]+=(true|false)$' "$dir/out"; then
+            echo "::error::the plan printed something other than suite=true|false"
+            exit 1
+          fi
+          cat "$dir/out" >>"$GITHUB_OUTPUT"
+          exit "$status"
+
+  line-limit:
+    name: line limit
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.line-limit == 'true' && !contains(needs.*.result, 'failure') }}
+    runs-on: ubuntu-latest
+    # Measured 2026-11-15: 6 s.
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+
+      # The file-size standard: 500 code lines at most, 300 is a warning. On a
+      # pull request the rule is the base commit's copy of the script, so a
+      # change cannot raise its own limit.
+      - name: Hard limit of 500 code lines per file
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          script="$RUNNER_TEMP/line-limit-check.sh"
+          if [ "$EVENT" = pull_request ] && git cat-file -e HEAD^1:scripts/ci/line-limit/check.sh 2>/dev/null; then
+            git show HEAD^1:scripts/ci/line-limit/check.sh >"$script"
+          else
+            cp scripts/ci/line-limit/check.sh "$script"
+          fi
+          bash "$script"
+
+  actionlint:
+    name: actionlint
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.actionlint == 'true' && !contains(needs.*.result, 'failure') }}
+    runs-on: ubuntu-latest
+    # Measured 2026-11-22: 5 s.
+    timeout-minutes: 5
+    # actionlint is third-party tooling, so it is fetched as a release binary at
+    # a pinned version and checked against a pinned SHA-256 before it runs, and
+    # the job holds no secret: `contents: read`, and the checkout keeps no
+    # credentials. A tag-pinned docker:// image would not be hash-verified.
+    # To bump: take the new version and the linux_amd64 line from the release's
+    # `actionlint_<version>_checksums.txt`. shellcheck on the runner image lets
+    # actionlint check the `run:` scripts too.
+    env:
+      ACTIONLINT_VERSION: 1.7.12
+      ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install actionlint at a verified hash
+        run: |
+          set -euo pipefail
+          archive="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          curl --fail --silent --show-error --location --retry 3 \
+            --output "$RUNNER_TEMP/$archive" \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/${archive}"
+          echo "${ACTIONLINT_SHA256}  $RUNNER_TEMP/$archive" | sha256sum --check --strict
+          tar --extract --gzip --file "$RUNNER_TEMP/$archive" --directory "$RUNNER_TEMP" actionlint
+
+      - name: Lint the workflows
+        run: '"$RUNNER_TEMP/actionlint" -color'
+
+  bun-version:
+    name: bun version
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.bun-version == 'true' && !contains(needs.*.result, 'failure') }}
+    runs-on: ubuntu-latest
+    # Measured 2026-11-22: 7 s.
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # One Bun release must be named by the workflows and the Containerfile.
+      # Dependabot moves the tag and digest of the Containerfile's
+      # `FROM docker.io/oven/bun:<version>-debian@sha256:... AS bun` stage but not
+      # the `bun-version:` lines, so the releases are read as text and compared.
+      - name: Lint the consistency scripts
+        run: shellcheck -x --source-path=SCRIPTDIR scripts/consistency/*.sh
+
+      - name: Tests of the Bun version check
+        run: bash scripts/consistency/test-check-bun-version.sh
+
+      - name: One Bun release everywhere
+        run: sh scripts/consistency/check-bun-version.sh
+
+  ci-scripts:
+    name: ci scripts
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.ci-scripts == 'true' && !contains(needs.*.result, 'failure') }}
+    runs-on: ubuntu-latest
+    # Measured 2026-11-22: about 25 s, almost all of it the tests that build
+    # throwaway repositories.
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Lint the scripts
+        run: |
+          set -euo pipefail
+          shellcheck -x scripts/ci/*/*.sh
+
+      - name: Tests of the shell checks
+        run: |
+          set -euo pipefail
+          for test in scripts/ci/*/*.test.sh; do
+            echo "== $test"
+            bash "$test"
+          done
+
+      - name: Tests of the plan, the gate and the map
+        run: python3 -I -m unittest discover -s scripts/ci/plan -p 'test_*.py' -v
+
+      - name: Tests of the Dependabot watch
+        run: python3 -I -m unittest discover -s scripts/ci -p 'test_*.py' -v
+
+  lint:
+    name: lint
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.lint == 'true' && !contains(needs.*.result, 'failure') }}
+    runs-on: ubuntu-latest
+    # Measured 2026-11-22: about 25 s (install 8, biome 15).
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: internal
@@ -46,6 +245,29 @@ jobs:
       - name: Lint
         run: bun run lint
 
+  unit:
+    name: unit
+    needs: [plan, line-limit, actionlint, bun-version, ci-scripts, lint]
+    if: ${{ !cancelled() && needs.plan.outputs.unit == 'true' && !contains(needs.*.result, 'failure') }}
+    runs-on: ubuntu-latest
+    # Measured 2026-11-15: 71 s with the lint (install 8, build 18, tests with
+    # coverage 44).
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: internal
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.4
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
       - name: Build
         run: bun run build
 
@@ -55,25 +277,96 @@ jobs:
         working-directory: .
         run: bash scripts/test/coverage.sh
 
-  dependabot-freshness:
-    name: dependabot freshness
+  randomized:
+    name: randomized
+    needs: [plan, line-limit, actionlint, bun-version, ci-scripts, lint]
+    if: ${{ !cancelled() && needs.plan.outputs.randomized == 'true' && !contains(needs.*.result, 'failure') }}
     runs-on: ubuntu-latest
-    # Measured 2026-11-15: 8 s.
-    timeout-minutes: 5
+    # Measured 2026-11-15: 42 s (the suite 35, the install 7).
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - name: Lint and test the check
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.4
+
+      - name: Install dependencies
+        working-directory: internal
+        run: bun install --frozen-lockfile
+
+      # The unit job runs the default order. A suite that passes there and fails
+      # in another depends on state one test leaves for the next. A fixed seed
+      # keeps a failure reproducible: `scripts/test/randomized.sh 1`, or
+      # `bun test --randomize --seed=1` in internal/, replays it.
+      - name: Unit tests in random order, seed 1
+        run: bash scripts/test/randomized.sh 1
+
+  debian:
+    name: debian
+    needs: [plan, line-limit, actionlint, bun-version, ci-scripts, lint]
+    if: ${{ !cancelled() && needs.plan.outputs.debian == 'true' && !contains(needs.*.result, 'failure') }}
+    uses: ./.github/workflows/ci-debian.yml
+
+  release-scripts:
+    name: release scripts
+    needs: [plan, line-limit, actionlint, bun-version, ci-scripts, lint]
+    if: ${{ !cancelled() && needs.plan.outputs.release-scripts == 'true' && !contains(needs.*.result, 'failure') }}
+    uses: ./.github/workflows/ci-release-scripts.yml
+
+  e2e:
+    name: e2e
+    needs: [plan, line-limit, actionlint, bun-version, ci-scripts, lint, unit, randomized, debian, release-scripts]
+    if: ${{ !cancelled() && needs.plan.outputs.e2e == 'true' && !contains(needs.*.result, 'failure') }}
+    uses: ./.github/workflows/ci-e2e.yml
+
+  container:
+    name: container
+    needs: [plan, line-limit, actionlint, bun-version, ci-scripts, lint, unit, randomized, debian, release-scripts]
+    if: ${{ !cancelled() && needs.plan.outputs.container == 'true' && !contains(needs.*.result, 'failure') }}
+    uses: ./.github/workflows/ci-container.yml
+
+  gate:
+    name: ci gate
+    needs:
+      - plan
+      - line-limit
+      - actionlint
+      - bun-version
+      - ci-scripts
+      - lint
+      - unit
+      - randomized
+      - debian
+      - release-scripts
+      - e2e
+      - container
+    # Without `always()` a failed job would skip this one, and a skipped job is
+    # reported as a success.
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    # Measured 2026-11-22: about 8 s.
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+
+      - name: Every suite did what the plan said
+        env:
+          EVENT: ${{ github.event_name }}
+          NEEDS: ${{ toJSON(needs) }}
         run: |
           set -euo pipefail
-          shellcheck -x scripts/ci/freshness/*.sh
-          bash scripts/ci/freshness/check.test.sh
-
-      - name: The newest Dependabot pull request is under 15 days old
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
-          MAX_AGE_DAYS: "15"
-        run: bash scripts/ci/freshness/check.sh
+          dir="$RUNNER_TEMP/gate"
+          mkdir -p "$dir"
+          if [ "$EVENT" = pull_request ] && git cat-file -e HEAD^1:scripts/ci/plan/gate.py 2>/dev/null; then
+            git show HEAD^1:scripts/ci/plan/gate.py >"$dir/gate.py"
+            git show HEAD^1:scripts/ci/plan/map.toml >"$dir/map.toml"
+          else
+            cp scripts/ci/plan/gate.py scripts/ci/plan/map.toml "$dir/"
+          fi
+          python3 -I "$dir/gate.py" --map "$dir/map.toml"

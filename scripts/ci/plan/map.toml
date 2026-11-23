@@ -1,0 +1,132 @@
+# What each suite of .github/workflows/ci.yml looks at.
+#
+# The `plan` job reads this file and prints, for each suite below, whether the
+# change in front of it can move the suite's answer. A suite whose answer cannot
+# move is skipped, and the `ci gate` job accepts that only when this file said
+# so. `scripts/ci/plan/test_plan.py` holds the map to two promises:
+#   - every tracked file is read by at least one suite, or is listed under
+#     [ignore] with the reason it needs none;
+#   - a suite runs for a file of its own and does not run for a file of another.
+#
+# Patterns: `*` is anything but `/`, `**` is anything, `**/` may match nothing.
+# A suite that stays out of a file on purpose says so in `exclude`.
+#
+# A job in ci.yml has the name of its suite here. Adding a suite means adding
+# the job, listing it in the `needs` of `gate`, and writing its cases in the
+# test; the test fails until all three agree.
+
+# A change to what decides what runs, or to the workflow that runs it, runs every
+# suite: it is the one change that can switch the others off.
+machinery = [
+	"scripts/ci/plan/**",
+	".github/workflows/ci.yml",
+]
+
+# Paths that no suite needs, each group with the reason.
+[ignore]
+paths = [
+	# Prose. Nothing builds, runs or lints it.
+	"**/*.md",
+	"docs/**",
+	"LICENSE",
+	# Editor, git and tool settings that no job reads.
+	".editorconfig",
+	".gitignore",
+	"internal/.gitignore",
+	# Read by Dependabot and by the folder limit, which have workflows of their own.
+	".github/dependabot.yml",
+	".github/folder-limit-exceptions.txt",
+]
+
+# Biome reads every file of the project, its own settings and the shadcn ones
+# included.
+[suites.lint]
+push = true
+include = ["internal/**"]
+exclude = ["internal/.gitignore"]
+
+# The build and the tests read the project; the settings of Biome and of the
+# shadcn command line are not among their inputs.
+[suites.unit]
+push = true
+include = ["internal/**", "scripts/test/**"]
+exclude = ["internal/.gitignore", "internal/biome.json", "internal/components.json"]
+
+[suites.randomized]
+include = ["internal/**", "scripts/test/**"]
+exclude = ["internal/.gitignore", "internal/biome.json", "internal/components.json"]
+
+[suites.e2e]
+include = [
+	"internal/src/**",
+	"internal/next.config.ts",
+	"internal/postcss.config.mjs",
+	"internal/tsconfig.json",
+	"internal/package.json",
+	"internal/bun.lock",
+	"scripts/e2e/**",
+	"scripts/headers/**",
+]
+exclude = [
+	"internal/**/*.test.ts",
+	"internal/**/*.test.tsx",
+	"internal/src/test/**",
+	"internal/src/**/test-support/**",
+]
+
+[suites.container]
+include = [
+	"Containerfile",
+	".containerignore",
+	"scripts/consistency/check-base-indexes.sh",
+	"internal/src/**",
+	"internal/next.config.ts",
+	"internal/postcss.config.mjs",
+	"internal/tsconfig.json",
+	"internal/package.json",
+	"internal/bun.lock",
+]
+exclude = [
+	"internal/**/*.test.ts",
+	"internal/**/*.test.tsx",
+	"internal/src/test/**",
+	"internal/src/**/test-support/**",
+]
+
+[suites.debian]
+include = [
+	"debian/**",
+	"scripts/debian/**",
+	"scripts/release/version/check-changelog.sh",
+	"internal/package.json",
+]
+
+[suites.release-scripts]
+include = ["scripts/release/**"]
+
+[suites.bun-version]
+include = [
+	".github/workflows/**",
+	"Containerfile",
+	"scripts/consistency/**",
+	"scripts/release/lib/assertions.sh",
+]
+
+[suites.actionlint]
+include = [".github/workflows/**"]
+
+# The check reads every tracked file with an extension of its list (EXTS in
+# scripts/ci/line-limit/check.sh). A file with another of them is claimed by no
+# suite, and `plan` fails until it is added here: test_plan.py compares the two.
+[suites.line-limit]
+include = [
+	"**/*.ts",
+	"**/*.tsx",
+	"**/*.mjs",
+	"**/*.py",
+	"**/*.sh",
+]
+
+# The tests of the scripts the other jobs run.
+[suites.ci-scripts]
+include = ["scripts/ci/**"]

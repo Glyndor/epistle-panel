@@ -204,11 +204,11 @@ jobs:
 
       - name: Build the package and lint it, as the Debian package workflow does
         env:
-          # debian:trixie, the digest .github/workflows/debian.yml pins. Move
+          # debian:trixie, the digest .github/workflows/ci-debian.yml pins. Move
           # the two together.
           BUILD_IMAGE: docker.io/library/debian:trixie@sha256:fac46bff2e02f51425b6e33b0e1169f55dfb053d83511ca28aa50c09fd5ed7a4
         run: |
-          # The same script debian.yml runs on every change to the packaging:
+          # The same script ci-debian.yml runs on every change to the packaging:
           # a clean, digest-pinned Debian container, dpkg-buildpackage, and
           # `lintian --fail-on error,warning` on the .deb it produced. The file
           # published below is that file, so what the repository tests is what
