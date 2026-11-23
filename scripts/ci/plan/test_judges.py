@@ -203,9 +203,12 @@ class TreeJudges(unittest.TestCase):
 
     def test_no_comment_sends_the_reader_outside_the_repository(self):
         """A comment names files of this repository, not a report, a review or a standard held elsewhere."""
-        bad = re.compile(r"standards/|ai-context|audit round|review round|\bsession of\b", re.I)
+        # The words are written in pieces so that this file does not match itself:
+        # no file is left out of the search, this one included.
+        words = ["standards" + "/", "ai" + "-context", "audit" + " round", "review" + " round", r"\bsession" + " of\\b"]
+        bad = re.compile("|".join(words), re.I)
         for path in tracked():
-            if (path.startswith(".github/") or path.startswith("scripts/ci/")) and not path.endswith(("test_wiring.py", "test_plan.py")):
+            if path.startswith(".github/") or path.startswith("scripts/ci/"):
                 with open(os.path.join(ROOT, path), encoding="utf-8") as handle:
                     self.assertIsNone(bad.search(handle.read()), path)
 
