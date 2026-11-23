@@ -24,7 +24,7 @@ ALWAYS = list(DATA["always"])
 # Suites the map knows and ci.yml may have no job for yet (see gate.py).
 OPTIONAL = list(DATA.get("optional", []))
 
-FIRST = ["line-limit", "actionlint", "bun-version", "ci-scripts", "lint", "action-pins"]
+FIRST = ["line-limit", "commit-checks", "actionlint", "bun-version", "ci-scripts", "lint", "action-pins"]
 SECOND = ["unit", "randomized", "debian", "release-scripts"]
 THIRD = ["e2e", "container"]
 
@@ -61,6 +61,7 @@ AUDIT_NAME = "${{ github.event_name == 'pull_request' && 'bun audit' || format('
 NAMES = {
     "plan": "plan",
     "line-limit": "line limit",
+    "commit-checks": "commit checks",
     "actionlint": "actionlint",
     "bun-version": "bun version",
     "ci-scripts": "ci scripts",
@@ -78,6 +79,7 @@ NAMES = {
 RUNS = {
     "plan": "plan.py",
     "line-limit": "scripts/ci/line-limit/check.sh",
+    "commit-checks": "scripts/ci/hygiene/$tool.sh",
     "actionlint": "actionlint_${ACTIONLINT_VERSION}",
     "bun-version": "scripts/consistency/check-bun-version.sh",
     "ci-scripts": "unittest discover -s scripts/ci/plan",

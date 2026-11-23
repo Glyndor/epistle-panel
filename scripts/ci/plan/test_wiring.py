@@ -104,7 +104,7 @@ class Wiring(unittest.TestCase):
 
     def test_each_suite_waits_for_exactly_the_layers_before_it(self):
         for suite in FIRST:
-            self.assertEqual(set(self.jobs[suite].get("needs", [])), {"plan"} if suite != "line-limit" else set(), suite)
+            self.assertEqual(set(self.jobs[suite].get("needs", [])), {"plan"} if suite not in ALWAYS else set(), suite)
         for suite in SECOND:
             self.assertEqual(self.jobs[suite]["needs"], ["plan"] + FIRST, suite)
         for suite in THIRD:

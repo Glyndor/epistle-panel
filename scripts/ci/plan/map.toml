@@ -51,6 +51,8 @@ paths = [
 	".editorconfig",
 	".gitignore",
 	"internal/.gitignore",
+	# Read by the commit checks, which run on every change and are not a suite.
+	".secret-scan-allow",
 	# Read by the folder limit, which has a workflow of its own.
 	"scripts/folder-limit/**",
 ]
