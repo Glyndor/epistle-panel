@@ -94,7 +94,8 @@ class Wiring(unittest.TestCase):
     def test_a_suite_without_a_job_is_an_optional_one_and_the_list_is_closed(self):
         """Between the pull request that teaches the base a job and the one that adds it."""
         self.assertLessEqual(set(SUITES) - set(PRESENT), set(OPTIONAL))
-        self.assertEqual(OPTIONAL, ["action-pins"], "the third pull request takes the name off the map and this list")
+        self.assertEqual(OPTIONAL, [], "a suite is listed here only between the first pull request and the third")
+        self.assertEqual(set(SUITES), set(PRESENT), "every suite of the map has its job, so every one is required")
 
     def test_each_job_has_its_own_name(self):
         for job, name in NAMES.items():
