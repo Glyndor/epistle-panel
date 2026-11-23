@@ -289,8 +289,9 @@ class TreeJudges(unittest.TestCase):
         self.assertIn(("release.yml", "verify"), found, "the release gate no longer checks out another ref, or the test cannot see it")
 
     def test_the_line_limit_is_on_the_whole_tree_and_outside_the_plan(self):
-        self.assertEqual(ALWAYS, ["line-limit"])
+        self.assertEqual(ALWAYS, ["line-limit", "commit-checks"])
         self.assertNotIn("line-limit", SUITES)
+        self.assertNotIn("commit-checks", SUITES)
 
     def test_no_comment_sends_the_reader_outside_the_repository(self):
         """A comment names files of this repository, not a report, a review or a standard held elsewhere."""

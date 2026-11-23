@@ -41,6 +41,7 @@ from wiring_support import (
     THIRD,
     _mapping,
     enumerate_files,
+    present_always,
     present_suites,
     load,
     names_of,
@@ -54,6 +55,7 @@ from wiring_support import (
 )
 
 PRESENT = present_suites()
+PRESENT_ALWAYS = present_always()
 
 
 class Reader(unittest.TestCase):
@@ -87,15 +89,14 @@ class Wiring(unittest.TestCase):
         self.assertEqual(self.doc["permissions"], {"contents": "read"})
 
     def test_the_jobs_are_closed_to_the_suites_the_always_jobs_the_plan_and_the_gate(self):
-        self.assertEqual(set(self.jobs), set(PRESENT) | set(ALWAYS) | {"plan", "gate"})
+        self.assertEqual(set(self.jobs), set(PRESENT) | set(PRESENT_ALWAYS) | {"plan", "gate"})
         self.assertEqual(set(self.jobs), set(NAMES))
-        self.assertEqual(set(FIRST + SECOND + THIRD), set(PRESENT) | set(ALWAYS))
+        self.assertEqual(set(FIRST + SECOND + THIRD), set(PRESENT) | set(PRESENT_ALWAYS))
 
     def test_a_suite_without_a_job_is_an_optional_one_and_the_list_is_closed(self):
         """Between the pull request that teaches the base a job and the one that adds it."""
-        self.assertLessEqual(set(SUITES) - set(PRESENT), set(OPTIONAL))
-        self.assertEqual(OPTIONAL, [], "a suite is listed here only between the first pull request and the third")
-        self.assertEqual(set(SUITES), set(PRESENT), "every suite of the map has its job, so every one is required")
+        self.assertLessEqual((set(SUITES) | set(ALWAYS)) - (set(PRESENT) | set(PRESENT_ALWAYS)), set(OPTIONAL))
+        self.assertEqual(OPTIONAL, ["commit-checks"], "the third pull request takes the name off the map and this list")
 
     def test_each_job_has_its_own_name(self):
         for job, name in NAMES.items():
@@ -117,7 +118,7 @@ class Wiring(unittest.TestCase):
             self.assertEqual(self.jobs[suite]["if"], want, suite)
 
     def test_a_job_the_plan_does_not_decide_has_no_word_of_the_plan(self):
-        for job in ALWAYS:
+        for job in PRESENT_ALWAYS:
             self.assertEqual(self.jobs[job]["if"], "${{ !cancelled() }}", job)
             self.assertNotIn("needs", self.jobs[job], job)
 
