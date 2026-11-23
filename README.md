@@ -352,7 +352,7 @@ image they use, `docker.io/library/debian:trixie` by default.
 runs it, and `scripts/headers/verify.sh`, on pull requests that touch the code it
 exercises.
 
-The fifteen workflows split by when they run. `CI` (lint, typecheck, build, the
+The seventeen workflows split by when they run. `CI` (lint, typecheck, build, the
 unit tests with the coverage threshold, and the dependabot freshness check) runs
 on every push to `main` or `develop` and on every pull request into `develop`.
 Others run only when their answer can change: `Container` (the image inputs),
@@ -366,7 +366,9 @@ scripts` (the tag check, image tags, signing and publishing scripts under
 limit` (when a source file changes), run on pull requests into `develop` only:
 the promotion pull request into `main` carries a tree they already checked.
 `DCO` runs on every pull request into `main` or `develop`, and `guard` on every
-pull request into `main`. `Release` runs on a `v*` tag.
+pull request into `main`. `CodeQL` analyses the workflows, the Next.js project and
+the Python scripts on every pull request into `main` or `develop`, on every push
+to either, and weekly. `Release` runs on a `v*` tag.
 
 ## License
 
