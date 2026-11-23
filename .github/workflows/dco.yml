@@ -1,8 +1,14 @@
 name: DCO
 
 # The organisation's sign-off gate: every commit on a pull request carries a
-# Signed-off-by trailer. The logic is the shared reusable; the pull_request
-# trigger has to live in the repository.
+# Signed-off-by trailer, and no merge commit on it carries a change of its own.
+# The logic is scripts/ci/dco/check.sh; the pull_request trigger has to live in
+# the repository. It also runs on the promotion pull request to main, where the
+# squash commits of develop are the ones it reads.
+#
+# A pull request that edits the script or this workflow is judged by its own
+# copy; the residual risk of that, a check the change can switch off, is covered
+# by the owner reading every change under .github/ and scripts/ci/.
 
 on:
   pull_request:
@@ -12,12 +18,33 @@ permissions:
   contents: read
 
 # A newer push to a pull request supersedes the run in flight. A push to a
-# branch is never cancelled, so every merge keeps its own result. The reusable
-# below has its own group; this one is the caller's.
+# branch is never cancelled, so every merge keeps its own result.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   dco:
-    uses: Glyndor/.github/.github/workflows/dco.yml@d5041b038b7d4935e75400dff612962e6fa14893 # v1.21.0
+    # The name is what the ruleset of develop requires. It was the check of the
+    # shared workflow this job replaces, and it stays so no ruleset has to change.
+    name: dco / Signed-off-by present on every commit
+    runs-on: ubuntu-latest
+    # Measured 2026-11-15: 5 s of work. The rest of a run is the wait for a runner.
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Lint and test the check
+        run: |
+          set -euo pipefail
+          shellcheck -x scripts/ci/dco/*.sh
+          bash scripts/ci/dco/check.test.sh
+
+      - name: Signed-off-by on every commit, no evil merge
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: bash scripts/ci/dco/check.sh
