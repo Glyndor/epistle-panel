@@ -1,28 +1,17 @@
 name: Release scripts
 
-# Tests and lints the scripts the release workflow runs, which nothing else
-# exercises before a real release does: the tag check, the image tags, the
-# manifest publication, the file allowlist, the SBOM writer and the signing
-# scripts. A release is immutable, so a fault in one of them found on the first
-# run stays. The list includes this workflow: one whose `paths:` does not list
-# itself never runs on the pull request that edits it. Not a required check, so
-# a path filter cannot leave one pending.
+# Called by ci.yml when the plan says a change can move the answer (see
+# scripts/ci/plan/map.toml). Tests and lints the scripts the release workflow
+# runs, which nothing else exercises before a real release does: the tag check,
+# the image tags, the manifest publication, the file allowlist, the SBOM writer
+# and the signing scripts. A release is immutable, so a fault in one of them
+# found on the first run stays.
 
 on:
-  pull_request:
-    # Into develop only: the promotion pull request to main carries a tree this
-    # check already answered for on develop.
-    branches: [develop]
-    paths:
-      - ".github/workflows/release-scripts.yml"
-      - "scripts/release/**"
+  workflow_call:
 
 permissions:
   contents: read
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   release-scripts:
@@ -77,7 +66,7 @@ jobs:
       - name: Shell tests
         run: |
           set -euo pipefail
-          for test in scripts/release/*/test-*.sh scripts/folder-limit/folder-limit.test.sh; do
+          for test in scripts/release/*/test-*.sh; do
             echo "== $test"
             bash "$test"
           done

@@ -9,9 +9,8 @@
 # browser-only checks are listed in docs/maintainers/e2e.md.
 #
 # Run `bun run build` in internal/ first. Needs bash, node, bun and curl, and
-# talks only to 127.0.0.1. The `End-to-end` workflow (.github/workflows/e2e.yml)
-# runs it on pull requests and pushes to develop that touch the code it
-# exercises.
+# talks only to 127.0.0.1. The `e2e` job of CI (.github/workflows/ci-e2e.yml)
+# runs it on pull requests that touch the code it exercises.
 #
 # Usage: scripts/e2e/run.sh [scenario...]
 #   scenarios: security headers logout limiter limiter-global noauth degraded rotation idle theme theme-choice profile-menu body-limit captcha csrf me unknown-variable suppression deliveries account-detail accounts breadcrumbs admin-id mail streaming tables overview shell-state cdn-origins

@@ -8,7 +8,7 @@ version: 2
 #
 # `target-branch: develop` stays. Dependabot SECURITY updates ignore it and open
 # against main, where main-guard refuses them; .github/workflows/
-# dependabot-security-watch.yml reports those instead of letting them sit.
+# dependabot-watch.yml reports those instead of letting them sit.
 #
 # Labels must exist in the repository (`gh label list`), or Dependabot drops
 # them. `cooldown` delays a new release for a few days before a version update;
@@ -29,16 +29,8 @@ updates:
     commit-message:
       prefix: "ci(deps)"
     groups:
-      # Split so each pull request has one answer: the reusables are the pins
-      # whose bump usually changes nothing this repository calls, and closing
-      # that no-op must not close the third-party bump that mattered
-      # (standards/ci/pins/no-op-pin-bump). Dependabot names a reusable by its
-      # full path, `Glyndor/.github/.github/workflows/<file>`, hence the `*`.
-      glyndor-reusables:
-        patterns: ["Glyndor/.github*"]
-      third-party:
+      actions:
         patterns: ["*"]
-        exclude-patterns: ["Glyndor/.github*"]
 
   # The Next.js project lives in internal/ (package.json + bun.lock). Majors
   # are left out of every group, so each major arrives as its own pull request.

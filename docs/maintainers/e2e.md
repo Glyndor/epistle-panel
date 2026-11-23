@@ -17,9 +17,9 @@ bun test scripts/e2e            # the stand-in API's and the shared checks' test
 It needs bash, node, bun and curl, uses only 127.0.0.1 and picks free ports
 (`PANEL_PORT` and `STAND_IN_PORT` override them).
 
-The `End-to-end` workflow (`.github/workflows/e2e.yml`) builds the panel and runs
+The `e2e` job of `CI` (`.github/workflows/ci-e2e.yml`) builds the panel and runs
 `bun test scripts/e2e`, `scripts/e2e/run.sh` and `scripts/headers/verify.sh` on
-pull requests and on pushes to `develop` that touch anything the built server
+pull requests into `develop` that touch anything the built server
 ships or the scripts read: `internal/src/**`, `internal/next.config.ts`,
 `internal/postcss.config.mjs`, `internal/tsconfig.json`, `internal/package.json`,
 `internal/bun.lock`, `scripts/e2e/**`, `scripts/headers/**` or the workflow

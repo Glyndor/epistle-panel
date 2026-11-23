@@ -1,34 +1,31 @@
 name: Dependency audit
 
-# `bun audit` reads internal/bun.lock and asks the advisory database; the
-# answer changes only when the lockfile changes or when a new advisory is
-# published. So it runs on a pull request only when the lockfile or the
-# manifest is in it, on a push to main for the same paths, and once a week to
-# catch advisories published against a lockfile that did not move.
+# `bun audit` reads internal/bun.lock and asks the advisory database. A new
+# advisory appears without any file changing, so this is not filtered by path: it
+# runs on every pull request into develop and on every push to develop or main,
+# and the weekly run audits both branches, because a schedule only fires from the
+# default branch and would otherwise never look at develop. It needs no install
+# and no secret, so a run takes seconds.
 #
-# Advisory only, on purpose: it is not a required check in either ruleset. A
-# new advisory is a third party's disclosure timing and must never block an
-# unrelated merge, and a workflow skipped by `paths:` leaves a required check
-# pending forever. The release workflow keeps its own `bun audit` as the
-# blocking gate. This file lists itself so an edit to it runs on its own pull
-# request. GitHub reads `schedule:` from the default branch only, so the cron
-# starts once this reaches main; `workflow_dispatch` covers the gap.
+# The weekly run holds the privileges of the default branch, so it does not bring
+# the tree of the branch it audits. There is one checkout, the event's. Of each
+# audited branch, a fixed list, it takes only `package.json` and `bun.lock` with
+# `git show` into a clean folder outside the workspace and runs `bun audit` there:
+# no install, no script of that branch, no cache, no second checkout, no `ref:`.
+# `bun audit` reads the lockfile and asks the advisory database, and needs
+# nothing installed.
+#
+# Advisory only, on purpose: it is not a required check. A new advisory is a third
+# party's disclosure timing and must never block an unrelated merge. The release
+# workflow keeps its own `bun audit` as the blocking gate. GitHub reads
+# `schedule:` from the default branch only, so the cron starts once this reaches
+# main; `workflow_dispatch` covers the gap.
 
 on:
   pull_request:
-    # Into develop only: the promotion pull request to main carries a tree this
-    # check already answered for on develop, and it is not required on main.
     branches: [develop]
-    paths:
-      - ".github/workflows/audit.yml"
-      - "internal/bun.lock"
-      - "internal/package.json"
   push:
-    branches: [main]
-    paths:
-      - ".github/workflows/audit.yml"
-      - "internal/bun.lock"
-      - "internal/package.json"
+    branches: [develop, main]
   schedule:
     - cron: "23 6 * * 1"
   workflow_dispatch:
@@ -44,22 +41,51 @@ jobs:
   audit:
     name: bun audit
     runs-on: ubuntu-latest
+    # Measured 2026-11-15: 7 s.
     timeout-minutes: 10
     steps:
+      # Every branch is a remote-tracking ref after this, which is what `git show`
+      # below reads.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0
           persist-credentials: false
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          # Same Bun as ci.yml, release.yml and the Containerfile;
+          # Same Bun as the Containerfile and release.yml;
           # scripts/consistency/check-bun-version.sh keeps them equal.
           bun-version: 1.4.4
+          # Nothing is restored from a cache or saved to one.
+          no-cache: true
 
-      - name: Advisories in the lockfile
-        working-directory: internal
-        # Exits non-zero on any advisory, development dependencies included,
-        # and on a failed lookup, the same as the release gate. An advisory
-        # judged not to apply is passed as `--ignore=<GHSA id>` with the
-        # reason beside it, in a reviewed change.
-        run: bun audit
+      - name: Advisories in the lockfiles
+        env:
+          EVENT: ${{ github.event_name }}
+          BRANCHES: develop main
+        # Exits non-zero on any advisory, development dependencies included, and
+        # on a failed lookup, the same as the release gate. An advisory judged not
+        # to apply is passed as `--ignore=<GHSA id>` with the reason beside it, in
+        # a reviewed change. A branch that does not exist, or a file that is empty,
+        # fails the step.
+        run: |
+          set -euo pipefail
+          if [ "$EVENT" != schedule ]; then
+            cd internal
+            bun audit
+            exit 0
+          fi
+          failed=0
+          for branch in $BRANCHES; do
+            dir="$(mktemp -d "$RUNNER_TEMP/audited.XXXXXX")"
+            for file in package.json bun.lock; do
+              git show "origin/${branch}:internal/${file}" >"$dir/$file"
+              if [ ! -s "$dir/$file" ]; then
+                echo "::error::internal/${file} of ${branch} is empty"
+                exit 1
+              fi
+            done
+            echo "== ${branch}"
+            (cd "$dir" && bun audit) || failed=1
+          done
+          exit "$failed"
