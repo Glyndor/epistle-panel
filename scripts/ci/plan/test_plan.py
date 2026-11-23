@@ -45,8 +45,10 @@ CASES = {
     "LICENSE": set(),
     ".gitignore": set(),
     ".editorconfig": set(),
-    ".github/dependabot.yml": {"action-pins"},
-    ".github/folder-limit-exceptions.txt": {"action-pins"},
+    ".github/dependabot.yml": {"ci-scripts"},
+    ".github/folder-limit-exceptions.txt": {"ci-scripts"},
+    ".github/actions/x/action.yml": {"ci-scripts"},
+    ".github/anything/at/all.txt": {"ci-scripts"},
     "scripts/ci/pins/check.sh": {"ci-scripts", "action-pins"},
     "scripts/folder-limit/folder-limit.sh": set(),
     "internal/src/app/page.tsx": APP | SHIPPED,
@@ -105,7 +107,7 @@ EXPECTED = [
     (["scripts/ci/plan/**", "scripts/ci/bun/**", ".github/workflows/ci.yml"], lambda everything: everything),
     ([".github/workflows/*.yml"], {"actionlint", "bun-version", "ci-scripts", "action-pins"}),
     ([".editorconfig", ".gitignore", "internal/.gitignore", "scripts/folder-limit/**"], NOTHING),
-    ([".github/dependabot.yml", ".github/folder-limit-exceptions.txt"], {"action-pins"}),
+    ([".github/dependabot.yml", ".github/folder-limit-exceptions.txt"], {"ci-scripts"}),
     (["scripts/ci/pins/**"], {"ci-scripts", "action-pins"}),
     (["scripts/ci/**"], {"ci-scripts"}),
     (["internal/package.json"], APP | SHIPPED | {"debian"}),
@@ -309,6 +311,30 @@ class Integrity(unittest.TestCase):
         )
         self.assertEqual(DATA["machinery"], ["scripts/ci/plan/**", "scripts/ci/bun/**", ".github/workflows/ci.yml"])
         self.assertEqual(DATA["always"], ["line-limit"])
+
+    def test_an_optional_suite_claims_nothing_the_others_do_not_judge(self):
+        """A suite without a job judges nothing, so a path only it reads would be taken for judged.
+
+        Every path an optional suite selects, tracked or not, is selected by another
+        suite that is not optional, or is machinery, or is ignored on purpose.
+        """
+        optional = set(DATA.get("optional", []))
+        others = {n: s for n, s in DATA["suites"].items() if n not in optional}
+        hypothetical = [".github/actions/x/action.yml", ".github/other/file.txt", "scripts/ci/pins/new.py", ".github/workflows/new.yml"]
+        for path in list(self.files) + hypothetical:
+            if any(plan.selects(DATA["suites"][name], path) for name in optional):
+                judged = (
+                    any(plan.selects(s, path) for s in others.values())
+                    or plan.matches(DATA.get("machinery", []), path)
+                    or plan.matches(DATA["ignore"]["paths"], path)
+                )
+                self.assertTrue(judged, f"{path} is read only by an optional suite, which does not run")
+
+    def test_a_path_under_github_that_nothing_else_names_still_runs_the_wiring_tests(self):
+        for path in (".github/actions/x/action.yml", ".github/anything/at/all.txt"):
+            verdict, unclaimed = run_plan([path])
+            self.assertEqual(unclaimed, [], path)
+            self.assertEqual({s for s, on in verdict.items() if on}, {"ci-scripts"}, path)
 
     def test_every_ignore_pattern_covers_a_file_nobody_else_reads(self):
         """An ignore that only repeats what a suite reads is a pattern to delete."""
