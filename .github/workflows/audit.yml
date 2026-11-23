@@ -51,13 +51,9 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          # Same Bun as the Containerfile and release.yml;
-          # scripts/consistency/check-bun-version.sh keeps them equal.
-          bun-version: 1.4.4
-          # Nothing is restored from a cache or saved to one.
-          no-cache: true
+      - name: Install Bun at the release the Containerfile names
+        # The script is the event's own, never a branch's that is audited below.
+        run: bash scripts/ci/bun/install.sh
 
       - name: Advisories in the lockfiles
         env:

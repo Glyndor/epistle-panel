@@ -187,10 +187,11 @@ jobs:
         with:
           persist-credentials: false
 
-      # One Bun release must be named by the workflows and the Containerfile.
-      # Dependabot moves the tag and digest of the Containerfile's
-      # `FROM docker.io/oven/bun:<version>-debian@sha256:... AS bun` stage but not
-      # the `bun-version:` lines, so the releases are read as text and compared.
+      # The Bun release is the tag of the Containerfile's
+      # `FROM docker.io/oven/bun:<version>-debian@sha256:... AS bun` stage, which
+      # Dependabot moves. scripts/ci/bun/install.sh installs it after checking the
+      # hash in scripts/ci/bun/SHA256SUMS, so a bump without the hash is refused here
+      # and no workflow may name a Bun of its own.
       - name: Lint the consistency scripts
         run: shellcheck -x --source-path=SCRIPTDIR scripts/consistency/*.sh
 
@@ -257,11 +258,9 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          # The Bun release the release workflow and the Containerfile use;
-          # scripts/consistency/check-bun-version.sh keeps them equal.
-          bun-version: 1.4.4
+      - name: Install Bun at the release the Containerfile names
+        working-directory: .
+        run: bash scripts/ci/bun/install.sh
 
       - name: Install
         run: bun install --frozen-lockfile
@@ -285,9 +284,9 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version: 1.4.4
+      - name: Install Bun at the release the Containerfile names
+        working-directory: .
+        run: bash scripts/ci/bun/install.sh
 
       - name: Install
         run: bun install --frozen-lockfile
@@ -313,9 +312,9 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version: 1.4.4
+      - name: Install Bun at the release the Containerfile names
+        working-directory: .
+        run: bash scripts/ci/bun/install.sh
 
       - name: Install dependencies
         working-directory: internal
