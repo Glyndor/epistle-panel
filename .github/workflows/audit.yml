@@ -7,6 +7,14 @@ name: Dependency audit
 # default branch and would otherwise never look at develop. It needs no install
 # and no secret, so a run takes seconds.
 #
+# The weekly run holds the privileges of the default branch, so it does not bring
+# the tree of the branch it audits. There is one checkout, the event's. Of each
+# audited branch, a fixed list, it takes only `package.json` and `bun.lock` with
+# `git show` into a clean folder outside the workspace and runs `bun audit` there:
+# no install, no script of that branch, no cache, no second checkout, no `ref:`.
+# `bun audit` reads the lockfile and asks the advisory database, and needs
+# nothing installed.
+#
 # Advisory only, on purpose: it is not a required check. A new advisory is a third
 # party's disclosure timing and must never block an unrelated merge. The release
 # workflow keeps its own `bun audit` as the blocking gate. GitHub reads
@@ -35,18 +43,12 @@ jobs:
     runs-on: ubuntu-latest
     # Measured 2026-11-15: 7 s.
     timeout-minutes: 10
-    strategy:
-      # The branches are audited independently: one failing is no reason to skip
-      # the other.
-      fail-fast: false
-      matrix:
-        # An empty ref is the one the event names. Only the weekly run, which
-        # fires on the default branch, has to name both.
-        ref: ${{ github.event_name == 'schedule' && fromJSON('["main", "develop"]') || fromJSON('[""]') }}
     steps:
+      # Every branch is a remote-tracking ref after this, which is what `git show`
+      # below reads.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ matrix.ref }}
+          fetch-depth: 0
           persist-credentials: false
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
@@ -54,15 +56,36 @@ jobs:
           # Same Bun as the Containerfile and release.yml;
           # scripts/consistency/check-bun-version.sh keeps them equal.
           bun-version: 1.4.4
-          # This job checks out another branch than the one the event names, and
-          # the weekly run holds the privileges of the default branch. Nothing is
-          # restored from a cache or saved to one: the install is clean every time.
+          # Nothing is restored from a cache or saved to one.
           no-cache: true
 
-      - name: Advisories in the lockfile
-        working-directory: internal
-        # Exits non-zero on any advisory, development dependencies included,
-        # and on a failed lookup, the same as the release gate. An advisory
-        # judged not to apply is passed as `--ignore=<GHSA id>` with the
-        # reason beside it, in a reviewed change.
-        run: bun audit
+      - name: Advisories in the lockfiles
+        env:
+          EVENT: ${{ github.event_name }}
+          BRANCHES: develop main
+        # Exits non-zero on any advisory, development dependencies included, and
+        # on a failed lookup, the same as the release gate. An advisory judged not
+        # to apply is passed as `--ignore=<GHSA id>` with the reason beside it, in
+        # a reviewed change. A branch that does not exist, or a file that is empty,
+        # fails the step.
+        run: |
+          set -euo pipefail
+          if [ "$EVENT" != schedule ]; then
+            cd internal
+            bun audit
+            exit 0
+          fi
+          failed=0
+          for branch in $BRANCHES; do
+            dir="$(mktemp -d "$RUNNER_TEMP/audited.XXXXXX")"
+            for file in package.json bun.lock; do
+              git show "origin/${branch}:internal/${file}" >"$dir/$file"
+              if [ ! -s "$dir/$file" ]; then
+                echo "::error::internal/${file} of ${branch} is empty"
+                exit 1
+              fi
+            done
+            echo "== ${branch}"
+            (cd "$dir" && bun audit) || failed=1
+          done
+          exit "$failed"

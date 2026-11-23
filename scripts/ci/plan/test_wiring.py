@@ -407,7 +407,7 @@ class TreeJudges(unittest.TestCase):
         self.assertIn('git show "$base:scripts/folder-limit/folder-limit.sh" >"$script"', step["run"])
         self.assertIn('nice -n 15 bash "$script"', step["run"])
 
-    def test_the_dependency_audit_is_not_conditioned_by_paths_and_looks_at_both_branches(self):
+    def test_the_dependency_audit_is_not_conditioned_by_paths(self):
         doc = load(".github/workflows/audit.yml")
         self.assertEqual(
             triggers(doc),
@@ -419,10 +419,7 @@ class TreeJudges(unittest.TestCase):
             },
         )
         job = doc["jobs"]["audit"]
-        self.assertEqual(set(job) & {"if", "needs", "continue-on-error"}, set())
-        self.assertEqual(job["strategy"]["fail-fast"], False)
-        self.assertEqual(job["strategy"]["matrix"]["ref"], """${{ github.event_name == 'schedule' && fromJSON('["main", "develop"]') || fromJSON('[""]') }}""")
-        self.assertEqual(job["steps"][0]["with"], {"ref": "${{ matrix.ref }}", "persist-credentials": False})
+        self.assertEqual(set(job), {"name", "runs-on", "timeout-minutes", "steps"})
 
     def test_the_action_pins_check_runs_when_a_workflow_changes_and_every_week(self):
         doc = load(".github/workflows/pins.yml")
@@ -438,12 +435,93 @@ class TreeJudges(unittest.TestCase):
         self.assertEqual(set(job) & {"if", "needs", "continue-on-error"}, set())
         self.assertIn("scripts/ci/pins/check.test.sh", step_named(job, "Lint and test the check")["run"])
 
-    def test_a_job_that_checks_out_another_ref_restores_and_saves_no_cache(self):
-        """The weekly audit holds the default branch's privileges after it brings code from another branch.
+    def test_a_scheduled_workflow_brings_no_other_tree(self):
+        """The run of a schedule holds the privileges of the default branch.
 
-        A cache restored or saved after that is one another branch can poison, so
-        such a job installs clean: no cache action, no cache input of a setup
-        action, and credentials left out of the checkout.
+        One checkout, the event's: no `ref`, no `path`, no second checkout, no local
+        action, and no step that installs. What another branch holds is read as data.
+        """
+        scheduled = [path for path in sorted(FILES) if "schedule" in triggers(load(path))]
+        self.assertIn(".github/workflows/audit.yml", scheduled)
+        for path in scheduled:
+            for name, job in load(path)["jobs"].items():
+                steps = job.get("steps", [])
+                checkouts = [s for s in steps if str(s.get("uses", "")).startswith("actions/checkout@")]
+                self.assertLessEqual(len(checkouts), 1, f"{path}:{name} checks out twice")
+                for step in checkouts:
+                    self.assertEqual(set(step.get("with") or {}) - {"fetch-depth", "persist-credentials"}, set(), f"{path}:{name} brings a ref or a path")
+                    self.assertIs(step["with"]["persist-credentials"], False, f"{path}:{name}")
+                for step in steps:
+                    self.assertFalse(str(step.get("uses", "")).startswith("./"), f"{path}:{name} runs an action of the tree")
+                    self.assertNotRegex(str(step.get("run", "")), r"\bbun (install|i|add|ci)\b|\bnpm (ci|install)\b", f"{path}:{name} installs")
+
+    def test_the_audit_reads_the_other_branches_as_two_files_and_installs_nothing(self):
+        job = load(".github/workflows/audit.yml")["jobs"]["audit"]
+        step = step_named(job, "Advisories in the lockfiles")
+        self.assertEqual(step["env"], {"EVENT": "${{ github.event_name }}", "BRANCHES": "develop main"})
+        run = step["run"]
+        for piece in (
+            'git show "origin/${branch}:internal/${file}" >"$dir/$file"',
+            "for file in package.json bun.lock; do",
+            'dir="$(mktemp -d "$RUNNER_TEMP/audited.XXXXXX")"',
+            'if [ ! -s "$dir/$file" ]; then',
+            '(cd "$dir" && bun audit) || failed=1',
+            'exit "$failed"',
+        ):
+            self.assertIn(piece, run)
+        self.assertEqual(run.count("bun audit"), 2)
+        checkout = job["steps"][0]
+        self.assertEqual(checkout["with"], {"fetch-depth": 0, "persist-credentials": False})
+        setup = job["steps"][1]
+        self.assertTrue(setup["uses"].startswith("oven-sh/setup-bun@"))
+        self.assertEqual(setup["with"], {"bun-version": "1.4.4", "no-cache": True}, "no cache in this job")
+        self.assertEqual(len(job["steps"]), 3)
+
+    def test_the_audit_step_audits_each_branch_in_an_empty_folder_outside_the_workspace(self):
+        job = load(".github/workflows/audit.yml")["jobs"]["audit"]
+        run = step_named(job, "Advisories in the lockfiles")["run"]
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = os.path.join(tmp, "repo")
+            fixture = Fixture(tmp, {"internal/package.json": "{}\n", "internal/bun.lock": "lock\n", "internal/postinstall.sh": "bad"}, {"internal/other": "x"})
+            fixture.git("branch", "develop")
+            fixture.git("update-ref", "refs/remotes/origin/develop", "HEAD")
+            fixture.git("update-ref", "refs/remotes/origin/main", "HEAD")
+            bindir = os.path.join(tmp, "bin")
+            os.makedirs(bindir)
+            stub = os.path.join(bindir, "bun")
+            with open(stub, "w") as handle:
+                handle.write('#!/bin/sh\nprintf "%s|%s\\n" "$PWD" "$(ls | tr "\\n" " ")" >> "$AUDIT_LOG"\n')
+            os.chmod(stub, 0o755)
+            env = {"EVENT": "schedule", "BRANCHES": "develop main", "RUNNER_TEMP": tmp, "AUDIT_LOG": os.path.join(tmp, "log"), "PATH": f"{bindir}:{os.environ['PATH']}"}
+            done = fixture.run(run, **env)
+            self.assertEqual(done.returncode, 0, done.stderr)
+            with open(env["AUDIT_LOG"]) as handle:
+                lines = handle.read().splitlines()
+            self.assertEqual(len(lines), 2)
+            for line in lines:
+                where, listing = line.split("|")
+                self.assertTrue(where.startswith(tmp + "/audited."), where)
+                self.assertFalse(where.startswith(repo), "inside the workspace")
+                self.assertEqual(listing.split(), ["bun.lock", "package.json"], "only the two lockfile files")
+            # a branch that does not exist stops the step
+            missing = fixture.run(run, **dict(env, BRANCHES="develop nowhere", AUDIT_LOG=os.path.join(tmp, "log2")))
+            self.assertNotEqual(missing.returncode, 0)
+            # an empty file stops it too
+            fixture.write({"internal/bun.lock": ""})
+            fixture.git("add", "-A")
+            fixture.git("commit", "-q", "-m", "empty")
+            fixture.git("update-ref", "refs/remotes/origin/develop", "HEAD")
+            empty = fixture.run(run, **dict(env, AUDIT_LOG=os.path.join(tmp, "log3")))
+            self.assertNotEqual(empty.returncode, 0)
+            self.assertIn("is empty", empty.stdout + empty.stderr)
+
+    def test_a_job_that_checks_out_another_ref_restores_and_saves_no_cache(self):
+        """A job that brings code from another ref installs clean.
+
+        A cache restored or saved after that is one another branch can poison: no
+        cache action, no cache input of a setup action, no setup-bun that caches,
+        and credentials left out of the checkout. (A scheduled job brings no other
+        tree at all; see test_a_scheduled_workflow_brings_no_other_tree.)
         """
         found = []
         for path in sorted(FILES):
@@ -463,7 +541,7 @@ class TreeJudges(unittest.TestCase):
                             self.assertFalse(value, f"{path}:{name} sets {key}")
                     if uses.startswith("oven-sh/setup-bun@"):
                         self.assertIs(given.get("no-cache"), True, f"{path}:{name} lets setup-bun cache")
-        self.assertIn(("audit.yml", "audit"), found, "the audit no longer checks out another ref, or the test cannot see it")
+        self.assertIn(("release.yml", "verify"), found, "the release gate no longer checks out another ref, or the test cannot see it")
 
     def test_the_line_limit_is_on_the_whole_tree_and_outside_the_plan(self):
         self.assertEqual(ALWAYS, ["line-limit"])
