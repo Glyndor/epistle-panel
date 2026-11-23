@@ -1,4 +1,12 @@
-import { afterEach, describe, expect, it, mock, setSystemTime } from "bun:test";
+import {
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	it,
+	mock,
+	setSystemTime,
+} from "bun:test";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { renderToString } from "react-dom/server";
 
@@ -22,6 +30,14 @@ mock.module("next/navigation", () => ({
 }));
 
 const { DayPickerNav } = await import(".");
+
+/**
+ * The component marks today from the browser's clock once it is on the page
+ * (`useToday`), and the `today` prop is only the server's first paint, which a
+ * test that does not hydrate never shows. So the clock is fixed to the day the
+ * tests call today, and they do not depend on the date they run on.
+ */
+beforeEach(() => setSystemTime(new Date("2026-11-15T12:00:00Z")));
 
 afterEach(() => {
 	cleanup();
