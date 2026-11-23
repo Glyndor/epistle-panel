@@ -20,7 +20,7 @@
 # pull request adds to the gate has to be taught to the base first: one pull request
 # adds it here as optional, the next adds the job to ci.yml, and a third takes the
 # word off this list so that the job is required. See docs/maintainers/ci.md.
-optional = ["commit-checks"]
+optional = []
 
 # What judges the whole tree, or every commit of a pull request, runs on every change,
 # whatever it touches, because a change of prose alone can push a folder or a file past
