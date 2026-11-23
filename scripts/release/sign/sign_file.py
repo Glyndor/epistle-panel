@@ -3,6 +3,11 @@
 
 Usage:
   sign_file.py <input-file> [<output-sig-file>]
+  sign_file.py --public
+
+`--public` prints the public key of the private key in the environment, in the base64
+form of the pinned release-verify-key.b64, for a rehearsal that signs with a key made
+on the spot.
 
 The private key is read from the GLYNDOR_RELEASE_ED25519_KEY environment variable (raw
 32-byte Ed25519 seed in standard base64), never from the command line, so the
@@ -16,6 +21,7 @@ import os
 import sys
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
 
 def main() -> None:
@@ -28,6 +34,7 @@ def main() -> None:
 		print("GLYNDOR_RELEASE_ED25519_KEY is not set in the environment", file=sys.stderr)
 		sys.exit(1)
 
+	print_public = sys.argv[1] == "--public"
 	input_file = sys.argv[1]
 	sig_file = sys.argv[2] if len(sys.argv) > 2 else input_file + ".sig"
 
@@ -59,6 +66,11 @@ def main() -> None:
 		)
 		sys.exit(1)
 	private_key = Ed25519PrivateKey.from_private_bytes(key_bytes)
+
+	if print_public:
+		public = private_key.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
+		print(base64.b64encode(public).decode().rstrip("="))
+		return
 
 	with open(input_file, "rb") as f:
 		data = f.read()

@@ -315,11 +315,14 @@ class Release(unittest.TestCase):
         "attest-deb": {"contents": "read", "id-token": "write", "attestations": "write"},
         "sbom": READ,
         "sign": READ,
+        "rehearse-sign": READ,
+        "release-check": READ,
         "publish": {"contents": "write"},
         "image-build": READ,
         "image-push": {"contents": "read", "packages": "write"},
         "rehearse-manifest": READ,
         "image-manifest": {"contents": "read", "packages": "write", "id-token": "write", "attestations": "write"},
+        "promote-images": {"contents": "read", "packages": "write"},
     }
 
     @classmethod
@@ -332,7 +335,7 @@ class Release(unittest.TestCase):
         self.assertEqual({name: job.get("permissions") for name, job in self.jobs.items()}, self.PERMISSIONS)
 
     def test_what_builds_or_installs_has_contents_read_and_nothing_else(self):
-        for name in ("verify", "build-deb", "sbom", "sign", "image-build", "rehearse-manifest"):
+        for name in ("verify", "build-deb", "sbom", "sign", "rehearse-sign", "release-check", "image-build", "rehearse-manifest"):
             self.assertEqual(self.jobs[name]["permissions"], self.READ, name)
 
     def test_a_rehearsal_never_reaches_a_job_with_authority_to_publish(self):
@@ -351,7 +354,8 @@ class Release(unittest.TestCase):
         self.assertIn('want="epistle-panel_${TAG#v}_all.deb"', step["run"])
         self.assertIn('[ "$found" != "$want" ]', step["run"])
         self.assertEqual(step_named(self.jobs["attest-deb"], "Attest build provenance")["with"], {"subject-path": "${{ runner.temp }}/attest/epistle-panel_*_all.deb"})
-        self.assertIn("attest-deb", self.jobs["publish"]["needs"])
+        self.assertIn("attest-deb", self.jobs["release-check"]["needs"])
+        self.assertIn("release-check", self.jobs["publish"]["needs"])
         self.assertIn("image-push", self.jobs["image-manifest"]["needs"])
 
 
