@@ -2,7 +2,8 @@ name: Line limit
 
 # The file-size standard (soft 300, hard 500 code lines). It only asks a question
 # when a source file changes, so it is filtered to the extensions it reads and to
-# its own file; a documentation-only change cannot move the answer.
+# its own file and script; a documentation-only change cannot move the answer.
+# The logic is scripts/ci/line-limit/check.sh.
 
 on:
   pull_request:
@@ -23,12 +24,27 @@ permissions:
   contents: read
 
 # A newer push to a pull request supersedes the run in flight. A push to a
-# branch is never cancelled, so every merge keeps its own result. The reusable
-# below has its own group; this one is the caller's.
+# branch is never cancelled, so every merge keeps its own result.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   line-limit:
-    uses: Glyndor/.github/.github/workflows/line-limit.yml@d5041b038b7d4935e75400dff612962e6fa14893 # v1.21.0
+    name: line limit
+    runs-on: ubuntu-latest
+    # Measured 2026-11-15: 6 s of work.
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Lint and test the check
+        run: |
+          set -euo pipefail
+          shellcheck -x scripts/ci/line-limit/*.sh
+          bash scripts/ci/line-limit/check.test.sh
+
+      - name: Hard limit of 500 code lines per file
+        run: bash scripts/ci/line-limit/check.sh

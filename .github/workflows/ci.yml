@@ -13,23 +13,67 @@ permissions:
   contents: read
 
 # A newer push to a pull request supersedes the run in flight. A push to a
-# branch is never cancelled, so every merge keeps its own result. The reusable
-# below has its own group; this one is the caller's.
+# branch is never cancelled, so every merge keeps its own result.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   bun:
-    uses: Glyndor/.github/.github/workflows/bun-ci.yml@d5041b038b7d4935e75400dff612962e6fa14893 # v1.21.0
-    with:
-      working-directory: internal
-      # The Bun release the release workflow and the Containerfile use. The
-      # reusable defaults to an older one, so without this the gate would test
-      # a different runtime from the one that ships.
-      bun-version: 1.4.4
-      coverage-threshold: 90
+    # The name is what the ruleset of develop requires. It was the check of the
+    # shared workflow this job replaces, and it stays so no ruleset has to change.
+    name: bun / Lint, build & test
+    runs-on: ubuntu-latest
+    # Measured 2026-11-15: 71 s (install 8, build 18, tests with coverage 44).
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: internal
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          # The Bun release the release workflow and the Containerfile use;
+          # scripts/consistency/check-bun-version.sh keeps them equal.
+          bun-version: 1.4.4
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Build
+        run: bun run build
+
+      # Prints the lines and functions coverage next to the threshold of
+      # internal/bunfig.toml (90%) and fails below it.
+      - name: Test with the coverage gate
+        working-directory: .
+        run: bash scripts/test/coverage.sh
+
   dependabot-freshness:
-    uses: Glyndor/.github/.github/workflows/dependabot-freshness.yml@d5041b038b7d4935e75400dff612962e6fa14893 # v1.21.0
-    with:
-      max-age-days: 15
+    name: dependabot freshness
+    runs-on: ubuntu-latest
+    # Measured 2026-11-15: 8 s.
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Lint and test the check
+        run: |
+          set -euo pipefail
+          shellcheck -x scripts/ci/freshness/*.sh
+          bash scripts/ci/freshness/check.test.sh
+
+      - name: The newest Dependabot pull request is under 15 days old
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          MAX_AGE_DAYS: "15"
+        run: bash scripts/ci/freshness/check.sh
